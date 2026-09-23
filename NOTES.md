@@ -56,6 +56,14 @@ Each says where it came from, so it can be picked up without re-deriving it.
   worked at 01:44 the same day. Live-app checks (Dolphin with the XPLasma
   style) wait for the user, or for a headless nested KWin; the gallery and
   the control oracle cover the style meanwhile.
+- **XP-style text rendering, measured to pixel-exact** (2026-09-23, XP VM
+  switched to Standard smoothing by the user): full hinting + no
+  antialiasing + **no kerning** (GDI's ExtTextOut never kerned) makes push
+  buttons, radios, check boxes and edits pixel-exact against XP, labels
+  included. Design: an opt-in "XP text" setting. Hinting and AA go through
+  fontconfig (fonts_gen, the "exclude range from anti-aliasing" rule);
+  kerning can't, so the style turns it off in polish(QApplication*) when
+  xplasmarc says so.
 - **XP-style text rendering: a session font setting worth adding**
   (measured 2026-09-23 with the control oracle). Rendering Tahoma 8 with
   full hinting and no antialiasing, as XP's "Standard" smoothing did,

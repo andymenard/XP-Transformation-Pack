@@ -203,6 +203,23 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
                 return;
             break;
         }
+        case PE_IndicatorBranch:
+            // Lines from the classic base (XP draws them the same dotted way),
+            // then the themed expand box: TVP_GLYPH, closed or opened.
+            if (option->state & State_Children) {
+                const PartRef glyph{QStringLiteral("treeview"), 2, (option->state & State_Open) ? 2 : 1, {}};
+                const QSize size = trueSize(glyph);
+                if (size.isValid() && hasPart(glyph)) {
+                    QStyleOption lines(*option);
+                    lines.state &= ~State_Children;   // the base draws the lines, not its own box
+                    QProxyStyle::drawPrimitive(element, &lines, painter, widget);
+                    const QRect r(option->rect.center().x() - size.width() / 2, option->rect.center().y() - size.height() / 2,
+                                  size.width(), size.height());
+                    drawPart(painter, glyph, r);
+                    return;
+                }
+            }
+            break;
         case PE_FrameGroupBox:
             if (drawPart(painter, {QStringLiteral("button"), 4, enabled(option) ? 1 : 2, {}}, option->rect))
                 return;
@@ -631,6 +648,18 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
                 return ok ? border : 1;
             }
             break;
+        case PM_FocusFrameHMargin:
+            // Item text in XP's report and tree views sits 4px further in
+            // than Qt's (text margin = this + 1): 7px, from the controls.
+            if (const int extra = itemRowExtra(widget); extra > 0 && hasPart({QStringLiteral("listview"), 0, Normal, {}}))
+                return 6;
+            break;
+        case PM_HeaderMargin:
+            // XP's header labels sit the item's content margin (Luna: 3) plus
+            // comctl32's 6px in.
+            if (hasPart({QStringLiteral("header"), 1, Normal, {}}))
+                return m_renderer->contentMargins({QStringLiteral("header"), 1, Normal, {}}).left() + 6;
+            break;
         case PM_TreeViewIndentation:
             if (hasPart({QStringLiteral("treeview"), 0, Normal, {}}))
                 return 19;   // TVM_GETINDENT
@@ -749,6 +778,22 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
                     return pane.adjusted(4, 2, -4, -4);
             }
         }
+    }
+    if (m_renderer && element == SE_LineEditContents) {
+        const auto *frame = qstyleoption_cast<const QStyleOptionFrame *>(option);
+        if (frame && frame->lineWidth > 0 && hasPart({QStringLiteral("edit"), 1, Normal, {}})) {
+            // XP's single-line Edit (EM_GETRECT, Luna, Tahoma 8): text 4px in
+            // from the 2px client edge and top-aligned 1px down -- not
+            // centred. QLineEdit adds 2px of its own and centres within this
+            // rect, so hand it a rect exactly one text line tall.
+            const QRect r = frame->rect;
+            const int line = xpTextHeight(widget ? widget->font() : QApplication::font());
+            return QRect(r.left() + 4, r.top() + 3, qMax(0, r.width() - 8), qMin(line, qMax(0, r.height() - 3)));
+        }
+    }
+    if (m_renderer && element == SE_ItemViewItemText && itemRowExtra(widget) == 0) {
+        // XP's list box draws its labels 1px lower within their row.
+        return QProxyStyle::subElementRect(element, option, widget).translated(0, 1);
     }
     if (m_renderer && (element == SE_ProgressBarContents || element == SE_ProgressBarGroove)
         && hasPart({QStringLiteral("progress"), 1, 1, {}})) {

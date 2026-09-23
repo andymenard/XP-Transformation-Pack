@@ -187,6 +187,7 @@ int main(int argc, char **argv)
         // XP's "Standard" font smoothing: full hinting, no antialiasing.
         font.setHintingPreference(QFont::PreferFullHinting);
         font.setStyleStrategy(QFont::NoAntialias);
+        font.setKerning(false);   // GDI's ExtTextOut doesn't kern
     }
     app.setFont(font);
     if (!controlsJob.isEmpty())
