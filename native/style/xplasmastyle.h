@@ -63,6 +63,9 @@ private:
 
     void drawScrollBar(const QStyleOptionSlider *option, QPainter *painter, const QWidget *widget) const;
     void drawProgressChunks(const QStyleOptionProgressBar *option, QPainter *painter, const QWidget *widget) const;
+    void drawSliderTicks(const QStyleOptionSlider *slider, const QRect &channel, const QRect &handle, QPainter *painter) const;
+    int sliderThumbPart(const QStyleOptionSlider *slider) const;
+    QSize sliderThumbSize(const QStyleOptionSlider *slider) const;
 
     std::unique_ptr<xpl::Renderer> m_renderer;
     bool m_safe = false;                   // XPLASMA_SAFE=1: classic only, draw nothing of our own

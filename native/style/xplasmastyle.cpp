@@ -473,27 +473,11 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
             if (const auto *slider = qstyleoption_cast<const QStyleOptionSlider *>(option)) {
                 const bool horizontal = slider->orientation == Qt::Horizontal;
                 if (hasPart({QStringLiteral("trackbar"), horizontal ? 1 : 2, 1, {}})) {
-                    const QRect groove = proxy()->subControlRect(CC_Slider, slider, SC_SliderGroove, widget);
+                    const QRect channel = proxy()->subControlRect(CC_Slider, slider, SC_SliderGroove, widget);
                     const QRect handle = proxy()->subControlRect(CC_Slider, slider, SC_SliderHandle, widget);
-                    // XP's track is a thin channel through the thumb's middle.
-                    QRect track = horizontal ? QRect(groove.left(), handle.center().y() - 1, groove.width(), 4)
-                                             : QRect(handle.center().x() - 1, groove.top(), 4, groove.height());
-                    drawPart(painter, {QStringLiteral("trackbar"), horizontal ? 1 : 2, 1, {}}, track);
-                    if (slider->subControls & SC_SliderTickmarks) {
-                        QStyleOptionSlider ticks(*slider);
-                        ticks.subControls = SC_SliderTickmarks;
-                        QProxyStyle::drawComplexControl(control, &ticks, painter, widget);
-                    }
-                    // TKP_THUMB*: the pointed thumb faces its tick marks.
-                    int part = horizontal ? 3 : 6;
-                    if (horizontal && slider->tickPosition == QSlider::TicksBelow)
-                        part = 4;
-                    else if (horizontal && slider->tickPosition == QSlider::TicksAbove)
-                        part = 5;
-                    else if (!horizontal && slider->tickPosition == QSlider::TicksLeft)
-                        part = 7;
-                    else if (!horizontal && slider->tickPosition == QSlider::TicksRight)
-                        part = 8;
+                    drawPart(painter, {QStringLiteral("trackbar"), horizontal ? 1 : 2, 1, {}}, channel);
+                    if ((slider->subControls & SC_SliderTickmarks) && slider->tickPosition != QSlider::NoTicks)
+                        drawSliderTicks(slider, channel, handle, painter);
                     int state = Normal;
                     if (!enabled(slider))
                         state = 5;
@@ -503,7 +487,7 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
                         state = Hot;
                     else if (slider->state & State_HasFocus)
                         state = 4;
-                    drawPart(painter, {QStringLiteral("trackbar"), part, state, {}}, handle);
+                    drawPart(painter, {QStringLiteral("trackbar"), sliderThumbPart(slider), state, {}}, handle);
                     return;
                 }
             }
@@ -637,9 +621,110 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
     return QProxyStyle::subElementRect(element, option, widget);
 }
 
+// TKP_THUMB*: the pointed thumb faces its tick marks; TKP_THUMB(VERT) when
+// there are ticks on both sides or none.
+int XPLasmaStyle::sliderThumbPart(const QStyleOptionSlider *slider) const
+{
+    const bool horizontal = slider->orientation == Qt::Horizontal;
+    if (horizontal)
+        return slider->tickPosition == QSlider::TicksBelow ? 4 : slider->tickPosition == QSlider::TicksAbove ? 5 : 3;
+    return slider->tickPosition == QSlider::TicksLeft ? 7 : slider->tickPosition == QSlider::TicksRight ? 8 : 6;
+}
+
+// comctl32 sizes the thumb from the system metrics, not the image: 4/3 of
+// the scroll bar thickness across, half that along (Luna: 22 x 11 around an
+// 11 x 21 image), shrinking to the client's size - 6 when that is smaller
+// (a 21px-tall trackbar gets a 7 x 15 thumb). The image is drawn inside.
+QSize XPLasmaStyle::sliderThumbSize(const QStyleOptionSlider *slider) const
+{
+    const bool horizontal = slider->orientation == Qt::Horizontal;
+    int across = sysMetric(horizontal ? u"scrollbarheight" : u"scrollbarwidth", 17) * 4 / 3;
+    const int room = horizontal ? slider->rect.height() : slider->rect.width();
+    if (room - 2 < across)
+        across = qMax(1, room - 6);
+    return horizontal ? QSize(across / 2, across) : QSize(across, across / 2);
+}
+
+// comctl32's trackbar layout, measured on XP (Luna Silver, widths 60-200,
+// heights 21-45, values 0/40/100): the thumb at its true size, 2px in from
+// the edge its point faces away from; a 4px channel running from
+// thumb/2 + 3 to the same distance from the far end, (thumb - 6)/2 into the
+// thumb; the thumb placed at MulDiv(value, channel - thumb, range).
+static QRect sliderLayout(const QStyleOptionSlider *slider, QSize thumb, QRect *channel)
+{
+    const bool horizontal = slider->orientation == Qt::Horizontal;
+    const QRect r = slider->rect;
+    const int along = horizontal ? thumb.width() : thumb.height();
+    const int across = horizontal ? thumb.height() : thumb.width();
+    const int inset = along / 2 + 3;
+    const int length = (horizontal ? r.width() : r.height()) - 2 * inset;
+    const bool pointsBack = horizontal ? slider->tickPosition == QSlider::TicksAbove
+                                       : slider->tickPosition == QSlider::TicksLeft;
+    const int crossStart = pointsBack ? (horizontal ? r.height() : r.width()) - 2 - across : 2;
+    const int channelCross = crossStart + (across - 6) / 2;
+    const qint64 range = qint64(slider->maximum) - slider->minimum;
+    const qint64 value = slider->upsideDown ? qint64(slider->maximum) - slider->sliderPosition
+                                            : qint64(slider->sliderPosition) - slider->minimum;
+    const int offset = range > 0 ? int((value * (length - along) + range / 2) / range) : 0;
+    if (horizontal) {
+        *channel = QRect(r.left() + inset, r.top() + channelCross, length, 4);
+        return QRect(r.left() + inset + offset, r.top() + crossStart, thumb.width(), thumb.height());
+    }
+    // Vertical sliders run bottom (minimum) to top, as XP's do by default.
+    *channel = QRect(r.left() + channelCross, r.top() + inset, 4, length);
+    return QRect(r.left() + crossStart, r.top() + inset + (length - along) - offset, thumb.width(), thumb.height());
+}
+
+void XPLasmaStyle::drawSliderTicks(const QStyleOptionSlider *slider, const QRect &channel, const QRect &handle,
+                                   QPainter *painter) const
+{
+    // In the Tics part's colour; the two end ticks 4px long, the rest 3,
+    // starting 1px past the thumb, one per tickInterval at the thumb's
+    // centre for that value.
+    const bool horizontal = slider->orientation == Qt::Horizontal;
+    const QColor colour = themeColour({QStringLiteral("trackbar"), horizontal ? 9 : 10, 1, {}}, u"color",
+                                      slider->palette.color(QPalette::WindowText));
+    const qint64 range = qint64(slider->maximum) - slider->minimum;
+    if (range <= 0)
+        return;
+    const int interval = slider->tickInterval > 0 ? slider->tickInterval : qMax(1, slider->pageStep);
+    const int along = horizontal ? handle.width() : handle.height();
+    const int span = (horizontal ? channel.width() : channel.height()) - along;
+    const int start = (horizontal ? channel.left() : channel.top()) + along / 2;
+    // One pixel clear of the thumb rect's (exclusive) far edge.
+    const int from = horizontal ? handle.bottom() + 2 : handle.right() + 2;
+    for (qint64 v = 0; v <= range; v += interval) {
+        const bool end = v == 0 || v + interval > range;
+        const int pos = start + int((v * span + range / 2) / range);
+        const int at = horizontal ? pos : start + span - (pos - start);
+        const int len = end ? 4 : 3;
+        painter->fillRect(horizontal ? QRect(at, from, 1, len) : QRect(from, at, len, 1), colour);
+        if (v + interval > range && v != range) {
+            // The last tick sits at the maximum even off the interval.
+            const int endAt = horizontal ? start + span : start;
+            painter->fillRect(horizontal ? QRect(endAt, from, 1, 4) : QRect(from, endAt, 4, 1), colour);
+        }
+    }
+}
+
 QRect XPLasmaStyle::subControlRect(ComplexControl control, const QStyleOptionComplex *option, SubControl sub,
                                    const QWidget *widget) const
 {
+    if (m_renderer && control == CC_Slider) {
+        if (const auto *slider = qstyleoption_cast<const QStyleOptionSlider *>(option)) {
+            const QSize thumb = sliderThumbSize(slider);
+            if (thumb.isValid() && hasPart({QStringLiteral("trackbar"), slider->orientation == Qt::Horizontal ? 1 : 2, 1, {}})) {
+                QRect channel;
+                const QRect handle = sliderLayout(slider, thumb, &channel);
+                if (sub == SC_SliderHandle)
+                    return handle;
+                if (sub == SC_SliderGroove)
+                    return channel;
+                if (sub == SC_SliderTickmarks)
+                    return slider->rect;
+            }
+        }
+    }
     if (m_renderer && control == CC_ComboBox && hasPart({QStringLiteral("combobox"), 1, 1, {}})) {
         if (const auto *combo = qstyleoption_cast<const QStyleOptionComboBox *>(option)) {
             // XP's drop-down button: a scroll bar's width, inside the 1px border.
