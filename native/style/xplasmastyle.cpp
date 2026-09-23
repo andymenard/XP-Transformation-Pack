@@ -70,18 +70,25 @@ std::pair<QString, QString> configuredTheme()
 }
 
 // A colour scheme's [Control Panel\Colors] from a .theme file (Windows
-// Classic and its schemes): lower-cased key -> colour.
-QHash<QString, QColor> schemeColours(const QString &path)
+// Classic and its schemes): lower-cased key -> colour; and the metrics
+// XPLasma adds ([XPLasma] ScrollWidth) into `metrics`.
+QHash<QString, QColor> schemeColours(const QString &path, QHash<QString, int> *metrics = nullptr)
 {
     QHash<QString, QColor> colours;
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly))
         return colours;
-    bool inColours = false;
+    bool inColours = false, inOurs = false;
     for (const QByteArray &raw : file.readAll().split('\n')) {
         const QString line = QString::fromLatin1(raw).trimmed();
         if (line.startsWith(QLatin1Char('['))) {
             inColours = line.compare(QLatin1String("[Control Panel\\Colors]"), Qt::CaseInsensitive) == 0;
+            inOurs = line.compare(QLatin1String("[XPLasma]"), Qt::CaseInsensitive) == 0;
+        } else if (inOurs && metrics && line.contains(QLatin1Char('='))) {
+            bool ok = false;
+            const int v = line.section(QLatin1Char('='), 1).trimmed().toInt(&ok);
+            if (ok && v > 0)
+                metrics->insert(line.section(QLatin1Char('='), 0, 0).trimmed().toLower(), v);
         } else if (inColours && line.contains(QLatin1Char('='))) {
             const QStringList rgb = line.section(QLatin1Char('='), 1).simplified().split(QLatin1Char(' '));
             if (rgb.size() == 3)
@@ -132,7 +139,7 @@ void XPLasmaStyle::loadTheme()
         return;
     if (path.endsWith(QLatin1String(".theme"), Qt::CaseInsensitive)) {
         // Windows Classic: no visual style, a colour scheme.
-        m_scheme = schemeColours(path);
+        m_scheme = schemeColours(path, &m_schemeMetrics);
         if (m_scheme.isEmpty())
             qWarning("XPLasma: no [Control Panel\\Colors] in %s", qPrintable(path));
         return;
@@ -199,6 +206,11 @@ QColor XPLasmaStyle::sysColour(QStringView name, const QColor &fallback) const
 
 int XPLasmaStyle::sysMetric(QStringView name, int fallback) const
 {
+    if (classic()) {
+        if (name == u"scrollbarwidth" || name == u"scrollbarheight")
+            return m_schemeMetrics.value(QStringLiteral("scrollwidth"), fallback);
+        return fallback;
+    }
     bool ok = false;
     const int v = m_renderer ? m_renderer->theme().property(u"sysmetrics", u"", u"", name).value_or(QString()).toInt(&ok) : 0;
     return ok && v > 0 ? v : fallback;

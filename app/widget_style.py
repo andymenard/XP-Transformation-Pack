@@ -132,12 +132,37 @@ def freeze(msstyles: str) -> str:
     return dest
 
 
+def scheme_theme_text(scheme) -> str:
+    """A classic colour scheme as the plugin reads it: a .theme file's
+    [Control Panel\\Colors] (XP's own spelling of each key), plus the scroll
+    bar width the scheme sets (SM_CXVSCROLL)."""
+    lines = [f"; Windows Classic scheme {scheme.name!r}, written by XPLasma", "", "[Control Panel\\Colors]"]
+    for key in sorted(scheme.colors):
+        r, g, b = scheme.colors[key]
+        lines.append(f"{key}={r} {g} {b}")
+    lines += ["", "[XPLasma]", f"ScrollWidth={scheme.scroll}", ""]
+    return "\r\n".join(lines)
+
+
+def freeze_scheme(scheme) -> str:
+    """The frozen, content-addressed .theme the plugin will read for `scheme`."""
+    text = scheme_theme_text(scheme).encode("latin-1", errors="replace")
+    dest = os.path.join(paths.ensure(ACTIVE_DIR), f"{hashlib.sha256(text).hexdigest()}.theme")
+    if not os.path.exists(dest):
+        staged = f"{dest}.new"
+        with open(staged, "wb") as fh:
+            fh.write(text)
+        os.replace(staged, dest)
+    return dest
+
+
 def write_config(frozen: str, variant: str | None, source: str) -> None:
-    """Point the plugin at a frozen style. Atomic, so a watching app never
-    reads half a file."""
+    """Point the plugin at a frozen style (or classic scheme). Atomic, so a
+    watching app never reads half a file."""
     cp = configparser.ConfigParser(interpolation=None)
     cp.optionxform = str
-    cp["Theme"] = {"Path": frozen, "Variant": variant or "", "Source": os.path.abspath(source)}
+    cp["Theme"] = {"Path": frozen, "Variant": variant or "",
+                   "Source": source if source.startswith("classic:") else os.path.abspath(source)}
     tmp = f"{CONFIG}.tmp"
     os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
     with open(tmp, "w", encoding="utf-8") as fh:
@@ -150,7 +175,7 @@ def prune_frozen(keep: str) -> None:
     open keeps reading it (it was read into memory); nothing reads it after."""
     for entry in os.listdir(ACTIVE_DIR) if os.path.isdir(ACTIVE_DIR) else []:
         path = os.path.join(ACTIVE_DIR, entry)
-        if entry.endswith(".msstyles") and path != keep:
+        if entry.endswith((".msstyles", ".theme")) and path != keep:
             os.remove(path)
 
 
@@ -182,9 +207,17 @@ def apply_visual_style(msstyles: str, variant: str | None, progress=print) -> No
     _set_style(STYLE_KEY)
 
 
-def apply_classic_style() -> None:
-    """Windows Classic: Qt's built-in Windows style until Phase 3b."""
-    _set_style("Windows")
+def apply_classic_style(scheme=None, progress=print) -> None:
+    """Windows Classic: the plugin draws it too, from the scheme's colours
+    (Windows Standard's when none is given)."""
+    if scheme is None:
+        import classic_gen
+        scheme = classic_gen.load_scheme()
+    install_plugins(progress)
+    frozen = freeze_scheme(scheme)
+    write_config(frozen, None, f"classic:{scheme.name}")
+    prune_frozen(keep=frozen)
+    _set_style(STYLE_KEY)
 
 
 def remove() -> str:

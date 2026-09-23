@@ -95,5 +95,6 @@ private:
     std::unique_ptr<xpl::Renderer> m_renderer;
     bool m_safe = false;                   // XPLASMA_SAFE=1: classic only, draw nothing of our own
     QHash<QString, QColor> m_scheme;       // Classic: the colour scheme's [Control Panel\Colors], keys lower-case
+    QHash<QString, int> m_schemeMetrics;   // Classic: [XPLasma] metrics (scrollwidth)
     mutable QCache<QString, QImage> m_cache; // rendered parts, keyed by part + size + dpi
 };

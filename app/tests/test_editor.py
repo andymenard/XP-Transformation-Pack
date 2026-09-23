@@ -489,6 +489,20 @@ with tempfile.TemporaryDirectory(prefix="xplasma-test-style-") as scratch:
         ws.prune_frozen(keep=frozen)
         check("older frozen copies are pruned, the live one kept",
               not os.path.exists(stale) and os.path.exists(frozen))
+        # Windows Classic: the plugin reads the scheme's colours from a frozen .theme.
+        rainy = cg.load_scheme(scheme_name="Rainy Day")
+        scheme_file = ws.freeze_scheme(rainy)
+        check("a classic scheme freezes to a .theme, the same one twice",
+              scheme_file.endswith(".theme") and ws.freeze_scheme(rainy) == scheme_file)
+        text = open(scheme_file, encoding="latin-1").read()
+        check("with the scheme's colours in XP's own spelling and its scroll width",
+              "[Control Panel\\Colors]" in text and "buttonface=131 153 177" in text
+              and f"ScrollWidth={rainy.scroll}" in text, text[:200])
+        ws.write_config(scheme_file, None, "classic:Rainy Day")
+        text = open(ws.CONFIG, encoding="utf-8").read()
+        check("xplasmarc points at it", f"Path={scheme_file}" in text and "Source=classic:Rainy Day" in text, text)
+        ws.prune_frozen(keep=scheme_file)
+        check("switching to classic prunes the frozen style", not os.path.exists(frozen) and os.path.exists(scheme_file))
     finally:
         ws.ACTIVE_DIR, ws.CONFIG = real_ws
 win.tabs.setCurrentIndex(3)

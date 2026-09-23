@@ -73,7 +73,7 @@ def apply_scheme_live(scheme, name: str, *, out_dir: str | None = None, theme_fi
     apply_font_specs(scheme.caption_font, scheme.ui_font)
     if widgets:
         progress("Applying widget style ...")
-        widget_style.apply_classic_style()
+        widget_style.apply_classic_style(scheme, progress)
     if panel_pkg:
         apply_mod.apply_desktoptheme(panel_id)
         apply_mod.apply_panel_settings(panel_height or bar_height)
