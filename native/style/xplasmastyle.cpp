@@ -1366,11 +1366,20 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                     // one line tall inside the margin it takes off.
                     const int m = proxy()->pixelMetric(PM_HeaderMargin, option, widget);
                     const QMargins cm = m_renderer->contentMargins(inContext({QStringLiteral("header"), 1, Normal, {}}));
-                    const int th = xpTextHeight(widget ? widget->font() : QApplication::font());
+                    // (GDI's line height where it agrees with Qt's, as for
+                    // Tahoma 8; for other session fonts -- Noto's is far
+                    // taller in GDI's terms than the line Qt draws -- Qt's.)
+                    int th = xpTextHeight(widget ? widget->font() : QApplication::font());
+                    if (const int qt = header->fontMetrics.height(); qAbs(qt - th) > 1)
+                        th = qt;
                     const int avail = header->rect.height() - cm.top() - cm.bottom();
                     const int top = header->rect.top() + cm.top() + (avail - th) / 2 - 1;
                     QStyleOptionHeader copy(*header);
                     copy.rect = QRect(header->rect.left(), top - m, header->rect.width(), th + 2 * m);
+                    // (Centred in that: QHeaderView asks for AlignVCenter,
+                    // Dolphin's header for AlignLeft alone.)
+                    if (!(copy.textAlignment & Qt::AlignVertical_Mask))
+                        copy.textAlignment |= Qt::AlignVCenter;
                     if (header->state & State_Sunken)   // pressed: 1px down and right
                         copy.rect.translate(1, 1);
                     QProxyStyle::drawControl(element, &copy, painter, widget);
@@ -3062,6 +3071,8 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
             const int top = header->rect.top() + (header->rect.height() - th) / 2;
             QStyleOptionHeader copy(*header);
             copy.rect = QRect(header->rect.left(), top - m, header->rect.width(), th + 2 * m);
+            if (!(copy.textAlignment & Qt::AlignVertical_Mask))   // (see the themed CE_HeaderLabel)
+                copy.textAlignment |= Qt::AlignVCenter;
             if (header->state & State_Sunken)
                 copy.rect.translate(1, 1);
             QProxyStyle::drawControl(element, &copy, painter, widget);
