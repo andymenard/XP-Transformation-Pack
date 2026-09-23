@@ -1525,6 +1525,10 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
     if (m_renderer) {
         switch (control) {
         case CC_ToolButton:
+            if (const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option); button && xpDropDown(button)) {
+                drawXpDropDownButton(button, painter, widget);
+                return;
+            }
             // A tab row's scroll buttons: the two halves of XP's up-down
             // (SPNP_DOWNHORZ pointing left, SPNP_UPHORZ right).
             if (const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option);
@@ -2035,6 +2039,10 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
             return 1;
         case PM_TitleBarHeight:
             return sysMetric(u"captionbarheight", 18) + 1;   // SM_CYCAPTION
+        case PM_MenuButtonIndicator:
+            if (const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option); button && xpDropDown(button))
+                return 13;   // a split button's arrow half (measured)
+            break;
         case PM_MdiSubWindowFrameWidth:
             return sysMetric(u"sizingborderwidth", 1) + 3;   // SM_CXSIZEFRAME
         default:
@@ -2119,6 +2127,13 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
         case PM_ButtonShiftHorizontal:
         case PM_ButtonShiftVertical:
             return 0;   // XP's pressed buttons keep their label still
+        case PM_MenuButtonIndicator:
+            // A split button's arrow half: TP_SPLITBUTTONDROPDOWN's true
+            // width + 2 (13 in Luna), for a toolbar button.
+            if (const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option);
+                button && xpDropDown(button))
+                return trueSize({QStringLiteral("toolbar"), 4, Normal, {}}).width() + 2;
+            break;
         case PM_ToolBarFrameWidth:
         case PM_ToolBarItemMargin:
         case PM_ToolBarItemSpacing:
@@ -2595,11 +2610,154 @@ void XPLasmaStyle::drawXpTabLabel(const QStyleOptionTab *tab, QPainter *painter,
 // with a space either side.
 QSize XPLasmaStyle::xpToolButtonSize(const QStyleOptionToolButton *button, const QSize &size) const
 {
+    QSize s;
     if (button->toolButtonStyle == Qt::ToolButtonTextOnly) {
         const int space = QFontMetrics(button->font).horizontalAdvance(QLatin1Char(' '));
-        return QSize(size.width() - 2 * space + 11, xpTextHeight(button->font) + 6);
+        s = QSize(size.width() - 2 * space + 11, xpTextHeight(button->font) + 6);
+    } else {
+        s = size + QSize(7, 6);
     }
-    return size + QSize(7, 6);
+    // Drop-down buttons (measured, Luna Silver, TBSTYLE_EX_DRAWDDARROWS): a
+    // split button's main half 6px wider than a plain button (Qt has
+    // already added the arrow half, PM_MenuButtonIndicator); a whole
+    // drop-down 9px wider for its arrow; both as tall as the arrow part
+    // plus 2 each side (27).
+    // (Classic: the main half as wide as a plain button, the height kept.)
+    if (xpDropDown(button)) {
+        const bool split = button->features & QStyleOptionToolButton::MenuButtonPopup;
+        s.rwidth() += split ? (classic() ? 0 : 6) : 9;
+        if (!classic())
+            s.setHeight(qMax(s.height(), trueSize({QStringLiteral("toolbar"), 4, Normal, {}}).height() + 4));
+    }
+    return s;
+}
+
+// A toolbar button with a menu, drawn as XP's drop-down buttons: a split
+// button (MenuButtonPopup: TP_SPLITBUTTON and TP_SPLITBUTTONDROPDOWN) or a
+// whole drop-down (TP_DROPDOWNBUTTON; Qt's instant and delayed popups).
+bool XPLasmaStyle::xpDropDown(const QStyleOptionToolButton *button) const
+{
+    return (button->features & (QStyleOptionToolButton::HasMenu | QStyleOptionToolButton::MenuButtonPopup))
+           && (button->state & State_AutoRaise) && button->arrowType == Qt::NoArrow
+           && (classic() || (m_renderer && hasPart({QStringLiteral("toolbar"), 3, Normal, {}})));
+}
+
+// comctl32's drop-down arrow: 5/3/1 rows, in the text colour.
+static void drawDropArrow(QPainter *painter, QPoint at, const QColor &colour)
+{
+    for (int i = 0; i < 3; ++i)
+        painter->fillRect(at.x() + i, at.y() + i, 5 - 2 * i, 1, colour);
+}
+
+void XPLasmaStyle::drawXpDropDownButton(const QStyleOptionToolButton *button, QPainter *painter, const QWidget *widget) const
+{
+    const bool split = button->features & QStyleOptionToolButton::MenuButtonPopup;
+    const bool on = enabled(button);
+    const bool sunkenMain = on && (button->state & State_Sunken) && (!split || (button->activeSubControls & SC_ToolButton));
+    const bool sunkenArrow = on && split && (button->state & State_Sunken) && (button->activeSubControls & SC_ToolButtonMenu);
+    const bool hot = on && ((button->state & State_MouseOver) || sunkenMain || sunkenArrow);
+    const bool checked = on && (button->state & State_On);
+    // TS_*: normal 1, hot 2, pressed 3, disabled 4, checked 5, hot checked 6.
+    int mainState = !on ? Disabled : sunkenMain ? Pressed : checked ? (hot ? 6 : 5) : hot ? Hot : Normal;
+    const QRect main = split ? proxy()->subControlRect(CC_ToolButton, button, SC_ToolButton, widget) : button->rect;
+    const QRect arrow = split ? proxy()->subControlRect(CC_ToolButton, button, SC_ToolButtonMenu, widget) : QRect();
+    const QColor ink = !on ? sysColour(u"graytext", Qt::gray)
+                       : classic() ? sysColour(u"btntext", Qt::black)
+                                   : themeColour({QStringLiteral("toolbar"), 0, Normal, {}}, u"textcolor",
+                                                 button->palette.color(QPalette::ButtonText));
+    if (classic()) {
+        // Classic (measured): each half a 1px raised edge when hot, both
+        // sunken when held (the glyph moving with them); the glyph 4px into
+        // the arrow half, or 4px from a whole drop-down's edge, a row below
+        // the middle.
+        const bool held = sunkenMain || sunkenArrow;
+        auto edge = [&](const QRect &q) {
+            if (!hot && !held && !checked)
+                return;
+            const QColor light = sysColour(u"btnhighlight", Qt::white), dark = sysColour(u"btnshadow", Qt::gray);
+            const QColor tl = (held || checked) ? dark : light, br = (held || checked) ? light : dark;
+            painter->fillRect(QRect(q.left(), q.top(), q.width() - 1, 1), tl);
+            painter->fillRect(QRect(q.left(), q.top(), 1, q.height() - 1), tl);
+            painter->fillRect(QRect(q.left(), q.bottom(), q.width(), 1), br);
+            painter->fillRect(QRect(q.right(), q.top(), 1, q.height()), br);
+        };
+        edge(main);
+        const QPoint shift = held ? QPoint(1, 1) : QPoint();
+        if (split) {
+            edge(arrow);
+            drawDropArrow(painter, QPoint(arrow.left() + 4, arrow.top() + (arrow.height() - 3) / 2 + 1) + shift, ink);
+        } else {
+            drawDropArrow(painter, QPoint(main.right() - 4 - 4, main.top() + (main.height() - 3) / 2 + 1) + shift, ink);
+        }
+        const int th = xpTextHeight(button->font);
+        QRect text(main.left() + 2, main.top() + (main.height() - th) / 2, main.width() - 2, th);
+        text.translate(shift);
+        QPalette pal = button->palette;
+        pal.setColor(QPalette::ButtonText, ink);
+        painter->save();
+        painter->setFont(button->font);
+        if (button->toolButtonStyle == Qt::ToolButtonTextOnly) {
+            proxy()->drawItemText(painter, text, Qt::AlignLeft | Qt::AlignTop | Qt::TextShowMnemonic, pal, on,
+                                  button->text, QPalette::ButtonText);
+        } else {
+            QStyleOptionToolButton label(*button);
+            label.rect = (split ? main : main.adjusted(0, 0, -9, 0)).translated(shift);
+            label.features &= ~(QStyleOptionToolButton::HasMenu | QStyleOptionToolButton::MenuButtonPopup);
+            label.state &= ~(State_Sunken | State_On);
+            QProxyStyle::drawControl(CE_ToolButtonLabel, &label, painter, widget);
+        }
+        painter->restore();
+        return;
+    }
+    if (mainState != Normal && mainState != Disabled)
+        drawPart(painter, {QStringLiteral("toolbar"), split ? 3 : 2, mainState, {}}, main);
+    if (split) {
+        // The arrow half lights with the button; at rest only its glyph
+        // shows, 3px in and centred (the part's glyph when lit). A whole
+        // drop-down's arrow sits 4px from its right edge, a row lower.
+        // (Held, the whole split button is pressed art, both halves.)
+        const int arrowState = !on ? Disabled : (sunkenArrow || sunkenMain) ? Pressed : hot ? Hot : Normal;
+        if (arrowState == Hot || arrowState == Pressed)
+            drawPart(painter, {QStringLiteral("toolbar"), 4, arrowState, {}}, arrow);
+        else
+            drawDropArrow(painter, QPoint(arrow.left() + 3, arrow.top() + (arrow.height() - 3) / 2), ink);
+    } else {
+        drawDropArrow(painter, QPoint(main.right() - 4 - 4, main.top() + (main.height() - 3) / 2 + 1 + (sunkenMain ? 1 : 0)), ink);
+    }
+    // The label: TBSTYLE_LIST text 6px into a split button's main half, 2px
+    // into a whole drop-down, centred vertically; 1px down and right held.
+    QStyleOptionToolButton label(*button);
+    label.rect = split ? main : main.adjusted(0, 0, -9, 0);
+    label.features &= ~(QStyleOptionToolButton::HasMenu | QStyleOptionToolButton::MenuButtonPopup);
+    label.state &= ~(State_Sunken | State_On);
+    if (sunkenMain)
+        label.state |= State_Sunken;
+    if (button->toolButtonStyle == Qt::ToolButtonTextOnly) {
+        if (sunkenMain && m_renderer)
+            label.palette.setColor(QPalette::ButtonText, themeColour({QStringLiteral("toolbar"), 0, Pressed, {}}, u"textcolor", ink));
+        else
+            label.palette.setColor(QPalette::ButtonText, ink);
+        const int th = xpTextHeight(button->font);
+        QRect text(label.rect.left() + (split ? 6 : 2), label.rect.top() + (label.rect.height() - th) / 2,
+                   label.rect.width() - (split ? 6 : 2), th);
+        if (sunkenMain)
+            text.translate(1, 1);
+        painter->save();
+        painter->setFont(button->font);
+        proxy()->drawItemText(painter, text, Qt::AlignLeft | Qt::AlignTop | Qt::TextShowMnemonic, label.palette, on,
+                              button->text, QPalette::ButtonText);
+        painter->restore();
+    } else {
+        if (sunkenMain)
+            label.rect.translate(1, 1);
+        QProxyStyle::drawControl(CE_ToolButtonLabel, &label, painter, widget);
+    }
+    if ((button->state & State_HasFocus) && (button->state & State_KeyboardFocusChange)) {
+        QStyleOptionFocusRect focus;
+        focus.QStyleOption::operator=(*button);
+        focus.rect = button->rect.adjusted(3, 3, -3, -3);
+        proxy()->drawPrimitive(PE_FrameFocusRect, &focus, painter, widget);
+    }
 }
 
 // XP presses a toolbar button's contents 1px down and right; TBSTYLE_LIST
@@ -3272,6 +3430,10 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
 {
     switch (control) {
     case CC_ToolButton:
+        if (const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option); button && xpDropDown(button)) {
+            drawXpDropDownButton(button, painter, widget);
+            return true;
+        }
         // A tab row's scroll buttons: the halves of a classic up-down.
         if (const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option);
             button && widget && qobject_cast<const QTabBar *>(widget->parentWidget())

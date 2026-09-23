@@ -83,6 +83,8 @@ private:
     QRect xpTabRect(const QStyleOptionTab *tab) const;
     void drawXpHeader(const QStyleOptionHeader *header, QPainter *painter, const QWidget *widget) const;
     QSize xpToolButtonSize(const QStyleOptionToolButton *button, const QSize &size) const;
+    bool xpDropDown(const QStyleOptionToolButton *button) const;
+    void drawXpDropDownButton(const QStyleOptionToolButton *button, QPainter *painter, const QWidget *widget) const;
     bool drawXpToolButtonLabel(const QStyleOptionToolButton *button, QPainter *painter, const QWidget *widget) const;
     QSize xpTabSize(const QStyleOptionTab *tab, const QSize &size, const QWidget *widget) const;
     void drawXpTabLabel(const QStyleOptionTab *tab, QPainter *painter, const QWidget *widget) const;

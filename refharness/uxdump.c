@@ -921,14 +921,25 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
         TBBUTTON b[4];
         RECT r[4];
         const wchar_t *names[] = {L"Back", L"Forward", NULL, L"Folders"};
+        /* toolbar:1 -- drop-down buttons, arrows drawn as Explorer has them
+         * (TBSTYLE_EX_DRAWDDARROWS): Views and Back split, Tools whole. */
+        const wchar_t *dropNames[] = {L"Views", L"Tools", NULL, L"Back"};
+        const BYTE dropStyles[] = {BTNS_DROPDOWN, BTNS_WHOLEDROPDOWN, 0, BTNS_DROPDOWN};
         ZeroMemory(b, sizeof b);
         SendMessageW(ctl, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
         SendMessageW(ctl, TB_SETIMAGELIST, 0, 0);
+        if (value == 1) {
+            SendMessageW(ctl, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DRAWDDARROWS);
+            for (i = 0; i < 4; i++)
+                names[i] = dropNames[i];
+        }
         for (i = 0; i < 4; i++) {
             b[i].iBitmap = names[i] ? I_IMAGENONE : 6;
             b[i].idCommand = 100 + i;
-            b[i].fsState = TBSTATE_ENABLED | (i == 3 ? TBSTATE_CHECKED : 0);
-            b[i].fsStyle = names[i] ? (BTNS_AUTOSIZE | BTNS_SHOWTEXT | (i == 3 ? BTNS_CHECK : 0)) : BTNS_SEP;
+            b[i].fsState = TBSTATE_ENABLED | (i == 3 && value != 1 ? TBSTATE_CHECKED : 0);
+            b[i].fsStyle = names[i] ? (BTNS_AUTOSIZE | BTNS_SHOWTEXT | (i == 3 && value != 1 ? BTNS_CHECK : 0)
+                                       | (value == 1 ? dropStyles[i] : 0))
+                                    : BTNS_SEP;
             b[i].iString = (INT_PTR)names[i];
         }
         SendMessageW(ctl, TB_ADDBUTTONSW, 4, (LPARAM)b);

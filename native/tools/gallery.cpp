@@ -222,12 +222,29 @@ static QWidget *controlFor(const QString &kind, const QString &label)
         auto *t = new QToolBar;
         t->setMovable(false);
         t->setToolButtonStyle(Qt::ToolButtonTextOnly);
-        t->addAction(QStringLiteral("Back"));
-        t->addAction(QStringLiteral("Forward"));
-        t->addSeparator();
-        QAction *folders = t->addAction(QStringLiteral("Folders"));
-        folders->setCheckable(true);
-        folders->setChecked(true);
+        if (value == 1) {
+            // toolbar:1 -- drop-down buttons: Views and Back split (a
+            // button and an arrow), Tools a whole drop-down.
+            auto dropDown = [t](const QString &text, QToolButton::ToolButtonPopupMode mode) {
+                auto *menu = new QMenu(t);
+                menu->addAction(QStringLiteral("Item"));
+                QAction *action = t->addAction(text);
+                action->setMenu(menu);
+                if (auto *button = qobject_cast<QToolButton *>(t->widgetForAction(action)))
+                    button->setPopupMode(mode);
+            };
+            dropDown(QStringLiteral("Views"), QToolButton::MenuButtonPopup);
+            dropDown(QStringLiteral("Tools"), QToolButton::InstantPopup);
+            t->addSeparator();
+            dropDown(QStringLiteral("Back"), QToolButton::MenuButtonPopup);
+        } else {
+            t->addAction(QStringLiteral("Back"));
+            t->addAction(QStringLiteral("Forward"));
+            t->addSeparator();
+            QAction *folders = t->addAction(QStringLiteral("Folders"));
+            folders->setCheckable(true);
+            folders->setChecked(true);
+        }
         // At its own height along the top, as in a window.
         auto *w = new QWidget;
         auto *v = new QVBoxLayout(w);
