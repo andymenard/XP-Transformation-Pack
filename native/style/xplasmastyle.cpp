@@ -341,10 +341,13 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
                 return;
             break;
         case PE_FrameFocusRect:
-            // DrawFocusRect over the DC's default colours: an inverting dot
-            // pattern.
+            // DrawFocusRect XORs with the control's DC background colour:
+            // the button face for buttons, check boxes and radio buttons,
+            // white (an inversion) elsewhere.
             if (option->rect.isValid()) {
-                drawFocusDots(painter, option->rect, Qt::white);
+                const bool face = qobject_cast<const QAbstractButton *>(widget);
+                drawFocusDots(painter, option->rect,
+                              face ? sysColour(u"btnface", option->palette.color(QPalette::Button)) : QColor(Qt::white));
                 return;
             }
             break;
@@ -499,6 +502,23 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                 }
             }
             break;
+        case CE_CheckBox:
+        case CE_RadioButton:
+            // QCommonStyle places the focus rect with a non-proxied call;
+            // draw it at our SE_*FocusRect instead.
+            if (const auto *button = qstyleoption_cast<const QStyleOptionButton *>(option);
+                button && (button->state & State_HasFocus)) {
+                QStyleOptionButton copy(*button);
+                copy.state &= ~State_HasFocus;
+                QProxyStyle::drawControl(element, &copy, painter, widget);
+                QStyleOptionFocusRect focus;
+                focus.QStyleOption::operator=(*button);
+                focus.rect = proxy()->subElementRect(element == CE_CheckBox ? SE_CheckBoxFocusRect : SE_RadioButtonFocusRect,
+                                                     button, widget);
+                proxy()->drawPrimitive(PE_FrameFocusRect, &focus, painter, widget);
+                return;
+            }
+            break;
         case CE_SizeGrip:
             // SP_GRIPPER, at its true size in the bottom-right corner, 1px
             // in from the right as comctl32 places it.
@@ -615,10 +635,16 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                     && (tab->shape == QTabBar::RoundedNorth || tab->shape == QTabBar::TriangularNorth)) {
                     QStyleOptionTab copy(*tab);
                     copy.rect = xpTabRect(tab);
+                    copy.state &= ~State_HasFocus;
                     // The selected tab's label rides up with it.
                     if (tab->state & State_Selected)
                         copy.rect.translate(0, -2);
                     QProxyStyle::drawControl(element, &copy, painter, widget);
+                    // XP rings the tab's own (unselected) rect, 1px in, XORed
+                    // with the button face.
+                    if (tab->state & State_HasFocus)
+                        drawFocusDots(painter, xpTabRect(tab).adjusted(1, 1, -1, -1),
+                                      sysColour(u"btnface", tab->palette.color(QPalette::Button)));
                     return;
                 }
             }
@@ -764,6 +790,10 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
                         // A focused drop-down list highlights its field, as XP does.
                         const QRect field = proxy()->subControlRect(CC_ComboBox, combo, SC_ComboBoxEditField, widget);
                         painter->fillRect(field, combo->palette.brush(QPalette::Highlight));
+                        // ...ringed by a focus rect XORed with the highlight
+                        // colours the field is drawn in.
+                        drawFocusDots(painter, field, combo->palette.color(QPalette::Active, QPalette::Highlight),
+                                      combo->palette.color(QPalette::Active, QPalette::HighlightedText));
                     }
                     return;
                 }
@@ -824,6 +854,9 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
                     else if (slider->state & State_HasFocus)
                         state = 4;
                     drawPart(painter, {QStringLiteral("trackbar"), sliderThumbPart(slider), state, {}}, handle);
+                    // A focused trackbar's focus rect rings its whole client.
+                    if (slider->state & State_HasFocus)
+                        drawFocusDots(painter, slider->rect, Qt::white);
                     return;
                 }
             }
@@ -1116,6 +1149,11 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
 
 QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *option, const QWidget *widget) const
 {
+    if (m_renderer && (element == SE_CheckBoxFocusRect || element == SE_RadioButtonFocusRect)
+        && hasPart({QStringLiteral("button"), element == SE_CheckBoxFocusRect ? 3 : 2, 1, {}})) {
+        // XP rings the label 1px tighter than Qt (2px in, 1px down).
+        return QProxyStyle::subElementRect(element, option, widget).adjusted(2, 1, -2, -1);
+    }
     if (m_renderer && (element == SE_CheckBoxClickRect || element == SE_RadioButtonClickRect)
         && hasPart({QStringLiteral("button"), element == SE_CheckBoxClickRect ? 3 : 2, 1, {}})) {
         // An XP check box or radio button is hot, and takes clicks,

@@ -21,3 +21,12 @@ control spin 80 21 hot-70-5
 control spin 80 21 hot-70-15
 control combo 150 21 disabled Windows XP style
 control combo-edit 150 21 disabled Tahoma
+control push 75 23 focused OK
+control default 75 23 focused OK
+control check 160 17 focused Use drop shadows
+control check-on 160 17 focused Show window contents
+control radio-on 160 17 focused Center
+control combo 150 21 focused Windows XP style
+control trackbar:40 150 30 focused
+control tabs 300 120 focused
+control hscroll 150 17 focused
