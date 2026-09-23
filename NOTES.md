@@ -64,3 +64,9 @@ Each says where it came from, so it can be picked up without re-deriving it.
   match in size (87x11). It isn't the style's job: `fonts_gen` should
   offer it on Apply, through the same fontconfig rule KDE's Fonts module
   writes for "exclude range from anti-aliasing" (0-8 pt).
+- **The XP VM has ClearType on** (seen 2026-09-23: coloured fringes such as
+  229,241,237 around control labels). XP's default was "Standard"
+  smoothing, which the XPLasma look aims at, so exact text colours can't
+  be read off the VM as it stands. Switching it to Standard (Display
+  Properties > Appearance > Effects) is a persistent VM change, so it's
+  the user's call (`XPVM_PERSIST=1 refharness/vm.sh`).

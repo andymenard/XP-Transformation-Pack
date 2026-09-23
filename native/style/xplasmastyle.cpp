@@ -292,13 +292,29 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                 }
             }
             break;
+        case CE_CheckBoxLabel:
+        case CE_RadioButtonLabel:
+            if (const auto *btn = qstyleoption_cast<const QStyleOptionButton *>(option)) {
+                // The part's own TextColor for its state (disabled included).
+                const bool check = element == CE_CheckBoxLabel;
+                const int base = (btn->state & State_On) ? 4 : (check && (btn->state & State_NoChange)) ? 8 : 0;
+                const PartRef ref{QStringLiteral("button"), check ? 3 : 2, base + fourState(btn), {}};
+                QStyleOptionButton copy(*btn);
+                const QPalette::ColorGroup group = enabled(btn) ? QPalette::Active : QPalette::Disabled;
+                copy.palette.setColor(group, QPalette::WindowText,
+                                      themeColour(ref, u"textcolor", btn->palette.color(group, QPalette::WindowText)));
+                QProxyStyle::drawControl(element, &copy, painter, widget);
+                return;
+            }
+            break;
         case CE_PushButtonLabel:
             if (const auto *btn = qstyleoption_cast<const QStyleOptionButton *>(option)) {
                 QStyleOptionButton copy(*btn);
                 const int state = enabled(btn) ? Normal : Disabled;
-                copy.palette.setColor(QPalette::ButtonText,
+                const QPalette::ColorGroup group = enabled(btn) ? QPalette::Active : QPalette::Disabled;
+                copy.palette.setColor(group, QPalette::ButtonText,
                                       themeColour({QStringLiteral("button"), 1, state, {}}, u"textcolor",
-                                                  btn->palette.color(QPalette::ButtonText)));
+                                                  btn->palette.color(group, QPalette::ButtonText)));
                 // No sunken text shift: XP's pressed buttons keep their label still.
                 copy.state &= ~(State_Sunken | State_On);
                 QProxyStyle::drawControl(element, &copy, painter, widget);
@@ -831,6 +847,12 @@ int XPLasmaStyle::styleHint(StyleHint hint, const QStyleOption *option, const QW
     switch (hint) {
     case SH_ComboBox_Popup:
         return 0;
+    case SH_EtchDisabledText:
+        // Etched (white-shadowed) disabled text is classic Windows; XP's
+        // themed controls draw it flat in the part's disabled TextColor.
+        if (m_renderer)
+            return 0;
+        break;
     default:
         break;
     }
