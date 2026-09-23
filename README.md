@@ -21,6 +21,7 @@ xp2plasma into C++/Qt 6 on the same core; until that lands, the Python app in
 | `src/core/` | The `.msstyles` reader (PE, DIB, INI cascade, schema) and the renderer, pixel-exact against XP; `.theme` files and Windows Classic schemes (NONCLIENTMETRICS, LOGFONT). |
 | `src/style/` | The Qt 5/6 style plugin, drawing every widget from the core. |
 | `src/app/` | The C++ app replacing `app/`: the library under everything (archives, host programs, state, the theme library), and the `xplasma` CLI. `data/schemes/` holds XP's 36 stock Classic schemes, decoded from its `HIVEDEF.INF` by `xplasma-schemes`. |
+| `src/app/start-menu/` | XPLasma's Start plasmoid (`fyi.hotsocket.xplasma.start`): the Start button and XP's menu on Plasma's own application models. Only its data changes with the look. |
 | `src/third_party/` | libarchive, built static and linked in (ZIP, RAR, 7z, TAR, XP's CAB-compressed files). |
 | `src/tools/` | `xplasma-render` (oracle renders, `--export`), `xplasma-dump`, `xplasma-gallery`, `xplasma-probe`. |
 | `tests/core/` | The core's unit test and fuzz targets, with their vectors. |
@@ -80,6 +81,8 @@ behind (`src/app/adopt.cpp`); the Python app uses them wherever they are. Nothin
 ```sh
 build/dev-qt6/test-core                              # the core
 build/dev-qt6/tests/app/test-app                     # the C++ app (run on the host to include the XP ISO)
+build/dev-qt6/tests/app/test-startmenu               # the Start menu's QML, drawn offscreen
+tests/app/plasmoid_smoke.sh THEME.json               # the Start plasmoid loaded by Plasma (host only)
 tests/oracle/styles_matrix.py OUT                     # the style against real XP (needs refharness/vm.sh)
 for t in app/tests/test_*.py; do QT_QPA_PLATFORM=offscreen .venv/bin/python3 "$t"; done   # the Python app
 ```

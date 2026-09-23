@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+  <kcfgfile name=""/>
+  <group name="General">
+    <!-- The look, as XPLasma writes it when it applies one: the Start
+         button's images and the Start menu's art, colours, fonts and layout
+         (JSON). Only this changes from look to look. -->
+    <entry name="theme" type="String">
+      <default></default>
+    </entry>
+    <!-- Kickoff's, kept so favourites carry over from a Kickoff that had
+         this panel slot before. -->
+    <entry name="favorites" type="StringList">
+      <default>preferred://browser,preferred://filemanager</default>
+    </entry>
+    <entry name="favoritesPortedToKAstats" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="alphaSort" type="Bool">
+      <default>true</default>
+    </entry>
+  </group>
+</kcfg>

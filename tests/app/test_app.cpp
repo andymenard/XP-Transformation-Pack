@@ -10,6 +10,7 @@
 #include "app/media.h"
 #include "app/panel.h"
 #include "app/startbutton.h"
+#include "app/startmenu.h"
 #include "app/startpanel.h"
 #include "app/archive.h"
 #include "app/hivedef.h"
@@ -27,6 +28,7 @@
 #include <QJsonDocument>
 #include <QPainter>
 #include <QTemporaryDir>
+#include <QUrl>
 #include <QTest>
 #include <QtEndian>
 
@@ -770,6 +772,45 @@ private Q_SLOTS:
         QVERIFY(QFileInfo::exists(dir + QLatin1String("/button-shutdown-hot.png")));
         QVERIFY(QFileInfo::exists(dir + QLatin1String("/theme.json")));
         QVERIFY(writeStartPanel(Look::fromScheme(ClassicScheme()), dir, &error).isEmpty());
+    }
+
+    void startPlasmoid()
+    {
+        // The package ships inside XPLasma; installing replaces what had the
+        // id (xp2plasma's Kickoff fork) entirely.
+        const QString plasmoids = m_home.filePath(QStringLiteral("plasmoids"));
+        writeFile(plasmoids + QLatin1String("/fyi.hotsocket.xplasma.start/contents/ui/Kickoff-leftover.qml"), "x");
+        QString error;
+        QVERIFY2(installStartPlasmoid(plasmoids, &error), qPrintable(error));
+        const QString pkg = plasmoids + QLatin1String("/fyi.hotsocket.xplasma.start");
+        QVERIFY(!QFileInfo::exists(pkg + QLatin1String("/contents/ui/Kickoff-leftover.qml")));
+        for (const char *file : {"metadata.json", "contents/config/main.xml", "contents/ui/main.qml", "contents/ui/StartButton.qml",
+                                 "contents/ui/StartMenu.qml", "contents/ui/XpFullRepresentation.qml"})
+            QVERIFY2(QFileInfo::exists(pkg + QLatin1Char('/') + QLatin1String(file)), file);
+        QFile meta(pkg + QLatin1String("/metadata.json"));
+        QVERIFY(meta.open(QIODevice::ReadOnly));
+        const QJsonObject json = QJsonDocument::fromJson(meta.readAll()).object();
+        QCOMPARE(json.value(QStringLiteral("KPlugin")).toObject().value(QStringLiteral("Id")).toString(), QStringLiteral("fyi.hotsocket.xplasma.start"));
+        QVERIFY(json.value(QStringLiteral("X-XPLasma-Generated")).toBool());
+    }
+
+    void startTheme()
+    {
+        if (m_realThemes.isEmpty() || m_realIso.isEmpty())
+            QSKIP("needs the asset library and the XP ISO");
+        State state;
+        state.media = m_realIso;
+        QVERIFY(state.save());
+        const auto look = Look::fromStyle(m_realThemes + QLatin1String("/Luna/luna.msstyles"));
+        QString error;
+        const QJsonObject theme = writeStartTheme(*look, m_home.filePath(QStringLiteral("start")), &error);
+        QVERIFY2(!theme.isEmpty(), qPrintable(error));
+        const QJsonObject button = theme.value(QStringLiteral("button")).toObject();
+        QCOMPARE(button.value(QStringLiteral("height")).toInt(), 30);
+        for (const char *state : {"normal", "hover", "pressed"})
+            QVERIFY(QFileInfo::exists(QUrl(button.value(QLatin1String(state)).toString()).toLocalFile()));
+        QVERIFY(theme.value(QStringLiteral("parts")).toObject().value(QStringLiteral("userpane")).toObject()
+                    .value(QStringLiteral("url")).toString().startsWith(QLatin1String("file:///")));
     }
 
     // --- host programs --------------------------------------------------------

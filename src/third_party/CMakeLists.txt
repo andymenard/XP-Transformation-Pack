@@ -23,7 +23,8 @@ foreach(option ENABLE_ZLIB ENABLE_BZip2 ENABLE_LZMA)
 endforeach()
 FetchContent_Declare(libarchive
   URL ${CMAKE_CURRENT_SOURCE_DIR}/libarchive-3.8.9.tar.xz
-  URL_HASH SHA256=888c934f9d95648ecb9163dc8e23ab80a476ecb81a8f1154704a227b5b676dde)
+  URL_HASH SHA256=888c934f9d95648ecb9163dc8e23ab80a476ecb81a8f1154704a227b5b676dde
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
 FetchContent_MakeAvailable(libarchive)
 # (Its warnings are libarchive's business.)
 target_compile_options(archive_static PRIVATE -w)

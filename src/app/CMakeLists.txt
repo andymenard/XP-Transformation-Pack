@@ -22,6 +22,7 @@ add_library(xplasma-app STATIC
   gdifont.cpp
   icons.cpp
   startpanel.cpp
+  startmenu.cpp
 )
 target_include_directories(xplasma-app PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_compile_definitions(xplasma-app PUBLIC XPLASMA_VERSION="${XPLASMA_VERSION}")
@@ -32,6 +33,10 @@ target_link_libraries(xplasma-app
 # XP's stock Windows Classic schemes (see hivedef.h), as :/schemes/*.theme.
 file(GLOB stock_schemes RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS data/schemes/*.theme)
 qt_add_resources(xplasma-app "schemes" PREFIX /schemes BASE data/schemes FILES ${stock_schemes})
+
+# The Start plasmoid's package, as :/start-menu/...
+file(GLOB_RECURSE start_menu RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS start-menu/*)
+qt_add_resources(xplasma-app "startmenu" PREFIX /start-menu BASE start-menu FILES ${start_menu})
 
 # The CLI. (The target name `xplasma` is the style plugin's.)
 add_executable(xplasma-cli cli/main.cpp)
