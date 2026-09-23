@@ -1,7 +1,7 @@
-find_package(Qt6 REQUIRED COMPONENTS Test)
+find_package(Qt6 REQUIRED COMPONENTS Test Network)
 
 add_executable(test-app test_app.cpp)
-target_link_libraries(test-app PRIVATE stdc++ xplasma-app xplasma::archive Qt6::Test)
+target_link_libraries(test-app PRIVATE stdc++ xplasma-app xplasma::archive Qt6::Test Qt6::Network)
 add_test(NAME test-app COMMAND test-app)
 
 # The Start menu's QML, drawn offscreen from generated look data.

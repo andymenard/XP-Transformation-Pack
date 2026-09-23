@@ -295,6 +295,47 @@ std::optional<QByteArray> read(const QString &path, const QString &member, QStri
     return std::nullopt;
 }
 
+bool forEach(const QString &path, const std::function<bool(const Entry &)> &want,
+             const std::function<bool(const Entry &, const QByteArray &)> &take, QString *error)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly))
+        return fail(error, file.errorString());
+    if (Iso::detect(file)) {
+        Iso iso;
+        if (!iso.open(file, error))
+            return false;
+        for (const IsoFile &f : iso.files())
+            if (!f.entry.directory && want(f.entry) && !take(f.entry, iso.contents(f)))
+                return fail(error, QStringLiteral("cancelled"));
+        return true;
+    }
+    file.close();
+    Reader r;
+    if (archive_read_open_filename(r.a, QFile::encodeName(path).constData(), 1 << 16) != ARCHIVE_OK)
+        return fail(error, r.error());
+    archive_entry *e;
+    int status;
+    while ((status = archive_read_next_header(r.a, &e)) == ARCHIVE_OK) {
+        const Entry entry{entryPath(e), archive_entry_size(e), archive_entry_filetype(e) == AE_IFDIR};
+        if (entry.directory || !want(entry)) {
+            archive_read_data_skip(r.a);
+            continue;
+        }
+        QByteArray bytes;
+        if (!readData(r.a, entry.size, [&](const char *data, size_t n) {
+                bytes.append(data, qsizetype(n));
+                return true;
+            }))
+            return fail(error, r.error());
+        if (!take(entry, bytes))
+            return fail(error, QStringLiteral("cancelled"));
+    }
+    if (status != ARCHIVE_EOF)
+        return fail(error, r.error());
+    return true;
+}
+
 bool extract(const QString &path, const QString &directory, const Progress &progress, QString *error)
 {
     const QDir dest(directory);
@@ -379,7 +420,7 @@ bool extract(const QString &path, const QString &directory, const Progress &prog
     return true;
 }
 
-std::optional<QByteArray> expandCabinet(const QByteArray &cab, QString *error)
+std::optional<std::pair<QString, QByteArray>> expandCabinetFile(const QByteArray &cab, QString *error)
 {
     ::archive *a = archive_read_new();
     archive_read_support_format_cab(a);
@@ -397,6 +438,7 @@ std::optional<QByteArray> expandCabinet(const QByteArray &cab, QString *error)
         fail(error, QString::fromUtf8(archive_error_string(a)));
         return std::nullopt;
     }
+    const QString name = entryPath(e);
     QByteArray bytes;
     if (!readData(a, archive_entry_size(e), [&](const char *data, size_t n) {
             bytes.append(data, qsizetype(n));
@@ -405,7 +447,15 @@ std::optional<QByteArray> expandCabinet(const QByteArray &cab, QString *error)
         fail(error, QString::fromUtf8(archive_error_string(a)));
         return std::nullopt;
     }
-    return bytes;
+    return std::pair(name, bytes);
+}
+
+std::optional<QByteArray> expandCabinet(const QByteArray &cab, QString *error)
+{
+    auto file = expandCabinetFile(cab, error);
+    if (!file)
+        return std::nullopt;
+    return file->second;
 }
 
 } // namespace xpl::archive

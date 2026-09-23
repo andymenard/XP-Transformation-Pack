@@ -6,6 +6,8 @@
 //                              put a look on the running desktop
 //   xplasma widgets LOOK       only Qt apps' widgets
 //   xplasma reset              Plasma's default look back, XPLasma's gone
+//   xplasma setup [--media PATH | --download-media] [--no-packs] [--all-packs]
+//                              XP's media and the official theme packs
 //   xplasma build LOOK [--out DIR]
 //                              generate the Plasma packages for a look without
 //                              applying them (DIR: ~/.cache/xplasma/build)
@@ -26,6 +28,7 @@
 #include "app/startpanel.h"
 #include "app/library.h"
 #include "app/paths.h"
+#include "app/setup.h"
 #include "app/state.h"
 #include "core/themefile.h"
 
@@ -205,6 +208,47 @@ int reset()
     return 0;
 }
 
+int runSetup(const QCommandLineParser &parser)
+{
+    adopt();
+    QString detail;
+    if (!setup::plasmaSession(&detail))
+        err() << "xplasma: this isn't a Plasma 6 session (" << detail << "); setup goes on, but applying needs one" << Qt::endl;
+    bool missing = false;
+    for (const setup::Check &c : setup::preflight())
+        if (!c.ok() && c.neededToApply) {
+            err() << "missing: " << c.tool << " (" << c.purpose << ")" << Qt::endl;
+            missing = true;
+        }
+    if (missing)
+        err() << "Install the programs above to apply looks." << Qt::endl;
+    QString error;
+    auto bytes = [](qint64 done, qint64 total) {
+        if (total > 0)
+            err() << "\r  " << done * 100 / total << "% of " << total / 1048576 << " MB" << Qt::flush;
+    };
+    if (parser.isSet(QStringLiteral("media"))) {
+        if (!setup::importMedia(parser.value(QStringLiteral("media")), nullptr, say, nullptr, &error)) {
+            err() << "xplasma: " << error << Qt::endl;
+            return 1;
+        }
+    }
+    for (const setup::Download &d : setup::downloads()) {
+        if (d.media ? !parser.isSet(QStringLiteral("download-media")) : parser.isSet(QStringLiteral("no-packs")))
+            continue;
+        if (d.optional && !parser.isSet(QStringLiteral("all-packs"))) {
+            say(QStringLiteral("Skipping %1 (--all-packs fetches it)").arg(d.label));
+            continue;
+        }
+        if (!setup::fetch(d, say, bytes, nullptr, &error)) {
+            err() << "\nxplasma: " << error << Qt::endl;
+            return 1;
+        }
+    }
+    say(QStringLiteral("Setup finished."));
+    return 0;
+}
+
 int build(const QString &spec, QString dir)
 {
     adopt();
@@ -270,8 +314,9 @@ int main(int argc, char **argv)
     parser.setApplicationDescription(QStringLiteral("Windows XP visual styles for KDE Plasma."));
     parser.addHelpOption();
     parser.addVersionOption();
-    parser.addPositionalArgument(QStringLiteral("command"), QStringLiteral("list | apply LOOK | widgets LOOK | reset | build LOOK"));
-    for (const char *name : {"no-widgets", "no-taskbar", "no-icons", "no-wallpaper"})
+    parser.addPositionalArgument(QStringLiteral("command"), QStringLiteral("list | apply LOOK | widgets LOOK | reset | setup | build LOOK"));
+    parser.addOption(QCommandLineOption(QStringLiteral("media"), QStringLiteral("XP's install media (an ISO, or a folder with I386)."), QStringLiteral("PATH")));
+    for (const char *name : {"no-widgets", "no-taskbar", "no-icons", "no-wallpaper", "download-media", "no-packs", "all-packs"})
         parser.addOption(QCommandLineOption(QString::fromLatin1(name)));
     const QCommandLineOption jsonOption(QStringLiteral("json"), QStringLiteral("Machine-readable output."));
     parser.addOption(jsonOption);
@@ -287,6 +332,8 @@ int main(int argc, char **argv)
         return apply(args.at(1), parser);
     if (command == QLatin1String("widgets") && args.size() == 2)
         return widgets(args.at(1));
+    if (command == QLatin1String("setup") && args.size() == 1)
+        return runSetup(parser);
     if (command == QLatin1String("reset") && args.size() == 1)
         return reset();
     if (command == QLatin1String("build") && args.size() == 2)

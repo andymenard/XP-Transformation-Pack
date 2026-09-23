@@ -7,6 +7,7 @@
 #include "app/apply.h"
 #include "app/overrides.h"
 #include "app/session.h"
+#include "app/setup.h"
 #include "app/decoration.h"
 #include "app/look.h"
 #include "app/icons.h"
@@ -31,6 +32,8 @@
 #include <QJsonDocument>
 #include <QPainter>
 #include <QSettings>
+#include <QTcpServer>
+#include <QTcpSocket>
 #include <QTemporaryDir>
 #include <QUrl>
 #include <QTest>
@@ -988,6 +991,92 @@ private Q_SLOTS:
             return a.value(0) == QLatin1String("plasma-apply-lookandfeel") && a.contains(QStringLiteral("--resetLayout"));
         }));
         QCOMPARE(State::load().appliedKind, QString());
+    }
+
+    // --- setup ----------------------------------------------------------------------
+
+    void importMedia()
+    {
+        if (m_realIso.isEmpty())
+            QSKIP("no XP ISO on this machine");
+        setup::Imported n;
+        QString error;
+        QVERIFY2(setup::importMedia(m_realIso, &n, {}, nullptr, &error), qPrintable(error));
+        QVERIFY(n.fonts > 100);
+        QCOMPARE(n.styles, 1);
+        QVERIFY(n.themes >= 2);
+        QVERIFY(n.wallpapers >= 20);
+        QVERIFY(QFileInfo::exists(paths::themes() + QLatin1String("/Luna/luna.msstyles")));
+        QVERIFY(QFileInfo::exists(paths::themes() + QLatin1String("/Luna/Luna.theme")));
+        QVERIFY(QFileInfo::exists(paths::themes() + QLatin1String("/Windows Classic.theme")));
+        QVERIFY(QFileInfo::exists(paths::wallpapers() + QLatin1String("/bliss.jpg")));
+        QVERIFY(QFileInfo::exists(paths::localShare() + QLatin1String("/fonts/xp/tahoma.ttf")));
+        QCOMPARE(State::load().media, m_realIso);
+        // Toolbar bitmaps aren't wallpapers.
+        for (const QFileInfo &f : QDir(paths::wallpapers()).entryInfoList(QDir::Files))
+            QVERIFY2(QImage(f.absoluteFilePath()).width() >= 640, qPrintable(f.fileName()));
+    }
+
+    void importMediaRollsBack()
+    {
+        // Not XP's media: nothing stays, the recorded media stays as it was.
+        State s;
+        s.media = QStringLiteral("/before.iso");
+        QVERIFY(s.save());
+        writeFile(m_home.filePath(QStringLiteral("notxp/I386/README.TXT")), "hi");
+        writeFile(paths::themes() + QLatin1String("/Mine/mine.theme"), "[Theme]\n");
+        QString error;
+        QVERIFY(!setup::importMedia(m_home.filePath(QStringLiteral("notxp")), nullptr, {}, nullptr, &error));
+        QVERIFY(QFileInfo::exists(paths::themes() + QLatin1String("/Mine/mine.theme")));
+        QCOMPARE(State::load().media, QStringLiteral("/before.iso"));
+    }
+
+    void fetchPacks()
+    {
+        // archive.org, played by a server here: the item's metadata, then
+        // its file.
+        const QString pack = m_home.filePath(QStringLiteral("XP_Themes.zip"));
+        QVERIFY(writeArchive(pack, QStringLiteral("zip"), {{"Royale/Royale.msstyles", "MZ-royale"}}));
+        QFile packFile(pack);
+        QVERIFY(packFile.open(QIODevice::ReadOnly));
+        const QByteArray zip = packFile.readAll();
+        QTcpServer server;
+        QVERIFY(server.listen(QHostAddress::LocalHost));
+        QStringList requested;
+        connect(&server, &QTcpServer::newConnection, this, [&] {
+            QTcpSocket *socket = server.nextPendingConnection();
+            connect(socket, &QTcpSocket::readyRead, socket, [&, socket] {
+                const QByteArray request = socket->readAll();
+                const QString path = QString::fromUtf8(request.split(' ').value(1));
+                requested << path;
+                QByteArray body = path.startsWith(QLatin1String("/metadata/"))
+                                      ? QByteArray(R"({"files":[{"name":"readme.txt","size":"3"},{"name":"XP_Themes.zip","size":")")
+                                            + QByteArray::number(zip.size()) + "\"}]}"
+                                      : zip;
+                socket->write("HTTP/1.1 200 OK\r\nContent-Length: " + QByteArray::number(body.size()) + "\r\nConnection: close\r\n\r\n" + body);
+                socket->disconnectFromHost();
+            });
+        });
+        qputenv("XPLASMA_ARCHIVE_URL", QStringLiteral("http://127.0.0.1:%1").arg(server.serverPort()).toUtf8());
+        const setup::Download packs = setup::downloads().at(1);
+        QString error;
+        qint64 last = 0;
+        QVERIFY2(setup::fetch(packs, {}, [&](qint64 done, qint64) { last = done; }, nullptr, &error), qPrintable(error));
+        QVERIFY(QFileInfo::exists(paths::themes() + QLatin1String("/Royale/Royale.msstyles")));
+        QVERIFY(QFileInfo::exists(paths::downloads() + QLatin1String("/XP_Themes.zip")));
+        QCOMPARE(last, zip.size());
+        QCOMPARE(requested, (QStringList{QStringLiteral("/metadata/windows-xp-official-themes"),
+                                         QStringLiteral("/download/windows-xp-official-themes/XP_Themes.zip")}));
+        // Downloaded once: the second time never touches the network.
+        server.close();
+        QVERIFY2(setup::fetch(packs, {}, {}, nullptr, &error), qPrintable(error));
+        qunsetenv("XPLASMA_ARCHIVE_URL");
+    }
+
+    void preflight()
+    {
+        const auto checks = setup::preflight();
+        QVERIFY(std::any_of(checks.begin(), checks.end(), [](const setup::Check &c) { return c.tool == QLatin1String("kwriteconfig6"); }));
     }
 
     // --- host programs --------------------------------------------------------
