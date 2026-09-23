@@ -6,8 +6,8 @@ control toolbar 240 30 normal
 control tooltip 97 17 normal Shows the desktop
 control menu 134 126 normal
 control menu 134 126 hot
-control menubar 200 19 normal
-control menubar 200 19 hot
+control menubar:1 200 20 normal
+control menubar:1 200 20 hot
 control tabs:1 300 120 normal
 control tabs:2 300 120 normal
 control tabs 181 60 normal

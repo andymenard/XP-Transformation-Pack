@@ -16,6 +16,9 @@
 #include <QTextStream>
 #include <QCheckBox>
 #include <QDialog>
+#include <QMainWindow>
+#include <QMdiArea>
+#include <QMdiSubWindow>
 #include <QComboBox>
 #include <QGridLayout>
 #include <QGroupBox>
@@ -97,6 +100,20 @@ static QWidget *controlFor(const QString &kind, const QString &label)
             t->addTab(new QWidget, QString::fromLatin1(name));
         t->setCurrentIndex(qMax(0, value));   // tabs:N selects tab N
         return t;
+    }
+    if (base == QLatin1String("mdi")) {
+        // An MDI workspace, one document child at 10,10 200x120.
+        auto *area = new QMdiArea;
+        area->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);   // WS_EX_CLIENTEDGE, as apps create it
+        area->setLineWidth(2);
+        auto *doc = new QWidget;
+        doc->setAutoFillBackground(true);
+        doc->setBackgroundRole(QPalette::Base);
+        QMdiSubWindow *sub = area->addSubWindow(doc);
+        sub->setWindowTitle(label.isEmpty() ? QStringLiteral("Document") : label);
+        sub->setGeometry(10, 10, 200, 120);
+        sub->show();
+        return area;
     }
     if (base == QLatin1String("propsheet")) {
         // A property sheet: a dialog's tab widget, a check box on the page.
@@ -356,6 +373,23 @@ static int controls(const QString &jobPath, const QString &outdir)
         QWidget *w = controlFor(kind, label);
         if (!w)
             continue;
+        if (state == QLatin1String("maximized"))
+            if (auto *area = qobject_cast<QMdiArea *>(w)) {
+                // A maximized MDI child: its controls go into the menu bar
+                // of the window it's in (uxdump's frame has one) -- which Qt
+                // does only for a top-level QMainWindow.
+                QMainWindow frame;
+                for (const char *title : {"File", "Edit", "View", "Help"})
+                    frame.menuBar()->addMenu(QString::fromLatin1(title));
+                frame.setCentralWidget(area);
+                frame.setFixedSize(size);
+                frame.move(400, 400);
+                frame.show();
+                area->subWindowList().first()->showMaximized();
+                QApplication::processEvents();
+                frame.grab().save(name);
+                continue;
+            }
         w->setParent(&host);
         w->setGeometry(QRect(QPoint(0, 0), size));
         w->setEnabled(state != QLatin1String("disabled"));
@@ -376,6 +410,12 @@ static int controls(const QString &jobPath, const QString &outdir)
             if (auto *b = qobject_cast<QAbstractButton *>(w))
                 b->setDown(true);
         QApplication::processEvents();
+        // (After the window's activation, which activates the MDI child.)
+        if (state == QLatin1String("inactive"))   // an MDI child that isn't the active one
+            if (auto *area = qobject_cast<QMdiArea *>(w)) {
+                area->setActiveSubWindow(nullptr);
+                QApplication::processEvents();
+            }
         if (state.startsWith(QLatin1String("hot"))) {
             if (auto *bar = w->findChild<QMenuBar *>()) {
                 // The pointer over the first title, as XP's HiliteMenuItem.

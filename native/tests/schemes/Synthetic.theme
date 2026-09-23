@@ -1,0 +1,43 @@
+; A synthetic Classic colour scheme for native/tests/styles_matrix.py: every
+; role its own colour, so a control drawn in the wrong role can't match XP.
+[Theme]
+DisplayName=XPLasma synthetic scheme
+
+[Control Panel\Colors]
+Scrollbar=200 180 150
+Background=40 90 60
+ActiveTitle=120 20 60
+InactiveTitle=110 110 140
+Menu=230 220 190
+Window=250 245 225
+WindowFrame=30 20 70
+MenuText=60 10 20
+WindowText=20 40 10
+TitleText=250 240 200
+ActiveBorder=190 170 160
+InactiveBorder=170 180 170
+AppWorkspace=100 90 80
+Hilight=150 40 20
+HilightText=255 250 150
+ButtonFace=210 200 175
+ButtonShadow=140 120 90
+GrayText=150 140 110
+ButtonText=50 20 70
+InactiveTitleText=220 220 240
+ButtonHilight=255 250 235
+ButtonDkShadow=70 50 30
+ButtonLight=225 215 195
+InfoText=10 30 90
+InfoWindow=220 250 230
+ButtonAlternateFace=180 180 200
+HotTrackingColor=0 110 160
+GradientActiveTitle=200 100 140
+GradientInactiveTitle=190 190 210
+MenuHilight=160 60 30
+MenuBar=215 205 180
+
+; Windows Standard's window metrics (NONCLIENTMETRICSA, as XPLasma's
+; classic_gen serializes a scheme), which Display Properties applies with a
+; scheme: 16px scroll bars, 18px captions and menus, Tahoma 8.
+[Metrics]
+NonclientMetrics=84 1 0 0 1 0 0 0 16 0 0 0 16 0 0 0 18 0 0 0 18 0 0 0 245 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 188 2 0 0 0 0 0 1 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 18 0 0 0 18 0 0 0 245 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 188 2 0 0 0 0 0 1 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 18 0 0 0 18 0 0 0 245 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 144 1 0 0 0 0 0 1 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 245 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 144 1 0 0 0 0 0 1 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 245 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 144 1 0 0 0 0 0 1 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0

@@ -69,6 +69,15 @@
 #include <commctrl.h>
 #include <commdlg.h>
 
+/* tmschema.h's system font ids (not in mingw's uxtheme.h). */
+#ifndef TMT_CAPTIONFONT
+#define TMT_CAPTIONFONT 801
+#define TMT_SMALLCAPTIONFONT 802
+#define TMT_MENUFONT 803
+#define TMT_STATUSFONT 804
+#define TMT_MSGBOXFONT 805
+#endif
+
 WINGDIAPI BOOL WINAPI GdiTransparentBlt(HDC, int, int, int, int, HDC, int, int, int, int, UINT);
 
 #ifndef TMT_SIZINGMARGINS
@@ -325,6 +334,38 @@ static LRESULT CALLBACK host_proc(HWND w, UINT m, WPARAM wp, LPARAM lp)
     return DefWindowProcW(w, m, wp, lp);
 }
 
+/* Set NONCLIENTMETRICSA from hex (a `metrics` dump, or a .theme's
+ * NonclientMetrics); TRUE on success. */
+static BOOL set_metrics_hex(const wchar_t *p)
+{
+    static BYTE ncm[sizeof(NONCLIENTMETRICSA)];
+    unsigned len = 0;
+    ZeroMemory(ncm, sizeof ncm);
+    while (p[0] && p[1] && len < sizeof ncm) {
+        int hi = p[0] <= L'9' ? p[0] - L'0' : (p[0] | 0x20) - L'a' + 10;
+        int lo = p[1] <= L'9' ? p[1] - L'0' : (p[1] | 0x20) - L'a' + 10;
+        ncm[len++] = (BYTE)(hi * 16 + lo);
+        p += 2;
+    }
+    ((NONCLIENTMETRICSA *)ncm)->cbSize = sizeof(NONCLIENTMETRICSA);
+    return SystemParametersInfoA(SPI_SETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICSA), ncm, SPIF_SENDCHANGE);
+}
+
+/* comctl32 caches the system metrics (scroll bar sizes: an up-down's width,
+ * a trackbar's thumb) at load, refreshing them on a control's
+ * WM_SETTINGCHANGE: refresh them before any control of ours is made. */
+static void refresh_comctl32(void)
+{
+    INITCOMMONCONTROLSEX icc;
+    HWND probe;
+    icc.dwSize = sizeof icc;
+    icc.dwICC = ICC_WIN95_CLASSES | ICC_STANDARD_CLASSES;
+    InitCommonControlsEx(&icc);
+    probe = CreateWindowExW(0, UPDOWN_CLASSW, NULL, WS_POPUP, 0, 0, 10, 10, NULL, NULL, NULL, NULL);
+    SendMessageW(probe, WM_SETTINGCHANGE, SPI_SETNONCLIENTMETRICS, 0);
+    DestroyWindow(probe);
+}
+
 static INT_PTR CALLBACK page_proc(HWND w, UINT m, WPARAM wp, LPARAM lp)
 {
     return FALSE;
@@ -405,6 +446,22 @@ static HMENU build_menu(void)
     return menu;
 }
 
+/* An ordinary overlapped window (caption, sizing frame) with menu bar
+ * `bar`, placed so that the menu bar's top-left is the capture origin and
+ * its menu bar and client together are w x h. */
+static HWND framed_host(int w, int h, HMENU bar)
+{
+    RECT wr, mr;
+    HWND host;
+    SetRect(&wr, 40, 40, 40 + w, 40 + h);
+    AdjustWindowRectEx(&wr, WS_OVERLAPPEDWINDOW, FALSE, 0);   /* (the menu bar comes out of the h) */
+    host = CreateWindowExW(WS_EX_TOPMOST, L"UxdumpHost", L"Frame", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CLIPCHILDREN,
+                           wr.left, wr.top, wr.right - wr.left, wr.bottom - wr.top, NULL, bar, NULL, NULL);
+    GetMenuItemRect(host, bar, 0, &mr);
+    SetWindowPos(host, NULL, wr.left + (40 - mr.left), wr.top + (40 - mr.top), 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+    return host;
+}
+
 static void do_menu(const wchar_t *kind, const wchar_t *state, int w, int h, const wchar_t *outdir)
 {
     HWND host;
@@ -417,8 +474,14 @@ static void do_menu(const wchar_t *kind, const wchar_t *state, int w, int h, con
         AppendMenuW(bar, MF_POPUP, (UINT_PTR)CreatePopupMenu(), L"View");
         AppendMenuW(bar, MF_POPUP, (UINT_PTR)CreatePopupMenu(), L"Help");
     }
-    host = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, L"UxdumpHost", L"", WS_POPUP | WS_VISIBLE, 40, 40, w, h,
-                           NULL, bar, NULL, NULL);
+    if (menubar && kind[7] == L':') {
+        /* menubar:1 -- in an ordinary overlapped window: the line under the
+         * bar is its own (a bare popup's differs). */
+        host = framed_host(w, h, bar);
+    } else {
+        host = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, L"UxdumpHost", L"", WS_POPUP | WS_VISIBLE, 40, 40, w, h,
+                               NULL, bar, NULL, NULL);
+    }
     SetCursorPos(700, 560);
     if (menubar) {
         RECT item;
@@ -497,6 +560,76 @@ static void do_filedialog(const wchar_t *kind, const wchar_t *state, int w, int 
     pendingDialog.kind = kind; pendingDialog.state = state; pendingDialog.outdir = outdir;
     pendingDialog.w = w; pendingDialog.h = h;
     GetOpenFileNameW(&ofn);
+}
+
+static LRESULT CALLBACK doc_proc(HWND w, UINT m, WPARAM wp, LPARAM lp)
+{
+    return DefMDIChildProcW(w, m, wp, lp);
+}
+
+/* mdi: an MDI client (with its client edge, as apps create it) and one
+ * document child at 10,10 200x120 captioned LABEL; `inactive` deactivates
+ * its caption, `maximized` maximizes it. */
+static void do_mdi(const wchar_t *kind, const wchar_t *state, int w, int h, const wchar_t *label,
+                   const wchar_t *outdir)
+{
+    static int registered;
+    CLIENTCREATESTRUCT ccs;
+    MDICREATESTRUCTW mcs;
+    HWND host, client, child;
+    HMENU bar = NULL;
+    RECT r, cr;
+    const int maximized = !wcsncmp_(state, L"maximized");
+    if (!registered) {
+        WNDCLASSW wc;
+        ZeroMemory(&wc, sizeof wc);
+        wc.lpfnWndProc = doc_proc;
+        wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+        wc.hCursor = LoadCursorW(NULL, (LPCWSTR)IDC_ARROW);
+        wc.lpszClassName = L"UxdumpDoc";
+        RegisterClassW(&wc);
+        registered = 1;
+    }
+    if (maximized) {
+        /* A maximized child's icon and buttons move into the frame's menu
+         * bar: give the frame one. */
+        bar = CreateMenu();
+        AppendMenuW(bar, MF_POPUP, (UINT_PTR)CreatePopupMenu(), L"File");
+        AppendMenuW(bar, MF_POPUP, (UINT_PTR)CreatePopupMenu(), L"Edit");
+        AppendMenuW(bar, MF_POPUP, (UINT_PTR)CreatePopupMenu(), L"View");
+        AppendMenuW(bar, MF_POPUP, (UINT_PTR)CreatePopupMenu(), L"Help");
+    }
+    host = maximized ? framed_host(w, h, bar)
+                     : CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, L"UxdumpHost", L"",
+                                       WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN, 40, 40, w, h, NULL, bar, NULL, NULL);
+    GetClientRect(host, &cr);
+    ccs.hWindowMenu = NULL;
+    ccs.idFirstChild = 1000;
+    client = CreateWindowExW(WS_EX_CLIENTEDGE, L"MDICLIENT", NULL, WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN, 0, 0,
+                             cr.right, cr.bottom, host, (HMENU)1, NULL, &ccs);
+    ZeroMemory(&mcs, sizeof mcs);
+    mcs.szClass = L"UxdumpDoc";
+    mcs.szTitle = label[0] ? label : L"Document";
+    mcs.x = 10; mcs.y = 10; mcs.cx = 200; mcs.cy = 120;
+    mcs.style = WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CLIPSIBLINGS;
+    child = (HWND)SendMessageW(client, WM_MDICREATE, 0, (LPARAM)&mcs);
+    SendMessageW(host, WM_CHANGEUISTATE, MAKEWPARAM(UIS_SET, UISF_HIDEFOCUS), 0);
+    SetForegroundWindow(host);
+    settle(100);
+    if (!lstrcmpW(state, L"inactive"))
+        SendMessageW(child, WM_NCACTIVATE, FALSE, 0);
+    if (maximized) {
+        SendMessageW(client, WM_MDIMAXIMIZE, (WPARAM)child, 0);
+        DrawMenuBar(host);
+    }
+    SetCursorPos(700, 560);
+    settle(400);
+    grab(kind, state, w, h, outdir);
+    GetWindowRect(child, &r);
+    out(L"geometry %s child=%d,%d,%d,%d caption=%d frame=%d,%d\r\n", kind, r.left - 40, r.top - 40, r.right - 40,
+        r.bottom - 40, GetSystemMetrics(SM_CYCAPTION), GetSystemMetrics(SM_CXSIZEFRAME), GetSystemMetrics(SM_CYSIZEFRAME));
+    DestroyWindow(host);
+    if (bar) DestroyMenu(bar);
 }
 
 static void do_tooltip(const wchar_t *kind, const wchar_t *state, int w, int h, const wchar_t *label,
@@ -595,6 +728,7 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
     else if (!wcsncmp_(kind, L"menu")) { do_menu(kind, state, w, h, outdir); return; }
     else if (!wcsncmp_(kind, L"tooltip")) { do_tooltip(kind, state, w, h, label, outdir); return; }
     else if (!wcsncmp_(kind, L"filedialog")) { do_filedialog(kind, state, w, h, outdir); return; }
+    else if (!wcsncmp_(kind, L"mdi")) { do_mdi(kind, state, w, h, label, outdir); return; }
     else { out(L"control %s error=unknown-kind\r\n", kind); return; }
 
     host = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, L"UxdumpHost", L"", WS_POPUP | WS_VISIBLE, 40, 40, w, h,
@@ -609,6 +743,12 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
     SendMessageW(ctl, WM_SYSCOLORCHANGE, 0, 0);
     ncm.cbSize = sizeof ncm;
     SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof ncm, &ncm, 0);
+    /* The dialog font -- MS Shell Dlg 2, Tahoma 8 on XP -- whatever the
+     * style's MessageFont (Zune's is Microsoft Sans Serif). */
+    ncm.lfMessageFont.lfHeight = -11;
+    ncm.lfMessageFont.lfWeight = FW_NORMAL;
+    ncm.lfMessageFont.lfItalic = 0;
+    lstrcpyW(ncm.lfMessageFont.lfFaceName, L"Tahoma");
     font = CreateFontIndirectW(&ncm.lfMessageFont);
     SendMessageW(ctl, WM_SETFONT, (WPARAM)font, TRUE);
     if (!lstrcmpW(cls, L"COMBOBOX")) {
@@ -1022,6 +1162,13 @@ static int run(int argc, wchar_t **argv)
         v.dwMajorVersion, v.dwMinorVersion, v.dwBuildNumber, v.szCSDVersion,
         pOpenThemeFile != NULL, pCloseThemeFile != NULL, pOpenThemeDataFromFile != NULL);
 
+    /* XP's default font smoothing, "Standard" (no smoothing at Tahoma 8),
+     * whatever the session has: this VM's image came with ClearType on.
+     * (For the session only: -snapshot throws it away.) */
+    SystemParametersInfoW(SPI_SETFONTSMOOTHING, TRUE, NULL, SPIF_SENDCHANGE);
+    SystemParametersInfoW(SPI_SETFONTSMOOTHINGTYPE, 0, (PVOID)FE_FONTSMOOTHINGSTANDARD, SPIF_SENDCHANGE);
+    out(L"# font smoothing: standard\r\n");
+
     for (line = text; line && *line; line = next) {
         wchar_t *tok[16];
         int n;
@@ -1066,16 +1213,43 @@ static int run(int argc, wchar_t **argv)
                     SetSysColors(COLOR_MENUBAR + 1, ids, cols);
                     CloseThemeData(t);
                     settle(1000);
+                    refresh_comctl32();
                 }
             }
-            out(L"# apply %s %s %s hr=0x%08lx face=%lu window=%lu highlight=%lu menu=%lu\r\n", tok[1], tok[n - 2], tok[n - 1],
-                (unsigned long)hr, (unsigned long)GetSysColor(COLOR_BTNFACE), (unsigned long)GetSysColor(COLOR_WINDOW),
-                (unsigned long)GetSysColor(COLOR_HIGHLIGHT), (unsigned long)GetSysColor(COLOR_MENU));
+            out(L"# apply %s %s %s hr=0x%08lx face=%lu window=%lu highlight=%lu menu=%lu caption=%d scroll=%d\r\n", tok[1],
+                tok[n - 2], tok[n - 1], (unsigned long)hr, (unsigned long)GetSysColor(COLOR_BTNFACE),
+                (unsigned long)GetSysColor(COLOR_WINDOW), (unsigned long)GetSysColor(COLOR_HIGHLIGHT),
+                (unsigned long)GetSysColor(COLOR_MENU), GetSystemMetrics(SM_CYCAPTION), GetSystemMetrics(SM_CXVSCROLL));
         } else if (lstrcmpW(tok[0], L"classic") == 0) {
             HRESULT hr = pEnableTheming ? pEnableTheming(FALSE) : E_FAIL;
             SystemParametersInfoW(SPI_SETFLATMENU, 0, (PVOID)FALSE, SPIF_SENDCHANGE);
             settle(1500);
             out(L"# classic hr=0x%08lx themed=%d\r\n", (unsigned long)hr, IsThemeActive());
+        } else if (lstrcmpW(tok[0], L"metrics") == 0) {
+            /* The session's NONCLIENTMETRICSA, as `ncmetrics` takes it. */
+            NONCLIENTMETRICSA ncm;
+            const BYTE *b = (const BYTE *)&ncm;
+            wchar_t hexs[2 * sizeof ncm + 1];
+            unsigned k;
+            ncm.cbSize = sizeof ncm;
+            SystemParametersInfoA(SPI_GETNONCLIENTMETRICS, sizeof ncm, &ncm, 0);
+            for (k = 0; k < sizeof ncm; k++) {
+                hexs[2 * k] = L"0123456789abcdef"[b[k] >> 4];
+                hexs[2 * k + 1] = L"0123456789abcdef"[b[k] & 15];
+            }
+            hexs[2 * sizeof ncm] = 0;
+            out(L"# metrics %s smicon=%d,%d\r\n", hexs, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON));
+        } else if (lstrcmpW(tok[0], L"ncmetrics") == 0 && n == 2) {
+            /* A .theme's [Metrics] NonclientMetrics (NONCLIENTMETRICSA, in
+             * hex): the frame, caption, scroll and menu sizes and fonts
+             * Display Properties applies with a scheme. */
+            const BOOL ok = set_metrics_hex(tok[1]);
+            settle(1000);
+            refresh_comctl32();
+            out(L"# ncmetrics ok=%d caption=%d size=%d,%d frame=%d scroll=%d smicon=%d,%d\r\n", ok,
+                GetSystemMetrics(SM_CYCAPTION), GetSystemMetrics(SM_CXSIZE), GetSystemMetrics(SM_CYSIZE),
+                GetSystemMetrics(SM_CXSIZEFRAME), GetSystemMetrics(SM_CXVSCROLL), GetSystemMetrics(SM_CXSMICON),
+                GetSystemMetrics(SM_CYSMICON));
         } else if (lstrcmpW(tok[0], L"syscolor") == 0 && n == 5) {
             int id = to_int(tok[1]);
             COLORREF c = RGB(to_int(tok[2]), to_int(tok[3]), to_int(tok[4]));

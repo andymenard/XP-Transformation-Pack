@@ -4,6 +4,7 @@
 
 #include <QAbstractButton>
 #include <cstring>
+#include <cmath>
 #include <QAbstractItemView>
 #include <QApplication>
 #include <QComboBox>
@@ -15,6 +16,7 @@
 #include <QFileInfo>
 #include <QKeyEvent>
 #include <QTimer>
+#include <QtEndian>
 #include <QScreen>
 #include <QWindow>
 #include <QFileSystemWatcher>
@@ -35,6 +37,8 @@
 #include <QStackedWidget>
 #include <QDialog>
 #include <QToolBar>
+#include <QMdiArea>
+#include <QMdiSubWindow>
 #include <QToolButton>
 
 using xpl::PartRef;
@@ -76,26 +80,69 @@ std::pair<QString, QString> configuredTheme()
     return {settings.value(QStringLiteral("Path")).toString(), settings.value(QStringLiteral("Variant")).toString()};
 }
 
+// A LOGFONTA in a NONCLIENTMETRICSA blob as a SysMetrics font spec
+// ("Tahoma, 8, bold").
+static QString logFontSpec(const QByteArray &blob, int offset)
+{
+    if (blob.size() < offset + 60)
+        return QString();
+    auto i32 = [&](int at) { return qFromLittleEndian<qint32>(blob.constData() + at); };
+    const int height = i32(offset), weight = i32(offset + 16);
+    const QString face = QString::fromLatin1(blob.constData() + offset + 28, int(qstrnlen(blob.constData() + offset + 28, 32)));
+    const int points = height < 0 ? qRound(-height * 72.0 / 96.0) : height;
+    return QStringLiteral("%1, %2%3").arg(face).arg(points).arg(weight >= 600 ? QStringLiteral(", bold") : QString());
+}
+
 // A colour scheme's [Control Panel\Colors] from a .theme file (Windows
-// Classic and its schemes): lower-cased key -> colour; and the metrics
-// XPLasma adds ([XPLasma] ScrollWidth) into `metrics`.
-QHash<QString, QColor> schemeColours(const QString &path, QHash<QString, int> *metrics = nullptr)
+// Classic and its schemes): lower-cased key -> colour. Into `metrics`, its
+// [Metrics] NonclientMetrics (NONCLIENTMETRICSA) under the names a visual
+// style's [SysMetrics] uses, and what XPLasma adds ([XPLasma] ScrollWidth);
+// into `fonts`, the caption and menu fonts.
+QHash<QString, QColor> schemeColours(const QString &path, QHash<QString, int> *metrics = nullptr,
+                                     QHash<QString, QString> *fonts = nullptr)
 {
     QHash<QString, QColor> colours;
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly))
         return colours;
-    bool inColours = false, inOurs = false;
+    bool inColours = false, inOurs = false, inMetrics = false;
     for (const QByteArray &raw : file.readAll().split('\n')) {
         const QString line = QString::fromLatin1(raw).trimmed();
         if (line.startsWith(QLatin1Char('['))) {
             inColours = line.compare(QLatin1String("[Control Panel\\Colors]"), Qt::CaseInsensitive) == 0;
             inOurs = line.compare(QLatin1String("[XPLasma]"), Qt::CaseInsensitive) == 0;
+            inMetrics = line.compare(QLatin1String("[Metrics]"), Qt::CaseInsensitive) == 0;
+        } else if (inMetrics && metrics && line.section(QLatin1Char('='), 0, 0).trimmed().compare(
+                                               QLatin1String("NonclientMetrics"), Qt::CaseInsensitive) == 0) {
+            QByteArray blob;
+            for (const QString &b : line.section(QLatin1Char('='), 1).simplified().split(QLatin1Char(' ')))
+                blob.append(char(b.toInt()));
+            if (blob.size() >= 340) {
+                auto i32 = [&](int at) { return qFromLittleEndian<qint32>(blob.constData() + at); };
+                const struct { const char *name; int offset; } fields[] = {
+                    {"sizingborderwidth", 4}, {"scrollbarwidth", 8}, {"scrollbarheight", 12},
+                    {"captionbarwidth", 16}, {"captionbarheight", 20}, {"smcaptionbarwidth", 84},
+                    {"smcaptionbarheight", 88}, {"menubarwidth", 152}, {"menubarheight", 156},
+                };
+                for (const auto &f : fields)
+                    if (const int v = i32(f.offset); v > 0 && v < 512)
+                        metrics->insert(QLatin1String(f.name), v);
+                if (fonts) {
+                    fonts->insert(QStringLiteral("captionfont"), logFontSpec(blob, 24));
+                    fonts->insert(QStringLiteral("smallcaptionfont"), logFontSpec(blob, 92));
+                    fonts->insert(QStringLiteral("menufont"), logFontSpec(blob, 160));
+                    fonts->insert(QStringLiteral("statusfont"), logFontSpec(blob, 220));
+                    fonts->insert(QStringLiteral("msgboxfont"), logFontSpec(blob, 280));
+                }
+            }
         } else if (inOurs && metrics && line.contains(QLatin1Char('='))) {
             bool ok = false;
             const int v = line.section(QLatin1Char('='), 1).trimmed().toInt(&ok);
-            if (ok && v > 0)
-                metrics->insert(line.section(QLatin1Char('='), 0, 0).trimmed().toLower(), v);
+            const QString key = line.section(QLatin1Char('='), 0, 0).trimmed().toLower();
+            if (ok && v > 0 && key == QLatin1String("scrollwidth")) {
+                metrics->insert(QStringLiteral("scrollbarwidth"), v);
+                metrics->insert(QStringLiteral("scrollbarheight"), v);
+            }
         } else if (inColours && line.contains(QLatin1Char('='))) {
             const QStringList rgb = line.section(QLatin1Char('='), 1).simplified().split(QLatin1Char(' '));
             if (rgb.size() == 3)
@@ -121,6 +168,10 @@ QString schemeKey(QStringView name)
         {QStringLiteral("infobk"), QStringLiteral("infowindow")},
         {QStringLiteral("activecaption"), QStringLiteral("activetitle")},
         {QStringLiteral("captiontext"), QStringLiteral("titletext")},
+        {QStringLiteral("inactivecaption"), QStringLiteral("inactivetitle")},
+        {QStringLiteral("inactivecaptiontext"), QStringLiteral("inactivetitletext")},
+        {QStringLiteral("gradientactivecaption"), QStringLiteral("gradientactivetitle")},
+        {QStringLiteral("gradientinactivecaption"), QStringLiteral("gradientinactivetitle")},
         {QStringLiteral("hottracking"), QStringLiteral("hottrackingcolor")},
     };
     const QString key = name.toString().toLower();
@@ -194,6 +245,7 @@ void XPLasmaStyle::reloadIfChanged()
     m_renderer.reset();
     m_scheme.clear();
     m_schemeMetrics.clear();
+    m_schemeFonts.clear();
     loadTheme();
     m_cache.clear();
     if (!qApp)
@@ -219,7 +271,7 @@ void XPLasmaStyle::loadTheme()
         return;
     if (path.endsWith(QLatin1String(".theme"), Qt::CaseInsensitive)) {
         // Windows Classic: no visual style, a colour scheme.
-        m_scheme = schemeColours(path, &m_schemeMetrics);
+        m_scheme = schemeColours(path, &m_schemeMetrics, &m_schemeFonts);
         if (m_scheme.isEmpty())
             qWarning("XPLasma: no [Control Panel\\Colors] in %s", qPrintable(path));
         return;
@@ -335,13 +387,39 @@ QColor XPLasmaStyle::sysColour(QStringView name, const QColor &fallback) const
     return fallback;
 }
 
+// A SysMetrics font spec ("Trebuchet MS, 10, bold").
+static QFont fontFromMetric(const QString &spec, const QFont &fallback)
+{
+    const QStringList parts = spec.split(QLatin1Char(','));
+    if (parts.size() < 2)
+        return fallback;
+    QFont font(parts.at(0).trimmed());
+    font.setPointSize(parts.at(1).trimmed().toInt());
+    for (int i = 2; i < parts.size(); ++i) {
+        const QString flag = parts.at(i).trimmed().toLower();
+        if (flag == QLatin1String("bold"))
+            font.setBold(true);
+        else if (flag == QLatin1String("italic"))
+            font.setItalic(true);
+    }
+    return font;
+}
+
+// A SysMetrics font ("captionfont"...): the style's, or the scheme's.
+QFont XPLasmaStyle::sysFont(QStringView name, const QFont &fallback) const
+{
+    QString spec;
+    if (classic())
+        spec = m_schemeFonts.value(name.toString());
+    else if (m_renderer)
+        spec = m_renderer->theme().property(u"sysmetrics", u"", u"", name).value_or(QString());
+    return fontFromMetric(spec, fallback);
+}
+
 int XPLasmaStyle::sysMetric(QStringView name, int fallback) const
 {
-    if (classic()) {
-        if (name == u"scrollbarwidth" || name == u"scrollbarheight")
-            return m_schemeMetrics.value(QStringLiteral("scrollwidth"), fallback);
-        return fallback;
-    }
+    if (classic())
+        return m_schemeMetrics.value(name.toString(), fallback);
     bool ok = false;
     const int v = m_renderer ? m_renderer->theme().property(u"sysmetrics", u"", u"", name).value_or(QString()).toInt(&ok) : 0;
     return ok && v > 0 ? v : fallback;
@@ -393,6 +471,9 @@ void XPLasmaStyle::polish(QWidget *widget)
         widget->setAttribute(Qt::WA_Hover, true);
     if (!m_renderer && !classic())
         return;
+    // The MDI workspace: COLOR_APPWORKSPACE.
+    if (auto *area = qobject_cast<QMdiArea *>(widget); area && (classic() || hasPart({QStringLiteral("window"), 1, 1, {}})))
+        area->setBackground(sysColour(u"appworkspace", QColor(128, 128, 128)));
     // The Places bar's checked button keeps the text colour.
     if (auto *view = qobject_cast<QAbstractItemView *>(widget); view && isPlacesBar(view)) {
         QPalette pal = view->palette();
@@ -738,8 +819,37 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             painter->restore();
             return;
         case PE_PanelMenuBar:
+            // The bar, and under it a row of the face (SM_CYMENU is the menu
+            // height + 1; measured in an overlapped window).
             painter->fillRect(option->rect, sysColour(u"menu", option->palette.color(QPalette::Button)));
+            painter->fillRect(QRect(option->rect.left(), option->rect.bottom(), option->rect.width(), 1),
+                              sysColour(u"btnface", Qt::lightGray));
             return;
+        case PE_FrameWindow:
+            // A sizing border: EDGE_RAISED, BorderWidth rings of the
+            // active (inactive) border colour, then one of the face.
+            if (widget && widget->inherits("QMdiSubWindow")) {
+                auto ring = [&](const QRect &q, const QColor &tl, const QColor &br) {
+                    painter->fillRect(QRect(q.left(), q.top(), q.width() - 1, 1), tl);
+                    painter->fillRect(QRect(q.left(), q.top(), 1, q.height() - 1), tl);
+                    painter->fillRect(QRect(q.left(), q.bottom(), q.width(), 1), br);
+                    painter->fillRect(QRect(q.right(), q.top(), 1, q.height()), br);
+                };
+                QRect r = option->rect;
+                ring(r, sysColour(u"light3d", Qt::lightGray), sysColour(u"dkshadow3d", Qt::black));
+                r.adjust(1, 1, -1, -1);
+                ring(r, sysColour(u"btnhighlight", Qt::white), sysColour(u"btnshadow", Qt::gray));
+                const QColor border = (option->state & State_Active) ? sysColour(u"activeborder", Qt::lightGray)
+                                                                     : sysColour(u"inactiveborder", Qt::lightGray);
+                for (int i = 0; i < sysMetric(u"sizingborderwidth", 1); ++i) {
+                    r.adjust(1, 1, -1, -1);
+                    ring(r, border, border);
+                }
+                r.adjust(1, 1, -1, -1);
+                ring(r, sysColour(u"btnface", Qt::lightGray), sysColour(u"btnface", Qt::lightGray));
+                return;
+            }
+            break;
         case PE_IndicatorRadioButton: {
             // DFCS_BUTTONRADIO: Marlett's 12px circle in the four 3D colours,
             // the window colour inside (the face when disabled), the dot in
@@ -840,13 +950,33 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             break;
         case PE_PanelMenuBar:
             if (flatMenus()) {
+                // The bar, and under it a row of the menu colour (SM_CYMENU
+                // is the menu height + 1; measured in an overlapped window).
                 painter->fillRect(option->rect, sysColour(u"menubar", option->palette.window().color()));
+                painter->fillRect(QRect(option->rect.left(), option->rect.bottom(), option->rect.width(), 1),
+                                  sysColour(u"menu", Qt::white));
                 return;
             }
             break;
         case PE_FrameTabWidget:
             if (drawPart(painter, {QStringLiteral("tab"), 9, 1, {}}, option->rect))
                 return;
+            break;
+        case PE_FrameWindow:
+            // An MDI child's sides and bottom (WP_FRAMELEFT/RIGHT/BOTTOM,
+            // FS_ACTIVE 1 / FS_INACTIVE 2), below its caption.
+            if (hasPart({QStringLiteral("window"), 7, 1, {}}) && widget && widget->inherits("QMdiSubWindow")) {
+                const int state = (option->state & State_Active) ? 1 : 2;
+                const int fw = proxy()->pixelMetric(PM_MdiSubWindowFrameWidth, option, widget);
+                QStyleOptionTitleBar probe;
+                probe.QStyleOption::operator=(*option);
+                const int top = proxy()->pixelMetric(PM_TitleBarHeight, &probe, widget) + fw;
+                const QRect r = option->rect;
+                drawPart(painter, {QStringLiteral("window"), 7, state, {}}, QRect(r.left(), top, fw, r.height() - top - fw));
+                drawPart(painter, {QStringLiteral("window"), 8, state, {}}, QRect(r.right() - fw + 1, top, fw, r.height() - top - fw));
+                drawPart(painter, {QStringLiteral("window"), 9, state, {}}, QRect(r.left(), r.bottom() - fw + 1, r.width(), fw));
+                return;
+            }
             break;
         case PE_PanelItemViewItem:
             // The Places bar's items are its buttons: hot under the pointer,
@@ -921,6 +1051,13 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
                     }
                     return;
                 }
+            }
+            // Anything else sunken 2px: WS_EX_CLIENTEDGE's EDGE_SUNKEN, with
+            // XP's 3DLIGHT inner highlight (Qt's panel uses the face there).
+            if (const auto *frame = qstyleoption_cast<const QStyleOptionFrame *>(option);
+                frame && frame->lineWidth == 2 && (option->state & State_Sunken)) {
+                classicSunken(painter, option->rect, option->palette);
+                return;
             }
             break;
         case PE_IndicatorTabTearLeft:
@@ -1200,6 +1337,8 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
         case CE_MenuBarEmptyArea:
             if (flatMenus()) {
                 painter->fillRect(option->rect, sysColour(u"menubar", option->palette.window().color()));
+                painter->fillRect(QRect(option->rect.left(), option->rect.bottom(), option->rect.width(), 1),
+                                  sysColour(u"menu", Qt::white));
                 return;
             }
             break;
@@ -1346,6 +1485,10 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
     const ContextScope context(this, widget, option);
     if (classic() && drawClassicComplex(control, option, painter, widget))
         return;
+    if (control == CC_MdiControls && (classic() || m_renderer)) {
+        drawMdiControls(option, painter, widget);
+        return;
+    }
     if (m_renderer) {
         switch (control) {
         case CC_ToolButton:
@@ -1477,6 +1620,13 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
                 }
             }
             break;
+        case CC_TitleBar:
+            if (const auto *bar = qstyleoption_cast<const QStyleOptionTitleBar *>(option);
+                bar && hasPart({QStringLiteral("window"), 1, 1, {}})) {
+                drawTitleBar(bar, painter, widget);
+                return;
+            }
+            break;
         case CC_GroupBox:
             if (const auto *box = qstyleoption_cast<const QStyleOptionGroupBox *>(option)) {
                 QStyleOptionGroupBox copy(*box);
@@ -1490,6 +1640,269 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
         }
     }
     QProxyStyle::drawComplexControl(control, option, painter, widget);
+}
+
+// --- title bars (MDI children) ---------------------------------------------------
+
+// The whole caption as XP draws it: QMdiSubWindow hands the title bar in
+// by its border; XP's caption art covers the top border too.
+static QRect titleBarWhole(const QStyleOptionTitleBar *bar, const QWidget *widget, int border)
+{
+    if (widget && widget->inherits("QMdiSubWindow") && !(bar->titleBarState & Qt::WindowMaximized)
+        && bar->rect.topLeft() == QPoint(border, border))
+        return bar->rect.adjusted(-border, -border, border, 0);
+    return bar->rect;
+}
+
+// XP's caption layout (measured, Luna Silver MDI child): buttons
+// SM_CXSIZE - 4 square, 2px below the top frame and 2px apart, the close
+// button 2px in from the right frame; the icon 16px, 2px in from the left
+// frame, centred in the caption.
+QRect XPLasmaStyle::xpTitleBarRect(const QStyleOptionTitleBar *bar, SubControl sub, const QWidget *widget) const
+{
+    const int fw = widget && widget->inherits("QMdiSubWindow") ? proxy()->pixelMetric(PM_MdiSubWindowFrameWidth, bar, widget) : 0;
+    const QRect whole = titleBarWhole(bar, widget, fw);
+    const int top = whole.top() + (whole == bar->rect ? 0 : fw);
+    const int caption = whole.bottom() + 1 - top;
+    // (Classic: SM_CXSIZE - 2 wide, SM_CYSIZE - 4 tall; min and max
+    // touching, the close button 2px apart.)
+    const QSize size = classic() ? QSize(sysMetric(u"captionbarwidth", 18) - 2, sysMetric(u"captionbarheight", 18) - 4)
+                                 : QSize(sysMetric(u"captionbarheight", 25) - 4, sysMetric(u"captionbarheight", 25) - 4);
+    const Qt::WindowFlags flags = bar->titleBarFlags;
+    const bool minimized = bar->titleBarState & Qt::WindowMinimized, maximized = bar->titleBarState & Qt::WindowMaximized;
+    auto slot = [&](int n) {
+        const int gaps = classic() ? (n > 0 ? 2 : 0) : n * 2;
+        return QRect(whole.right() - fw - 2 - size.width() + 1 - n * size.width() - gaps, top + 2, size.width(), size.height());
+    };
+    const bool hasClose = flags & Qt::WindowSystemMenuHint;
+    const bool hasMax = (flags & Qt::WindowMaximizeButtonHint) && !maximized;
+    const bool hasNormal = ((flags & Qt::WindowMinimizeButtonHint) && minimized) || ((flags & Qt::WindowMaximizeButtonHint) && maximized);
+    const bool hasMin = (flags & Qt::WindowMinimizeButtonHint) && !minimized;
+    int n = hasClose ? 1 : 0;
+    const int maxSlot = (hasMax || (hasNormal && maximized)) ? n++ : -1;
+    const int minSlot = (hasMin || (hasNormal && minimized)) ? n++ : -1;
+    const int helpSlot = (flags & Qt::WindowContextHelpButtonHint) ? n++ : -1;
+    switch (sub) {
+    case SC_TitleBarCloseButton:
+        return hasClose ? slot(0) : QRect();
+    case SC_TitleBarMaxButton:
+        return hasMax ? slot(maxSlot) : QRect();
+    case SC_TitleBarNormalButton:
+        return hasNormal ? slot(maximized ? maxSlot : minSlot) : QRect();
+    case SC_TitleBarMinButton:
+        return hasMin ? slot(minSlot) : QRect();
+    case SC_TitleBarContextHelpButton:
+        return helpSlot >= 0 ? slot(helpSlot) : QRect();
+    case SC_TitleBarSysMenu:
+        return (flags & Qt::WindowSystemMenuHint) ? QRect(whole.left() + fw + 2, top + (caption - 16) / 2, 16, 16) : QRect();
+    case SC_TitleBarLabel: {
+        const int gap = classic() ? 2 : 4;
+        const int left = whole.left() + fw + ((flags & Qt::WindowSystemMenuHint) ? 2 + 16 + gap : gap);
+        const int right = n ? slot(n - 1).left() - 2 : whole.right() - fw;
+        return QRect(left, top, qMax(0, right - left), caption);
+    }
+    default:
+        return QRect();
+    }
+}
+
+
+void XPLasmaStyle::drawTitleBar(const QStyleOptionTitleBar *bar, QPainter *painter, const QWidget *widget) const
+{
+    const bool active = bar->state & State_Active;
+    const int fw = widget && widget->inherits("QMdiSubWindow") ? proxy()->pixelMetric(PM_MdiSubWindowFrameWidth, bar, widget) : 0;
+    const QRect whole = titleBarWhole(bar, widget, fw);
+    // WP_CAPTION: CS_ACTIVE 1, CS_INACTIVE 2.
+    drawPart(painter, {QStringLiteral("window"), 1, active ? 1 : 2, {}}, whole);
+
+    // The buttons (WP_*BUTTON), normal/hot/pushed/disabled, an inactive
+    // window's four frames after them.
+    const struct { SubControl sub; int part; } buttons[] = {
+        {SC_TitleBarCloseButton, 18}, {SC_TitleBarMaxButton, 17}, {SC_TitleBarNormalButton, 21},
+        {SC_TitleBarMinButton, 15}, {SC_TitleBarContextHelpButton, 23},
+    };
+    for (const auto &b : buttons) {
+        const QRect r = xpTitleBarRect(bar, b.sub, widget);
+        if (!r.isValid() || !(bar->subControls & b.sub))
+            continue;
+        int state = Normal;
+        if (!enabled(bar))
+            state = Disabled;
+        else if ((bar->activeSubControls & b.sub) && (bar->state & State_Sunken))
+            state = Pressed;
+        else if ((bar->activeSubControls & b.sub) && (bar->state & State_MouseOver))
+            state = Hot;
+        if (!active)
+            state += 4;
+        drawPart(painter, {QStringLiteral("window"), b.part, state, {}}, r);
+    }
+
+    if (const QRect icon = xpTitleBarRect(bar, SC_TitleBarSysMenu, widget); icon.isValid() && !bar->icon.isNull())
+        bar->icon.paint(painter, icon);
+
+    // The caption text: CaptionText / InactiveCaptionText in the theme's
+    // CaptionFont, over its shadow when the caption part asks for one.
+    const QRect label = xpTitleBarRect(bar, SC_TitleBarLabel, widget);
+    if (label.isValid() && !bar->text.isEmpty()) {
+        painter->save();
+        const QFont font = sysFont(u"captionfont", painter->font());
+        painter->setFont(font);
+        const QString text = QFontMetrics(font).elidedText(bar->text, Qt::ElideRight, label.width());
+        const PartRef caption{QStringLiteral("window"), 1, active ? 1 : 2, {}};
+        const QString shadow = m_renderer->property(inContext(caption), u"textshadowtype").value_or(QString());
+        if (shadow.compare(QLatin1String("single"), Qt::CaseInsensitive) == 0) {
+            QPoint offset(1, 1);
+            const QStringList xy = m_renderer->property(inContext(caption), u"textshadowoffset").value_or(QString()).split(QLatin1Char(','));
+            if (xy.size() == 2)
+                offset = QPoint(xy[0].trimmed().toInt(), xy[1].trimmed().toInt());
+            painter->setPen(themeColour(caption, u"textshadowcolor", Qt::gray));
+            painter->drawText(label.translated(offset), Qt::AlignLeft | Qt::AlignVCenter | Qt::TextSingleLine, text);
+        }
+        painter->setPen(active ? sysColour(u"captiontext", Qt::black) : sysColour(u"inactivecaptiontext", Qt::gray));
+        painter->drawText(label, Qt::AlignLeft | Qt::AlignVCenter | Qt::TextSingleLine, text);
+        painter->restore();
+    }
+}
+
+// A maximized MDI child's buttons in the menu bar: the style's WP_MDIMIN /
+// MDIRESTORE / MDICLOSEBUTTON; in Classic, DrawFrameControl's raised
+// edges and Marlett's glyphs at the 16 x 15 button (measured).
+void XPLasmaStyle::drawMdiControls(const QStyleOptionComplex *option, QPainter *painter, const QWidget *widget) const
+{
+    if (m_renderer && hasPart({QStringLiteral("window"), 20, 1, {}})) {
+        const struct { SubControl sub; int part; } parts[] = {
+            {SC_MdiMinButton, 16}, {SC_MdiNormalButton, 22}, {SC_MdiCloseButton, 20},
+        };
+        for (const auto &b : parts) {
+            if (!(option->subControls & b.sub))
+                continue;
+            int state = Normal;
+            if (!enabled(option))
+                state = Disabled;
+            else if ((option->activeSubControls & b.sub) && (option->state & State_Sunken))
+                state = Pressed;
+            else if ((option->activeSubControls & b.sub) && (option->state & State_MouseOver))
+                state = Hot;
+            drawPart(painter, {QStringLiteral("window"), b.part, state, {}},
+                     proxy()->subControlRect(CC_MdiControls, option, b.sub, widget));
+        }
+        return;
+    }
+    static const char *const kMin[] = {"", "", "", "", "", "", "", "", "", "", "...#######", "...#######", "", "", ""};
+    static const char *const kRestore[] = {"", "", "", "....#######", "....#######", "....#.....#", "..#######.#",
+                                           "..#######.#", "..#.....###", "..#.....#", "..#.....#", "..#######", "", "", ""};
+    static const char *const kClose[] = {"", "", "", "...##....##", "...###..###", "....######", ".....####",
+                                         ".....####", "....######", "...###..###", "...##....##", "", "", "", ""};
+    const struct { SubControl sub; const char *const *glyph; } buttons[] = {
+        {SC_MdiMinButton, kMin}, {SC_MdiNormalButton, kRestore}, {SC_MdiCloseButton, kClose},
+    };
+    QPalette pal = option->palette;
+    pal.setColor(QPalette::Button, sysColour(u"btnface", pal.color(QPalette::Button)));
+    pal.setColor(QPalette::Light, sysColour(u"btnhighlight", Qt::white));
+    pal.setColor(QPalette::Midlight, sysColour(u"light3d", pal.color(QPalette::Midlight)));
+    pal.setColor(QPalette::Dark, sysColour(u"btnshadow", Qt::gray));
+    pal.setColor(QPalette::Shadow, sysColour(u"dkshadow3d", Qt::black));
+    for (const auto &b : buttons) {
+        if (!(option->subControls & b.sub))
+            continue;
+        const QRect r = proxy()->subControlRect(CC_MdiControls, option, b.sub, widget);
+        const bool down = (option->activeSubControls & b.sub) && (option->state & State_Sunken);
+        classicPushEdge(painter, r, pal, down);
+        const QPoint at = r.topLeft() + (down ? QPoint(1, 1) : QPoint());
+        const QColor ink = sysColour(u"btntext", Qt::black);
+        for (int y = 0; y < 15 && y < r.height(); ++y)
+            for (int x = 0; b.glyph[y][x]; ++x)
+                if (b.glyph[y][x] == '#')
+                    painter->fillRect(at.x() + x, at.y() + y, 1, 1, ink);
+    }
+}
+
+// A classic caption (DrawCaption, measured on XP with Windows Classic's own
+// metrics): the start colour behind the icon, GradientFill from 2px past
+// the icon to 2px short of the first button, the end colour after; a face
+// row under it; DFC_CAPTION buttons with Marlett's glyphs.
+void XPLasmaStyle::drawClassicTitleBar(const QStyleOptionTitleBar *bar, QPainter *painter, const QWidget *widget) const
+{
+    const bool active = bar->state & State_Active;
+    const int fw = widget && widget->inherits("QMdiSubWindow") ? proxy()->pixelMetric(PM_MdiSubWindowFrameWidth, bar, widget) : 0;
+    const QRect whole = titleBarWhole(bar, widget, fw);
+    const QRect caption = whole.adjusted(fw, whole == bar->rect ? 0 : fw, -fw, -1);
+    const QColor from = sysColour(active ? u"activecaption" : u"inactivecaption", active ? QColor(10, 36, 106) : Qt::gray);
+    const QColor to = sysColour(active ? u"gradientactivecaption" : u"gradientinactivecaption", from);
+    painter->fillRect(QRect(caption.left(), caption.bottom() + 1, caption.width(), 1), sysColour(u"btnface", Qt::lightGray));
+
+    const QRect icon = xpTitleBarRect(bar, SC_TitleBarSysMenu, widget);
+    int right = caption.right() + 1;
+    for (SubControl sc : {SC_TitleBarMinButton, SC_TitleBarNormalButton, SC_TitleBarMaxButton, SC_TitleBarContextHelpButton,
+                          SC_TitleBarCloseButton})
+        if (const QRect r = xpTitleBarRect(bar, sc, widget); r.isValid())
+            right = qMin(right, r.left() - 2);
+    const int left = icon.isValid() ? icon.right() + 2 : caption.left();
+    painter->fillRect(QRect(caption.left(), caption.top(), left - caption.left(), caption.height()), from);
+    painter->fillRect(QRect(right, caption.top(), caption.right() + 1 - right, caption.height()), to);
+    // (GradientFill steps in 16.16 fixed point -- step = delta * 65536 /
+    // width, column i the start + step * (i + 1) >> 16 -- over a rect 1px
+    // wider than what's left of it: its last column is the end colour's.)
+    const int span = qMax(1, right + 1 - left);
+    for (int x = left; x < right; ++x) {
+        auto mix = [&](int a, int b) {
+            const qint64 step = qint64(b - a) * 65536 / span;
+            return a + int(std::floor(double(step * (x - left + 1)) / 65536.0));
+        };
+        painter->fillRect(QRect(x, caption.top(), 1, caption.height()),
+                          QColor(mix(from.red(), to.red()), mix(from.green(), to.green()), mix(from.blue(), to.blue())));
+    }
+    if (icon.isValid() && !bar->icon.isNull())
+        bar->icon.paint(painter, icon);
+
+    // Marlett's caption glyphs at the standard 16x14 button: rows of
+    // '#', from the button's corner.
+    static const char *const kMin[] = {"...........", ".........", "...", "...", "...", "...", "...", "...", "...",
+                                       "....######", "....######"};
+    static const char *const kMax[] = {"", "", "...#########", "...#########", "...#.......#", "...#.......#",
+                                       "...#.......#", "...#.......#", "...#.......#", "...#.......#", "...#########"};
+    static const char *const kRestore[] = {"", "", ".....######", ".....######", ".....#....#", "...######.#",
+                                           "...######.#", "...#....###", "...#....#", "...#....#", "...######"};
+    static const char *const kClose[] = {"", "", "", "....##....##", ".....##..##", "......####", ".......##",
+                                         "......####", ".....##..##", "....##....##", ""};
+    const struct { SubControl sub; const char *const *glyph; } buttons[] = {
+        {SC_TitleBarCloseButton, kClose}, {SC_TitleBarMaxButton, kMax}, {SC_TitleBarNormalButton, kRestore},
+        {SC_TitleBarMinButton, kMin},
+    };
+    for (const auto &b : buttons) {
+        const QRect r = xpTitleBarRect(bar, b.sub, widget);
+        if (!r.isValid() || !(bar->subControls & b.sub))
+            continue;
+        const bool down = (bar->activeSubControls & b.sub) && (bar->state & State_Sunken);
+        classicPushEdge(painter, r, bar->palette, down);
+        auto glyph = [&](QPoint at, const QColor &c) {
+            for (int y = 0; y < 11; ++y)
+                for (int x = 0; b.glyph[y][x]; ++x)
+                    if (b.glyph[y][x] == '#')
+                        painter->fillRect(at.x() + x, at.y() + y, 1, 1, c);
+        };
+        const QPoint at = r.topLeft() + (down ? QPoint(1, 1) : QPoint());
+        if (enabled(bar)) {
+            glyph(at, sysColour(u"btntext", Qt::black));
+        } else {
+            glyph(at + QPoint(1, 1), sysColour(u"btnhighlight", Qt::white));
+            glyph(at, sysColour(u"btnshadow", Qt::gray));
+        }
+    }
+
+    const QRect label = xpTitleBarRect(bar, SC_TitleBarLabel, widget);
+    if (label.isValid() && !bar->text.isEmpty()) {
+        painter->save();
+        const QFont font = sysFont(u"captionfont", painter->font());
+        painter->setFont(font);
+        painter->setPen(sysColour(active ? u"captiontext" : u"inactivecaptiontext", active ? Qt::white : Qt::lightGray));
+        // (Centred by GDI's text height in the rows above the face row.)
+        const int th = xpTextHeight(font);
+        const QRect text(label.left(), label.top() + (label.height() - 1 - th) / 2, label.width(), th);
+        painter->drawText(text, Qt::AlignLeft | Qt::AlignTop | Qt::TextSingleLine,
+                          QFontMetrics(font).elidedText(bar->text, Qt::ElideRight, text.width()));
+        painter->restore();
+    }
 }
 
 void XPLasmaStyle::drawScrollBar(const QStyleOptionSlider *bar, QPainter *painter, const QWidget *widget) const
@@ -1562,7 +1975,9 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
         case PM_TabBarTabHSpace:
             return 12;   // as themed: TCM_SETPADDING's 6px either side
         case PM_TabBarScrollButtonWidth:
-            return sysMetric(u"scrollbarwidth", 17);
+            // Square to the tab row less 1 (17 for Tahoma 8), whatever the
+            // scroll bar width (measured at 16 and 17).
+            return xpTextHeight(widget ? widget->font() : QApplication::font()) + 4;
         case PM_ToolBarFrameWidth:
         case PM_ToolBarItemMargin:
         case PM_ToolBarItemSpacing:
@@ -1583,12 +1998,26 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
         case PM_MenuHMargin:
         case PM_MenuVMargin:
             return 1;
+        case PM_TitleBarHeight:
+            return sysMetric(u"captionbarheight", 18) + 1;   // SM_CYCAPTION
+        case PM_MdiSubWindowFrameWidth:
+            return sysMetric(u"sizingborderwidth", 1) + 3;   // SM_CXSIZEFRAME
         default:
             break;
         }
     }
     if (m_renderer) {
         switch (metric) {
+        case PM_TitleBarHeight:
+            // SM_CYCAPTION: the theme's CaptionBarHeight + 1 (QMdiSubWindow
+            // adds its border on top, as XP's caption art covers it).
+            if (hasPart({QStringLiteral("window"), 1, 1, {}}))
+                return sysMetric(u"captionbarheight", 25) + 1;
+            break;
+        case PM_MdiSubWindowFrameWidth:
+            if (hasPart({QStringLiteral("window"), 7, 1, {}}))
+                return 4;   // SM_CXSIZEFRAME
+            break;
         case PM_IndicatorWidth:
         case PM_IndicatorHeight: {
             const QSize s = trueSize({QStringLiteral("button"), 3, 1, {}});
@@ -1745,6 +2174,10 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
                                      const QWidget *widget) const
 {
     const ContextScope context(this, widget, option);
+    if (type == CT_MdiControls && m_renderer && hasPart({QStringLiteral("window"), 20, 1, {}}))
+        return QSize(3 * sysMetric(u"menubarwidth", 18), sysMetric(u"menubarheight", 19));
+    if (type == CT_MdiControls && (classic() || m_renderer))
+        return QSize(3 * (sysMetric(u"menubarwidth", 18) - 2) + 2 + 2, sysMetric(u"menubarheight", 19));
     if (classic()) {
         switch (type) {
         case CT_ItemViewItem:
@@ -1772,7 +2205,9 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
             break;
         case CT_MenuBarItem:
             if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option))
-                return QSize(size.width() + 12, xpTextHeight(item->font) + 6);   // SM_CYMENU: 19 for Tahoma 8
+                // SM_CYMENU: the scheme's menu height (18 for Tahoma 8) and
+                // the face-coloured row under it.
+                return QSize(size.width() + 12, sysMetric(u"menubarheight", xpTextHeight(item->font) + 5) + 1);
             break;
         default:
             break;
@@ -1799,7 +2234,7 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
             break;
         case CT_MenuBarItem:
             if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option); item && flatMenus())
-                return QSize(size.width() + 12, xpTextHeight(item->font) + 6);   // 6px either side; 19 tall
+                return QSize(size.width() + 12, xpTextHeight(item->font) + 7);   // 6px either side; 19 tall + the line
             break;
         case CT_HeaderSection:
             if (hasPart({QStringLiteral("header"), 1, Normal, {}})) {
@@ -1852,9 +2287,10 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
     }
     if ((classic() || (m_renderer && hasPart({QStringLiteral("spin"), 3, 1, {}}))) && option->rect.width() >= option->rect.height()) {
         // XP scrolls a tab row that doesn't fit with an up-down in its
-        // top-right corner: two SM_CXVSCROLL-wide halves, 1px down, 17px
-        // tall for Tahoma 8 (the bar less 5), with no tear marks.
-        const int w = sysMetric(u"scrollbarwidth", 17);
+        // top-right corner: two square halves (PM_TabBarScrollButtonWidth),
+        // 1px down, 17px tall for Tahoma 8 (the bar less 5), with no tear
+        // marks.
+        const int w = proxy()->pixelMetric(PM_TabBarScrollButtonWidth, option, widget);
         const QRect r = option->rect;
         switch (element) {
         case SE_TabBarScrollLeftButton:
@@ -2310,8 +2746,10 @@ void XPLasmaStyle::drawMenuItem(const QStyleOptionMenuItem *item, QPainter *pain
 // a 1px highlight frame.
 void XPLasmaStyle::drawMenuBarItem(const QStyleOptionMenuItem *item, QPainter *painter, const QWidget *widget) const
 {
-    const QRect r = item->rect;
+    // (The item's last row is the menu-coloured line under the bar.)
+    const QRect r = item->rect.adjusted(0, 0, 0, -1);
     painter->fillRect(r, sysColour(u"menubar", item->palette.window().color()));
+    painter->fillRect(QRect(r.left(), r.bottom() + 1, r.width(), 1), sysColour(u"menu", Qt::white));
     const bool active = enabled(item) && (item->state & (State_Selected | State_Sunken));
     if (active) {
         painter->fillRect(r, sysColour(u"menuhilight", QColor(49, 106, 197)));
@@ -2591,7 +3029,10 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
         }
         return true;
     case CE_MenuBarEmptyArea:
+        // (The bar's last row: the face-coloured line, under the items too.)
         painter->fillRect(option->rect, sysColour(u"menu", option->palette.color(QPalette::Button)));
+        painter->fillRect(QRect(option->rect.left(), option->rect.bottom(), option->rect.width(), 1),
+                          sysColour(u"btnface", Qt::lightGray));
         return true;
     case CE_HeaderEmptyArea: {
         // Past the last column: another raised section, running off the
@@ -2630,8 +3071,10 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
     case CE_MenuBarItem:
         if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option)) {
             // Hot: a raised 1px edge; open: sunken, the title pushed 1px.
-            const QRect r = item->rect;
+            // (The item's last row is the face-coloured line under the bar.)
+            const QRect r = item->rect.adjusted(0, 0, 0, -1);
             painter->fillRect(r, sysColour(u"menu", item->palette.color(QPalette::Button)));
+            painter->fillRect(QRect(r.left(), r.bottom() + 1, r.width(), 1), sysColour(u"btnface", Qt::lightGray));
             const bool open = item->state & State_Sunken;
             const bool hot = enabled(item) && (item->state & (State_Selected | State_Sunken));
             if (hot) {
@@ -2643,7 +3086,7 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
                 painter->fillRect(QRect(r.right(), r.top(), 1, r.height()), br);
             }
             const int th = xpTextHeight(item->font);
-            QRect text(r.left() + 6, r.top() + (r.height() - th) / 2 - 1, r.width() - 6, th);
+            QRect text(r.left() + 6, r.top() + (r.height() - th) / 2, r.width() - 6, th);
             if (open)
                 text.translate(1, 1);
             painter->save();
@@ -2745,7 +3188,16 @@ static void classicScrollButton(QPainter *p, const QRect &r, const QPalette &pal
 // disabled, etched -- the highlight 1px down-right under the shadow.
 static void classicArrow(QPainter *p, const QRect &r, Qt::ArrowType dir, const QPalette &pal, bool enabled, bool pressed)
 {
-    const QPoint c(r.left() + (r.width() - 1) / 2 + (pressed ? 1 : 0), r.top() + (r.height() - 1) / 2 + (pressed ? 1 : 0));
+    // Marlett's arrows sit in the button's s x s square (s the smaller
+    // side): across it at (s - 1) / 2, along it at s / 2 pointing left or
+    // up and (s - 1) / 2 pointing right or down (measured at 16 and 17).
+    const int side = qMin(r.width(), r.height());
+    const QPoint square = r.topLeft() + QPoint((r.width() - side) / 2, (r.height() - side) / 2);
+    const int lo = (side - 1) / 2, hi = side / 2;
+    const bool back = dir == Qt::LeftArrow || dir == Qt::UpArrow;
+    const bool horizontal = dir == Qt::LeftArrow || dir == Qt::RightArrow;
+    const int along = back ? hi : lo;
+    const QPoint c = square + (horizontal ? QPoint(along, lo) : QPoint(lo, along)) + (pressed ? QPoint(1, 1) : QPoint());
     auto draw = [&](QPoint o, const QColor &col) {
         for (int i = 0; i < 4; ++i) {
             switch (dir) {
@@ -2822,13 +3274,19 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
             const int along = horizontal ? handle.width() : handle.height();
             const int across = horizontal ? handle.height() : handle.width();
             const bool dithered = !enabled(slider) || ((slider->activeSubControls & SC_SliderHandle) && sunken(slider));
+            // The table's row for the thumb's row j: its body stretches or
+            // shrinks, the 5-row point stays at the far end.
+            auto tableRow = [&](int j) {
+                const int r = flip ? across - 1 - j : j;
+                return r >= across - 5 ? qMin(21, 17 + r - (across - 5)) : qMin(r, 16);
+            };
             for (int j = 0; j < across; ++j) {
                 for (int i = 0; i < along; ++i) {
                     // Row j of the down-pointing thumb: the point's rows only
                     // when pointed; a plain raised box otherwise.
                     char c;
                     if (pointed) {
-                        const int row = qBound(0, flip ? across - 1 - j : j, 21);
+                        const int row = tableRow(j);
                         const int col = qBound(0, i, 10);
                         c = kPointed[row][col];
                         if (flip && (c == 'W' || c == 'L' || c == 'S' || c == 'D') && row > 0 && row < 17 && col != 0 && col < 9)
@@ -2845,7 +3303,7 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
                                                  : QPoint(handle.left() + j, handle.top() + i);
                     // Disabled or held down, the face is dithered with the
                     // highlight -- all but the point's first row (so XP has it).
-                    const bool plainRow = pointed && qBound(0, flip ? across - 1 - j : j, 21) == 17;
+                    const bool plainRow = pointed && tableRow(j) == 17;
                     if (c == 'F' && dithered && !plainRow && ((at.x() + at.y()) & 1))
                         c = 'W';
                     painter->fillRect(at.x(), at.y(), 1, 1, colourOf(c));
@@ -2853,6 +3311,12 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
             }
             if ((slider->state & State_HasFocus) && (slider->state & State_KeyboardFocusChange))
                 drawFocusDots(painter, slider->rect, focusColours(widget).first, focusColours(widget).second);
+            return true;
+        }
+        return false;
+    case CC_TitleBar:
+        if (const auto *bar = qstyleoption_cast<const QStyleOptionTitleBar *>(option)) {
+            drawClassicTitleBar(bar, painter, widget);
             return true;
         }
         return false;
@@ -3060,7 +3524,8 @@ QSize XPLasmaStyle::sliderThumbSize(const QStyleOptionSlider *slider) const
     const int room = horizontal ? slider->rect.height() : slider->rect.width();
     if (room - 2 < across)
         across = qMax(1, room - 6);
-    return horizontal ? QSize(across / 2, across) : QSize(across, across / 2);
+    // (Along, half of across rounded up: Luna's 22 -> 11, Classic's 21 -> 11.)
+    return horizontal ? QSize((across + 1) / 2, across) : QSize(across, (across + 1) / 2);
 }
 
 // comctl32's trackbar layout, measured on XP (Luna Silver, widths 60-200,
@@ -3129,6 +3594,78 @@ QRect XPLasmaStyle::subControlRect(ComplexControl control, const QStyleOptionCom
                                    const QWidget *widget) const
 {
     const ContextScope context(this, widget, option);
+    if (control == CC_MdiControls && m_renderer && hasPart({QStringLiteral("window"), 20, 1, {}})) {
+        // Themed (a real frame's menu bar): WP_MDI*BUTTON, SM_CXMENUSIZE by
+        // the bar's height, flush right and touching.
+        const QRect r = option->rect;
+        const QSize b(sysMetric(u"menubarwidth", 18), sysMetric(u"menubarheight", 19));
+        const QRect close(r.right() - b.width() + 1, r.top(), b.width(), b.height());
+        switch (sub) {
+        case SC_MdiCloseButton:
+            return close;
+        case SC_MdiNormalButton:
+            return close.translated(-b.width(), 0);
+        case SC_MdiMinButton:
+            return close.translated(-2 * b.width(), 0);
+        default:
+            break;
+        }
+    }
+    if (control == CC_MdiControls && (classic() || m_renderer)) {
+        // A maximized MDI child's buttons in the menu bar: DFC_CAPTION
+        // buttons SM_CXMENUSIZE - 2 by SM_CYMENU - 4, 2px down; minimize and
+        // restore touching, close 2px apart and 2px in from the right.
+        const QRect r = option->rect;
+        const QSize b(sysMetric(u"menubarwidth", 18) - 2, sysMetric(u"menubarheight", 19) - 4);
+        const QRect close(r.right() - 2 - b.width() + 1, r.top() + 2, b.width(), b.height());
+        switch (sub) {
+        case SC_MdiCloseButton:
+            return close;
+        case SC_MdiNormalButton:
+            return close.translated(-2 - b.width(), 0);
+        case SC_MdiMinButton:
+            return close.translated(-2 - 2 * b.width(), 0);
+        default:
+            break;
+        }
+    }
+    if (control == CC_ScrollBar && (classic() || m_renderer)
+        && (sub == SC_ScrollBarSlider || sub == SC_ScrollBarSubPage || sub == SC_ScrollBarAddPage)) {
+        // USER32's thumb: MulDiv(track, page, range + page) long -- rounded,
+        // where Qt truncates (a 118px track at page 10 of 101: XP 12, Qt 11)
+        // -- at MulDiv(track - thumb, value - min, range).
+        if (const auto *bar = qstyleoption_cast<const QStyleOptionSlider *>(option); bar && bar->maximum > bar->minimum) {
+            const bool horizontal = bar->orientation == Qt::Horizontal;
+            const QRect subLine = proxy()->subControlRect(control, option, SC_ScrollBarSubLine, widget);
+            const QRect addLine = proxy()->subControlRect(control, option, SC_ScrollBarAddLine, widget);
+            const int start = horizontal ? subLine.right() + 1 : subLine.bottom() + 1;
+            const int end = horizontal ? addLine.left() : addLine.top();
+            const int track = end - start;
+            auto mulDiv = [](qint64 a, qint64 b, qint64 c) { return c ? int((a * b + c / 2) / c) : 0; };
+            const qint64 range = qint64(bar->maximum) - bar->minimum;
+            int thumb = qMax(mulDiv(track, bar->pageStep, range + bar->pageStep),
+                             proxy()->pixelMetric(PM_ScrollBarSliderMin, option, widget));
+            if (track > 0 && thumb <= track) {
+                const qint64 value = bar->upsideDown ? qint64(bar->maximum) - bar->sliderPosition
+                                                     : qint64(bar->sliderPosition) - bar->minimum;
+                const int at = start + mulDiv(track - thumb, value, range);
+                auto along = [&](int from, int to) {
+                    return horizontal ? QRect(from, bar->rect.top(), to - from, bar->rect.height())
+                                      : QRect(bar->rect.left(), from, bar->rect.width(), to - from);
+                };
+                if (sub == SC_ScrollBarSlider)
+                    return along(at, at + thumb);
+                return sub == SC_ScrollBarSubPage ? along(start, at) : along(at + thumb, end);
+            }
+        }
+    }
+    if (control == CC_TitleBar && (classic() || hasPart({QStringLiteral("window"), 1, 1, {}}))) {
+        if (const auto *bar = qstyleoption_cast<const QStyleOptionTitleBar *>(option)) {
+            const QRect r = xpTitleBarRect(bar, sub, widget);
+            if (r.isValid() || sub != SC_TitleBarLabel)
+                return r;
+        }
+    }
     if (control == CC_GroupBox && sub == SC_GroupBoxFrame && (classic() || hasPart({QStringLiteral("button"), 4, 1, {}}))) {
         // The frame's top runs through the caption's middle -- by GDI's
         // text height, which Qt 5 overstates by a row for Tahoma 8.
@@ -3269,6 +3806,39 @@ int XPLasmaStyle::styleHint(StyleHint hint, const QStyleOption *option, const QW
     switch (hint) {
     case SH_ComboBox_Popup:
         return 0;
+    case SH_MainWindow_SpaceBelowMenuBar:
+        // The row under XP's menu bar is part of it (SM_CYMENU), drawn
+        // with the bar.
+        if (m_renderer || classic())
+            return 0;
+        break;
+    case SH_WindowFrame_Mask:
+        // An MDI child's shape: the caption art's transparent corners cut
+        // away, as XP's window region does.
+        if (auto *mask = qstyleoption_cast<QStyleHintReturnMask *>(returnData);
+            mask && option && widget && widget->inherits("QMdiSubWindow") && m_renderer && hasPart({QStringLiteral("window"), 1, 1, {}})) {
+            const int fw = proxy()->pixelMetric(PM_MdiSubWindowFrameWidth, option, widget);
+            QStyleOptionTitleBar probe;
+            probe.QStyleOption::operator=(*option);
+            const int caption = proxy()->pixelMetric(PM_TitleBarHeight, &probe, widget) + fw;
+            QRegion region(option->rect);
+            if (const QImage *art = partImage({QStringLiteral("window"), 1, 1, {}}, QSize(option->rect.width(), caption), 1.0)) {
+                // (Only the corners: rows until one is wholly opaque.)
+                for (int y = 0; y < art->height(); ++y) {
+                    bool opaque = true;
+                    for (int x = 0; x < art->width(); ++x)
+                        if (qAlpha(art->pixel(x, y)) == 0) {
+                            region -= QRegion(option->rect.left() + x, option->rect.top() + y, 1, 1);
+                            opaque = false;
+                        }
+                    if (opaque)
+                        break;
+                }
+            }
+            mask->region = region;
+            return 1;
+        }
+        break;
     case SH_UnderlineShortcut:
         if (!m_safe)
             return m_cues ? 1 : 0;   // until Alt is held (see eventFilter)

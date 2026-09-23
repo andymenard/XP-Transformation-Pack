@@ -65,6 +65,17 @@ def scheme_lines(theme: Path) -> list[str]:
     # style applied before happened to leave in the session.)
     colours.setdefault("hottrackingcolor", ["0", "0", "128"])
     lines = []
+    # [Metrics] NonclientMetrics (NONCLIENTMETRICSA, decimal bytes): the
+    # scheme's frame, caption, scroll and menu sizes and fonts.
+    section, blob = None, None
+    for raw in theme.read_bytes().decode("latin-1").splitlines():
+        line = raw.strip()
+        if line.startswith("["):
+            section = line.lower()
+        elif section == "[metrics]" and line.lower().startswith("nonclientmetrics="):
+            blob = bytes(int(b) for b in line.split("=", 1)[1].split())
+    if blob:
+        lines.append("ncmetrics " + blob.hex())
     for index, name in enumerate(SYSCOLORS):
         rgb = colours.get(name.lower())
         if rgb and len(rgb) == 3:
@@ -114,6 +125,7 @@ def main() -> int:
     job_file.write_text("style -\n" + "\n".join(lines) + "\n")
 
     vm = None
+    reset = False
     summary = []
     for label, rel, colour, variant in STYLES:
         if args.only and label not in args.only:
@@ -123,6 +135,15 @@ def main() -> int:
         xp_dir = out / label / "oracle"
         if not (args.cached and (xp_dir / "raw").is_dir()):
             vm = vm or vmmod.connect()
+            if colour is not None and not reset:
+                # A visual style keeps whatever window metrics the session
+                # has, and a Classic scheme's (uxdump `ncmetrics`) can't be
+                # undone without USER re-deriving the small icon size from
+                # the caption's: start the styles from a freshly booted XP.
+                # (Nothing is written to its registry, so a reset is one.)
+                vm.command("system_reset")
+                vmmod.wait_for_desktop(vm)
+                reset = True
             if colour is None:
                 job = "\n".join(["classic", *scheme_lines(path), *lines, RESTORE]) + "\n"
                 carried = []

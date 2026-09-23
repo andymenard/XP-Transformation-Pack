@@ -1,2 +1,5 @@
 control propsheet 300 120 normal Show window contents while dragging
 control propsheet 300 120 hot-60-40 Show window contents while dragging
+control mdi 260 180 normal Document
+control mdi 260 180 inactive Document
+control mdi 260 180 maximized Document

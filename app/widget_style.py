@@ -27,6 +27,7 @@ import hashlib
 import os
 import shutil
 
+import classic_gen
 import hostexec as host
 import paths
 
@@ -134,12 +135,14 @@ def freeze(msstyles: str) -> str:
 
 def scheme_theme_text(scheme) -> str:
     """A classic colour scheme as the plugin reads it: a .theme file's
-    [Control Panel\\Colors] (XP's own spelling of each key), plus the scroll
-    bar width the scheme sets (SM_CXVSCROLL)."""
+    [Control Panel\\Colors] (XP's own spelling of each key), its [Metrics]
+    NonclientMetrics (frame, caption, scroll and menu sizes, fonts), plus the
+    scroll bar width the scheme sets (SM_CXVSCROLL)."""
     lines = [f"; Windows Classic scheme {scheme.name!r}, written by XPLasma", "", "[Control Panel\\Colors]"]
     for key in sorted(scheme.colors):
         r, g, b = scheme.colors[key]
         lines.append(f"{key}={r} {g} {b}")
+    lines += ["", "[Metrics]", f"NonclientMetrics={classic_gen.theme_sections(scheme)['metrics']['nonclientmetrics']}"]
     lines += ["", "[XPLasma]", f"ScrollWidth={scheme.scroll}", ""]
     return "\r\n".join(lines)
 

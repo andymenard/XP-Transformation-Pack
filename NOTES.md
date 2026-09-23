@@ -39,6 +39,32 @@ Each says where it came from, so it can be picked up without re-deriving it.
 - **Qt 5 spin boxes select their text on each step.** XP's up-down leaves
   the buddy's caret alone; Qt 6.6+ asks the style (SH_SpinBox_SelectOnStep,
   answered no), Qt 5 selects unconditionally.
+- **MDI captions: the icon and (visual styles) the caption glyphs.** XP
+  shows the stock application icon (a Microsoft resource, not reproduced),
+  Qt its window icon; under a visual style the caption is Trebuchet MS
+  bold from GDI against FreeType's. Everything else in an MDI child --
+  caption art, frame, buttons in all states, text position and shadow,
+  Classic's gradient to the pixel -- matches.
+- **A maximized MDI child's menu titles sit 4px left of XP's.** XP gives
+  the child's icon a menu item SM_CXMENUSIZE + 2 wide with the icon 4px in;
+  Qt's QMdi::ControlLabel is exactly its icon and QMenuBar lays it out by
+  its sizeHint, which no style hook reaches. The buttons (themed WP_MDI*
+  parts, or Classic's DFC ones) and the bar itself match.
+- **The line under a menu bar is the bar's** (measured 2026-09-23 in an
+  ordinary overlapped window): SM_CYMENU is the menu height + 1, the last
+  row COLOR_MENU with flat menus, COLOR_3DFACE without. (A bare WS_POPUP
+  host shows COLOR_WINDOWFRAME there instead, which is why the oracle's
+  `menubar:1` uses a real frame.)
+- **Classic trackbar: the point's first row, disabled or held.** XP left
+  it undithered on a 22px thumb (Luna's leftover metrics) and dithered it on
+  a 21px one (Classic's own); 2px, rule unknown from two samples.
+- **The oracle's Classic had Luna's window metrics** (found 2026-09-23):
+  EnableTheming(FALSE) leaves the visual style's sizes in place, so the
+  Classic captures had 17px scroll bars and 25px captions. uxdump's
+  `ncmetrics` now applies a scheme's NonclientMetrics (as Display Properties
+  does), and refreshes comctl32's cached copy -- which it reads at load and
+  otherwise keeps (an up-down's width, a trackbar's thumb) -- before any
+  control is made.
 - **Focus cues in the oracle follow the last input** (found 2026-09-23):
   XP shows or hides a new window's focus rectangles by whether the last
   input was keyboard or mouse, so one mouse click flipped every later
@@ -117,12 +143,12 @@ Each says where it came from, so it can be picked up without re-deriving it.
   match in size (87x11). It isn't the style's job: `fonts_gen` should
   offer it on Apply, through the same fontconfig rule KDE's Fonts module
   writes for "exclude range from anti-aliasing" (0-8 pt).
-- **The XP VM has ClearType on** (seen 2026-09-23: coloured fringes such as
-  229,241,237 around control labels). XP's default was "Standard"
-  smoothing, which the XPLasma look aims at, so exact text colours can't
-  be read off the VM as it stands. Switching it to Standard (Display
-  Properties > Appearance > Effects) is a persistent VM change, so it's
-  the user's call (`XPVM_PERSIST=1 refharness/vm.sh`).
+- ~~**The XP VM has ClearType on**~~ (resolved 2026-09-23): the image
+  boots with ClearType; uxdump now sets XP's default "Standard" smoothing
+  for the session at the start of every job (SPI_SETFONTSMOOTHINGTYPE, thrown
+  away with the snapshot), so captures no longer depend on what an earlier
+  run left behind. (A long-running VM session had quietly been on Standard;
+  a reboot brought ClearType back and every label differed.)
 - **A newly installed style plugin isn't visible to running apps**
   (2026-09-23, first live switch). Qt's plugin loader scans the plugin
   directories once per process, so after `libxplasma.so` first appears,

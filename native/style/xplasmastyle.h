@@ -70,7 +70,12 @@ private:
     QColor themeColour(const xpl::PartRef &ref, QStringView property, const QColor &fallback) const;
     QColor sysColour(QStringView name, const QColor &fallback) const;
     int sysMetric(QStringView name, int fallback) const;
+    QFont sysFont(QStringView name, const QFont &fallback) const;
 
+    QRect xpTitleBarRect(const QStyleOptionTitleBar *bar, SubControl sub, const QWidget *widget) const;
+    void drawTitleBar(const QStyleOptionTitleBar *bar, QPainter *painter, const QWidget *widget) const;
+    void drawMdiControls(const QStyleOptionComplex *option, QPainter *painter, const QWidget *widget) const;
+    void drawClassicTitleBar(const QStyleOptionTitleBar *bar, QPainter *painter, const QWidget *widget) const;
     void drawScrollBar(const QStyleOptionSlider *option, QPainter *painter, const QWidget *widget) const;
     void drawProgressChunks(const QStyleOptionProgressBar *option, QPainter *painter, const QWidget *widget) const;
     void drawSliderTicks(const QStyleOptionSlider *slider, const QRect &channel, const QRect &handle, QPainter *painter) const;
@@ -118,7 +123,8 @@ private:
     std::unique_ptr<xpl::Renderer> m_renderer;
     bool m_safe = false;                   // XPLASMA_SAFE=1: classic only, draw nothing of our own
     QHash<QString, QColor> m_scheme;       // Classic: the colour scheme's [Control Panel\Colors], keys lower-case
-    QHash<QString, int> m_schemeMetrics;   // Classic: [XPLasma] metrics (scrollwidth)
+    QHash<QString, int> m_schemeMetrics;   // Classic: NonclientMetrics / [XPLasma], by SysMetrics name
+    QHash<QString, QString> m_schemeFonts; // Classic: NonclientMetrics' fonts, as SysMetrics specs
     mutable QCache<QString, QImage> m_cache; // rendered parts, keyed by part + size + dpi
     bool m_cues = false;                   // Alt held: show mnemonic underlines (XP's keyboard cues)
     QString m_configPath;                  // ~/.config/xplasmarc, when live

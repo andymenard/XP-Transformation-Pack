@@ -605,11 +605,19 @@ style's system colours) and under Windows Classic (uxdump `classic`:
 EnableTheming(FALSE) plus a scheme's colours from its .theme file), against
 the plugin rendering the same .msstyles or .theme:
 
-| Style | Pixel-exact controls |
+| Style | Pixel-exact controls (79 → 113 cases, 2026-09-23 evening) |
 | --- | --- |
-| Luna Silver, Royale, Royale Noir, Zune, Embedded | 76 / 79 each |
-| Windows Classic (the plugin's own, from the scheme's colours) | 76 / 79 |
-| Luna Blue, Luna Olive | 65 / 79 |
+| Luna Silver, Royale, Royale Noir, Zune, Embedded | 76 / 79 → 107 / 113 each |
+| Windows Classic, and a synthetic scheme with every colour its own | 76 / 79 → 105 / 113 |
+| Luna Blue, Luna Olive | 65 / 79 → 92 / 113 |
+
+(The 113 add disabled and mouse-pressed states, property-sheet pages,
+MDI children normal, inactive and maximized, and a menu bar in a real
+frame. Classic now runs with its own window metrics -- 16px scroll bars,
+18px captions and menus -- as Display Properties applies them; the oracle
+had been leaving Luna's in place. The MDI cases differ only in the
+application icon, the caption glyphs under a visual style, and a maximized
+child's menu titles (see NOTES).)
 
 The 3 left everywhere are Qt-side, not drawable from a style: QTabBar
 scrolls an overflowing row by pixels where XP scrolls by whole tabs (2),
@@ -619,3 +627,30 @@ approximates /255). Text is compared too, with Qt in the XP-text mode
 (hinted, unantialiased, unkerned Tahoma 8), where FreeType matches GDI.
 Qt 5 matches Qt 6 apart from glyph rasterisation (and the gallery can't
 show a Qt 5 tooltip offscreen).
+
+**Phase 4 — context (in progress, 2026-09-23).**
+- *Resolver:* `xplasma-class` on a widget or any ancestor (QtQuick: the
+  style object or its parents, or a declared `xplasmaClass`) sets the
+  `Sub::` for every part the style looks up during that call; parts the
+  theme has no `[Sub::Class]` for fall back to the class, as in uxtheme.
+- *Dialog tab body:* a QTabWidget page inside a dialog is painted with
+  TABP_BODY as EnableThemeDialogTexture does -- a true-size pattern from the
+  page's corner. Exact against a real property-sheet page (uxdump
+  `propsheet`), a check box drawn over it included.
+- *Places bar:* a file dialog's places panel (KFilePlacesView, QSidebar)
+  gets `PlacesBar::Toolbar`: its background (matching XP's Open dialog,
+  uxdump `filedialog`, to the pixel) and its buttons for hot and current
+  places.
+- *MDI:* QMdiSubWindow draws XP's caption, frame and caption buttons
+  (active, inactive, hot, pressed; the window region's cut corners), and in
+  Classic the gradient caption (GDI's 16.16 GradientFill), DFC_CAPTION
+  buttons and sizing border -- exact against a real MDICLIENT child apart
+  from the application icon (uxdump `mdi`). Maximized, its buttons sit in
+  the frame's menu bar as XP's do (themed WP_MDI* parts, Classic DFC
+  buttons).
+- *QML:* qqc2-desktop-style controls in System Settings draw through the
+  same paths (checked offscreen with `XPLASMA_DUMP`, which grabs QtQuick
+  windows too).
+- *Classic's own metrics:* the plugin reads a scheme's NonclientMetrics
+  (scroll bars, captions, menus, fonts); XP's thumb length rounds (MulDiv)
+  where Qt's truncates; Marlett's arrows sit in the button's square.
