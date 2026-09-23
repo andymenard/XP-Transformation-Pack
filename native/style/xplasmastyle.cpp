@@ -9,6 +9,7 @@
 #include <QComboBox>
 #include <QDir>
 #include <QFile>
+#include <QHeaderView>
 #include <QFileInfo>
 #include <QMenu>
 #include <QPainter>
@@ -326,6 +327,9 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             break;
         case PE_FrameDefaultButton:
             return;   // drawn with the bevel (CE_PushButtonBevel)
+        case PE_IndicatorBranch:
+            drawTreeBranch(option, painter, widget);
+            return;
         case PE_PanelMenu:
         case PE_FrameMenu: {
             // A Classic menu: the menu colour in a raised edge (Light3D and
@@ -1118,8 +1122,19 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
             return QProxyStyle::pixelMetric(metric, option, widget) - 1;   // the label stays where XP has it
         case PM_ScrollBarExtent:
             return sysMetric(u"scrollbarwidth", 17);   // SM_CXVSCROLL / SM_CYHSCROLL
+        case PM_TreeViewIndentation:
+            return 19;   // TVM_GETINDENT
+        case PM_HeaderMargin:
+            return 6;    // the header label's inset
         case PM_MenuPanelWidth:
             return 2;   // the raised edge
+        case PM_FocusFrameHMargin:
+            // comctl32's item insets, as themed (see there).
+            if (const int extra = itemRowExtra(widget); extra > 0)
+                return extra == 3 ? 4 : 5;
+            if (itemRowExtra(widget) == 0)
+                return qMax(0, QProxyStyle::pixelMetric(metric, option, widget) - 1);
+            break;
         case PM_MenuHMargin:
         case PM_MenuVMargin:
             return 1;
@@ -1261,11 +1276,40 @@ QSize XPLasmaStyle::xpMenuItemSize(const QStyleOptionMenuItem *item, const QSize
     return QSize(17 + size.width() + 19 + (accelerators ? 8 : 0), h);
 }
 
+// XP's row heights follow the text height (13 for Tahoma 8): list box 13,
+// report list view 14, tree view 16 (LB_GETITEMHEIGHT, LVM_GETITEMRECT,
+// TVM_GETITEMHEIGHT) -- comctl32's, themed or not.
+QSize XPLasmaStyle::xpItemSize(const QStyleOption *option, const QSize &size, const QWidget *widget) const
+{
+    const int extra = itemRowExtra(widget);
+    QSize s = QProxyStyle::sizeFromContents(CT_ItemViewItem, option, size, widget);
+    int row = xpTextHeight(widget ? widget->font() : QApplication::font()) + extra;
+    // Check boxes are 16px state images: a report row fits one plus its
+    // 1px, a tree row just the image.
+    if (const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option);
+        item && (item->features & QStyleOptionViewItem::HasCheckIndicator) && (extra == 1 || extra == 3))
+        row = qMax(row, extra == 1 ? 17 : 16);
+    if (const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option))
+        if (item->decorationSize.height() > row && (item->features & QStyleOptionViewItem::HasDecoration))
+            return s;   // a larger icon wins, as it does in XP
+    s.setHeight(row);
+    return s;
+}
+
 QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *option, const QSize &size,
                                      const QWidget *widget) const
 {
     if (classic()) {
         switch (type) {
+        case CT_ItemViewItem:
+            if (itemRowExtra(widget) >= 0)
+                return xpItemSize(option, size, widget);
+            break;
+        case CT_HeaderSection: {
+            QSize s = QProxyStyle::sizeFromContents(type, option, size, widget);
+            s.setHeight(xpTextHeight(widget ? widget->font() : QApplication::font()) + 4);   // 17 for Tahoma 8
+            return s;
+        }
         case CT_MenuItem:
             if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option))
                 return xpMenuItemSize(item, size, widget);
@@ -1281,23 +1325,8 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
     if (m_renderer) {
         switch (type) {
         case CT_ItemViewItem:
-            if (const int extra = itemRowExtra(widget); extra >= 0 && hasPart({QStringLiteral("listview"), 0, Normal, {}})) {
-                // XP's row heights follow the text height (13 for Tahoma 8):
-                // list box 13, report list view 14, tree view 16
-                // (LB_GETITEMHEIGHT, LVM_GETITEMRECT, TVM_GETITEMHEIGHT).
-                QSize s = QProxyStyle::sizeFromContents(type, option, size, widget);
-                int row = xpTextHeight(widget ? widget->font() : QApplication::font()) + extra;
-                // Check boxes are 16px state images: a report row fits one
-                // plus its 1px, a tree row just the image.
-                if (const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option);
-                    item && (item->features & QStyleOptionViewItem::HasCheckIndicator) && (extra == 1 || extra == 3))
-                    row = qMax(row, extra == 1 ? 17 : 16);
-                if (const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option))
-                    if (item->decorationSize.height() > row && (item->features & QStyleOptionViewItem::HasDecoration))
-                        return s;   // a larger icon wins, as it does in XP
-                s.setHeight(row);
-                return s;
-            }
+            if (itemRowExtra(widget) >= 0 && hasPart({QStringLiteral("listview"), 0, Normal, {}}))
+                return xpItemSize(option, size, widget);
             break;
         case CT_SizeGrip:
             if (const QSize grip = trueSize({QStringLiteral("status"), 3, 0, {}}); grip.isValid() && !grip.isEmpty())
@@ -1444,8 +1473,8 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
         const int m = proxy()->pixelMetric(PM_HeaderMargin, option, widget);
         return option->rect.adjusted(m, 0, -m, 0);
     }
-    if (m_renderer && (element == SE_ItemViewItemText || element == SE_ItemViewItemCheckIndicator)
-        && (itemRowExtra(widget) == 1 || itemRowExtra(widget) == 3) && hasPart({QStringLiteral("button"), 3, 1, {}})) {
+    if ((m_renderer || classic()) && (element == SE_ItemViewItemText || element == SE_ItemViewItemCheckIndicator)
+        && (itemRowExtra(widget) == 1 || itemRowExtra(widget) == 3) && (classic() || hasPart({QStringLiteral("button"), 3, 1, {}}))) {
         const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option);
         const bool report = itemRowExtra(widget) == 1;
         if (item && (item->features & QStyleOptionViewItem::HasCheckIndicator)) {
@@ -1570,6 +1599,22 @@ void XPLasmaStyle::drawTreeBranch(const QStyleOption *option, QPainter *painter,
             dotsV(cx, cy, r.bottom());
     } else if (option->state & State_Sibling) {
         dotsV(cx, r.top(), r.bottom());   // an ancestor's line passing through
+    }
+    if ((option->state & State_Children) && classic()) {
+        // Classic: a 9px square, the button shadow round the window colour,
+        // a 5px minus (or plus) in the text colour.
+        const QRect box(cx - 4, cy - 4, 9, 9);
+        painter->fillRect(box, sysColour(u"window", Qt::white));
+        painter->save();
+        painter->setPen(sysColour(u"btnshadow", Qt::gray));
+        painter->setBrush(Qt::NoBrush);
+        painter->drawRect(box.adjusted(0, 0, -1, -1));
+        painter->restore();
+        const QColor ink = sysColour(u"windowtext", Qt::black);
+        painter->fillRect(cx - 2, cy, 5, 1, ink);
+        if (!(option->state & State_Open))
+            painter->fillRect(cx, cy - 2, 1, 5, ink);
+        return;
     }
     if (option->state & State_Children) {
         const PartRef glyph{QStringLiteral("treeview"), 2, (option->state & State_Open) ? 2 : 1, {}};
@@ -1800,9 +1845,45 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
             return true;
         }
         return false;
+    case CE_ItemViewItem:
+        if (const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option))
+            return drawXpViewItem(item, painter, widget);
+        return false;
     case CE_MenuEmptyArea:
         painter->fillRect(option->rect, sysColour(u"menu", option->palette.color(QPalette::Button)));
         return true;
+    case CE_HeaderEmptyArea: {
+        // Past the last column: another raised section, running off the
+        // right edge.
+        // (QHeaderView hands over its whole viewport and paints the
+        // sections over it: start where the columns end.)
+        QRect area = option->rect;
+        if (const auto *header = qobject_cast<const QHeaderView *>(widget); header && header->orientation() == Qt::Horizontal)
+            area.setLeft(qMax(area.left(), header->length() - header->offset()));
+        QStyleOptionHeader section;
+        section.QStyleOption::operator=(*option);
+        section.rect = area.adjusted(0, 0, 2, 0);
+        section.state &= ~(State_Sunken | State_On | State_MouseOver);
+        section.state |= State_Raised;
+        painter->save();
+        painter->setClipRect(area, Qt::IntersectClip);
+        proxy()->drawControl(CE_HeaderSection, &section, painter, widget);
+        painter->restore();
+        return true;
+    }
+    case CE_HeaderLabel:
+        if (const auto *header = qstyleoption_cast<const QStyleOptionHeader *>(option)) {
+            // Centred (rounding up); QCommonStyle takes PM_HeaderMargin off
+            // every side, so hand it a rect one line tall plus that margin.
+            const int m = proxy()->pixelMetric(PM_HeaderMargin, option, widget);
+            const int th = xpTextHeight(widget ? widget->font() : QApplication::font());
+            const int top = header->rect.top() + (header->rect.height() - th) / 2;
+            QStyleOptionHeader copy(*header);
+            copy.rect = QRect(header->rect.left(), top - m, header->rect.width(), th + 2 * m);
+            QProxyStyle::drawControl(element, &copy, painter, widget);
+            return true;
+        }
+        return false;
     case CE_MenuBarItem:
         if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option)) {
             // Hot: a raised 1px edge; open: sunken, the title pushed 1px.
@@ -2056,7 +2137,7 @@ void XPLasmaStyle::drawFocusDots(QPainter *painter, const QRect &r, const QColor
 bool XPLasmaStyle::drawXpViewItem(const QStyleOptionViewItem *item, QPainter *painter, const QWidget *widget) const
 {
     const int extra = itemRowExtra(widget);
-    if ((extra != 1 && extra != 3) || !hasPart({QStringLiteral("listview"), 0, Normal, {}}))
+    if ((extra != 1 && extra != 3) || !(classic() || hasPart({QStringLiteral("listview"), 0, Normal, {}})))
         return false;
     const bool tree = extra == 3;
     const bool focused = widget && widget->hasFocus();

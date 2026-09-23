@@ -73,6 +73,7 @@ private:
     int xpTextHeight(const QFont &font) const;
     QString frameClass(const QWidget *widget) const;
     int itemRowExtra(const QWidget *widget) const;
+    QSize xpItemSize(const QStyleOption *option, const QSize &size, const QWidget *widget) const;
     void drawTreeBranch(const QStyleOption *option, QPainter *painter, const QWidget *widget) const;
     bool drawClassicComplex(ComplexControl control, const QStyleOptionComplex *option, QPainter *painter,
                             const QWidget *widget) const;
