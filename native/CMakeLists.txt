@@ -36,6 +36,8 @@ add_library(xplasma-core STATIC
   core/dib.cpp
   core/ini.cpp
   core/theme.cpp
+  core/schema.cpp
+  core/render.cpp
 )
 target_include_directories(xplasma-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(xplasma-core PUBLIC ${QT}::Gui)
@@ -60,6 +62,9 @@ install(TARGETS xplasma LIBRARY DESTINATION qt${QT_MAJOR}/styles)
 # --- tools --------------------------------------------------------------------
 add_executable(xplasma-probe tools/probe.cpp)
 target_link_libraries(xplasma-probe PRIVATE ${QT}::Widgets)
+
+add_executable(xplasma-render tools/render.cpp)
+target_link_libraries(xplasma-render PRIVATE stdc++ xplasma-core)
 
 add_executable(xplasma-dump tools/dump.cpp)
 target_link_libraries(xplasma-dump PRIVATE stdc++ xplasma-core)

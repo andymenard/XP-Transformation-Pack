@@ -6,6 +6,7 @@
 // xp2plasma's Python parser over the whole corpus: variant tables, every INI
 // section (headers canonicalised to sub::class.part(state)), and a SHA-256 of
 // every bitmap's decoded RGBA pixels.
+#include "core/schema.h"
 #include "core/theme.h"
 
 #include <QCoreApplication>
@@ -54,6 +55,25 @@ int main(int argc, char **argv)
 
     QString error;
     const auto theme = Theme::load(args.at(1), variant, &error);
+    if (theme && args.contains(QLatin1String("--schema-check"))) {
+        // Sections whose part or state XP's schema doesn't know. uxtheme
+        // ignores those, so each is either a gap in core/schema.cpp or a
+        // style's own typo. Classes outside the schema (SysMetrics,
+        // Globals, documentation, ...) are skipped.
+        int unknown = 0;
+        for (auto it = theme->ini().sections().cbegin(); it != theme->ini().sections().cend(); ++it) {
+            const SectionKey &k = it.key();
+            if (k.part.isEmpty() || !schema::partName(k.cls, 1).size())
+                continue;
+            const bool partOk = schema::partId(k.cls, k.part) != 0;
+            const bool stateOk = k.state.isEmpty() || schema::stateId(k.cls, k.part, k.state) != 0;
+            if (!partOk || !stateOk) {
+                QTextStream(stdout) << "unknown " << (partOk ? "state " : "part  ") << k.toString() << '\n';
+                ++unknown;
+            }
+        }
+        return unknown ? 3 : 0;
+    }
     if (!theme) {
         QJsonObject fail{{QStringLiteral("error"), error}};
         QTextStream(stdout) << QJsonDocument(fail).toJson(QJsonDocument::Compact) << '\n';

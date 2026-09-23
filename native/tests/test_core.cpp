@@ -2,6 +2,7 @@
 // each CHECK prints on failure and the exit code counts failures.
 #include "core/ini.h"
 #include "core/pe.h"
+#include "core/schema.h"
 #include "core/theme.h"
 
 #include <QElapsedTimer>
@@ -88,6 +89,18 @@ int main(int, char **argv)
     junk[1] = 'Z';
     CHECK(!PeResources::parse(junk, &error));
     CHECK(!Theme::fromData(QByteArray(), QString(), &error));
+
+    // XP's schema (tmschema.h): names to numbers and back.
+    CHECK(schema::partId(u"Button", u"PushButton") == 1);
+    CHECK(schema::stateId(u"Button", u"PushButton", u"Defaulted") == 5);
+    CHECK(schema::stateId(u"button", u"checkbox", u"MixedDisabled") == 12);
+    CHECK(schema::stateId(u"Scrollbar", u"ArrowBtn", u"RightDisabled") == 16);
+    CHECK(schema::partId(u"Tab", u"Body") == 10);
+    CHECK(schema::partId(u"Window", u"CloseButton") == 18);
+    CHECK(schema::partId(u"Button", u"PushButon") == 0);           // typo: unknown
+    CHECK(schema::stateId(u"Button", u"PushButton", u"Hover") == 0);
+    CHECK(schema::partName(u"Toolbar", 4) == QLatin1String("splitbuttondropdown"));
+    CHECK(schema::stateName(u"Tab", u"TabItem", 3) == QLatin1String("selected"));
 
     // A tiny RLE file claiming a gigantic image is refused, not decoded
     // (found by fuzz-dib: 217 bytes claiming 26886 x 8229 took 11 s).
