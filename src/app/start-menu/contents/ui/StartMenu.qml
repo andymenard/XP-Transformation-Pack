@@ -20,6 +20,8 @@ FocusScope {
     readonly property bool recentFilesHovered: recentFilesItem ? recentFilesItem.hovered : false
     property int menuOpenDelay: 400
     signal requested(var action)
+    // A right-click (or the Menu key) on an entry, at (x, y) in `item`.
+    signal contextRequested(var action, Item item, real x, real y)
     signal closeProgramsRequested()
     readonly property var parts: themeData.parts
     readonly property var metrics: themeData.layout
@@ -28,9 +30,28 @@ FocusScope {
     // A frame round everything (Windows Classic's raised edge), when the look
     // has one: its content margins inset the rest.
     readonly property var frameInset: parts.frame ? parts.frame.content : [0, 0, 0, 0]
-    readonly property int bodyHeight: height - metrics.headerHeight - metrics.footerHeight - frameInset[2] - frameInset[3]
+
+    // XP's height: the menu is as tall as its taller column needs (never
+    // shorter than it was measured at), and when that won't fit the screen
+    // above the taskbar, recent programs go from the bottom of the list
+    // until it does.
+    property real maximumHeight: 100000
+    readonly property real chromeHeight: metrics.headerHeight + metrics.footerHeight + frameInset[2] + frameInset[3]
+    readonly property real separatorHeight: parts.proglistseparator.height + provisional.separatorGap
+    readonly property real programsFixed: parts.proglist.content[2] + parts.proglist.content[3] + metrics.moreHeight
+        + pinnedItems.length * provisional.pinnedRowHeight
+    readonly property int recentShown: {
+        const room = maximumHeight - chromeHeight - programsFixed - (pinnedItems.length > 0 ? separatorHeight : 0);
+        return Math.max(0, Math.min(recentItems.length, Math.floor(room / provisional.recentRowHeight)));
+    }
+    readonly property var shownRecent: recentItems.slice(0, recentShown)
+    readonly property real programsNeeded: programsFixed + recentShown * provisional.recentRowHeight
+        + (pinnedItems.length > 0 && recentShown > 0 ? separatorHeight : 0)
+    readonly property real placesNeeded: placesColumn.height + parts.placeslist.content[2] + parts.placeslist.content[3]
+    readonly property int bodyHeight: Math.ceil(Math.max(metrics.height - chromeHeight,
+        Math.min(maximumHeight - chromeHeight, Math.max(programsNeeded, placesNeeded))))
     width: metrics.width
-    height: metrics.height
+    height: chromeHeight + bodyHeight
     focus: true
     Keys.onEscapePressed: {
         if (allProgramsOpen || recentFilesOpen) closeProgramsRequested();
@@ -86,6 +107,7 @@ FocusScope {
         Accessible.onPressAction: activate()
         Keys.onReturnPressed: activate()
         Keys.onSpacePressed: activate()
+        Keys.onMenuPressed: menu.contextRequested(entryData.action, entry, 0, entry.height)
         Keys.onDownPressed: nextItemInFocusChain().forceActiveFocus(Qt.TabFocusReason)
         Keys.onUpPressed: nextItemInFocusChain(false).forceActiveFocus(Qt.BacktabFocusReason)
         Rectangle {
@@ -136,7 +158,13 @@ FocusScope {
                 else if (menu.allProgramsOpen) closeProgramsTimer.restart();
             }
             onExited: { closeProgramsTimer.stop(); recentOpenTimer.stop(); }
-            onClicked: entry.activate()
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onClicked: mouse => {
+                if (mouse.button === Qt.RightButton)
+                    menu.contextRequested(entry.entryData.action, entry, mouse.x, mouse.y);
+                else
+                    entry.activate();
+            }
         }
         Timer {
             id: recentOpenTimer
@@ -244,7 +272,7 @@ FocusScope {
                 }
                 Item {
                     width: parent.width
-                    visible: menu.pinnedItems.length > 0 && menu.recentItems.length > 0
+                    visible: menu.pinnedItems.length > 0 && menu.recentShown > 0
                     height: visible ? menu.parts.proglistseparator.height + menu.provisional.separatorGap : 0
                     Image {
                         objectName: "pinnedSeparator"
@@ -256,7 +284,7 @@ FocusScope {
                     }
                 }
                 Repeater {
-                    model: menu.recentItems
+                    model: menu.shownRecent
                     delegate: Entry {
                         required property var modelData
                         width: programEntries.width

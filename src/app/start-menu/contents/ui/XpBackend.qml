@@ -17,7 +17,10 @@ Item {
     signal closeRequested()
     property var pinned: []
     property var recent: []
-    readonly property int recentLimit: Math.max(0, 8 - pinned.length)
+    // XP's "Number of programs on Start menu" (6 by default): recent
+    // programs have their own rows, and the menu grows to hold them.
+    readonly property int recentLimit: Math.max(0, launcher.recentCount ?? 6)
+    onRecentLimitChanged: Qt.callLater(refresh)
     property var allApps: null
     readonly property string userName: user.fullName || user.loginName
     readonly property url userPicture: user.faceIconUrl
@@ -85,6 +88,63 @@ Item {
          {label: "Search", icon: "edit-find", action: "search"},
          {label: "Run Command...", icon: "system-run", action: "run"}]
     ]
+    // Resolve the stable ID again: applications can be installed/removed or
+    // usage reordered while a menu is open. Never act on a stale row.
+    function resolve(action) {
+        return entries(action.model, action.model.count, []).find(entry => entry.identity === action.identity);
+    }
+
+    // The right-click menu for an entry, as XP's: Open first, pinning, then
+    // what Plasma's model offers for it, in XP's words where XP had the
+    // same command. (Places and categories have none.)
+    readonly property var xpWords: ({
+        "forget": "Remove from This List",
+        "forgetAll": "Clear This List",
+    })
+    function actionsFor(action) {
+        if (typeof action !== "object" || !action || !action.model) return [];
+        const current = resolve(action);
+        if (!current) return [];
+        const model = action.model, row = current.action.row;
+        let list = [{text: "Open", actionId: "_xplasma_open"}];
+        const favorites = launcher.rootModel.favoritesModel;
+        const favoriteId = role(model, row, "favoriteId");
+        if (favoriteId && favorites && favorites.enabled !== false) {
+            const pinned = favorites.isFavorite(favoriteId);
+            list.push({text: pinned ? "Unpin from Start menu" : "Pin to Start menu",
+                       actionId: pinned ? "_kicker_favorite_remove" : "_kicker_favorite_add",
+                       actionArgument: {favoriteId: String(favoriteId)}});
+        }
+        const offered = role(model, row, "actionList");
+        const extra = offered ? Array.from(offered).map(entry => {
+            const copy = Object.assign({}, entry);
+            if (xpWords[copy.actionId]) copy.text = xpWords[copy.actionId];
+            return copy;
+        }) : [];
+        if (extra.length > 0) {
+            list.push({type: "separator"});
+            list = list.concat(extra);
+        }
+        return list;
+    }
+    function runAction(action, entry) {
+        if (dryRun) { actionDispatched({action: action, actionId: entry.actionId}); return; }
+        const current = resolve(action);
+        if (!current) { refresh(); return; }
+        const id = entry.actionId || "";
+        if (id === "_xplasma_open") {
+            activate(action);
+        } else if (id === "_kicker_favorite_add" || id === "_kicker_favorite_remove") {
+            const favorites = launcher.rootModel.favoritesModel;
+            if (id === "_kicker_favorite_add") favorites.addFavorite(entry.actionArgument.favoriteId);
+            else favorites.removeFavorite(entry.actionArgument.favoriteId);
+            refresh();
+        } else {
+            if (action.model.trigger(current.action.row, id, entry.actionArgument ?? null)) closeRequested();
+            Qt.callLater(refresh);
+        }
+    }
+
     function activate(action) {
         if (dryRun) { actionDispatched(action); return; }
         if (action === "all-programs") {
@@ -94,9 +154,7 @@ Item {
         }
         if (action === "recent-documents") { browseRequested(documents, "Recent Files", false); return; }
         if (typeof action === "object" && action.model) {
-            // Resolve the stable ID again: applications can be installed/removed
-            // or usage reordered while a menu is open. Never launch a stale row.
-            const current = entries(action.model, action.model.count, []).find(entry => entry.identity === action.identity);
+            const current = resolve(action);
             if (!current) { refresh(); return; }
             action.model.trigger(current.action.row, "", null);
         } else if (typeof action === "object" && action.url) {

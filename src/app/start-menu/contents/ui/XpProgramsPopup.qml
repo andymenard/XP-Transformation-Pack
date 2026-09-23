@@ -27,6 +27,9 @@ Kicker.SubMenu {
     onAnchorHoveredChanged: if (visible && anchorHovered) pointerMode = true
     signal activated(var action)
     signal dismissRequested()
+    signal contextRequested(var action, var item, real x, real y)
+    // The right-click menu: while it's up, this losing focus to it closes nothing.
+    property var contextMenu: null
     visible: false
     location: PlasmaCore.Types.Floating
     backgroundHints: PlasmaCore.Dialog.NoBackground
@@ -88,11 +91,12 @@ Kicker.SubMenu {
         if (component.status !== Component.Ready) { console.warn(component.errorString()); return; }
         childPopup = component.createObject(popup, {
             themeData: themeData, sourceModel: item.childModel, title: item.label,
-            ownerPopup: popup, visualParent: anchor, menuOpenDelay: menuOpenDelay
+            ownerPopup: popup, visualParent: anchor, menuOpenDelay: menuOpenDelay, contextMenu: contextMenu
         });
         if (!childPopup) return;
         childPopup.activated.connect(action => popup.activated(action));
         childPopup.dismissRequested.connect(() => popup.dismissRequested());
+        childPopup.contextRequested.connect((action, item, x, y) => popup.contextRequested(action, item, x, y));
         openIndex = index;
         childPopup.visible = true;
         if (keyboard) childPopup.mainItem.forceActiveFocus();
@@ -118,7 +122,7 @@ Kicker.SubMenu {
         closing = false;
     }
     function handleDeactivation() {
-        if (closing || !visible || (childPopup && childPopup.visible)) return;
+        if (closing || !visible || (childPopup && childPopup.visible) || (contextMenu && contextMenu.opened)) return;
         let ancestor = ownerPopup;
         let top = popup;
         while (ancestor) {
@@ -150,6 +154,7 @@ Kicker.SubMenu {
             interval: popup.menuOpenDelay
             running: popup.visible && !popup.ownerPopup
                 && popup.pointerMode && !popup.anchorHovered && !popup.containsPointer
+                && !(popup.contextMenu && popup.contextMenu.opened)
             onTriggered: popup.back(false)
         }
         Connections {
@@ -249,7 +254,13 @@ Kicker.SubMenu {
                         hoverTimer.restart();
                     }
                     onExited: if (hoverTimer.row === row.index) hoverTimer.stop()
-                    onClicked: popup.activateRow(row.index, false)
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                    onClicked: mouse => {
+                        if (mouse.button !== Qt.RightButton)
+                            popup.activateRow(row.index, false);
+                        else if (!row.modelData.childModel)
+                            popup.contextRequested(row.modelData.action, row, mouse.x, mouse.y);
+                    }
                 }
             }
         }
@@ -273,6 +284,11 @@ Kicker.SubMenu {
             entries.positionViewAtIndex(entries.currentIndex, ListView.Contain);
         }
         Keys.onReturnPressed: popup.activateRow(entries.currentIndex, true)
+        Keys.onMenuPressed: {
+            const item = entries.itemAtIndex(entries.currentIndex);
+            if (item && !popup.rows[entries.currentIndex].childModel)
+                popup.contextRequested(popup.rows[entries.currentIndex].action, item, 0, item.height);
+        }
         Keys.onSpacePressed: popup.activateRow(entries.currentIndex, true)
     }
     Component.onCompleted: { ready = true; rebuild(); }

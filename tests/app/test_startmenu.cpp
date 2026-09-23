@@ -26,7 +26,7 @@ class TestStartMenu : public QObject
     QString m_themes, m_iso, m_out;
     QTemporaryDir m_scratch;
 
-    QImage render(const QJsonObject &theme, QObject **menuOut = nullptr)
+    QImage render(const QJsonObject &theme, QObject **menuOut = nullptr, const QVariantMap &extra = {})
     {
         auto *engine = new QQmlEngine(this);
         // (The source tree, from build/<mode>-qt6/tests/app.)
@@ -41,6 +41,7 @@ class TestStartMenu : public QObject
                                                                                    {QStringLiteral("action"), QStringLiteral("close")}}}},
                           {QStringLiteral("placeGroups"), QVariantList{QVariantList{QVariantMap{{QStringLiteral("label"), QStringLiteral("My Documents")},
                                                                                                 {QStringLiteral("action"), QStringLiteral("close")}}}}}};
+        props.insert(extra);
         QObject *object = component.createWithInitialProperties(props);
         if (!object) {
             qWarning() << component.errors();
@@ -95,6 +96,65 @@ private Q_SLOTS:
         QVERIFY(menu->findChild<QQuickItem *>(QStringLiteral("footer")));
         if (!m_out.isEmpty())
             image.save(m_out + QLatin1String("/startmenu-luna.png"));
+    }
+
+    void everyFileCompiles()
+    {
+        // Every QML file of the package parses (and, where its imports are
+        // here, compiles). Some modules exist only inside Plasma's shell
+        // (org.kde.plasma.plasmoid): a file that needs one can't be
+        // compiled here, but Qt parses it before resolving imports, so a
+        // syntax error still shows.
+        const QDir ui(QCoreApplication::applicationDirPath() + QLatin1String("/../../../../src/app/start-menu/contents/ui"));
+        QQmlEngine engine;
+        const QStringList files = ui.entryList({QStringLiteral("*.qml")});
+        QVERIFY(files.size() >= 7);
+        for (const QString &file : files) {
+            QQmlComponent component(&engine, QUrl::fromLocalFile(ui.absoluteFilePath(file)));
+            QStringList wrong;
+            for (const QQmlError &e : component.errors())
+                if (!e.description().contains(QLatin1String("is not installed")) && !e.description().endsWith(QLatin1String("unavailable")))
+                    wrong << e.toString();
+            QVERIFY2(wrong.isEmpty(), qPrintable(wrong.join(QLatin1Char('\n'))));
+        }
+    }
+
+    void grows()
+    {
+        // XP's way with a long list: the menu gets taller, and only when the
+        // screen runs out do recent programs go, from the bottom.
+        if (m_themes.isEmpty())
+            QSKIP("no asset library on this machine");
+        const auto look = Look::fromStyle(m_themes + QLatin1String("/Luna/luna.msstyles"));
+        QVERIFY(look);
+        QString error;
+        const QJsonObject theme = writeStartPanel(*look, m_scratch.filePath(QStringLiteral("luna-tall")), &error);
+        QVERIFY2(!theme.isEmpty(), qPrintable(error));
+        auto items = [](const char *name, int n) {
+            QVariantList list;
+            for (int i = 0; i < n; ++i)
+                list << QVariantMap{{QStringLiteral("label"), QStringLiteral("%1 %2").arg(QLatin1String(name)).arg(i)},
+                                    {QStringLiteral("action"), QStringLiteral("close")}};
+            return list;
+        };
+        const QVariantMap many{{QStringLiteral("pinnedItems"), items("Pinned", 8)}, {QStringLiteral("recentItems"), items("Recent", 6)}};
+        QObject *menu = nullptr;
+        const QImage tall = render(theme, &menu, many);
+        QVERIFY(tall.height() > 478);
+        QCOMPARE(menu->property("recentShown").toInt(), 6);
+        const auto *scroll = menu->findChild<QQuickItem *>(QStringLiteral("programScroll"));
+        QVERIFY(scroll);
+        QVERIFY(scroll->property("contentHeight").toReal() <= scroll->height());   // all of it shown, no scrolling
+        if (!m_out.isEmpty())
+            tall.save(m_out + QLatin1String("/startmenu-tall.png"));
+
+        QVariantMap cramped = many;
+        cramped.insert(QStringLiteral("maximumHeight"), tall.height() - 100);
+        const QImage fitted = render(theme, &menu, cramped);
+        QVERIFY(fitted.height() <= tall.height() - 100);
+        QVERIFY(menu->property("recentShown").toInt() < 6);
+        // Few items: never shorter than XP's measured menu.
+        QCOMPARE(render(theme).height(), 478);
     }
 
     void classic()

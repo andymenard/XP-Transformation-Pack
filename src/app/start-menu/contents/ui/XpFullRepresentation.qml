@@ -14,12 +14,23 @@ Item {
     readonly property real frameTop: root.Window.window?.topPadding ?? 0
     readonly property real frameBottom: root.Window.window?.bottomPadding ?? 0
     implicitWidth: root.launcher.themeData.layout.width - frameLeft - frameRight
-    implicitHeight: root.launcher.themeData.layout.height - frameTop - frameBottom
+    implicitHeight: menu.height - frameTop - frameBottom
     Layout.minimumWidth: implicitWidth
     Layout.maximumWidth: implicitWidth
     Layout.minimumHeight: implicitHeight
     Layout.maximumHeight: implicitHeight
     focus: true
+    // The room above the taskbar (Plasma's own panels excluded), measured as
+    // the menu opens: the menu grows to fit its programs, up to that.
+    property real availableHeight: 100000
+    function measureScreen() {
+        // (Kicker's C++ needs the item in a window: without one it crashes
+        // Plasma's shell.)
+        if (!root.Window.window || !root.visible) return;
+        const rect = submenu.availableScreenRectForItem(root);
+        if (rect && rect.height > 0)
+            availableHeight = rect.height;
+    }
 
     Binding {
         target: root.Window.window
@@ -52,6 +63,7 @@ Item {
         x: -root.frameLeft
         y: -root.frameTop
         themeData: root.launcher.themeData
+        maximumHeight: root.availableHeight
         userName: backend.userName
         userPicture: backend.userPicture
         pinnedItems: backend.pinned
@@ -64,26 +76,41 @@ Item {
         recentFilesOpen: submenu.visible && !submenu.categoriesOnly
         onCloseProgramsRequested: submenu.back(false)
         onRequested: action => backend.activate(action)
+        onContextRequested: (action, item, x, y) => root.showActions(action, item, x, y)
+    }
+    ActionMenu {
+        id: actionMenu
+        property var target: null
+        onTriggered: entry => backend.runAction(target, entry)
+    }
+    function showActions(action, item, x, y) {
+        const list = backend.actionsFor(action);
+        if (list.length === 0) return;
+        actionMenu.target = action;
+        actionMenu.show(list, item, x, y);
     }
     XpProgramsPopup {
         id: submenu
         themeData: root.launcher.themeData
         visualParent: categoriesOnly ? menu.allProgramsItem : menu.recentFilesItem
         anchorHovered: categoriesOnly ? menu.allProgramsHovered : menu.recentFilesHovered
+        contextMenu: actionMenu
         onActivated: action => backend.activate(action)
         onDismissRequested: root.launcher.expanded = false
+        onContextRequested: (action, item, x, y) => root.showActions(action, item, x, y)
     }
     Binding {
         target: root.launcher
         property: "hideOnWindowDeactivate"
         value: false
-        when: submenu.visible
+        when: submenu.visible || actionMenu.opened
         restoreMode: Binding.RestoreBindingOrValue
     }
     Connections {
         target: root.launcher
         function onExpandedChanged() {
             if (root.launcher.expanded) {
+                root.measureScreen();
                 backend.refresh();
                 menu.resetScroll();
                 menu.forceActiveFocus();

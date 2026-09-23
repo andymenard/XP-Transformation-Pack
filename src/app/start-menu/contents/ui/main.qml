@@ -26,6 +26,7 @@ PlasmoidItem {
             return {};
         }
     }
+    readonly property int recentCount: Plasmoid.configuration.recentCount
     // A look with Start panel art gets XP's two-column menu.
     readonly property bool xpMenu: start.themeData.parts !== undefined
 

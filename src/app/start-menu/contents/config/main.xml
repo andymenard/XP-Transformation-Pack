@@ -18,6 +18,13 @@
     <entry name="favoritesPortedToKAstats" type="Bool">
       <default>false</default>
     </entry>
+    <!-- XP's "Number of programs on Start menu": recent programs, under
+         the pinned ones. -->
+    <entry name="recentCount" type="Int">
+      <default>6</default>
+      <min>0</min>
+      <max>30</max>
+    </entry>
     <entry name="alphaSort" type="Bool">
       <default>true</default>
     </entry>

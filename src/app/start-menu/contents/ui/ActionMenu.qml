@@ -1,0 +1,66 @@
+/*
+    The Start menu's right-click menu: an item's actions, as Plasma's
+    application models offer them, in a real (QMenu) menu -- so it's drawn by
+    the widget style, XPLasma's included. XpBackend decides what's in it.
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
+import QtQuick
+import org.kde.plasma.extras as PlasmaExtras
+
+Item {
+    id: root
+    visible: false
+    readonly property bool opened: menu.status === PlasmaExtras.Menu.Open
+    signal triggered(var entry)
+
+    property var created: []
+
+    PlasmaExtras.Menu {
+        id: menu
+        visualParent: null
+        placement: PlasmaExtras.Menu.BottomPosedLeftAlignedPopup
+    }
+
+    // `entries`: {text, icon, actionId, actionArgument, type: "separator" |
+    // "title", enabled, checkable, checked, subActions}.
+    function show(entries, item, x, y) {
+        menu.close();
+        menu.clearMenuItems();
+        for (const o of created) o.destroy();
+        created = [];
+        for (const e of entries) menu.addMenuItem(make(e, menu));
+        if (created.length === 0) return;
+        menu.visualParent = item;
+        menu.open(x, y);
+    }
+    function make(entry, parentMenu) {
+        const item = itemComponent.createObject(root, {entry: entry});
+        created.push(item);
+        if (entry.subActions && entry.subActions.length > 0) {
+            const sub = menuComponent.createObject(item, {visualParent: item.action});
+            created.push(sub);
+            for (const e of entry.subActions) sub.addMenuItem(make(e, sub));
+        }
+        return item;
+    }
+
+    Component {
+        id: menuComponent
+        PlasmaExtras.Menu {}
+    }
+    Component {
+        id: itemComponent
+        PlasmaExtras.MenuItem {
+            required property var entry
+            text: entry.text ?? ""
+            icon: entry.icon ?? null
+            separator: entry.type === "separator"
+            section: entry.type === "title"
+            enabled: entry.type !== "title" && (entry.enabled ?? true)
+            checkable: entry.checkable ?? false
+            checked: entry.checked ?? false
+            onClicked: if (!entry.subActions || entry.subActions.length === 0) root.triggered(entry)
+        }
+    }
+}

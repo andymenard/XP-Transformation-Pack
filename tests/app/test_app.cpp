@@ -814,7 +814,7 @@ private Q_SLOTS:
         const QString pkg = plasmoids + QLatin1String("/fyi.hotsocket.xplasma.start");
         QVERIFY(!QFileInfo::exists(pkg + QLatin1String("/contents/ui/Kickoff-leftover.qml")));
         for (const char *file : {"metadata.json", "contents/config/main.xml", "contents/ui/main.qml", "contents/ui/StartButton.qml",
-                                 "contents/ui/StartMenu.qml", "contents/ui/XpFullRepresentation.qml"})
+                                 "contents/ui/StartMenu.qml", "contents/ui/XpFullRepresentation.qml", "contents/ui/ActionMenu.qml"})
             QVERIFY2(QFileInfo::exists(pkg + QLatin1Char('/') + QLatin1String(file)), file);
         QFile meta(pkg + QLatin1String("/metadata.json"));
         QVERIFY(meta.open(QIODevice::ReadOnly));
