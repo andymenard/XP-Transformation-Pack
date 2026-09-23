@@ -20,6 +20,7 @@
 #include <QStyleFactory>
 #include <QStyleOption>
 #include <QTabBar>
+#include <QTabWidget>
 #include <QToolButton>
 
 using xpl::PartRef;
@@ -321,6 +322,11 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
                     return;
             }
             break;
+        case PE_IndicatorTabTearLeft:
+        case PE_IndicatorTabTearRight:
+            if (hasPart({QStringLiteral("tab"), 1, 1, {}}))
+                return;   // XP marks no torn tabs
+            break;
         case PE_PanelStatusBar:
             if (drawPart(painter, {QStringLiteral("status"), 0, 0, {}}, option->rect))
                 return;
@@ -419,15 +425,6 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
             if (const auto *tab = qstyleoption_cast<const QStyleOptionTab *>(option)) {
                 if (tab->shape == QTabBar::RoundedNorth || tab->shape == QTabBar::TriangularNorth) {
                     const bool selected = tab->state & State_Selected;
-                    // TABP_TABITEM / *LEFTEDGE / *RIGHTEDGE / *BOTHEDGE, and the
-                    // TOPTABITEM set for the selected tab.
-                    int part = selected ? 5 : 1;
-                    if (tab->position == QStyleOptionTab::Beginning)
-                        part += 1;
-                    else if (tab->position == QStyleOptionTab::End)
-                        part += 2;
-                    else if (tab->position == QStyleOptionTab::OnlyOneTab)
-                        part += 3;
                     int state = selected ? 3 : hovered(tab) ? Hot : Normal;
                     if (!enabled(tab))
                         state = Disabled;
@@ -438,7 +435,46 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                     QRect r = xpTabRect(tab);
                     if (selected)
                         r.adjust(-2, -2, 2, 2);
-                    if (drawPart(painter, {QStringLiteral("tab"), part, state, {}}, r))
+                    // TABP_TABITEM / *LEFTEDGE / *RIGHTEDGE / *BOTHEDGE, and the
+                    // TOPTABITEM set for the selected tab. Measured on XP: an
+                    // unselected tab takes its edge variant from its place in
+                    // the row (the last tab is RIGHTEDGE even well short of
+                    // the control's edge); the selected one only when its
+                    // inflated rect actually meets the control's edge.
+                    int part = selected ? 5 : 1;
+                    if (selected) {
+                        const QWidget *control = widget && qobject_cast<const QTabWidget *>(widget->parentWidget())
+                                                     ? widget->parentWidget() : widget;
+                        const QPoint origin = control && control != widget ? widget->mapTo(control, QPoint(0, 0)) : QPoint();
+                        if (r.left() + origin.x() <= 0)
+                            part += 1;
+                        if (control && r.right() + origin.x() >= control->width() - 1)
+                            part += 2;
+                    } else if (tab->position == QStyleOptionTab::Beginning) {
+                        part += 1;
+                    } else if (tab->position == QStyleOptionTab::End) {
+                        part += 2;
+                    } else if (tab->position == QStyleOptionTab::OnlyOneTab) {
+                        part += 3;
+                    }
+                    // Tabs stop where the scroll up-down starts, top to bottom
+                    // (QTabBar only keeps the labels out from under it).
+                    painter->save();
+                    if (const auto *bar = qobject_cast<const QTabBar *>(widget))
+                        for (const QToolButton *b : bar->findChildren<QToolButton *>(QString(), Qt::FindDirectChildrenOnly))
+                            if (b->isVisible() && b->arrowType() == Qt::LeftArrow)
+                                painter->setClipRect(QRect(0, 0, b->x(), bar->height()), Qt::IntersectClip);
+                    const bool drawn = drawPart(painter, {QStringLiteral("tab"), part, state, {}}, r);
+                    // XP then repaints an unselected edge tab's label area
+                    // with plain TABP_TABITEM (visible only where the two
+                    // stretch differently: Luna's text baseline row).
+                    if (drawn && !selected && part != 1) {
+                        const QMargins m = m_renderer->margins({QStringLiteral("tab"), 1, state, {}}, u"sizingmargins");
+                        painter->setClipRect(r.adjusted(m.left(), 0, -m.right(), 0), Qt::IntersectClip);
+                        drawPart(painter, {QStringLiteral("tab"), 1, state, {}}, r);
+                    }
+                    painter->restore();
+                    if (drawn)
                         return;
                 }
             }
@@ -633,6 +669,22 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
 {
     if (m_renderer) {
         switch (control) {
+        case CC_ToolButton:
+            // A tab row's scroll buttons: the two halves of XP's up-down
+            // (SPNP_DOWNHORZ pointing left, SPNP_UPHORZ right).
+            if (const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option);
+                button && widget && qobject_cast<const QTabBar *>(widget->parentWidget())
+                && (button->arrowType == Qt::LeftArrow || button->arrowType == Qt::RightArrow)) {
+                // QTabBar disables the button at the end of the range; XP's
+                // up-down never greys an arrow while the tabs are enabled.
+                QStyleOptionToolButton copy(*button);
+                if (widget->parentWidget()->isEnabled())
+                    copy.state |= State_Enabled;
+                const int part = button->arrowType == Qt::LeftArrow ? 4 : 3;
+                if (drawPart(painter, {QStringLiteral("spin"), part, fourState(&copy), {}}, button->rect))
+                    return;
+            }
+            break;
         case CC_ScrollBar:
             if (const auto *bar = qstyleoption_cast<const QStyleOptionSlider *>(option)) {
                 if (hasPart({QStringLiteral("scrollbar"), 1, 1, {}})) {
@@ -873,6 +925,10 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
             if (flatMenus())
                 return 0;
             break;
+        case PM_TabBarScrollButtonWidth:
+            if (hasPart({QStringLiteral("spin"), 3, 1, {}}))
+                return sysMetric(u"scrollbarwidth", 17);   // each half of XP's up-down
+            break;
         case PM_TabBarTabShiftVertical:
         case PM_TabBarTabShiftHorizontal:
             return 0;
@@ -968,6 +1024,10 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
                     QSize s = size;
                     if (tab->position == QStyleOptionTab::Beginning || tab->position == QStyleOptionTab::OnlyOneTab)
                         s.rwidth() += 2;
+                    // ...and the last 2px wider on the right, where the
+                    // selected tab's inflation lands.
+                    if (tab->position == QStyleOptionTab::End || tab->position == QStyleOptionTab::OnlyOneTab)
+                        s.rwidth() += 2;
                     // 2px headroom, the 18px tab (text + 5), two rows over
                     // the pane -- from XP's text height (tmHeight).
                     s.setHeight(xpTextHeight(widget ? widget->font() : QApplication::font()) + 9);
@@ -996,6 +1056,24 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
 
 QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *option, const QWidget *widget) const
 {
+    if (m_renderer && hasPart({QStringLiteral("spin"), 3, 1, {}}) && option->rect.width() >= option->rect.height()) {
+        // XP scrolls a tab row that doesn't fit with an up-down in its
+        // top-right corner: two SM_CXVSCROLL-wide halves, 1px down, 17px
+        // tall for Tahoma 8 (the bar less 5), with no tear marks.
+        const int w = sysMetric(u"scrollbarwidth", 17);
+        const QRect r = option->rect;
+        switch (element) {
+        case SE_TabBarScrollLeftButton:
+            return QRect(r.right() + 1 - 2 * w, r.top() + 1, w, qMax(1, r.height() - 5));
+        case SE_TabBarScrollRightButton:
+            return QRect(r.right() + 1 - w, r.top() + 1, w, qMax(1, r.height() - 5));
+        case SE_TabBarTearIndicatorLeft:
+        case SE_TabBarTearIndicatorRight:
+            return QRect();
+        default:
+            break;
+        }
+    }
     if (m_renderer && hasPart({QStringLiteral("tab"), 9, 1, {}})) {
         if (const auto *tw = qstyleoption_cast<const QStyleOptionTabWidgetFrame *>(option)) {
             if (tw->shape == QTabBar::RoundedNorth || tw->shape == QTabBar::TriangularNorth) {
@@ -1165,6 +1243,8 @@ QRect XPLasmaStyle::xpTabRect(const QStyleOptionTab *tab) const
     QRect r(tab->rect.left(), tab->rect.top() + 2, tab->rect.width(), qMax(0, tab->rect.height() - 4));
     if (tab->position == QStyleOptionTab::Beginning || tab->position == QStyleOptionTab::OnlyOneTab)
         r.setLeft(r.left() + 2);
+    if (tab->position == QStyleOptionTab::End || tab->position == QStyleOptionTab::OnlyOneTab)
+        r.setRight(r.right() - 2);
     return r;
 }
 

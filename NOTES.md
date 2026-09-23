@@ -5,6 +5,12 @@ Each says where it came from, so it can be picked up without re-deriving it.
 
 ## Open
 
+- **Tab rows that overflow scroll differently.** XP scrolls a tab row by
+  whole tabs (the first visible tab flush at x=2); QTabBar scrolls by
+  pixels, just far enough to show the current tab (makeVisible), with no
+  style hook. The up-down, clipping and art match; the offset doesn't
+  (controls-2.job: tabs:2 181x60, tabs:1 150x60).
+
 - **Drop shadows** (2026-09-23): XP gives menus and tooltips a 4px
   CS_DROPSHADOW; the oracle captures now crop to the window rect. Under
   KWin a shadow would need the window-shadow protocol (what Breeze uses

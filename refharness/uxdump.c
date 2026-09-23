@@ -517,6 +517,7 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
             item.pszText = (wchar_t *)names[i];
             SendMessageW(ctl, TCM_INSERTITEMW, i, (LPARAM)&item);
         }
+        if (value > 0) SendMessageW(ctl, TCM_SETCURSEL, value, 0);   /* tabs:N selects tab N */
     }
     if (!wcsncmp_(kind, L"listview")) {
         LVCOLUMNW col;

@@ -91,6 +91,7 @@ static QWidget *controlFor(const QString &kind, const QString &label)
         auto *t = new QTabWidget;
         for (const char *name : {"General", "Appearance", "Advanced"})
             t->addTab(new QWidget, QString::fromLatin1(name));
+        t->setCurrentIndex(qMax(0, value));   // tabs:N selects tab N
         return t;
     }
     if (base == QLatin1String("listview")) {
