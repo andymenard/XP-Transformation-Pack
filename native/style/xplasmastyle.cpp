@@ -1790,6 +1790,20 @@ void XPLasmaStyle::drawMenuBarItem(const QStyleOptionMenuItem *item, QPainter *p
 }
 
 static void classicScrollButton(QPainter *p, const QRect &r, const QPalette &pal, bool pressed);
+
+// EDGE_SUNKEN: the shadow and highlight outside, the dark shadow and Light3D
+// inside.
+static void classicSunken(QPainter *p, const QRect &r, const QPalette &pal)
+{
+    auto frame = [&](const QRect &q, const QColor &tl, const QColor &br) {
+        p->fillRect(QRect(q.left(), q.top(), q.width() - 1, 1), tl);
+        p->fillRect(QRect(q.left(), q.top(), 1, q.height() - 1), tl);
+        p->fillRect(QRect(q.left(), q.bottom(), q.width(), 1), br);
+        p->fillRect(QRect(q.right(), q.top(), 1, q.height()), br);
+    };
+    frame(r, pal.color(QPalette::Dark), pal.color(QPalette::Light));
+    frame(r.adjusted(1, 1, -1, -1), pal.color(QPalette::Shadow), pal.color(QPalette::Midlight));
+}
 static void classicArrow(QPainter *p, const QRect &r, Qt::ArrowType dir, const QPalette &pal, bool enabled, bool pressed);
 
 // Windows Classic (visual styles off), control by control against XP's own
@@ -2073,6 +2087,67 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
                                       const QWidget *widget) const
 {
     switch (control) {
+    case CC_Slider:
+        if (const auto *slider = qstyleoption_cast<const QStyleOptionSlider *>(option)) {
+            // comctl32's classic trackbar, laid out as the themed one: a
+            // sunken 2px channel, the ticks in the text colour, and the thumb
+            // -- pointed towards its ticks -- in the four 3D colours.
+            const QRect channel = proxy()->subControlRect(CC_Slider, slider, SC_SliderGroove, widget);
+            const QRect handle = proxy()->subControlRect(CC_Slider, slider, SC_SliderHandle, widget);
+            classicSunken(painter, channel, slider->palette);
+            if ((slider->subControls & SC_SliderTickmarks) && slider->tickPosition != QSlider::NoTicks)
+                drawSliderTicks(slider, channel, handle, painter);
+            // The pointed thumb as XP draws it, 11 x 22, point down (W the
+            // highlight, F the face, S the shadow, D the dark shadow).
+            static const char *const kPointed[] = {
+                "WWWWWWWWWWD", "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD",
+                "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD",
+                "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD", ".WFFFFFFSD.",
+                "..WFFFFSD..", "...WFFSD...", "....WSD....", ".....D.....",
+            };
+            const bool horizontal = slider->orientation == Qt::Horizontal;
+            const QSlider::TickPosition ticks = slider->tickPosition;
+            const bool pointed = ticks == QSlider::TicksBelow || ticks == QSlider::TicksAbove;
+            const bool flip = ticks == QSlider::TicksAbove;   // (TicksLeft is TicksAbove)
+            auto colourOf = [&](char c) {
+                switch (c) {
+                case 'W': return slider->palette.color(QPalette::Light);
+                case 'S': return slider->palette.color(QPalette::Dark);
+                case 'D': return slider->palette.color(QPalette::Shadow);
+                default: return slider->palette.color(QPalette::Button);
+                }
+            };
+            const int along = horizontal ? handle.width() : handle.height();
+            const int across = horizontal ? handle.height() : handle.width();
+            for (int j = 0; j < across; ++j) {
+                for (int i = 0; i < along; ++i) {
+                    // Row j of the down-pointing thumb: the point's rows only
+                    // when pointed; a plain raised box otherwise.
+                    char c;
+                    if (pointed) {
+                        const int row = qBound(0, flip ? across - 1 - j : j, 21);
+                        const int col = qBound(0, i, 10);
+                        c = kPointed[row][col];
+                        if (flip && (c == 'W' || c == 'S' || c == 'D') && row > 0 && row < 17 && col != 0 && col < 9)
+                            c = 'F';
+                        if (flip && row == 0)
+                            c = col == 10 ? 'W' : 'W';
+                    } else {
+                        c = (j == 0 || i == 0) ? 'W' : (j == across - 1 || i == along - 1) ? 'D'
+                            : (j == across - 2 || i == along - 2) ? 'S' : 'F';
+                    }
+                    if (c == '.')
+                        continue;
+                    const QPoint at = horizontal ? QPoint(handle.left() + i, handle.top() + j)
+                                                 : QPoint(handle.left() + j, handle.top() + i);
+                    painter->fillRect(at.x(), at.y(), 1, 1, colourOf(c));
+                }
+            }
+            if (slider->state & State_HasFocus)
+                drawFocusDots(painter, slider->rect, Qt::white);
+            return true;
+        }
+        return false;
     case CC_SpinBox:
         if (const auto *spin = qstyleoption_cast<const QStyleOptionSpinBox *>(option);
             spin && spin->buttonSymbols != QAbstractSpinBox::NoButtons) {
@@ -2399,10 +2474,10 @@ QRect XPLasmaStyle::subControlRect(ComplexControl control, const QStyleOptionCom
             }
         }
     }
-    if (m_renderer && control == CC_Slider) {
+    if ((m_renderer || classic()) && control == CC_Slider) {
         if (const auto *slider = qstyleoption_cast<const QStyleOptionSlider *>(option)) {
             const QSize thumb = sliderThumbSize(slider);
-            if (thumb.isValid() && hasPart({QStringLiteral("trackbar"), slider->orientation == Qt::Horizontal ? 1 : 2, 1, {}})) {
+            if (thumb.isValid() && (classic() || hasPart({QStringLiteral("trackbar"), slider->orientation == Qt::Horizontal ? 1 : 2, 1, {}}))) {
                 QRect channel;
                 const QRect handle = sliderLayout(slider, thumb, &channel);
                 if (sub == SC_SliderHandle)
