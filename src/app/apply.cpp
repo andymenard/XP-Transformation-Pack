@@ -312,14 +312,8 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
             }
         }
     }
-    if (o.wallpaper) {
-        const Wallpaper &w = *o.wallpaper;
-        session.script(scriptFrom(QStringLiteral("wallpaper"),
-                                  {{QStringLiteral("IMAGE"), w.image.isEmpty() ? QVariant::fromValue(nullptr) : QVariant(QUrl::fromLocalFile(w.image).toString())},
-                                   {QStringLiteral("FILL"), w.fill ? QVariant(*w.fill) : QVariant::fromValue(nullptr)},
-                                   {QStringLiteral("COLOUR"), w.colour.name()}}));
-        report(o, w.image.isEmpty() ? QStringLiteral("Desktop: %1").arg(w.colour.name()) : QStringLiteral("Wallpaper: %1").arg(QFileInfo(w.image).fileName()));
-    }
+    if (o.wallpaper)
+        applyWallpaper(session, *o.wallpaper, o.progress);
     if (!iconTheme.isEmpty()) {
         const QString helper = iconHelper();
         if (helper.isEmpty())
@@ -336,6 +330,16 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
     state.save();
     report(o, QStringLiteral("Done."));
     return true;
+}
+
+void applyWallpaper(Session &session, const Wallpaper &w, const std::function<void(const QString &)> &progress)
+{
+    session.script(scriptFrom(QStringLiteral("wallpaper"),
+                              {{QStringLiteral("IMAGE"), w.image.isEmpty() ? QVariant::fromValue(nullptr) : QVariant(QUrl::fromLocalFile(w.image).toString())},
+                               {QStringLiteral("FILL"), w.fill ? QVariant(*w.fill) : QVariant::fromValue(nullptr)},
+                               {QStringLiteral("COLOUR"), w.colour.name()}}));
+    if (progress)
+        progress(w.image.isEmpty() ? QStringLiteral("Desktop: %1").arg(w.colour.name()) : QStringLiteral("Wallpaper: %1").arg(QFileInfo(w.image).fileName()));
 }
 
 bool resetDesktop(Session &session, const std::function<void(const QString &)> &progress, QString *error)

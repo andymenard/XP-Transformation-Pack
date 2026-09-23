@@ -10,12 +10,14 @@
 
 #include <QApplication>
 #include <QComboBox>
+#include <QCryptographicHash>
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QInputDialog>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -68,6 +70,28 @@ Wallpaper currentDesktop()
     return w;
 }
 
+// What a look draws from: the style and variant, or the Classic scheme's
+// contents (which Advanced edits).
+QString lookKey(const Look &look)
+{
+    if (look.classic()) {
+        ThemeFile file;
+        look.system.writeTo(file);
+        return QStringLiteral("classic:") + QString::fromLatin1(QCryptographicHash::hash(file.toBytes(), QCryptographicHash::Sha1).toHex());
+    }
+    return QFileInfo(look.stylePath).canonicalFilePath() + QLatin1Char(':') + look.variant.toUpper();
+}
+
+bool sameDesktop(const Wallpaper &a, const Wallpaper &b)
+{
+    return a.image == b.image && a.fill == b.fill && a.colour == b.colour;
+}
+
+bool shiftHeld()
+{
+    return QGuiApplication::queryKeyboardModifiers().testFlag(Qt::ShiftModifier);
+}
+
 QLabel *sampleBox(QSize size)
 {
     auto *label = new QLabel;
@@ -91,14 +115,13 @@ DisplayProperties::DisplayProperties(QWidget *parent)
     root->addWidget(m_tabs, 1);
 
     auto *row = new QHBoxLayout;
-    m_status = new QLabel;
-    m_status->setMinimumWidth(0);
-    row->addWidget(m_status, 1);
+    row->addStretch(1);
     auto *ok = new QPushButton(QStringLiteral("OK"));
     auto *cancel = new QPushButton(QStringLiteral("Cancel"));
-    auto *applyButton = new QPushButton(QStringLiteral("Apply"));
+    m_apply = new QPushButton(QStringLiteral("Apply"));
+    m_apply->setToolTip(QStringLiteral("Hold Shift to rebuild and apply everything, changed or not."));
     ok->setDefault(true);
-    for (QPushButton *b : {ok, cancel, applyButton})
+    for (QPushButton *b : {ok, cancel, m_apply})
         row->addWidget(b);
     root->addLayout(row);
     connect(ok, &QPushButton::clicked, this, [this] {
@@ -106,7 +129,9 @@ DisplayProperties::DisplayProperties(QWidget *parent)
             accept();
     });
     connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
-    connect(applyButton, &QPushButton::clicked, this, &DisplayProperties::apply);
+    connect(m_apply, &QPushButton::clicked, this, &DisplayProperties::apply);
+    // (Shift, wherever the focus is in the dialog.)
+    qApp->installEventFilter(this);
 
     loadLibrary();
     // Open on what's applied now.
@@ -152,8 +177,20 @@ DisplayProperties::DisplayProperties(QWidget *parent)
         if (m_themes->itemData(i).toString() == state.themeFile)
             m_themes->setCurrentIndex(i);
     m_loading = false;
+    // What's applied: the look XPLasma recorded, if the dialog could show it,
+    // and the desktop as the dialog shows it.
+    QString applied;
+    if (state.appliedKind == QLatin1String("style"))
+        applied = QFileInfo(state.style).canonicalFilePath() + QLatin1Char(':') + state.variant.toUpper();
+    else if (state.appliedKind == QLatin1String("classic"))
+        if (const auto s = schemes::load(state.scheme))
+            applied = lookKey(Look::fromScheme(*s));
+    m_appliedLook = applied == lookKey(look()) ? applied : QString();
+    m_appliedDesktop = wallpaper();
+    m_appliedThemeFile = state.themeFile;
+    updateApply();
     if (!m_previewer.styleAvailable())
-        setStatus(QStringLiteral("XPLasma's style plugin isn't installed: the samples can't be drawn"));
+        m_appearanceSample->setToolTip(QStringLiteral("XPLasma's style plugin isn't installed: the samples can't be drawn"));
     renderThemes();
     renderDesktop();
     renderAppearance();
@@ -470,6 +507,7 @@ void DisplayProperties::showBundle(const ThemeBundle &b)
     renderThemes();
     renderDesktop();
     renderAppearance();
+    updateApply();
 }
 
 void DisplayProperties::appearanceChanged()
@@ -492,6 +530,7 @@ void DisplayProperties::appearanceChanged()
     m_themeFile.clear();
     renderAppearance();
     renderThemes();
+    updateApply();
 }
 
 void DisplayProperties::desktopChanged()
@@ -501,6 +540,7 @@ void DisplayProperties::desktopChanged()
     m_themeFile.clear();
     renderDesktop();
     renderThemes();
+    updateApply();
 }
 
 void DisplayProperties::openAdvanced()
@@ -516,6 +556,7 @@ void DisplayProperties::openAdvanced()
     m_loading = false;
     renderAppearance();
     renderThemes();
+    updateApply();
 }
 
 void DisplayProperties::saveAs()
@@ -557,7 +598,7 @@ void DisplayProperties::saveAs()
     m_themes->setCurrentIndex(m_themes->findData(path));
     m_themeFile = path;
     m_delete->setEnabled(true);
-    setStatus(QStringLiteral("Saved to %1").arg(path));
+    updateApply();
 }
 
 void DisplayProperties::deleteTheme()
@@ -574,26 +615,66 @@ void DisplayProperties::deleteTheme()
     QFile::remove(path);
     m_library = Library::scan();
     fillThemes();
-    setStatus(QStringLiteral("Deleted"));
 }
 
 bool DisplayProperties::apply()
 {
     const Look l = look();
-    ApplyOptions o;
-    o.wallpaper = wallpaper();
-    o.themeFile = m_themeFile;
+    const Wallpaper desktop = wallpaper();
+    // Shift: everything, as if nothing were applied.
+    const bool everything = shiftHeld();
+    const bool lookChanged = everything || lookKey(l) != m_appliedLook;
+    const bool desktopChanged = everything || !sameDesktop(desktop, m_appliedDesktop);
+    if (!lookChanged && !desktopChanged && m_themeFile == m_appliedThemeFile)
+        return true;
+
     QString error;
-    const bool ok = runJob(this, QStringLiteral("Applying %1").arg(l.name), [&](const JobContext &c, QString *e) {
-        ApplyOptions options = o;
-        options.progress = c.say;
-        LiveSession session;
-        return applyLook(session, l, options, e);
-    }, &error);
-    if (!ok)
+    bool ok = true;
+    if (lookChanged) {
+        ApplyOptions o;
+        if (desktopChanged)
+            o.wallpaper = desktop;
+        o.themeFile = m_themeFile;
+        ok = runJob(this, QStringLiteral("Applying %1").arg(l.name), [&](const JobContext &c, QString *e) {
+            ApplyOptions options = o;
+            options.progress = c.say;
+            LiveSession session;
+            return applyLook(session, l, options, e);
+        }, &error);
+    } else {
+        if (desktopChanged) {
+            LiveSession session;
+            applyWallpaper(session, desktop);
+        }
+        // (The same look, now from this theme: only the record changes.)
+        State state = State::load();
+        state.themeFile = m_themeFile;
+        state.save();
+    }
+    if (!ok) {
         QMessageBox::warning(this, QStringLiteral("Apply"), error);
-    setStatus(ok ? QStringLiteral("Applied %1").arg(l.name) : QString());
+    } else {
+        if (lookChanged)
+            m_appliedLook = lookKey(l);
+        m_appliedDesktop = desktop;
+        m_appliedThemeFile = m_themeFile;
+    }
+    updateApply();
     return ok;
+}
+
+void DisplayProperties::updateApply()
+{
+    m_apply->setEnabled(shiftHeld() || lookKey(look()) != m_appliedLook || !sameDesktop(wallpaper(), m_appliedDesktop)
+                        || m_themeFile != m_appliedThemeFile);
+}
+
+bool DisplayProperties::eventFilter(QObject *watched, QEvent *event)
+{
+    if ((event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease)
+        && static_cast<QKeyEvent *>(event)->key() == Qt::Key_Shift && isActiveWindow())
+        QTimer::singleShot(0, this, &DisplayProperties::updateApply);
+    return QDialog::eventFilter(watched, event);
 }
 
 // --- samples -----------------------------------------------------------------------------------
@@ -619,11 +700,6 @@ void DisplayProperties::renderAppearance()
     m_advanced->setEnabled(m_style->currentIndex() >= m_styles.size());
     const Look l = look();
     m_appearanceSample->setPixmap(QPixmap::fromImage(m_previewer.appearance(l, preview::kAppearanceSize, l.system.colour(u"Background"))));
-}
-
-void DisplayProperties::setStatus(const QString &text)
-{
-    m_status->setText(text);
 }
 
 bool DisplayProperties::saveScreenshots(const QString &dir)

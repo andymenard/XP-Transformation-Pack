@@ -1,7 +1,10 @@
 #pragma once
 // xplasma-edit: Windows XP's Display Properties, for Plasma. Three of XP's
 // tabs -- Themes, Desktop, Appearance -- with OK, Cancel and Apply; Apply
-// does what `xplasma apply` does.
+// does what `xplasma apply` does, for what changed since the last Apply:
+// only the desktop's wallpaper, say, is set without rebuilding the look.
+// Apply is greyed out until something changes; with Shift held it's
+// available anyway and rebuilds everything.
 //
 // The dialog is drawn in whatever widget style the system has (never forced
 // to XPLasma); only its samples are drawn by XPLasma, in the look they show.
@@ -54,11 +57,12 @@ private:
     void saveAs();
     void deleteTheme();
     bool apply();
+    void updateApply();
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
     void renderThemes();
     void renderDesktop();
     void renderAppearance();
-    void setStatus(const QString &text);
 
     Library m_library;
     QList<StyleInfo> m_styles;        // readable ones, in the order shown
@@ -66,9 +70,13 @@ private:
     QString m_themeFile;              // the bundle chosen, unless edited since
     preview::Previewer m_previewer;
     bool m_loading = false;
+    // What's on the desktop now, as of the last Apply (or opening).
+    QString m_appliedLook;            // lookKey(); empty: unknown
+    Wallpaper m_appliedDesktop;
+    QString m_appliedThemeFile;
 
     QTabWidget *m_tabs;
-    QLabel *m_status;
+    QPushButton *m_apply;
     // Themes
     QComboBox *m_themes;
     QPushButton *m_delete;

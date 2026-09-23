@@ -36,6 +36,8 @@ struct ApplyOptions
 };
 
 bool applyLook(Session &session, const Look &look, const ApplyOptions &options, QString *error = nullptr);
+// The desktop only: its wallpaper and colour, the look left as it is.
+void applyWallpaper(Session &session, const Wallpaper &wallpaper, const std::function<void(const QString &)> &progress = {});
 // Qt apps' widgets only.
 bool applyWidgets(Session &session, const Look &look, const std::function<void(const QString &)> &progress, QString *error = nullptr);
 // Plasma's default look back (Breeze, the default panel and wallpaper), and

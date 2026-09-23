@@ -884,6 +884,20 @@ private Q_SLOTS:
         QVERIFY(!overrides::patched(QStringLiteral("systemtray/main.qml"), QStringLiteral("not KDE's QML")));
     }
 
+    void wallpaperAlone()
+    {
+        // The editor's Apply when only the desktop changed: one script, nothing rebuilt.
+        RecordingSession session;
+        QStringList said;
+        applyWallpaper(session, Wallpaper{QStringLiteral("/w/stoneh.jpg"), 6, QColor(0, 78, 152)},
+                       [&](const QString &line) { said << line; });
+        QCOMPARE(session.scripts.size(), 1);
+        QVERIFY(session.scripts.first().contains(QLatin1String("file:///w/stoneh.jpg")));
+        QVERIFY(session.runs.isEmpty() && session.calls.isEmpty());
+        QCOMPARE(said, QStringList{QStringLiteral("Wallpaper: stoneh.jpg")});
+        QVERIFY(!QFileInfo::exists(paths::data() + QLatin1String("/state.json")));
+    }
+
     void titleShadowsFromRc()
     {
         if (!QFileInfo::exists(QStringLiteral("/usr/share/kwin/aurorae/aurorae.qml")))
