@@ -30,6 +30,14 @@ Kicker.SubMenu {
     signal contextRequested(var action, var item, real x, real y)
     // The right-click menu: while it's up, this losing focus to it closes nothing.
     property var contextMenu: null
+    // A program being dragged out (to the Start menu's pinned list, or the
+    // desktop): the flyouts stay open under it.
+    property bool dragging: false
+    function setDragging(value) {
+        dragging = value;
+        if (ownerPopup) ownerPopup.setDragging(value);
+    }
+    readonly property string favoriteMime: "application/x-xplasma-favorite"
     visible: false
     location: PlasmaCore.Types.Floating
     backgroundHints: PlasmaCore.Dialog.NoBackground
@@ -58,6 +66,7 @@ Kicker.SubMenu {
                 const identity = String(role(row, "favoriteId") || role(row, "url") || label);
                 result.push({label: label, icon: sourceModel.data(index, Qt.DecorationRole),
                     sourceRow: row, identity: identity, childModel: child,
+                    favoriteId: String(role(row, "favoriteId") || ""), url: String(role(row, "url") || ""),
                     action: {model: sourceModel, row: row, identity: identity}});
             }
         }
@@ -122,7 +131,7 @@ Kicker.SubMenu {
         closing = false;
     }
     function handleDeactivation() {
-        if (closing || !visible || (childPopup && childPopup.visible) || (contextMenu && contextMenu.opened)) return;
+        if (closing || !visible || dragging || (childPopup && childPopup.visible) || (contextMenu && contextMenu.opened)) return;
         let ancestor = ownerPopup;
         let top = popup;
         while (ancestor) {
@@ -154,7 +163,7 @@ Kicker.SubMenu {
             interval: popup.menuOpenDelay
             running: popup.visible && !popup.ownerPopup
                 && popup.pointerMode && !popup.anchorHovered && !popup.containsPointer
-                && !(popup.contextMenu && popup.contextMenu.opened)
+                && !(popup.contextMenu && popup.contextMenu.opened) && !popup.dragging
             onTriggered: popup.back(false)
         }
         Connections {
@@ -244,6 +253,22 @@ Kicker.SubMenu {
                     font.pixelSize: 8
                     color: row.selected ? popup.themeData.palette.submenuHighlightText : popup.themeData.palette.submenuText
                 }
+                // What a drag carries: the program, for the Start menu to pin
+                // (and its launcher, for the desktop or a panel).
+                Item {
+                    id: dragProxy
+                    width: 16; height: 16
+                    Drag.dragType: Drag.Automatic
+                    Drag.supportedActions: Qt.CopyAction | Qt.LinkAction
+                    Drag.mimeData: {
+                        let data = {};
+                        data[popup.favoriteMime] = row.modelData.favoriteId;
+                        if (row.modelData.url) data["text/uri-list"] = row.modelData.url;
+                        return data;
+                    }
+                    Drag.active: mouse.drag.active && row.modelData.favoriteId !== ""
+                    Drag.onActiveChanged: popup.setDragging(Drag.active)
+                }
                 MouseArea {
                     id: mouse
                     anchors.fill: parent
@@ -255,6 +280,8 @@ Kicker.SubMenu {
                     }
                     onExited: if (hoverTimer.row === row.index) hoverTimer.stop()
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
+                    drag.target: row.modelData.childModel ? null : dragProxy
+                    onReleased: { dragProxy.x = 0; dragProxy.y = 0; }
                     onClicked: mouse => {
                         if (mouse.button !== Qt.RightButton)
                             popup.activateRow(row.index, false);

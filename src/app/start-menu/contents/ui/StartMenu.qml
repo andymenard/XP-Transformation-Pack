@@ -26,6 +26,8 @@ FocusScope {
     // (pinned indices), or a recent one pinned at a place.
     signal moveRequested(int from, int to)
     signal pinRequested(var action, int at)
+    // A program dropped from elsewhere (All Programs): its favourite id.
+    signal pinIdRequested(string id, int at)
     property Item dragEntry: null
     property int dropSlot: -1   // before which pinned item it would land; -1: nowhere
     function dragMove(entry, y) {
@@ -34,6 +36,9 @@ FocusScope {
         // A recent program dropped among the recent ones stays where it is.
         dropSlot = entry.pinnedIndex < 0 && y > n * provisional.pinnedRowHeight + separatorHeight / 2
             ? -1 : Math.max(0, Math.min(n, Math.round(y / provisional.pinnedRowHeight)));
+    }
+    function slotAt(y) {   // y in the program list; past the pinned: the end
+        return Math.max(0, Math.min(pinnedItems.length, Math.round(y / provisional.pinnedRowHeight)));
     }
     function dragEnd() {
         const entry = dragEntry, slot = dropSlot;
@@ -345,6 +350,22 @@ FocusScope {
                         onActiveFocusChanged: if (activeFocus) programScroll.reveal(this)
                     }
                 }
+            }
+        }
+        DropArea {
+            // Programs dragged in from All Programs: pinned where they're dropped.
+            objectName: "pinDropArea"
+            anchors.fill: programScroll
+            keys: ["application/x-xplasma-favorite"]
+            onPositionChanged: drag => menu.dropSlot = menu.slotAt(drag.y + programScroll.contentY)
+            onExited: menu.dropSlot = -1
+            onDropped: drop => {
+                const id = drop.getDataAsString("application/x-xplasma-favorite");
+                const slot = menu.slotAt(drop.y + programScroll.contentY);
+                menu.dropSlot = -1;
+                if (!id) return;
+                drop.accept(Qt.CopyAction);
+                menu.pinIdRequested(id, slot);
             }
         }
         Rectangle {

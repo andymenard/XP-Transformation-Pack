@@ -165,6 +165,21 @@ Item {
         Qt.callLater(refresh);
     }
 
+    // A program dropped on the pinned list by its favourite id: pinned
+    // there, or -- pinned already -- moved there.
+    function pinIdAt(id, at) {
+        if (dryRun) { actionDispatched({pinId: id, at: at}); return; }
+        const favorites = launcher.rootModel.favoritesModel;
+        if (favorites.isFavorite(id)) {
+            const from = pinned.findIndex(entry => entry.identity === id);
+            const to = at > from ? at - 1 : at;
+            if (from >= 0 && to !== from && pinned[to]) movePinned(from, to);
+            return;
+        }
+        favorites.addFavorite(id, at < pinned.length ? pinned[at].action.row : favorites.count);
+        Qt.callLater(refresh);
+    }
+
     function activate(action) {
         if (dryRun) { actionDispatched(action); return; }
         if (action === "all-programs") {

@@ -15,6 +15,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QTemporaryDir>
+#include <QMimeData>
 #include <QSignalSpy>
 #include <QTest>
 
@@ -202,6 +203,43 @@ private Q_SLOTS:
         drag(at(pinnedRow * 3 + separator + recentRow / 2), at(pinnedRow * 3 + separator + recentRow * 1.5));   // among the recent: nothing
         QCOMPARE(pinned.size(), 1);
         QCOMPARE(moved.size(), 1);
+    }
+
+    void dropFromAllPrograms()
+    {
+        // A program dragged out of All Programs (another window) and dropped
+        // on the program list is pinned where it lands.
+        if (m_themes.isEmpty())
+            QSKIP("no asset library on this machine");
+        const auto look = Look::fromStyle(m_themes + QLatin1String("/Luna/luna.msstyles"));
+        QVERIFY(look);
+        QString error;
+        const QJsonObject theme = writeStartPanel(*look, m_scratch.filePath(QStringLiteral("luna-drop")), &error);
+        QVERIFY2(!theme.isEmpty(), qPrintable(error));
+        QVariantList pinned;
+        for (int i = 0; i < 3; ++i)
+            pinned << QVariantMap{{QStringLiteral("label"), QStringLiteral("pinned %1").arg(i)}, {QStringLiteral("action"), QStringLiteral("close")}};
+        QObject *menu = nullptr;
+        render(theme, &menu, {{QStringLiteral("pinnedItems"), pinned}});
+        auto *list = menu->findChild<QQuickItem *>(QStringLiteral("programEntries"));
+        QVERIFY(list);
+        QQuickWindow *window = list->window();
+        const qreal row = theme.value(QStringLiteral("provisional")).toObject().value(QStringLiteral("pinnedRowHeight")).toDouble();
+        QSignalSpy spy(menu, SIGNAL(pinIdRequested(QString,int)));
+        QMimeData data;
+        data.setData(QStringLiteral("application/x-xplasma-favorite"), "org.kde.konsole.desktop");
+        const QPointF over = list->mapToScene(QPointF(40, row * 1.1));   // between the first and second
+        QDragEnterEvent enter(over.toPoint(), Qt::CopyAction, &data, Qt::LeftButton, Qt::NoModifier);
+        QCoreApplication::sendEvent(window, &enter);
+        QDragMoveEvent move(over.toPoint(), Qt::CopyAction, &data, Qt::LeftButton, Qt::NoModifier);
+        QCoreApplication::sendEvent(window, &move);
+        QCOMPARE(menu->property("dropSlot").toInt(), 1);
+        QDropEvent drop(over, Qt::CopyAction, &data, Qt::LeftButton, Qt::NoModifier);
+        QCoreApplication::sendEvent(window, &drop);
+        QCOMPARE(spy.size(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QStringLiteral("org.kde.konsole.desktop"));
+        QCOMPARE(spy.at(0).at(1).toInt(), 1);
+        QCOMPARE(menu->property("dropSlot").toInt(), -1);
     }
 
     void grows()

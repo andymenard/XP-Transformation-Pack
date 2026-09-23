@@ -79,6 +79,7 @@ Item {
         onContextRequested: (action, item, x, y) => root.showActions(action, item, x, y)
         onMoveRequested: (from, to) => backend.movePinned(from, to)
         onPinRequested: (action, at) => backend.pinAt(action, at)
+        onPinIdRequested: (id, at) => backend.pinIdAt(id, at)
     }
     ActionMenu {
         id: actionMenu
