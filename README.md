@@ -20,8 +20,11 @@ xp2plasma into C++/Qt 6 on the same core; until that lands, the Python app in
 | --- | --- |
 | `src/core/` | The `.msstyles` reader (PE, DIB, INI cascade, schema) and the renderer, pixel-exact against XP. |
 | `src/style/` | The Qt 5/6 style plugin, drawing every widget from the core. |
+| `src/app/` | The C++ app replacing `app/`: the library under everything (archives, host programs, state), and the `xplasma` CLI. |
+| `src/third_party/` | libarchive, built static and linked in (ZIP, RAR, 7z, TAR, XP's CAB-compressed files). |
 | `src/tools/` | `xplasma-render` (oracle renders, `--export`), `xplasma-dump`, `xplasma-gallery`, `xplasma-probe`. |
 | `tests/core/` | The core's unit test and fuzz targets, with their vectors. |
+| `tests/app/` | QtTest for the C++ app. |
 | `tests/oracle/` | Dev tooling that holds the style against the Windows XP reference VM (`styles_matrix.py`, …). |
 | `refharness/` | The programs that run inside the XP VM and dump what real uxtheme draws. |
 | `app/` | The Python app carried over from xp2plasma, being replaced (see above). |
@@ -34,13 +37,15 @@ The host needs no compiler; everything builds in podman.
 
 ```sh
 podman build -t xplasma-dev:3.8.1x -f containers/dev.Containerfile containers   # once
-podman build -t xplasma-release:1  -f containers/release.Containerfile containers  # once
+podman build -t xplasma-release:2  -f containers/release.Containerfile containers  # once
 
 ./build.sh dev       # host-matched Qt, for iterating: build/dev-qt{6,5}/
 ./build.sh release   # Qt 6.6.3 / 5.15.2: the portable, shipping build
 ```
 
-Both install the style to `app/plugins/qt{6,5}/styles/libxplasma.so`.
+Both install the style to `app/plugins/qt{6,5}/styles/libxplasma.so`. The
+Qt 6 tree also builds the C++ app: `build/dev-qt6/src/app/xplasma`
+(`--version`, `list`; more with each phase of the rewrite).
 
 A plugin built against Qt *6.N* loads into every Qt ≥ *6.N*, **provided** it
 uses only public Qt API and binds nothing else to Qt (the 6.6.3 build runs on
@@ -66,13 +71,15 @@ python3 -m venv .venv
 ```
 
 XPLasma adopts what xp2plasma already imported on a machine (the asset
-library, saved schemes, the downloaded XP media) instead of fetching it again;
-see `app/paths.py`. Nothing Microsoft-copyrighted is in this repository.
+library, saved schemes, the downloaded XP media) instead of fetching it again.
+The C++ app moves them into its own places on first run, leaving symlinks
+behind (`src/app/adopt.cpp`); the Python app uses them wherever they are. Nothing Microsoft-copyrighted is in this repository.
 
 ## Tests
 
 ```sh
 build/dev-qt6/test-core                              # the core
+build/dev-qt6/tests/app/test-app                     # the C++ app (run on the host to include the XP ISO)
 tests/oracle/styles_matrix.py OUT                     # the style against real XP (needs refharness/vm.sh)
 for t in app/tests/test_*.py; do QT_QPA_PLATFORM=offscreen .venv/bin/python3 "$t"; done   # the Python app
 ```

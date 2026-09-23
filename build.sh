@@ -13,7 +13,7 @@ mode="${1:-dev}"
 root="$(cd "$(dirname "$0")" && pwd)"
 case "$mode" in
   dev)     image=localhost/xplasma-dev:3.8.1x; prefix6=; prefix5= ;;
-  release) image=localhost/xplasma-release:1;  prefix6='$QT6_DIR'; prefix5='$QT5_DIR' ;;
+  release) image=localhost/xplasma-release:2;  prefix6='$QT6_DIR'; prefix5='$QT5_DIR' ;;
   *) echo "usage: $0 dev|release" >&2; exit 2 ;;
 esac
 podman run --rm -v "$root:/src" -w /src "$image" sh -ec "

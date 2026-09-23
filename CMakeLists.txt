@@ -27,6 +27,12 @@ endif()
 find_package(Qt${QT_MAJOR} REQUIRED COMPONENTS Core Gui Widgets)
 set(QT Qt${QT_MAJOR})
 
+# The app (Qt 6 only) and the archive libraries it links: third-party code
+# first, before the project's own warning flags.
+if(QT_MAJOR EQUAL 6)
+  add_subdirectory(src/third_party)
+endif()
+
 add_compile_options(-Wall -Wextra)
 add_compile_definitions(QT_NO_KEYWORDS QT_USE_QSTRINGBUILDER)
 
@@ -72,9 +78,17 @@ target_link_libraries(xplasma-render PRIVATE stdc++ xplasma-core)
 add_executable(xplasma-dump src/tools/dump.cpp)
 target_link_libraries(xplasma-dump PRIVATE stdc++ xplasma-core)
 
+# --- the app: CLI, editor and the library under them (Qt 6) ------------------------
+if(QT_MAJOR EQUAL 6)
+  add_subdirectory(src/app)
+endif()
+
 # --- tests ------------------------------------------------------------------------
 add_executable(test-core tests/core/test_core.cpp)
 target_link_libraries(test-core PRIVATE stdc++ xplasma-core)
+if(QT_MAJOR EQUAL 6)
+  add_subdirectory(tests/app)
+endif()
 
 # --- fuzzing (fuzz.sh; clang only) --------------------------------------------
 option(XPLASMA_FUZZ "Build the libFuzzer targets (needs clang)" OFF)
