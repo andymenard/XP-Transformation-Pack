@@ -22,3 +22,4 @@ __pycache__/
 app/schemes/user/
 app/plugins/
 refharness/share/
+native/build-fuzz/

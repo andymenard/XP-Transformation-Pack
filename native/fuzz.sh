@@ -1,0 +1,30 @@
+#!/bin/sh
+# Fuzz the core's parsers: PE/theme, DIB and INI, each under ASan + UBSan.
+#
+#   native/fuzz.sh [SECONDS]      default 600 per target, all three in parallel
+#
+# Seeds come from native/tests/synth.py (always) plus, when the corpus is on
+# this machine, real resources extracted from it (seeds stay local: they are
+# derived from Microsoft's files). Crashes land in native/build-fuzz/crashes/.
+set -eu
+root="$(cd "$(dirname "$0")/.." && pwd)"
+seconds="${1:-600}"
+work="$root/native/build-fuzz"
+mkdir -p "$work/seeds/theme" "$work/seeds/dib" "$work/seeds/ini" "$work/crashes"
+"$root/.venv/bin/python3" "$root/native/tests/fuzz_seeds.py" "$work/seeds"
+podman run --rm -v "$root:/src" -w /src localhost/xplasma-dev:3.8.1x sh -ec '
+cmake -S native -B native/build-fuzz/build -G Ninja -DQT_MAJOR=6 -DXPLASMA_FUZZ=ON \
+      -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link,address,undefined -fno-sanitize-recover=undefined" >/dev/null
+cmake --build native/build-fuzz/build --target fuzz-theme fuzz-dib fuzz-ini >/dev/null'
+podman run --rm -v "$root:/src" -w /src/native/build-fuzz localhost/xplasma-dev:3.8.1x sh -c "
+for t in theme dib ini; do
+  ( mkdir -p corpus/\$t && ./build/fuzz-\$t corpus/\$t seeds/\$t -max_total_time=$seconds -max_len=4194304 \
+      -rss_limit_mb=4096 -timeout=10 -artifact_prefix=crashes/\$t- -print_final_stats=1 > log-\$t.txt 2>&1;
+    echo \"\$t exit \$?\" ) &
+done
+wait"
+for t in theme dib ini; do
+  printf '%-6s ' "$t"; grep -E "stat::number_of_executed_units|ERROR|SUMMARY" "$work/log-$t.txt" | head -2 | tr '\n' ' '; echo
+done
+ls "$work/crashes"

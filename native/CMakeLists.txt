@@ -67,3 +67,15 @@ target_link_libraries(xplasma-dump PRIVATE stdc++ xplasma-core)
 # --- tests ------------------------------------------------------------------------
 add_executable(test-core tests/test_core.cpp)
 target_link_libraries(test-core PRIVATE stdc++ xplasma-core)
+
+# --- fuzzing (native/fuzz.sh; clang only) --------------------------------------------
+option(XPLASMA_FUZZ "Build the libFuzzer targets (needs clang)" OFF)
+if(XPLASMA_FUZZ)
+  foreach(target theme dib ini)
+    string(TOUPPER ${target} TARGET_UPPER)
+    add_executable(fuzz-${target} tests/fuzz.cpp)
+    target_compile_definitions(fuzz-${target} PRIVATE FUZZ_TARGET_${TARGET_UPPER}=1)
+    target_link_libraries(fuzz-${target} PRIVATE xplasma-core)
+    target_link_options(fuzz-${target} PRIVATE -fsanitize=fuzzer,address,undefined)
+  endforeach()
+endif()

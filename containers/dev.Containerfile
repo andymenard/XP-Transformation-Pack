@@ -4,10 +4,10 @@
 # Valve's core-/extra-<release> repos -- so gcc, glibc and Qt 6 match this
 # SteamOS release exactly and anything built here loads into host apps.
 # Adds Qt 5 (the second plugin build), ninja, and mingw-w64 for the XP-side
-# reference harness (refharness/).
+# reference harness (refharness/), plus clang + compiler-rt for libFuzzer.
 #
 #   podman build -t xplasma-dev:3.8.1x -f containers/dev.Containerfile containers
 ARG BASE=localhost/xp2p-kvantum-build:3.8.1x
 FROM ${BASE}
-RUN pacman -S --noconfirm --needed --overwrite '*' qt5-base ninja mingw-w64-gcc gdb \
+RUN pacman -S --noconfirm --needed --overwrite '*' qt5-base ninja mingw-w64-gcc gdb clang compiler-rt \
  && pacman -Scc --noconfirm

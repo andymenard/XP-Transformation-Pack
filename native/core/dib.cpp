@@ -2,6 +2,7 @@
 
 #include <QtEndian>
 
+#include <limits>
 #include <vector>
 
 namespace xpl {
@@ -83,7 +84,8 @@ Dib decodeDib(const QByteArray &data)
     const quint32 compression = qFromLittleEndian<quint32>(p + 16);
     const quint32 clrUsed = qFromLittleEndian<quint32>(p + 32);
     if (headerSize < 40 || headerSize > quint32(data.size()) || width <= 0 || width > 32768
-        || height == 0 || qAbs(height) > 32768)
+        || height == 0 || height == std::numeric_limits<qint32>::min() || qAbs(height) > 32768
+        || qint64(width) * qAbs(height) > kMaxDibPixels)
         return out;
     const int h = qAbs(height);
 

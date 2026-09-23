@@ -4,7 +4,12 @@
 #include "core/pe.h"
 #include "core/theme.h"
 
+#include <QElapsedTimer>
+#include <QFile>
+#include <QFileInfo>
 #include <QTextStream>
+
+#include "core/dib.h"
 
 using namespace xpl;
 
@@ -25,8 +30,13 @@ static QString get(const Ini &ini, const char *sub, const char *cls, const char 
         .value_or(QStringLiteral("<none>"));
 }
 
-int main()
+// Test vectors live in native/tests/vectors; build trees sit in native/build-*/.
+static QString vectors;
+
+int main(int, char **argv)
 {
+    vectors = QFileInfo(QString::fromLocal8Bit(argv[0])).absolutePath() + QLatin1String("/../tests/vectors");
+
     // Headers: every piece but the class is optional; a trailing state
     // belongs to the part, or to the class when there's no part.
     CHECK(Ini::parseHeader(QStringLiteral("Button")).toString() == QLatin1String("button"));
@@ -78,6 +88,17 @@ int main()
     junk[1] = 'Z';
     CHECK(!PeResources::parse(junk, &error));
     CHECK(!Theme::fromData(QByteArray(), QString(), &error));
+
+    // A tiny RLE file claiming a gigantic image is refused, not decoded
+    // (found by fuzz-dib: 217 bytes claiming 26886 x 8229 took 11 s).
+    {
+        QFile vector(vectors + QLatin1String("/dib-huge-rle4.bin"));
+        CHECK(vector.open(QIODevice::ReadOnly));
+        QElapsedTimer timer;
+        timer.start();
+        CHECK(decodeDib(vector.readAll()).image.isNull());
+        CHECK(timer.elapsed() < 100);
+    }
 
     QTextStream(stdout) << (failures ? "FAILED " : "ok ") << failures << " failure(s)\n";
     return failures;
