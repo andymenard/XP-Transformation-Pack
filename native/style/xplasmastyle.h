@@ -83,6 +83,7 @@ private:
                             const QWidget *widget) const;
     bool drawClassicControl(ControlElement element, const QStyleOption *option, QPainter *painter,
                             const QWidget *widget) const;
+    std::pair<QColor, QColor> focusColours(const QWidget *widget) const;
     void drawFocusDots(QPainter *painter, const QRect &rect, const QColor &odd, const QColor &even = Qt::black) const;
     bool drawXpViewItem(const QStyleOptionViewItem *item, QPainter *painter, const QWidget *widget) const;
     QSize sliderThumbSize(const QStyleOptionSlider *slider) const;

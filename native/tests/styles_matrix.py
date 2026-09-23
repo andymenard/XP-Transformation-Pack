@@ -39,6 +39,8 @@ STYLES = [
     ("embedded", "Embedded/Embedded.msstyles", "NormalColor", "NORMALDEFAULT_INI"),
     # Visual styles off, the scheme's colours from its .theme file.
     ("classic", "Windows Classic.theme", None, None),
+    # ...and a synthetic scheme giving every colour role its own value.
+    ("classic-synthetic", str(ROOT / "native/tests/schemes/Synthetic.theme"), None, None),
 ]
 
 # [Control Panel\Colors] keys by COLOR_* index.

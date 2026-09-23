@@ -7,6 +7,8 @@
 #include <QAbstractItemView>
 #include <QApplication>
 #include <QComboBox>
+#include <QRadioButton>
+#include <QCheckBox>
 #include <QDir>
 #include <QFile>
 #include <QHeaderView>
@@ -214,8 +216,11 @@ QPalette XPLasmaStyle::standardPalette() const
     const QColor window = sysColour(u"window", Qt::white);
     const QColor text = sysColour(u"windowtext", Qt::black);
     const QColor gray = sysColour(u"graytext", QColor(172, 168, 153));
-    QPalette pal(sysColour(u"btntext", text), face, sysColour(u"btnhighlight", Qt::white),
+    QPalette pal(text, face, sysColour(u"btnhighlight", Qt::white),
                  sysColour(u"btnshadow", QColor(172, 168, 153)), face, text, text, window, face);
+    // Window text for check box and radio labels, button text for buttons,
+    // headers, tabs and arrows -- as XP's DCs have them.
+    pal.setColor(QPalette::ButtonText, sysColour(u"btntext", text));
     // The 3D colours: the classic bevels' outer shadow and inner light.
     pal.setColor(QPalette::Shadow, sysColour(u"dkshadow3d", QColor(113, 111, 100)));
     pal.setColor(QPalette::Midlight, sysColour(u"light3d", face));
@@ -297,6 +302,9 @@ void drawGlyph(QPainter *painter, const char *const (&rows)[N], QPoint at, const
 }
 } // namespace
 
+static void classicSunken(QPainter *p, const QRect &r, const QPalette &pal);
+static void classicPushEdge(QPainter *p, const QRect &r, const QPalette &pal, bool pressed);
+
 // --- primitives -------------------------------------------------------------------
 
 void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter,
@@ -320,9 +328,8 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
                 return;
             }
             if (option->rect.isValid()) {
-                const bool face = qobject_cast<const QAbstractButton *>(widget);
-                drawFocusDots(painter, option->rect,
-                              face ? sysColour(u"btnface", option->palette.color(QPalette::Button)) : QColor(Qt::white));
+                const auto [odd, even] = focusColours(widget);
+                drawFocusDots(painter, option->rect, odd, even);
                 return;
             }
             break;
@@ -386,11 +393,15 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
         case PE_FrameTabWidget: {
             // The pane: a raised edge (the highlight top and left, the shadow
             // and dark shadow bottom and right).
+            // (The push button's edge: the highlight and Light3D inside it at
+            // the top left, the shadow and dark shadow at the bottom right.)
             const QRect r = option->rect;
             const QColor light = option->palette.color(QPalette::Light), dark = option->palette.color(QPalette::Dark),
-                         shadow = option->palette.color(QPalette::Shadow);
+                         shadow = option->palette.color(QPalette::Shadow), light3d = option->palette.color(QPalette::Midlight);
             painter->fillRect(QRect(r.left(), r.top(), r.width() - 1, 1), light);
             painter->fillRect(QRect(r.left(), r.top(), 1, r.height() - 1), light);
+            painter->fillRect(QRect(r.left() + 1, r.top() + 1, r.width() - 3, 1), light3d);
+            painter->fillRect(QRect(r.left() + 1, r.top() + 1, 1, r.height() - 3), light3d);
             painter->fillRect(QRect(r.left(), r.bottom(), r.width(), 1), shadow);
             painter->fillRect(QRect(r.right(), r.top(), 1, r.height()), shadow);
             painter->fillRect(QRect(r.left() + 1, r.bottom() - 1, r.width() - 2, 1), dark);
@@ -416,8 +427,8 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             // A Classic menu: the menu colour in a raised edge (Light3D and
             // DkShadow outside, Highlight and Shadow inside).
             const QRect r = option->rect;
-            if (element == PE_PanelMenu)
-                painter->fillRect(r, sysColour(u"menu", option->palette.color(QPalette::Button)));
+            if (element == PE_PanelMenu)   // (the padding ring is the face; the items are menu-coloured)
+                painter->fillRect(r, option->palette.button());
             auto frame = [&](const QRect &q, const QColor &tl, const QColor &br) {
                 painter->fillRect(QRect(q.left(), q.top(), q.width() - 1, 1), tl);
                 painter->fillRect(QRect(q.left(), q.top(), 1, q.height() - 1), tl);
@@ -429,19 +440,40 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             return;
         }
         case PE_PanelLineEdit:
-            // A disabled or read-only edit is filled with the button face
-            // (WM_CTLCOLORSTATIC), as the themed ones are.
-            if (const auto *frame = qstyleoption_cast<const QStyleOptionFrame *>(option);
-                frame && (!enabled(option) || (option->state & State_ReadOnly))) {
-                QStyleOptionFrame copy(*frame);
-                const QBrush face(sysColour(u"btnface", option->palette.color(QPalette::Button)));
-                copy.palette.setBrush(QPalette::Disabled, QPalette::Base, face);
-                copy.palette.setBrush(QPalette::Active, QPalette::Base, face);
-                copy.palette.setBrush(QPalette::Inactive, QPalette::Base, face);
-                QProxyStyle::drawPrimitive(element, &copy, painter, widget);
+            // The window colour inside the client edge (EDGE_SUNKEN) -- the
+            // button face when disabled or read-only (WM_CTLCOLORSTATIC).
+            if (const auto *frame = qstyleoption_cast<const QStyleOptionFrame *>(option)) {
+                const bool face = !enabled(option) || (option->state & State_ReadOnly);
+                const QRect r = option->rect;
+                const int w = frame->lineWidth > 0 ? 2 : 0;
+                painter->fillRect(r.adjusted(w, w, -w, -w), face ? sysColour(u"btnface", option->palette.color(QPalette::Button))
+                                                                 : sysColour(u"window", Qt::white));
+                if (frame->lineWidth > 0)
+                    classicSunken(painter, r, option->palette);
                 return;
             }
             break;
+        case PE_FrameLineEdit:
+            classicSunken(painter, option->rect, option->palette);
+            return;
+        case PE_Frame:
+            // A scroll area's client edge (EDGE_SUNKEN).
+            if (option->state & State_Sunken) {
+                classicSunken(painter, option->rect, option->palette);
+                return;
+            }
+            break;
+        case PE_PanelTipLabel:
+            painter->fillRect(option->rect, sysColour(u"infobk", QColor(255, 255, 225)));
+            painter->save();
+            painter->setPen(sysColour(u"windowframe", Qt::black));
+            painter->setBrush(Qt::NoBrush);
+            painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
+            painter->restore();
+            return;
+        case PE_PanelMenuBar:
+            painter->fillRect(option->rect, sysColour(u"menu", option->palette.color(QPalette::Button)));
+            return;
         case PE_IndicatorRadioButton: {
             // DFCS_BUTTONRADIO: Marlett's 12px circle in the four 3D colours,
             // the window colour inside (the face when disabled), the dot in
@@ -478,12 +510,15 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             QProxyStyle::drawPrimitive(element, &box, painter, widget);
             const QRect inner = option->rect.adjusted(2, 2, -2, -2);
             if (option->state & State_NoChange) {
+                // The halftone of the face and the highlight -- only while the
+                // highlight is white; otherwise Windows fills it solid.
                 const QPoint origin = painter->deviceTransform().map(QPoint(0, 0));
                 const QColor face = sysColour(u"btnface", option->palette.color(QPalette::Button));
                 const QColor light = sysColour(u"btnhighlight", Qt::white);
+                const bool dither = light == QColor(Qt::white);
                 for (int y = inner.top(); y <= inner.bottom(); ++y)
                     for (int x = inner.left(); x <= inner.right(); ++x)
-                        painter->fillRect(x, y, 1, 1, ((x + y + origin.x() + origin.y()) & 1) ? light : face);
+                        painter->fillRect(x, y, 1, 1, (!dither || ((x + y + origin.x() + origin.y()) & 1)) ? light : face);
             }
             if (option->state & (State_On | State_NoChange)) {
                 const bool grey = (option->state & State_NoChange) || !enabled(option);
@@ -612,13 +647,10 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
                 return;
             break;
         case PE_FrameFocusRect:
-            // DrawFocusRect XORs with the control's DC background colour:
-            // the button face for buttons, check boxes and radio buttons,
-            // white (an inversion) elsewhere.
+            // DrawFocusRect XORs with the control's DC colours (focusColours).
             if (option->rect.isValid()) {
-                const bool face = qobject_cast<const QAbstractButton *>(widget);
-                drawFocusDots(painter, option->rect,
-                              face ? sysColour(u"btnface", option->palette.color(QPalette::Button)) : QColor(Qt::white));
+                const auto [odd, even] = focusColours(widget);
+                drawFocusDots(painter, option->rect, odd, even);
                 return;
             }
             break;
@@ -1094,7 +1126,7 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
                     drawPart(painter, {QStringLiteral("trackbar"), sliderThumbPart(slider), state, {}}, handle);
                     // A focused trackbar's focus rect rings its whole client.
                     if (slider->state & State_HasFocus)
-                        drawFocusDots(painter, slider->rect, Qt::white);
+                        drawFocusDots(painter, slider->rect, focusColours(widget).first, focusColours(widget).second);
                     return;
                 }
             }
@@ -1652,7 +1684,7 @@ void XPLasmaStyle::drawTreeBranch(const QStyleOption *option, QPainter *painter,
         const QRect box(cx - 4, cy - 4, 9, 9);
         painter->fillRect(box, sysColour(u"window", Qt::white));
         painter->save();
-        painter->setPen(sysColour(u"btnshadow", Qt::gray));
+        painter->setPen(sysColour(u"graytext", Qt::gray));
         painter->setBrush(Qt::NoBrush);
         painter->drawRect(box.adjusted(0, 0, -1, -1));
         painter->restore();
@@ -1715,12 +1747,14 @@ void XPLasmaStyle::drawXpTabLabel(const QStyleOptionTab *tab, QPainter *painter,
     QStyleOptionTab copy(*tab);
     copy.rect = xpTabRect(tab);
     copy.state &= ~State_HasFocus;
+    // Tab labels are button text (QCommonStyle draws them as window text).
+    for (QPalette::ColorGroup g : {QPalette::Active, QPalette::Inactive, QPalette::Disabled})
+        copy.palette.setColor(g, QPalette::WindowText, tab->palette.color(g, QPalette::ButtonText));
     if (tab->state & State_Selected)
         copy.rect.translate(0, -2);
     QProxyStyle::drawControl(CE_TabBarTabLabel, &copy, painter, widget);
     if (tab->state & State_HasFocus)
-        drawFocusDots(painter, xpTabRect(tab).adjusted(1, 1, -1, -1),
-                      sysColour(u"btnface", tab->palette.color(QPalette::Button)));
+        drawFocusDots(painter, xpTabRect(tab).adjusted(1, 1, -1, -1), focusColours(widget).first, focusColours(widget).second);
 }
 
 // XP's toolbar buttons (TB_GETITEMRECT, Luna and Classic, Tahoma 8): a
@@ -1811,9 +1845,10 @@ void XPLasmaStyle::drawMenuItem(const QStyleOptionMenuItem *item, QPainter *pain
     } else if (selected) {
         painter->fillRect(r, sysColour(u"highlight", QColor(10, 36, 106)));   // Classic: a plain highlight
     }
-    // Classic's disabled text is etched (the highlight 1px down-right),
-    // unless it's selected.
-    const bool etched = !flat && !enabled(item) && !selected;
+    // Classic's disabled text is etched (the highlight 1px down-right) --
+    // unless selected, and only while the menu is the button face's colour.
+    const bool etched = !flat && !enabled(item) && !selected
+                        && sysColour(u"menu", Qt::white) == sysColour(u"btnface", Qt::lightGray);
     const QColor fg = !enabled(item) ? sysColour(u"graytext", QColor(172, 168, 153))
                       : selected     ? sysColour(u"highlighttext", Qt::white)
                                      : sysColour(u"menutext", Qt::black);
@@ -1899,6 +1934,7 @@ void XPLasmaStyle::drawMenuBarItem(const QStyleOptionMenuItem *item, QPainter *p
 }
 
 static void classicScrollButton(QPainter *p, const QRect &r, const QPalette &pal, bool pressed);
+static void classicPushEdge(QPainter *p, const QRect &r, const QPalette &pal, bool pressed);
 
 // EDGE_SUNKEN: the shadow and highlight outside, the dark shadow and Light3D
 // inside.
@@ -1912,6 +1948,27 @@ static void classicSunken(QPainter *p, const QRect &r, const QPalette &pal)
     };
     frame(r, pal.color(QPalette::Dark), pal.color(QPalette::Light));
     frame(r.adjusted(1, 1, -1, -1), pal.color(QPalette::Shadow), pal.color(QPalette::Midlight));
+}
+
+// DrawFrameControl's push button: the highlight and dark shadow outside,
+// Light3D and the shadow inside; pressed, the dark shadow and highlight
+// outside, the shadow and Light3D inside.
+static void classicPushEdge(QPainter *p, const QRect &r, const QPalette &pal, bool pressed)
+{
+    auto frame = [&](const QRect &q, const QColor &tl, const QColor &br) {
+        p->fillRect(QRect(q.left(), q.top(), q.width() - 1, 1), tl);
+        p->fillRect(QRect(q.left(), q.top(), 1, q.height() - 1), tl);
+        p->fillRect(QRect(q.left(), q.bottom(), q.width(), 1), br);
+        p->fillRect(QRect(q.right(), q.top(), 1, q.height()), br);
+    };
+    p->fillRect(r.adjusted(2, 2, -2, -2), pal.button());
+    if (pressed) {
+        frame(r, pal.color(QPalette::Shadow), pal.color(QPalette::Light));
+        frame(r.adjusted(1, 1, -1, -1), pal.color(QPalette::Dark), pal.color(QPalette::Midlight));
+    } else {
+        frame(r, pal.color(QPalette::Light), pal.color(QPalette::Shadow));
+        frame(r.adjusted(1, 1, -1, -1), pal.color(QPalette::Midlight), pal.color(QPalette::Dark));
+    }
 }
 static void classicArrow(QPainter *p, const QRect &r, Qt::ArrowType dir, const QPalette &pal, bool enabled, bool pressed);
 
@@ -1942,8 +1999,7 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
                 }
                 painter->restore();
             }
-            const QBrush fill = btn->palette.button();
-            qDrawWinButton(painter, r, btn->palette, pressed, &fill);
+            classicPushEdge(painter, r, btn->palette, pressed);
             return true;
         }
         return false;
@@ -1963,6 +2019,10 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
             return true;
         }
         return false;
+    case CE_ScrollBarSlider:
+        // The thumb: the raised scroll edge (it never looks pressed).
+        classicScrollButton(painter, option->rect, option->palette, false);
+        return true;
     case CE_ScrollBarAddLine:
     case CE_ScrollBarSubLine:
         if (const auto *bar = qstyleoption_cast<const QStyleOptionSlider *>(option)) {
@@ -2019,7 +2079,7 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
             return drawXpViewItem(item, painter, widget);
         return false;
     case CE_MenuEmptyArea:
-        painter->fillRect(option->rect, sysColour(u"menu", option->palette.color(QPalette::Button)));
+        painter->fillRect(option->rect, option->palette.button());   // Classic's padding: the face
         return true;
     case CE_SizeGrip: {
         // Over a face-filled square (it cuts the pane's edge), the lines
@@ -2048,12 +2108,25 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
                 for (const QToolButton *b : bar->findChildren<QToolButton *>(QString(), Qt::FindDirectChildrenOnly))
                     if (b->isVisible() && b->arrowType() == Qt::LeftArrow)
                         painter->setClipRect(QRect(0, 0, b->x(), bar->height()), Qt::IntersectClip);
-            // (The selected tab's edges stop a row short of its foot.)
-            const int edge = r.height() - 2 - ((tab->state & State_Selected) ? 1 : 0);
-            painter->fillRect(QRect(r.left() + 1, r.top() + 1, r.width() - 2, r.height() - 1), tab->palette.button());
+            // (The selected tab's edges stop a row short of its foot, where its
+            // face and inner light run on over the pane's edge.)
+            const bool selected = tab->state & State_Selected;
+            const int edge = r.height() - 2 - (selected ? 1 : 0);
+            painter->fillRect(QRect(r.left() + 1, r.top() + 1, r.width() - (selected ? 1 : 2), r.height() - (selected ? 2 : 1)),
+                              tab->palette.button());
             painter->fillRect(QRect(r.left(), r.top() + 2, 1, edge), light);
             painter->fillRect(r.left() + 1, r.top() + 1, 1, 1, light);
             painter->fillRect(QRect(r.left() + 2, r.top(), r.width() - 4, 1), light);
+            // ...with Light3D just inside the highlight.
+            const QColor light3d = tab->palette.color(QPalette::Midlight);
+            painter->fillRect(QRect(r.left() + 2, r.top() + 1, r.width() - 4, 1), light3d);
+            painter->fillRect(QRect(r.left() + 1, r.top() + 2, 1, edge), light3d);
+            // The selected tab's foot covers the pane's top edge, all but
+            // the pane's own two left-hand columns.
+            if (selected) {
+                const int left = qMax(r.left(), 2);
+                painter->fillRect(QRect(left, r.bottom(), r.right() - left + 1, 1), tab->palette.button());
+            }
             painter->fillRect(r.right() - 1, r.top() + 1, 1, 1, shadow);
             painter->fillRect(QRect(r.right() - 1, r.top() + 2, 1, edge), dark);
             painter->fillRect(QRect(r.right(), r.top() + 2, 1, edge), shadow);
@@ -2073,6 +2146,21 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
             button && widget && qobject_cast<const QToolBar *>(widget->parentWidget()))
             return drawXpToolButtonLabel(button, painter, widget);
         return false;
+    case CE_HeaderSection:
+        // DFCS_BUTTONPUSH's edge; pressed, a flat shadow line.
+        if (option->state & State_Sunken) {
+            painter->fillRect(option->rect, option->palette.button());
+            painter->save();
+            painter->setPen(option->palette.color(QPalette::Dark));
+            painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
+            painter->restore();
+        } else {
+            classicPushEdge(painter, option->rect, option->palette, false);
+        }
+        return true;
+    case CE_MenuBarEmptyArea:
+        painter->fillRect(option->rect, sysColour(u"menu", option->palette.color(QPalette::Button)));
+        return true;
     case CE_HeaderEmptyArea: {
         // Past the last column: another raised section, running off the
         // right edge.
@@ -2126,11 +2214,14 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
                 text.translate(1, 1);
             painter->save();
             painter->setFont(item->font);
+            QPalette menuPal = item->palette;
+            menuPal.setColor(QPalette::Active, QPalette::ButtonText, sysColour(u"menutext", Qt::black));
+            menuPal.setColor(QPalette::Inactive, QPalette::ButtonText, sysColour(u"menutext", Qt::black));
             proxy()->drawItemText(painter, text,
                                   Qt::AlignLeft | Qt::AlignTop | Qt::TextSingleLine
                                       | (proxy()->styleHint(SH_UnderlineShortcut, item, widget) ? Qt::TextShowMnemonic
                                                                                                : Qt::TextHideMnemonic),
-                                  item->palette, enabled(item), item->text, QPalette::ButtonText);
+                                  menuPal, enabled(item), item->text, QPalette::ButtonText);
             painter->restore();
             return true;
         }
@@ -2151,9 +2242,11 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
     case CE_CheckBoxLabel:
     case CE_RadioButtonLabel:
         if (const auto *btn = qstyleoption_cast<const QStyleOptionButton *>(option)) {
-            // GDI puts the label a line higher than Qt.
+            // GDI puts the label a line higher than Qt; disabled, it's
+            // etched in the shadow over the highlight (DSS_DISABLED).
             QStyleOptionButton copy(*btn);
             copy.rect.translate(0, -1);
+            copy.palette.setColor(QPalette::Disabled, QPalette::WindowText, copy.palette.color(QPalette::Dark));
             QProxyStyle::drawControl(element, &copy, painter, widget);
             return true;
         }
@@ -2179,6 +2272,7 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
             QStyleOptionButton copy(*btn);
             const int th = xpTextHeight(widget ? widget->font() : QApplication::font());
             copy.rect = QRect(btn->rect.left(), btn->rect.top() + (btn->rect.height() - th) / 2 - 1, btn->rect.width(), th);
+            copy.palette.setColor(QPalette::Disabled, QPalette::ButtonText, copy.palette.color(QPalette::Dark));   // etched
             if (btn->state & (State_Sunken | State_On))
                 copy.rect.translate(1, 1);
             copy.state &= ~(State_Sunken | State_On);
@@ -2271,11 +2365,12 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
                 drawSliderTicks(slider, channel, handle, painter);
             // The pointed thumb as XP draws it, 11 x 22, point down (W the
             // highlight, F the face, S the shadow, D the dark shadow).
+            // (L the Light3D just inside the highlight.)
             static const char *const kPointed[] = {
-                "WWWWWWWWWWD", "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD",
-                "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD",
-                "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD", "WFFFFFFFFSD", ".WFFFFFFSD.",
-                "..WFFFFSD..", "...WFFSD...", "....WSD....", ".....D.....",
+                "WWWWWWWWWWD", "WLLLLLLLLSD", "WLFFFFFFFSD", "WLFFFFFFFSD", "WLFFFFFFFSD", "WLFFFFFFFSD",
+                "WLFFFFFFFSD", "WLFFFFFFFSD", "WLFFFFFFFSD", "WLFFFFFFFSD", "WLFFFFFFFSD", "WLFFFFFFFSD",
+                "WLFFFFFFFSD", "WLFFFFFFFSD", "WLFFFFFFFSD", "WLFFFFFFFSD", "WLFFFFFFFSD", ".WLFFFFFSD.",
+                "..WLFFFSD..", "...WLFSD...", "....WSD....", ".....D.....",
             };
             const bool horizontal = slider->orientation == Qt::Horizontal;
             const QSlider::TickPosition ticks = slider->tickPosition;
@@ -2284,6 +2379,7 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
             auto colourOf = [&](char c) {
                 switch (c) {
                 case 'W': return slider->palette.color(QPalette::Light);
+                case 'L': return slider->palette.color(QPalette::Midlight);
                 case 'S': return slider->palette.color(QPalette::Dark);
                 case 'D': return slider->palette.color(QPalette::Shadow);
                 default: return slider->palette.color(QPalette::Button);
@@ -2300,7 +2396,7 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
                         const int row = qBound(0, flip ? across - 1 - j : j, 21);
                         const int col = qBound(0, i, 10);
                         c = kPointed[row][col];
-                        if (flip && (c == 'W' || c == 'S' || c == 'D') && row > 0 && row < 17 && col != 0 && col < 9)
+                        if (flip && (c == 'W' || c == 'L' || c == 'S' || c == 'D') && row > 0 && row < 17 && col != 0 && col < 9)
                             c = 'F';
                         if (flip && row == 0)
                             c = col == 10 ? 'W' : 'W';
@@ -2316,7 +2412,7 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
                 }
             }
             if (slider->state & State_HasFocus)
-                drawFocusDots(painter, slider->rect, Qt::white);
+                drawFocusDots(painter, slider->rect, focusColours(widget).first, focusColours(widget).second);
             return true;
         }
         return false;
@@ -2394,6 +2490,24 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
 // where a tree view draws its selection. The pattern is anchored to the
 // control's client origin (the painter's device here): `odd` applies where
 // x + y is odd.
+// The DC colours a control's DrawFocusRect XORs with (background for the
+// odd phase, text for the even), as XP's controls set them -- measured with
+// a scheme giving every colour its own value.
+std::pair<QColor, QColor> XPLasmaStyle::focusColours(const QWidget *widget) const
+{
+    const QColor face = sysColour(u"btnface", QColor(236, 233, 216));
+    if (qobject_cast<const QCheckBox *>(widget) || qobject_cast<const QRadioButton *>(widget))
+        return {face, sysColour(u"windowtext", Qt::black)};
+    if (qobject_cast<const QAbstractButton *>(widget) || qobject_cast<const QTabBar *>(widget))
+        return {face, sysColour(u"btntext", Qt::black)};
+    if (qobject_cast<const QSlider *>(widget))
+        return {sysColour(u"btnhighlight", Qt::white), sysColour(u"windowtext", Qt::black)};
+    if (widget && (widget->inherits("QAbstractItemView")
+                   || (widget->parentWidget() && widget->parentWidget()->inherits("QAbstractItemView"))))
+        return {sysColour(u"window", Qt::white), sysColour(u"windowtext", Qt::black)};
+    return {Qt::white, Qt::black};
+}
+
 void XPLasmaStyle::drawFocusDots(QPainter *painter, const QRect &r, const QColor &odd, const QColor &even) const
 {
     if (r.width() < 1 || r.height() < 1)
@@ -2442,6 +2556,8 @@ bool XPLasmaStyle::drawXpViewItem(const QStyleOptionViewItem *item, QPainter *pa
     plain.state &= ~(State_Selected | State_HasFocus);
     if (selected && focused)
         plain.palette.setBrush(QPalette::Text, item->palette.brush(QPalette::Active, QPalette::HighlightedText));
+    else if (selected)   // the unfocused selection: button text on the button face
+        plain.palette.setColor(QPalette::Text, sysColour(u"btntext", item->palette.color(QPalette::ButtonText)));
 
     QRect label;
     if (selected || focusRect) {
@@ -2456,6 +2572,8 @@ bool XPLasmaStyle::drawXpViewItem(const QStyleOptionViewItem *item, QPainter *pa
                                          : QBrush(sysColour(u"btnface", item->palette.color(QPalette::Button))));
     QProxyStyle::drawControl(CE_ItemViewItem, &plain, painter, widget);
     if (focusRect)
+        // (A tree XORs with its selection colours, a list view with the
+        // DC's defaults.)
         drawFocusDots(painter, label, tree ? item->palette.color(QPalette::Active, QPalette::Highlight) : QColor(Qt::white),
                       tree ? item->palette.color(QPalette::Active, QPalette::HighlightedText) : QColor(Qt::black));
     return true;
@@ -2523,7 +2641,7 @@ void XPLasmaStyle::drawSliderTicks(const QStyleOptionSlider *slider, const QRect
     // centre for that value.
     const bool horizontal = slider->orientation == Qt::Horizontal;
     const QColor colour = themeColour({QStringLiteral("trackbar"), horizontal ? 9 : 10, 1, {}}, u"color",
-                                      slider->palette.color(QPalette::WindowText));
+                                      slider->palette.color(QPalette::ButtonText));
     const qint64 range = qint64(slider->maximum) - slider->minimum;
     if (range <= 0)
         return;
