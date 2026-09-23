@@ -5,6 +5,16 @@ Each says where it came from, so it can be picked up without re-deriving it.
 
 ## Open
 
+- **Drop shadows** (2026-09-23): XP gives menus and tooltips a 4px
+  CS_DROPSHADOW; the oracle captures now crop to the window rect. Under
+  KWin a shadow would need the window-shadow protocol (what Breeze uses
+  via KWindowShadow) or a translucent margin drawn by the style.
+- **QStatusBar::showMessage text sits at x=6** (XP: 2). The offset is
+  hard-coded in QStatusBar's paintEvent with no style hook; labels added
+  with addWidget follow the layout instead.
+- **Qt 5 gallery tooltip**: QToolTip under Qt 5 offscreen never creates
+  the label, so control_tooltip has no Qt 5 twin (the style code is shared).
+
 - **XP's report list view draws its header 1px lower and further in**
   (control oracle, 2026-09-23): a white row and column inside the border,
   the header art from 2,2, its last row over the first item row, while the

@@ -3,8 +3,8 @@ control spin 80 21 normal
 control spin 80 21 disabled
 control status 240 60 normal Ready
 control toolbar 240 30 normal
-control tooltip 160 30 normal Shows the desktop
-control menu 170 170 normal
-control menu 170 170 hot
+control tooltip 97 17 normal Shows the desktop
+control menu 134 126 normal
+control menu 134 126 hot
 control menubar 200 19 normal
 control menubar 200 19 hot

@@ -28,6 +28,7 @@ public:
     void unpolish(QWidget *widget) override;
     void polish(QPalette &palette) override;
     QPalette standardPalette() const override;
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
     void drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter,
                        const QWidget *widget = nullptr) const override;

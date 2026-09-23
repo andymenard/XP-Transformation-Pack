@@ -15,6 +15,7 @@
 #include <QScrollBar>
 #include <QSettings>
 #include <QSlider>
+#include <QStatusBar>
 #include <QStandardPaths>
 #include <QStyleFactory>
 #include <QStyleOption>
@@ -178,10 +179,43 @@ void XPLasmaStyle::polish(QWidget *widget)
         || qobject_cast<QScrollBar *>(widget) || qobject_cast<QSlider *>(widget) || qobject_cast<QTabBar *>(widget)
         || widget->inherits("QAbstractSpinBox") || widget->inherits("QHeaderView"))
         widget->setAttribute(Qt::WA_Hover, true);
+    if (!m_renderer)
+        return;
+    // XP's status bar is the text height + 10 (23 for Tahoma 8) whether or
+    // not it has a size grip; QStatusBar's own layout would give 18.
+    // QStatusBar rebuilds its layout (and with it its minimum size) on its
+    // own schedule, so this is re-applied whenever it lays itself out.
+    if (qobject_cast<QStatusBar *>(widget) && hasPart({QStringLiteral("status"), 0, 0, {}})) {
+        widget->setMinimumHeight(xpTextHeight(widget->font()) + 10);
+        widget->installEventFilter(this);
+    }
+    // XP's tooltip is the text + 4 tall; QTipLabel adds a row of its own
+    // for fonts like Tahoma 8 (descent 2, ascent 11), which this takes back.
+    if (widget->inherits("QTipLabel")) {
+        const QFontMetrics fm(widget->font());
+        widget->setContentsMargins(0, 0, 0, (fm.descent() == 2 && fm.ascent() >= 11) ? -1 : 0);
+    }
+}
+
+bool XPLasmaStyle::eventFilter(QObject *watched, QEvent *event)
+{
+    if (auto *bar = qobject_cast<QStatusBar *>(watched);
+        bar && m_renderer && (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Show)) {
+        const int want = xpTextHeight(bar->font()) + 10;
+        if (bar->minimumHeight() != want)
+            bar->setMinimumHeight(want);
+    }
+    return QProxyStyle::eventFilter(watched, event);
 }
 
 void XPLasmaStyle::unpolish(QWidget *widget)
 {
+    if (qobject_cast<QStatusBar *>(widget)) {
+        widget->removeEventFilter(this);
+        widget->setMinimumHeight(0);
+    }
+    if (widget->inherits("QTipLabel"))
+        widget->setContentsMargins(0, 0, 0, 0);
     QProxyStyle::unpolish(widget);
 }
 
@@ -254,7 +288,10 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             if (element == PE_PanelLineEdit) {
                 const auto *frame = qstyleoption_cast<const QStyleOptionFrame *>(option);
                 if (frame && frame->lineWidth <= 0) {
-                    painter->fillRect(option->rect, option->palette.brush(QPalette::Base));
+                    // A frameless edit (a spin box's, a combo box's): the
+                    // window colour, or the face when disabled.
+                    painter->fillRect(option->rect, enabled(option) ? option->palette.brush(QPalette::Base)
+                                                                    : option->palette.brush(QPalette::Disabled, QPalette::Window));
                     return;
                 }
             }
@@ -283,6 +320,22 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
                              option->rect))
                     return;
             }
+            break;
+        case PE_PanelStatusBar:
+            if (drawPart(painter, {QStringLiteral("status"), 0, 0, {}}, option->rect))
+                return;
+            break;
+        case PE_FrameStatusBarItem:
+            // SP_PANE: the pane's right-hand divider.
+            if (drawPart(painter, {QStringLiteral("status"), 1, 0, {}}, option->rect))
+                return;
+            break;
+        case PE_IndicatorToolBarSeparator:
+            // TP_SEPARATOR (a vertical line, for a horizontal toolbar) or
+            // TP_SEPARATORVERT.
+            if (drawPart(painter, {QStringLiteral("toolbar"), (option->state & State_Horizontal) ? 5 : 6, Normal, {}},
+                         option->rect))
+                return;
             break;
         case PE_PanelButtonTool: {
             // TS_*: normal, hot, pressed, disabled, checked, hot-checked.
@@ -390,6 +443,16 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                 }
             }
             break;
+        case CE_SizeGrip:
+            // SP_GRIPPER, at its true size in the bottom-right corner, 1px
+            // in from the right as comctl32 places it.
+            if (const QSize grip = trueSize({QStringLiteral("status"), 3, 0, {}}); grip.isValid() && !grip.isEmpty()) {
+                const QRect r(option->rect.right() - grip.width(), option->rect.bottom() - grip.height() + 1,
+                              grip.width(), grip.height());
+                if (drawPart(painter, {QStringLiteral("status"), 3, 0, {}}, r))
+                    return;
+            }
+            break;
         case CE_MenuItem:
             if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option); item && flatMenus()) {
                 drawMenuItem(item, painter, widget);
@@ -412,6 +475,37 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
             if (flatMenus()) {
                 painter->fillRect(option->rect, sysColour(u"menubar", option->palette.window().color()));
                 return;
+            }
+            break;
+        case CE_ToolButtonLabel:
+            if (const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option);
+                button && hasPart({QStringLiteral("toolbar"), 1, Normal, {}})) {
+                // XP presses a toolbar button's contents 1px down and right.
+                const bool down = (button->state & (State_Sunken | State_On)) && enabled(button);
+                if (button->toolButtonStyle == Qt::ToolButtonTextOnly && button->arrowType == Qt::NoArrow) {
+                    // TBSTYLE_LIST text: 2px into the button, centred
+                    // vertically. (CC_ToolButton hands us the button inset
+                    // by the frame width.)
+                    const int fw = proxy()->pixelMetric(PM_DefaultFrameWidth, option, widget);
+                    const QRect whole = button->rect.adjusted(-fw, -fw, fw, fw);
+                    const int th = xpTextHeight(button->font);
+                    QRect text(whole.left() + 2, whole.top() + (whole.height() - th) / 2, whole.width() - 2, th);
+                    if (down)
+                        text.translate(1, 1);
+                    painter->save();
+                    painter->setFont(button->font);
+                    proxy()->drawItemText(painter, text, Qt::AlignLeft | Qt::AlignTop | Qt::TextShowMnemonic,
+                                          button->palette, enabled(button), button->text, QPalette::ButtonText);
+                    painter->restore();
+                    return;
+                }
+                if (down) {
+                    painter->save();
+                    painter->translate(1, 1);
+                    QProxyStyle::drawControl(element, option, painter, widget);
+                    painter->restore();
+                    return;
+                }
             }
             break;
         case CE_HeaderLabel:
@@ -578,8 +672,23 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
         case CC_SpinBox:
             if (const auto *spin = qstyleoption_cast<const QStyleOptionSpinBox *>(option)) {
                 if (hasPart({QStringLiteral("spin"), 1, 1, {}})) {
-                    if (spin->frame)
-                        drawPart(painter, {QStringLiteral("edit"), 1, enabled(spin) ? Normal : Disabled, {}}, spin->rect);
+                    if (spin->frame) {
+                        // The buddy edit: its border, its inside (the face
+                        // when disabled), and the up-down's own white ground.
+                        const PartRef edit{QStringLiteral("edit"), 1, enabled(spin) ? Normal : Disabled, {}};
+                        drawPart(painter, edit, spin->rect);
+                        const QRect inside = m_renderer->contentRect(edit, spin->rect);
+                        painter->fillRect(inside, spin->palette.brush(enabled(spin) ? QPalette::Active : QPalette::Disabled,
+                                                                      enabled(spin) ? QPalette::Base : QPalette::Window));
+                        const QRect up = proxy()->subControlRect(CC_SpinBox, spin, SC_SpinBoxUp, widget);
+                        const QRect down = proxy()->subControlRect(CC_SpinBox, spin, SC_SpinBoxDown, widget);
+                        if (up.isValid()) {
+                            painter->fillRect(QRect(QPoint(up.left(), inside.top()), inside.bottomRight()),
+                                              spin->palette.brush(QPalette::Active, QPalette::Base));
+                            painter->fillRect(QRect(up.left(), up.bottom() + 1, up.width(), down.top() - up.bottom() - 1),
+                                              sysColour(u"btnface", spin->palette.window().color()));
+                        }
+                    }
                     for (const auto &[sub, part, flag] : {std::tuple{SC_SpinBoxUp, 1, QAbstractSpinBox::StepUpEnabled},
                                                           std::tuple{SC_SpinBoxDown, 2, QAbstractSpinBox::StepDownEnabled}}) {
                         int state = Normal;
@@ -738,6 +847,16 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
         case PM_ButtonShiftHorizontal:
         case PM_ButtonShiftVertical:
             return 0;   // XP's pressed buttons keep their label still
+        case PM_ToolBarFrameWidth:
+        case PM_ToolBarItemMargin:
+        case PM_ToolBarItemSpacing:
+            if (hasPart({QStringLiteral("toolbar"), 1, Normal, {}}))
+                return 0;   // XP's toolbar buttons sit edge to edge from 0,0
+            break;
+        case PM_ToolBarSeparatorExtent:
+            if (hasPart({QStringLiteral("toolbar"), 5, Normal, {}}))
+                return 6;
+            break;
         case PM_MenuPanelWidth:
             if (flatMenus())
                 return 1;
@@ -791,6 +910,24 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
                         return s;   // a larger icon wins, as it does in XP
                 s.setHeight(row);
                 return s;
+            }
+            break;
+        case CT_SizeGrip:
+            if (const QSize grip = trueSize({QStringLiteral("status"), 3, 0, {}}); grip.isValid() && !grip.isEmpty())
+                return grip;
+            break;
+        case CT_ToolButton:
+            if (const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option);
+                button && hasPart({QStringLiteral("toolbar"), 1, Normal, {}})) {
+                // XP (TB_GETITEMRECT, Luna, Tahoma 8): a text-only button is
+                // the text + 11 by text + 6 (Back: 33 x 19); an icon button
+                // is the icon + 7 by + 6 (23 x 22). QToolButton hands in
+                // the text with a space either side.
+                if (button->toolButtonStyle == Qt::ToolButtonTextOnly) {
+                    const int space = QFontMetrics(button->font).horizontalAdvance(QLatin1Char(' '));
+                    return QSize(size.width() - 2 * space + 11, xpTextHeight(button->font) + 6);
+                }
+                return size + QSize(7, 6);
             }
             break;
         case CT_MenuItem:
@@ -1237,6 +1374,38 @@ void XPLasmaStyle::drawSliderTicks(const QStyleOptionSlider *slider, const QRect
 QRect XPLasmaStyle::subControlRect(ComplexControl control, const QStyleOptionComplex *option, SubControl sub,
                                    const QWidget *widget) const
 {
+    if (m_renderer && control == CC_SpinBox) {
+        const auto *spin = qstyleoption_cast<const QStyleOptionSpinBox *>(option);
+        if (spin && spin->buttonSymbols != QAbstractSpinBox::NoButtons && hasPart({QStringLiteral("spin"), 1, 1, {}})) {
+            // XP's up-down docked in its buddy edit (UDS_ALIGNRIGHT, Luna,
+            // 80 x 21): SM_CXVSCROLL + 1 wide over the edit's right edge.
+            // Inside the edit's 1px border, two SM_CXVSCROLL x 9 buttons
+            // (their art brings its own 1px white margin) with one row of
+            // button face between. The text sits 4px into the edit's
+            // client (EM_GETRECT 4,1), QLineEdit adding 2 of those.
+            const QRect r = spin->rect;
+            const int inset = spin->frame ? 1 : 0;
+            const int bw = sysMetric(u"scrollbarwidth", 17);
+            const int x = r.right() - inset - bw + 1;
+            const int top = r.top() + inset, avail = r.height() - 2 * inset;
+            const int upH = (avail - 1) / 2;
+            switch (sub) {
+            case SC_SpinBoxUp:
+                return QRect(x, top, bw, upH);
+            case SC_SpinBoxDown:
+                return QRect(x, top + upH + 1, bw, avail - 1 - upH);
+            case SC_SpinBoxEditField: {
+                const int left = r.left() + (spin->frame ? 4 : 0);
+                const int th = qMin(xpTextHeight(widget ? widget->font() : QApplication::font()), r.height());
+                return QRect(left, r.top() + (spin->frame ? 3 : (r.height() - th) / 2), qMax(0, x - 2 - left), th);
+            }
+            case SC_SpinBoxFrame:
+                return r;
+            default:
+                break;
+            }
+        }
+    }
     if (m_renderer && control == CC_Slider) {
         if (const auto *slider = qstyleoption_cast<const QStyleOptionSlider *>(option)) {
             const QSize thumb = sliderThumbSize(slider);

@@ -1,0 +1,24 @@
+style -
+control push 75 23 normal OK
+control push 75 23 disabled Apply
+control push 75 23 pressed Cancel
+control default 75 23 normal OK
+control check 160 17 normal Use drop shadows
+control check-on 160 17 normal Show window contents
+control check-mixed 160 17 normal Partly
+control check-on 160 17 disabled Unavailable
+control radio-on 160 17 normal Center
+control radio 160 17 normal Tile
+control group 180 80 normal Buttons
+control edit 150 21 normal Text
+control edit 150 21 disabled Text
+control combo 150 21 normal Windows XP style
+control combo-edit 150 21 normal Tahoma
+control progress:60 150 18 normal
+control trackbar:40 150 30 normal
+control tabs 300 120 normal
+control hscroll 150 17 normal
+control vscroll 17 150 normal
+control listview 260 100 normal
+control treeview 160 100 normal
+control listbox 120 80 normal

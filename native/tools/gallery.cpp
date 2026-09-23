@@ -153,7 +153,13 @@ static QWidget *controlFor(const QString &kind, const QString &label)
         QAction *folders = t->addAction(QStringLiteral("Folders"));
         folders->setCheckable(true);
         folders->setChecked(true);
-        return t;
+        // At its own height along the top, as in a window.
+        auto *w = new QWidget;
+        auto *v = new QVBoxLayout(w);
+        v->setContentsMargins(0, 0, 0, 0);
+        v->addWidget(t);
+        v->addStretch();
+        return w;
     }
     if (base == QLatin1String("menubar")) {
         auto *w = new QWidget;
@@ -222,12 +228,15 @@ static int controls(const QString &jobPath, const QString &outdir)
             continue;
         }
         if (kind == QLatin1String("tooltip")) {
+            QApplication::setEffectEnabled(Qt::UI_FadeTooltip, false);
+            QApplication::setEffectEnabled(Qt::UI_AnimateTooltip, false);
             host.show();
-            QToolTip::showText(QPoint(400, 400), label);
+            QToolTip::showText(QPoint(400, 400), label, &host);
             QApplication::processEvents();
-            for (QWidget *top : QApplication::topLevelWidgets())
-                if (top->inherits("QTipLabel") && top->isVisible())
-                    overHost(host, top).save(name);
+            // (Qt 5 parents the label to the desktop widget: not a top level.)
+            for (QWidget *tip : QApplication::allWidgets())
+                if (tip->inherits("QTipLabel"))
+                    overHost(host, tip).save(name);
             QToolTip::hideText();
             continue;
         }
