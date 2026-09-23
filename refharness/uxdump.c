@@ -486,7 +486,7 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
     else if (!wcsncmp_(kind, L"progress")) { cls = PROGRESS_CLASSW; }
     else if (!wcsncmp_(kind, L"trackbar")) { cls = TRACKBAR_CLASSW; style |= TBS_AUTOTICKS | TBS_BOTTOM; }
     else if (!wcsncmp_(kind, L"tabs")) { cls = WC_TABCONTROLW; }
-    else if (!wcsncmp_(kind, L"listview")) { cls = WC_LISTVIEWW; style |= LVS_REPORT; }
+    else if (!wcsncmp_(kind, L"listview")) { cls = WC_LISTVIEWW; style |= LVS_REPORT | (value == 3 ? LVS_SHOWSELALWAYS : 0); }
     else if (!wcsncmp_(kind, L"treeview")) {
         cls = WC_TREEVIEWW;
         style |= TVS_HASLINES | TVS_HASBUTTONS | TVS_LINESATROOT;
@@ -548,6 +548,11 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
             item.mask = LVIF_TEXT; item.iItem = i; item.iSubItem = 0; item.pszText = text;
             SendMessageW(ctl, LVM_INSERTITEMW, 0, (LPARAM)&item);
         }
+        if (value == 2 || value == 3) {   /* listview:2 -- File 1 selected; :3 the same, LVS_SHOWSELALWAYS */
+            item.mask = LVIF_STATE; item.iItem = 1; item.iSubItem = 0;
+            item.state = LVIS_SELECTED | LVIS_FOCUSED; item.stateMask = LVIS_SELECTED | LVIS_FOCUSED;
+            SendMessageW(ctl, LVM_SETITEMSTATE, 1, (LPARAM)&item);
+        }
         if (value == 1)
             for (i = 0; i < 4; i += 2) {
                 item.mask = LVIF_STATE; item.iItem = i; item.iSubItem = 0;
@@ -570,6 +575,10 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
         ins.hParent = root; ins.item.pszText = L"My Documents";
         {
             HTREEITEM docs = (HTREEITEM)SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
+            if (value == 6)   /* treeview:6 -- the same, TVS_SHOWSELALWAYS */
+                SetWindowLongW(ctl, GWL_STYLE, GetWindowLongW(ctl, GWL_STYLE) | TVS_SHOWSELALWAYS);
+            if (value == 5 || value == 6)   /* treeview:5 -- My Documents selected */
+                SendMessageW(ctl, TVM_SELECTITEM, TVGN_CARET, (LPARAM)docs);
             if (value == 4) {   /* tick My Documents */
                 TVITEMW tv;
                 tv.mask = TVIF_STATE; tv.hItem = docs;
@@ -608,6 +617,7 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
         SendMessageW(ctl, LB_ADDSTRING, 0, (LPARAM)L"Ascent");
         SendMessageW(ctl, LB_ADDSTRING, 0, (LPARAM)L"Autumn");
         SendMessageW(ctl, LB_ADDSTRING, 0, (LPARAM)L"Azul");
+        if (value == 1) SendMessageW(ctl, LB_SETCURSEL, 1, 0);   /* listbox:1 -- Autumn selected */
     }
     if (!wcsncmp_(kind, L"hscroll") || !wcsncmp_(kind, L"vscroll")) {
         SCROLLINFO si;

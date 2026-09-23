@@ -336,6 +336,14 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             if (drawPart(painter, {QStringLiteral("status"), 1, 0, {}}, option->rect))
                 return;
             break;
+        case PE_FrameFocusRect:
+            // DrawFocusRect over the DC's default colours: an inverting dot
+            // pattern.
+            if (option->rect.isValid()) {
+                drawFocusDots(painter, option->rect, Qt::white);
+                return;
+            }
+            break;
         case PE_IndicatorItemViewItemCheck: {
             // A list or tree view's check box: the button's CBS_* art, never
             // hot (XP draws these from a state image list).
@@ -496,6 +504,11 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                 if (drawPart(painter, {QStringLiteral("status"), 3, 0, {}}, r))
                     return;
             }
+            break;
+        case CE_ItemViewItem:
+            if (const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option);
+                item && drawXpViewItem(item, painter, widget))
+                return;
             break;
         case CE_HeaderEmptyArea:
             // Past the last column: the header class's own background.
@@ -890,18 +903,21 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
             if (const QString cls = frameClass(widget); !cls.isEmpty()) {
                 bool ok = false;
                 const int border = m_renderer->theme().property(cls, u"", u"", u"bordersize").value_or(QString()).toInt(&ok);
-                // A list view's client edge keeps a 1px ring of its fill
-                // inside the border (its client, header and rows start at
-                // 2,2); tree views and list boxes don't.
-                return (ok ? border : 1) + (cls == QLatin1String("listview") ? 1 : 0);
+                // A list view's, tree view's or list box's client edge keeps
+                // a 1px ring of its fill inside the border: the client starts
+                // at 2,2 (invisible until a selection shows where rows start).
+                return (ok ? border : 1) + (cls == QLatin1String("edit") ? 0 : 1);
             }
             break;
         case PM_FocusFrameHMargin:
             // Item text insets (Qt's text margin is this + 1), from XP's
-            // controls: 6px from a report view's client edge, 6px after a
+            // controls: 6px from a report view's client edge, 5px after a
             // tree's branches.
             if (const int extra = itemRowExtra(widget); extra > 0 && hasPart({QStringLiteral("listview"), 0, Normal, {}}))
-                return 5;
+                return extra == 3 ? 4 : 5;
+            // A list box's labels sit 2px into the client.
+            if (itemRowExtra(widget) == 0 && hasPart({QStringLiteral("listbox"), 0, Normal, {}}))
+                return qMax(0, QProxyStyle::pixelMetric(metric, option, widget) - 1);
             break;
         case PM_HeaderMargin:
             // XP's header labels sit the item's content margin (Luna: 3) plus
@@ -1142,10 +1158,6 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
         const int m = proxy()->pixelMetric(PM_HeaderMargin, option, widget);
         return option->rect.adjusted(m, 0, -m, 0);
     }
-    if (m_renderer && element == SE_ItemViewItemText && itemRowExtra(widget) == 0) {
-        // XP's list box draws its labels 1px lower within their row...
-        return QProxyStyle::subElementRect(element, option, widget).translated(0, 1);
-    }
     if (m_renderer && (element == SE_ItemViewItemText || element == SE_ItemViewItemCheckIndicator)
         && (itemRowExtra(widget) == 1 || itemRowExtra(widget) == 3) && hasPart({QStringLiteral("button"), 3, 1, {}})) {
         const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option);
@@ -1153,7 +1165,7 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
         if (item && (item->features & QStyleOptionViewItem::HasCheckIndicator)) {
             // XP's check boxes are state images: the 13px box takes the
             // label's place (a report view's 2px down in its 17px row, a
-            // tree's 3px down), and the label moves over a 16px cell --
+            // tree's 2px down), and the label moves over a 16px cell --
             // 3px more in a report view.
             QStyleOptionViewItem plain(*item);
             plain.features &= ~QStyleOptionViewItem::HasCheckIndicator;
@@ -1161,12 +1173,12 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
             if (element == SE_ItemViewItemText)
                 return text.adjusted(report ? 19 : 16, 0, 0, 0);
             const int margin = proxy()->pixelMetric(PM_FocusFrameHMargin, option, widget) + 1;
-            const int top = report ? item->rect.top() + (item->rect.height() - 13) / 2 : item->rect.top() + 3;
+            const int top = report ? item->rect.top() + (item->rect.height() - 13) / 2 : item->rect.top() + 2;
             return QRect(text.left() + margin, top, 13, 13);
         }
-        if (element == SE_ItemViewItemText && report) {
-            // ...and a report view's centred in their row, rounding up, where
-            // Qt rounds down: hand Qt a rect exactly one line tall.
+        if (element == SE_ItemViewItemText) {
+            // Labels are centred in their row rounding up, where Qt rounds
+            // down: hand Qt a rect exactly one line tall.
             const QRect r = QProxyStyle::subElementRect(element, option, widget);
             const int th = xpTextHeight(widget ? widget->font() : QApplication::font());
             return QRect(r.left(), item ? item->rect.top() + (item->rect.height() - th) / 2 : r.top(), r.width(), th);
@@ -1225,16 +1237,16 @@ QString XPLasmaStyle::frameClass(const QWidget *widget) const
 
 // XP's tree branches (TVS_HASLINES | TVS_HASBUTTONS | TVS_LINESATROOT),
 // measured against the real control (Luna Silver, 16px rows, indent 19):
-// each level's branch centre is its column's left + 13, the row's middle
-// + 1; lines are GrayText dots where x + y is odd; the row's line runs 8px
+// each level's branch centre is its column's left + 12, the row's middle;
+// lines are GrayText dots, each line starting on one; the row's line runs 8px
 // right of the centre; the vertical runs down to a next sibling and up to a
 // previous item -- never above the first root. The expand box is TVP_GLYPH,
 // centred on the branch.
 void XPLasmaStyle::drawTreeBranch(const QStyleOption *option, QPainter *painter, const QWidget *widget) const
 {
     const QRect r = option->rect;
-    const int cx = r.width() >= 19 ? r.left() + 13 : r.center().x();
-    const int cy = r.top() + r.height() / 2 + 1;
+    const int cx = r.width() >= 19 ? r.left() + 12 : r.center().x();
+    const int cy = r.top() + r.height() / 2;
     const QColor colour = sysColour(u"graytext", option->palette.color(QPalette::Disabled, QPalette::Text));
     // XP's dots aren't a checkerboard: each line starts on a dot -- the
     // horizontal one at the column's centre (so with the odd 19px indent
@@ -1430,6 +1442,79 @@ void XPLasmaStyle::drawMenuBarItem(const QStyleOptionMenuItem *item, QPainter *p
                           | (proxy()->styleHint(SH_UnderlineShortcut, item, widget) ? Qt::TextShowMnemonic : Qt::TextHideMnemonic),
                       item->text);
     painter->restore();
+}
+
+// DrawFocusRect: the outline XORed with a checkerboard brush, whose two
+// phases take the DC's background and text colours -- white and black by
+// default (every other pixel inverted), the highlight and highlight text
+// where a tree view draws its selection. The pattern is anchored to the
+// control's client origin (the painter's device here): `odd` applies where
+// x + y is odd.
+void XPLasmaStyle::drawFocusDots(QPainter *painter, const QRect &r, const QColor &odd, const QColor &even) const
+{
+    if (r.width() < 1 || r.height() < 1)
+        return;
+    const QPoint origin = painter->deviceTransform().map(QPoint(0, 0));
+    painter->save();
+    painter->setCompositionMode(QPainter::RasterOp_SourceXorDestination);
+    const bool evenToo = even.rgb() != QColor(Qt::black).rgb();
+    auto dot = [&](int x, int y) {
+        if ((x + y + origin.x() + origin.y()) & 1)
+            painter->fillRect(x, y, 1, 1, odd);
+        else if (evenToo)
+            painter->fillRect(x, y, 1, 1, even);
+    };
+    for (int x = r.left(); x <= r.right(); ++x) {
+        dot(x, r.top());
+        if (r.bottom() != r.top())
+            dot(x, r.bottom());
+    }
+    for (int y = r.top() + 1; y < r.bottom(); ++y) {
+        dot(r.left(), y);
+        if (r.right() != r.left())
+            dot(r.right(), y);
+    }
+    painter->restore();
+}
+
+// A tree view's or report list view's item, selected the XP way: only the
+// label is highlighted (column 0 alone in a report view, as without
+// LVS_EX_FULLROWSELECT), from 2px before the text to 1px (tree) or 5px
+// (list view) past it, the full row tall; in the button face while the
+// view hasn't focus (as TVS_/LVS_SHOWSELALWAYS apps -- Explorer, regedit
+// -- show it). The focus rect rings the highlight. Measured on XP.
+bool XPLasmaStyle::drawXpViewItem(const QStyleOptionViewItem *item, QPainter *painter, const QWidget *widget) const
+{
+    const int extra = itemRowExtra(widget);
+    if ((extra != 1 && extra != 3) || !hasPart({QStringLiteral("listview"), 0, Normal, {}}))
+        return false;
+    const bool tree = extra == 3;
+    const bool focused = widget && widget->hasFocus();
+    const bool labelCell = tree || item->index.column() == 0;
+    const bool selected = labelCell && (item->state & State_Selected);
+    const bool focusRect = labelCell && focused && (item->state & State_HasFocus);
+
+    QStyleOptionViewItem plain(*item);
+    plain.state &= ~(State_Selected | State_HasFocus);
+    if (selected && focused)
+        plain.palette.setBrush(QPalette::Text, item->palette.brush(QPalette::Active, QPalette::HighlightedText));
+
+    QRect label;
+    if (selected || focusRect) {
+        const QRect text = proxy()->subElementRect(SE_ItemViewItemText, &plain, widget);
+        const int origin = text.left() + proxy()->pixelMetric(PM_FocusFrameHMargin, &plain, widget) + 1;
+        const int advance = QFontMetrics(item->font).horizontalAdvance(item->text);
+        label = QRect(QPoint(origin - 2, item->rect.top()), QPoint(origin + advance + (tree ? 1 : 5), item->rect.bottom()))
+                    .intersected(item->rect);
+    }
+    if (selected)
+        painter->fillRect(label, focused ? item->palette.brush(QPalette::Active, QPalette::Highlight)
+                                         : QBrush(sysColour(u"btnface", item->palette.color(QPalette::Button))));
+    QProxyStyle::drawControl(CE_ItemViewItem, &plain, painter, widget);
+    if (focusRect)
+        drawFocusDots(painter, label, tree ? item->palette.color(QPalette::Active, QPalette::Highlight) : QColor(Qt::white),
+                      tree ? item->palette.color(QPalette::Active, QPalette::HighlightedText) : QColor(Qt::black));
+    return true;
 }
 
 // TKP_THUMB*: the pointed thumb faces its tick marks; TKP_THUMB(VERT) when

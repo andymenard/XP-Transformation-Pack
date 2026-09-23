@@ -44,10 +44,12 @@ PORT = 8765
 
 
 class Receiver(http.server.ThreadingHTTPServer):
-    """Accepts `PUT /<name>` into a directory; `PUT /.done` ends the batch."""
+    """Accepts `PUT /<name>` into a directory; `PUT /.started` says the job is
+    running, `PUT /.done` ends the batch."""
 
     def __init__(self, directory: str) -> None:
         self.directory = directory
+        self.started = threading.Event()
         self.done = threading.Event()
         self.summary = ""
         super().__init__(("127.0.0.1", PORT), _Handler)
@@ -57,7 +59,9 @@ class _Handler(http.server.BaseHTTPRequestHandler):
     def do_PUT(self) -> None:  # noqa: N802 -- http.server's spelling
         name = os.path.basename(self.path.lstrip("/"))
         body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
-        if name == ".done":
+        if name == ".started":
+            self.server.started.set()
+        elif name == ".done":
             self.server.summary = body.decode(errors="replace")
             self.server.done.set()
         elif name:
@@ -132,6 +136,7 @@ def run(job_text: str, outdir: str, styles: list[str], timeout: float = 120.0, p
         "@echo off\r\n"
         f"mkdir {guest_dir}\\in\r\n"
         f"xcopy /q /y %~d0\\*.* {guest_dir}\\in\\ >nul\r\n"
+        f"{guest_dir}\\in\\xput.exe -started 10.0.2.2 {PORT}\r\n"
         f"{guest_dir}\\in\\uxdump.exe {guest_dir}\\in\\job.txt {guest_dir}\\out\r\n"
         f"{guest_dir}\\in\\xput.exe {guest_dir}\\out 10.0.2.2 {PORT}\r\n"
     ).encode("ascii")
@@ -152,8 +157,10 @@ def run(job_text: str, outdir: str, styles: list[str], timeout: float = 120.0, p
         progress(f"run {run_id}: swapping the job disc into {device}")
         vm.command("blockdev-change-medium", id=device, filename=iso_path, format="raw")
         started = time.time()
-        if not receiver.done.wait(20):
-            progress("  autorun didn't report back in 20s; starting it from the Run dialog")
+        # Autorun announces itself; only if it never does, start the job by
+        # hand -- a second copy of a long job would run over the first.
+        if not receiver.started.wait(20) and not receiver.done.is_set():
+            progress("  autorun didn't start in 20s; starting it from the Run dialog")
             vm.run("cmd.exe /c D:\\go.cmd")
         if not receiver.done.wait(max(1.0, timeout - (time.time() - started))):
             vm.screendump(os.path.join(outdir, "timeout.png"))

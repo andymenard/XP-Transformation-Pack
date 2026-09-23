@@ -71,6 +71,8 @@ private:
     QString frameClass(const QWidget *widget) const;
     int itemRowExtra(const QWidget *widget) const;
     void drawTreeBranch(const QStyleOption *option, QPainter *painter, const QWidget *widget) const;
+    void drawFocusDots(QPainter *painter, const QRect &rect, const QColor &odd, const QColor &even = Qt::black) const;
+    bool drawXpViewItem(const QStyleOptionViewItem *item, QPainter *painter, const QWidget *widget) const;
     QSize sliderThumbSize(const QStyleOptionSlider *slider) const;
     bool flatMenus() const;
     void drawMenuItem(const QStyleOptionMenuItem *item, QPainter *painter, const QWidget *widget) const;

@@ -107,6 +107,8 @@ static QWidget *controlFor(const QString &kind, const QString &label)
             auto *item = new QTreeWidgetItem(t, {QStringLiteral("File %1").arg(i)});
             if (value == 1)   // listview:1 -- checkboxes, File 0 and 2 ticked
                 item->setCheckState(0, i % 2 ? Qt::Unchecked : Qt::Checked);
+            if ((value == 2 || value == 3) && i == 1)   // listview:2/3 -- File 1 selected and current
+                t->setCurrentItem(item);
         }
         return t;
     }
@@ -133,11 +135,15 @@ static QWidget *controlFor(const QString &kind, const QString &label)
                 (*it)->setCheckState(0, *it == docs ? Qt::Checked : Qt::Unchecked);
         }
         root->setExpanded(value != 3);   // treeview:3 -- collapsed
+        if (value == 5 || value == 6)   // treeview:5/6 -- My Documents selected
+            t->setCurrentItem(docs);
         return t;
     }
     if (base == QLatin1String("listbox")) {
         auto *l = new QListWidget;
         l->addItems({QStringLiteral("Ascent"), QStringLiteral("Autumn"), QStringLiteral("Azul")});
+        if (value == 1)   // listbox:1 -- Autumn selected
+            l->setCurrentRow(1);
         return l;
     }
     if (base == QLatin1String("hscroll") || base == QLatin1String("vscroll")) {

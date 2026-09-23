@@ -18,3 +18,9 @@ control treeview:2 160 60 normal
 control treeview:3 160 60 normal
 control listview:1 260 100 normal
 control treeview:4 160 100 normal
+control listview:2 260 100 focused
+control listview:3 260 100 normal
+control treeview:5 160 100 focused
+control treeview:6 160 100 normal
+control listbox:1 120 80 normal
+control listbox:1 120 80 focused

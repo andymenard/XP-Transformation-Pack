@@ -1,6 +1,7 @@
 /* xput -- send every file in a directory to the host over HTTP.
  *
  *   xput.exe <dir> [host] [port]       (defaults: 10.0.2.2 8765)
+ *   xput.exe -started [host] [port]    just `PUT /.started`: the job is running
  *
  * QEMU's user networking puts the host at 10.0.2.2, so this is how results
  * leave the XP VM: one `PUT /<name>` per file, HTTP/1.0, to the receiver
@@ -100,6 +101,11 @@ static int run(int argc, wchar_t **argv)
     if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) return 3;
     host_addr = inet_addr(host);
 
+    if (!lstrcmpW(argv[1], L"-started")) {
+        int ok = put(".started", "1", 1);
+        WSACleanup();
+        return ok ? 0 : 1;
+    }
     wsprintfW(pattern, L"%s\\*", argv[1]);
     h = FindFirstFileW(pattern, &fd);
     if (h != INVALID_HANDLE_VALUE) {

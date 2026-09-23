@@ -5,6 +5,14 @@ Each says where it came from, so it can be picked up without re-deriving it.
 
 ## Open
 
+- **Inactive selections follow SHOWSELALWAYS, deliberately.** Plain XP
+  list and tree views hide the selection while unfocused; nearly every real
+  XP app (Explorer, regedit, MMC) sets LVS_/TVS_SHOWSELALWAYS, which shows
+  it in the button face. XPLasma draws the latter (controls-2.job holds
+  listview:3 / treeview:6; listview:2 / treeview:5 unfocused would differ).
+- **Report views highlight the label only**, as XP does without
+  LVS_EX_FULLROWSELECT -- a candidate for a per-app/context option later.
+
 - **±1 blend rounding on Luna Blue/Olive** (styles_matrix, 2026-09-23):
   a push button's and a tab's antialiased edge pixels come out 1 unit off
   over the button face. GDI's AlphaBlend rounds dst*(255-a)/255 exactly;
