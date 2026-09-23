@@ -21,14 +21,10 @@ Each says where it came from, so it can be picked up without re-deriving it.
 - **Qt 5 gallery tooltip**: QToolTip under Qt 5 offscreen never creates
   the label, so control_tooltip has no Qt 5 twin (the style code is shared).
 
-- **XP's report list view draws its header 1px lower and further in**
-  (control oracle, 2026-09-23): a white row and column inside the border,
-  the header art from 2,2, its last row over the first item row, while the
-  items themselves start at the 1px border like Qt's. A 2px frame fixes
-  the header but shifts the items, so the style keeps 1px. Emulating it
-  would mean drawing the header art offset by 1px, which is worth it only
-  if it shows.
-
+- ~~XP's report list view header 1px further in~~ (resolved 2026-09-23):
+  the list view's client edge is border + a 1px ring of fill, so the
+  frame is 2px and the rows' text insets were re-derived from that; the
+  area past the last column is the header class's own background.
 - **Tile-mode edges: tile or stretch?** (renderer, 2026-09-23). Tiling the
   edges along their length makes 1014/1023 Royale renders exact, including
   every progress bar and spin button, but Royale's `Window.MaxCaption`

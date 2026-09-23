@@ -101,6 +101,7 @@ static QWidget *controlFor(const QString &kind, const QString &label)
         t->setColumnWidth(0, 100);
         t->setColumnWidth(1, 70);
         t->setColumnWidth(2, 80);
+        t->header()->setStretchLastSection(false);   // XP's columns keep their widths
         for (int i = 0; i < 4; ++i)
             new QTreeWidgetItem(t, {QStringLiteral("File %1").arg(i)});
         return t;

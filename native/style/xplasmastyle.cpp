@@ -489,6 +489,11 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                     return;
             }
             break;
+        case CE_HeaderEmptyArea:
+            // Past the last column: the header class's own background.
+            if (drawPart(painter, {QStringLiteral("header"), 0, 0, {}}, option->rect))
+                return;
+            break;
         case CE_MenuItem:
             if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option); item && flatMenus()) {
                 drawMenuItem(item, painter, widget);
@@ -550,9 +555,10 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                     // QCommonStyle insets the label by PM_HeaderMargin on every
                     // side through a non-proxied call, which clips a 20px
                     // header's text to 2px. XP's margin is horizontal only.
+                    // Qt also centres the text 1px lower than XP does.
                     const int m = proxy()->pixelMetric(PM_HeaderMargin, option, widget);
                     QStyleOptionHeader copy(*header);
-                    copy.rect = header->rect.adjusted(0, -m, 0, m);
+                    copy.rect = header->rect.adjusted(0, -m - 1, 0, m - 1);
                     QProxyStyle::drawControl(element, &copy, painter, widget);
                     return;
                 }
@@ -869,14 +875,18 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
             if (const QString cls = frameClass(widget); !cls.isEmpty()) {
                 bool ok = false;
                 const int border = m_renderer->theme().property(cls, u"", u"", u"bordersize").value_or(QString()).toInt(&ok);
-                return ok ? border : 1;
+                // A list view's client edge keeps a 1px ring of its fill
+                // inside the border (its client, header and rows start at
+                // 2,2); tree views and list boxes don't.
+                return (ok ? border : 1) + (cls == QLatin1String("listview") ? 1 : 0);
             }
             break;
         case PM_FocusFrameHMargin:
             // Item text insets (Qt's text margin is this + 1), from XP's
-            // controls: 7px in a report view, 6px after a tree's branches.
+            // controls: 6px from a report view's client edge, 6px after a
+            // tree's branches.
             if (const int extra = itemRowExtra(widget); extra > 0 && hasPart({QStringLiteral("listview"), 0, Normal, {}}))
-                return extra == 3 ? 5 : 6;
+                return 5;
             break;
         case PM_HeaderMargin:
             // XP's header labels sit the item's content margin (Luna: 3) plus
@@ -1113,8 +1123,13 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
         return option->rect.adjusted(m, 0, -m, 0);
     }
     if (m_renderer && element == SE_ItemViewItemText && itemRowExtra(widget) == 0) {
-        // XP's list box draws its labels 1px lower within their row.
+        // XP's list box draws its labels 1px lower within their row...
         return QProxyStyle::subElementRect(element, option, widget).translated(0, 1);
+    }
+    if (m_renderer && element == SE_ItemViewItemText && itemRowExtra(widget) == 1) {
+        // ...and a report view's at the top of their 14px row, where Qt
+        // centres the 13px text 1px lower.
+        return QProxyStyle::subElementRect(element, option, widget).translated(0, -1);
     }
     if (m_renderer && (element == SE_ProgressBarContents || element == SE_ProgressBarGroove)
         && hasPart({QStringLiteral("progress"), 1, 1, {}})) {
@@ -1465,6 +1480,15 @@ void XPLasmaStyle::drawSliderTicks(const QStyleOptionSlider *slider, const QRect
 QRect XPLasmaStyle::subControlRect(ComplexControl control, const QStyleOptionComplex *option, SubControl sub,
                                    const QWidget *widget) const
 {
+    if (m_renderer && control == CC_GroupBox && sub == SC_GroupBoxFrame && hasPart({QStringLiteral("button"), 4, 1, {}})) {
+        // The frame's top runs through the caption's middle -- by GDI's
+        // text height, which Qt 5 overstates by a row for Tahoma 8.
+        const auto *box = qstyleoption_cast<const QStyleOptionGroupBox *>(option);
+        QRect r = QProxyStyle::subControlRect(control, option, sub, widget);
+        if (box && !box->text.isEmpty() && !(box->features & QStyleOptionFrame::Flat))
+            r.setTop(option->rect.top() + xpTextHeight(widget ? widget->font() : QApplication::font()) / 2);
+        return r;
+    }
     if (m_renderer && control == CC_GroupBox && sub == SC_GroupBoxLabel && hasPart({QStringLiteral("button"), 4, 1, {}})) {
         // XP breaks the frame 1px before the caption; QCommonStyle cuts
         // the frame by exactly this rect.
