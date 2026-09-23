@@ -20,7 +20,9 @@ std::optional<QByteArray> systemFile(const QString &name, QString *error = nullp
 // A bitmap resource of such a file, decoded (alpha kept).
 std::optional<QImage> bitmap(const QString &file, int id, QString *error = nullptr);
 
-// The Start button's flag (explorer.exe, bitmap 143: 25 x 20, real alpha).
+// The Start button's flag: explorer.exe's bitmap 143 (25 x 20, real alpha)
+// with a visual style, 176 (16 x 16) in Windows Classic.
 std::optional<QImage> startFlag(QString *error = nullptr);
+std::optional<QImage> classicStartFlag(QString *error = nullptr);
 
 } // namespace xpl::media

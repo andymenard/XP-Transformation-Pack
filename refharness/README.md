@@ -42,6 +42,12 @@ class -- and names the files `Sub--Class`.
   buttons the full height of it (the checked frame for the active window); the
   Start button is 99 x 32 from the bar's top (2px off the screen), the flag
   (explorer.exe bitmap 143) at its content's left, centred.
+- Windows Classic (Windows Standard, after restarting explorer so the taskbar
+  lays itself out afresh): the taskbar is 30px too, its top edge Light3D
+  then the highlight; task buttons are 22px push buttons 4px down; the Start
+  button is a 22px push button at (2, 4) with bitmap 176 (16 x 16) 2px in and
+  "Start" in bold Tahoma, drawn bi-level as Tahoma's gasp table asks.
+  (Switching to Classic live left a 34px bar until explorer restarted.)
 
 - Transport: QEMU's read-write `vvfat` crashes on the guest's first write
   ("cluster 0 used more than once"), so jobs go in on an ISO and results come

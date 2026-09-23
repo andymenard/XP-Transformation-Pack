@@ -36,8 +36,7 @@ QFont fontFrom(const QString &spec, const QFont &fallback)
         else if (flag == QLatin1String("italic"))
             font.setItalic(true);
     }
-    font.setHintingPreference(QFont::PreferFullHinting);
-    return font;
+    return gdiFont(font);
 }
 
 // A box blur of an alpha mask, `radius` wide, twice: uxtheme's "continuous"
@@ -137,35 +136,33 @@ std::optional<StartButtonArt> styleButton(const Look &look, const QImage &flag, 
     return art;
 }
 
-// Windows Classic: a push button 2px inside the bar, the flag and the label
-// in the caption font, bold.
+// Windows Classic (measured, Windows Standard, 800 x 600): a push button
+// 22px tall, 2px in and 4px down the 30px bar; the small flag (bitmap 176)
+// 2px into it, centred; a pixel after it "Start" in bold Tahoma, centred in
+// a slot 2px wider than the text; 2px after that. Pushed, the contents move 1px down and right.
 std::optional<StartButtonArt> classicButton(const Look &look, const QImage &flag, const QString &label)
 {
     const ClassicScheme &s = look.system;
     const QPalette pal = s.palette();
-    const int barHeight = 28;
-    const int h = barHeight - 6;
-    QFont font(s.metrics.captionFont.face);
-    font.setPixelSize(-s.metrics.captionFont.height);
+    QFont font(s.metrics.messageFont.face);
+    font.setPixelSize(-s.metrics.messageFont.height);
     font.setBold(true);
-    const QImage icon = flag.scaledToHeight(qMin(16, h - 6), Qt::SmoothTransformation);
-    const int textWidth = QFontMetrics(font).horizontalAdvance(label);
-    const int w = 6 + icon.width() + 4 + textWidth + 8;
+    font = gdiFont(font);
+    const int textWidth = gdiTextWidth(font, label) + 2;
+    const QRect button(2, 4, 2 + flag.width() + 1 + textWidth + 2, 22);
     StartButtonArt art;
     QImage *out[] = {&art.normal, &art.hover, &art.pressed};
     for (int state = 0; state < 3; ++state) {
-        QImage img(w, barHeight, QImage::Format_ARGB32_Premultiplied);
+        QImage img(button.right() + 1, kTaskbarHeight, QImage::Format_ARGB32_Premultiplied);
         img.fill(Qt::transparent);
         QPainter p(&img);
-        const QRect button(0, 3, w, h);
         const bool down = state == 2;
         classic::pushEdge(&p, button, pal, down);
         const QPoint shift = down ? QPoint(1, 1) : QPoint();
-        p.drawImage(button.topLeft() + QPoint(6, (h - icon.height()) / 2) + shift, icon);
-        p.setFont(font);
-        p.setPen(s.colour(u"ButtonText"));
-        p.drawText(QRect(button.left() + 6 + icon.width() + 4, button.top(), textWidth, h).translated(shift),
-                   Qt::AlignLeft | Qt::AlignVCenter | Qt::TextSingleLine, label);
+        p.drawImage(button.topLeft() + QPoint(2, (button.height() - flag.height()) / 2) + shift, flag);
+        p.setRenderHint(QPainter::TextAntialiasing);
+        drawLabel(p, QRect(button.left() + 2 + flag.width() + 1, button.top(), textWidth, button.height()).translated(shift),
+                  label, font, s.colour(u"ButtonText"), QString(), QColor(), QPoint());
         p.end();
         *out[state] = img;
     }

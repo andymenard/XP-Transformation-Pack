@@ -62,4 +62,26 @@ int gdiTextWidth(const QFont &font, const QString &text)
     return width;
 }
 
+bool gdiSmooths(const QFont &font)
+{
+    const QRawFont raw = QRawFont::fromFont(font);
+    const QByteArray gasp = raw.fontTable("gasp");
+    const int px = font.pixelSize() > 0 ? font.pixelSize() : int(std::lround(raw.pixelSize()));
+    // gasp: version, numRanges, then {rangeMaxPPEM, rangeGaspBehavior};
+    // GASP_DOGRAY is 0x0002.
+    const int ranges = u16(gasp, 2);
+    for (int i = 0; i < ranges && 4 + (i + 1) * 4 <= gasp.size(); ++i)
+        if (px <= u16(gasp, 4 + i * 4))
+            return u16(gasp, 6 + i * 4) & 0x0002;
+    return gasp.isEmpty();   // (no table: smoothed)
+}
+
+QFont gdiFont(QFont font)
+{
+    font.setHintingPreference(QFont::PreferFullHinting);
+    if (!gdiSmooths(font))
+        font.setStyleStrategy(QFont::NoAntialias);
+    return font;
+}
+
 } // namespace xpl

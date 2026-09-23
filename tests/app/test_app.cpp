@@ -726,7 +726,7 @@ private Q_SLOTS:
         const Look classic = Look::fromScheme(ClassicScheme());
         const auto classicArt = xpl::startButton(classic, flag, QStringLiteral("start"), &error);
         QVERIFY2(classicArt, qPrintable(error));
-        QCOMPARE(classicArt->normal.height(), 28);
+        QCOMPARE(classicArt->normal.height(), 30);
     }
 
     void iconTheme()

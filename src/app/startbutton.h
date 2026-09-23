@@ -19,7 +19,9 @@ struct StartButtonArt
     QImage normal, hover, pressed;   // the bar's height; transparent round the button
 };
 
-// `flag` is the flag bitmap (media::startFlag()); `label` what it says.
+// `flag` is the flag bitmap (media::startFlag(), or classicStartFlag() for
+// Windows Classic); `label` what it says ("start" with a visual style,
+// "Start" in Classic).
 std::optional<StartButtonArt> startButton(const Look &look, const QImage &flag, const QString &label = QStringLiteral("start"),
                                           QString *error = nullptr);
 

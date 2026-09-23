@@ -118,4 +118,9 @@ std::optional<QImage> startFlag(QString *error)
     return bitmap(QStringLiteral("explorer.exe"), 143, error);
 }
 
+std::optional<QImage> classicStartFlag(QString *error)
+{
+    return bitmap(QStringLiteral("explorer.exe"), 176, error);
+}
+
 } // namespace xpl::media

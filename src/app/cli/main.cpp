@@ -167,8 +167,9 @@ int build(const QString &spec, QString dir)
         return 1;
     }
     out() << "  taskbar     " << panel << '\n';
-    const auto flag = media::startFlag(&error);
-    const auto start = flag ? startButton(*look, *flag, QStringLiteral("start"), &error) : std::nullopt;
+    const auto flag = look->classic() ? media::classicStartFlag(&error) : media::startFlag(&error);
+    const auto start = flag ? startButton(*look, *flag, look->classic() ? QStringLiteral("Start") : QStringLiteral("start"), &error)
+                            : std::nullopt;
     if (!start) {
         err() << "xplasma: the Start button: " << error << Qt::endl;
         return 1;

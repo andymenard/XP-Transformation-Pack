@@ -135,14 +135,14 @@ void styleArt(const Look &look, PanelArt &art)
     }
 }
 
-// Windows Classic: the bar is the dialog face under a raised top edge; task
-// buttons are push buttons, the active one pushed in over a dither of the
-// highlight and the face.
+// Windows Classic (measured, Windows Standard): the 30px bar is the dialog
+// face under a raised top edge (Light3D, then the highlight); task buttons
+// are 22px push buttons 4px down, the active one pushed in over a dither of
+// the highlight and the face.
 void classicArt(const Look &look, PanelArt &art)
 {
     const ClassicScheme &s = look.system;
     const QPalette pal = s.palette();
-    art.height = 28;
     const int H = art.height;
     QImage bar(64, H, QImage::Format_ARGB32_Premultiplied);
     bar.fill(pal.color(QPalette::Button));
@@ -161,7 +161,7 @@ void classicArt(const Look &look, PanelArt &art)
         img.fill(Qt::transparent);
         {
             QPainter p(&img);
-            const QRect button(0, 3, 160, H - 5);
+            const QRect button(0, 4, 160, 22);
             const bool down = t.state == 5;
             classic::pushEdge(&p, button, pal, down);
             if (down)
@@ -178,7 +178,7 @@ void classicArt(const Look &look, PanelArt &art)
     flash.fill(Qt::transparent);
     {
         QPainter p(&flash);
-        const QRect button(0, 3, 160, H - 5);
+        const QRect button(0, 4, 160, 22);
         classic::pushEdge(&p, button, pal, false);
         p.fillRect(button.adjusted(2, 2, -2, -2), s.colour(u"Hilight"));
     }

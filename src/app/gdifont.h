@@ -19,5 +19,10 @@ struct GdiMetrics
 GdiMetrics gdiMetrics(const QFont &font);
 // GetTextExtentPoint32's width.
 int gdiTextWidth(const QFont &font, const QString &text);
+// Whether XP's standard font smoothing greys this font at this size: the
+// font's gasp table decides (Tahoma 8 is drawn bi-level, Franklin Gothic 14
+// smoothed). QFont::NoAntialias otherwise.
+bool gdiSmooths(const QFont &font);
+QFont gdiFont(QFont font);   // with that decided
 
 } // namespace xpl
