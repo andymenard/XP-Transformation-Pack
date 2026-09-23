@@ -330,6 +330,20 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
         case PE_IndicatorBranch:
             drawTreeBranch(option, painter, widget);
             return;
+        case PE_IndicatorItemViewItemCheck: {
+            // An item view's check box: DrawFrameControl's flat one -- a 2px
+            // frame line round the window colour, Marlett's tick.
+            const QRect r = option->rect;
+            painter->fillRect(r, sysColour(u"windowframe", Qt::black));
+            painter->fillRect(r.adjusted(2, 2, -2, -2), enabled(option) ? sysColour(u"window", Qt::white)
+                                                                         : sysColour(u"btnface", Qt::lightGray));
+            if (option->state & (State_On | State_NoChange)) {
+                const bool grey = (option->state & State_NoChange) || !enabled(option);
+                drawGlyph(painter, kMenuCheck, r.topLeft() + QPoint(3, 3),
+                          grey ? sysColour(u"btnshadow", Qt::gray) : sysColour(u"windowtext", Qt::black));
+            }
+            return;
+        }
         case PE_PanelMenu:
         case PE_FrameMenu: {
             // A Classic menu: the menu colour in a raised edge (Light3D and
