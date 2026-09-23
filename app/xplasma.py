@@ -268,6 +268,35 @@ def run_setup(argv) -> int:
                             iso=args.iso)
 
 
+def run_widgets(argv) -> int:
+    """`xplasma widgets`: switch just the Qt widget style to XPLasma.
+
+    Draws every Qt app from a visual style -- by default the one that is
+    applied now (applied.json, xp2plasma's if XPLasma hasn't applied one) --
+    without touching decorations, panel or wallpaper, and without restarting
+    anything: KDE apps rebuild their style on the broadcast. `--remove` puts
+    the previous widget style back.
+    """
+    ap = argparse.ArgumentParser(prog="xplasma widgets", description=run_widgets.__doc__)
+    ap.add_argument("--theme", help="a .msstyles (default: the applied visual style)")
+    ap.add_argument("--variant", help="its layout INI, e.g. NORMALBLUE_INI (default: the applied one)")
+    ap.add_argument("--remove", action="store_true", help="restore the previous widget style")
+    args = ap.parse_args(argv)
+    if args.remove:
+        print(f"Widget style restored to {widget_style.remove()}.")
+        return 0
+    theme, variant = args.theme, args.variant
+    if not theme:
+        state = applied_state.load()
+        if state.get("kind") != "style" or not state.get("msstyles"):
+            print("error: no visual style is applied; pass --theme", file=sys.stderr)
+            return 1
+        theme, variant = state["msstyles"], variant or state.get("ini")
+    widget_style.apply_visual_style(theme, variant, progress=print)
+    print(f"Qt apps now draw from {os.path.basename(theme)}" + (f" ({variant})" if variant else "") + ".")
+    return 0
+
+
 def run_reset(argv) -> int:
     """`xplasma reset`: put the desktop back to Breeze."""
     import revert
@@ -280,7 +309,7 @@ def run_reset(argv) -> int:
 
 
 def main() -> int:
-    # `edit`, `setup` and `reset` take their own flags, so they are
+    # `edit`, `setup`, `reset` and `widgets` take their own flags, so they are
     # dispatched before argparse sees the command line.
     if len(sys.argv) > 1 and sys.argv[1].lower() in ("edit", "appearance"):
         from appearance_editor import main as editor_main
@@ -289,6 +318,8 @@ def main() -> int:
         return run_setup(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1].lower() == "reset":
         return run_reset(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1].lower() == "widgets":
+        return run_widgets(sys.argv[2:])
 
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("theme", nargs="?", help="Path to a .msstyles visual style, a .theme bundle that references one, "

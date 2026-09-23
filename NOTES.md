@@ -70,3 +70,12 @@ Each says where it came from, so it can be picked up without re-deriving it.
   be read off the VM as it stands. Switching it to Standard (Display
   Properties > Appearance > Effects) is a persistent VM change, so it's
   the user's call (`XPVM_PERSIST=1 refharness/vm.sh`).
+- **A newly installed style plugin isn't visible to running apps**
+  (2026-09-23, first live switch). Qt's plugin loader scans the plugin
+  directories once per process, so after `libxplasma.so` first appears,
+  KDE's StyleChanged broadcast makes running apps ask for "XPLasma", fail,
+  and keep their current style (they all stayed on kvantum-xp; none
+  crashed). Apps started afterwards load it. Once the plugin is in a
+  process, switching .msstyles themes is live. The installer should
+  therefore put the plugin in place at install time -- before the first
+  Apply -- or say plainly that open apps switch after a restart.
