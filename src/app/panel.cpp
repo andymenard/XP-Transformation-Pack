@@ -219,6 +219,48 @@ QByteArray svg(const QList<std::pair<QString, QImage>> &elements)
 
 } // namespace
 
+QImage composeFrame(const QList<std::pair<QString, QImage>> &elements, const QString &prefix, QSize size)
+{
+    auto element = [&](const char *name) {
+        for (const auto &[id, image] : elements)
+            if (id == prefix + QLatin1String(name))
+                return image;
+        return QImage();
+    };
+    const QImage tl = element("topleft"), t = element("top"), tr = element("topright"), l = element("left"),
+                 r = element("right"), bl = element("bottomleft"), b = element("bottom"), br = element("bottomright"),
+                 c = element("center");
+    bool stretch = false;
+    for (const auto &e : elements)
+        stretch |= e.first == prefix + QLatin1String("hint-stretch-borders");
+    const int lw = qMax(l.width(), qMax(tl.width(), bl.width())), rw = qMax(r.width(), qMax(tr.width(), br.width()));
+    const int th = qMax(t.height(), qMax(tl.height(), tr.height())), bh = qMax(b.height(), qMax(bl.height(), br.height()));
+    QImage out(size, QImage::Format_ARGB32_Premultiplied);
+    out.fill(Qt::transparent);
+    QPainter p(&out);
+    auto edge = [&](const QImage &img, const QRect &to) {
+        if (to.isEmpty() || img.isNull())
+            return;
+        if (stretch) {
+            p.drawImage(to, img.scaled(to.size(), Qt::IgnoreAspectRatio, Qt::FastTransformation));
+            return;
+        }
+        for (int y = to.top(); y <= to.bottom(); y += img.height())
+            for (int x = to.left(); x <= to.right(); x += img.width())
+                p.drawImage(QPoint(x, y), img, QRect(0, 0, qMin(img.width(), to.right() + 1 - x), qMin(img.height(), to.bottom() + 1 - y)));
+    };
+    p.drawImage(QRect(0, 0, lw, th), tl);
+    p.drawImage(QRect(size.width() - rw, 0, rw, th), tr);
+    p.drawImage(QRect(0, size.height() - bh, lw, bh), bl);
+    p.drawImage(QRect(size.width() - rw, size.height() - bh, rw, bh), br);
+    edge(t, QRect(lw, 0, size.width() - lw - rw, th));
+    edge(b, QRect(lw, size.height() - bh, size.width() - lw - rw, bh));
+    edge(l, QRect(0, th, lw, size.height() - th - bh));
+    edge(r, QRect(size.width() - rw, th, rw, size.height() - th - bh));
+    edge(c, QRect(lw, th, size.width() - lw - rw, size.height() - th - bh));
+    return out;
+}
+
 PanelArt panelArt(const Look &look)
 {
     PanelArt art;

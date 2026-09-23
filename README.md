@@ -83,6 +83,7 @@ build/dev-qt6/test-core                              # the core
 build/dev-qt6/tests/app/test-app                     # the C++ app (run on the host to include the XP ISO)
 build/dev-qt6/tests/app/test-startmenu               # the Start menu's QML, drawn offscreen
 tests/app/plasmoid_smoke.sh THEME.json               # the Start plasmoid loaded by Plasma (host only)
+QT_QPA_PLATFORM=offscreen build/dev-qt6/src/app/xplasma-edit --screenshots OUT   # every tab of the editor
 tests/oracle/styles_matrix.py OUT                     # the style against real XP (needs refharness/vm.sh)
 for t in app/tests/test_*.py; do QT_QPA_PLATFORM=offscreen .venv/bin/python3 "$t"; done   # the Python app
 ```

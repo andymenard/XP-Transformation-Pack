@@ -29,6 +29,11 @@ struct PanelArt
 };
 PanelArt panelArt(const Look &look);
 
+// What KSvg's FrameSvg paints for `prefix` at `size` from such elements:
+// corners at their own size, edges and centre stretched (with
+// hint-stretch-borders) or tiled. (The previews and tests draw with it.)
+QImage composeFrame(const QList<std::pair<QString, QImage>> &elements, const QString &prefix, QSize size);
+
 // Writes the Plasma desktop theme into `directory`/<id>-taskbar; returns its
 // path, or empty with *error.
 QString writePanelTheme(const Look &look, const QString &directory, QString *error = nullptr);

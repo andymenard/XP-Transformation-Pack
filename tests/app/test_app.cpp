@@ -132,54 +132,6 @@ struct IsoBuilder
     }
 };
 
-// What KSvg's FrameSvg paints for `prefix` at `size`: corners at their own
-// size (the side elements' widths, the top and bottom elements' heights),
-// edges stretched (with hint-stretch-borders) or tiled, the centre too.
-QImage frameSvg(const QList<std::pair<QString, QImage>> &elements, const QString &prefix, QSize size)
-{
-    auto element = [&](const char *name) {
-        for (const auto &[id, image] : elements)
-            if (id == prefix + QLatin1String(name))
-                return image;
-        return QImage();
-    };
-    const QImage tl = element("topleft"), t = element("top"), tr = element("topright"), l = element("left"),
-                 r = element("right"), bl = element("bottomleft"), b = element("bottom"), br = element("bottomright"),
-                 c = element("center");
-    bool stretch = false;
-    for (const auto &e : elements)
-        stretch |= e.first == prefix + QLatin1String("hint-stretch-borders");
-    const int lw = qMax(l.width(), qMax(tl.width(), bl.width())), rw = qMax(r.width(), qMax(tr.width(), br.width()));
-    const int th = qMax(t.height(), qMax(tl.height(), tr.height())), bh = qMax(b.height(), qMax(bl.height(), br.height()));
-    QImage out(size, QImage::Format_ARGB32_Premultiplied);
-    out.fill(Qt::transparent);
-    QPainter p(&out);
-    auto edge = [&](const QImage &img, const QRect &to) {
-        if (to.isEmpty())
-            return;
-        if (img.isNull())
-            return;
-        if (stretch) {
-            p.drawImage(to, img.scaled(to.size(), Qt::IgnoreAspectRatio, Qt::FastTransformation));
-            return;
-        }
-        for (int y = to.top(); y <= to.bottom(); y += img.height())
-            for (int x = to.left(); x <= to.right(); x += img.width())
-                p.drawImage(QPoint(x, y), img, QRect(0, 0, qMin(img.width(), to.right() + 1 - x), qMin(img.height(), to.bottom() + 1 - y)));
-    };
-    p.drawImage(QRect(0, 0, lw, th), tl);
-    p.drawImage(QRect(size.width() - rw, 0, rw, th), tr);
-    p.drawImage(QRect(0, size.height() - bh, lw, bh), bl);
-    p.drawImage(QRect(size.width() - rw, size.height() - bh, rw, bh), br);
-    edge(t, QRect(lw, 0, size.width() - lw - rw, th));
-    edge(b, QRect(lw, size.height() - bh, size.width() - lw - rw, bh));
-    edge(l, QRect(0, th, lw, size.height() - th - bh));
-    edge(r, QRect(size.width() - rw, th, rw, size.height() - th - bh));
-    if (!c.isNull())
-        edge(c, QRect(lw, th, size.width() - lw - rw, size.height() - th - bh));
-    return out;
-}
-
 // A session that only records: what apply would run, script and signal.
 class RecordingSession : public Session
 {
@@ -659,7 +611,7 @@ private Q_SLOTS:
                     p.drawImage(size.width() - F, H, r.background({QStringLiteral("window"), 8, state, {}}, QSize(F, size.height() - H - F)));
                     p.drawImage(0, size.height() - F, r.background({QStringLiteral("window"), 9, state, {}}, QSize(size.width(), F)));
                 }
-                const QImage ours = frameSvg(art.frame, active ? QStringLiteral("decoration-") : QStringLiteral("decoration-inactive-"), size);
+                const QImage ours = composeFrame(art.frame, active ? QStringLiteral("decoration-") : QStringLiteral("decoration-inactive-"), size);
                 const bool reference = size == QSize(800, 600);
                 int fixedDiffer = 0, worst = 0;
                 for (int y = 0; y < size.height(); ++y)
@@ -717,7 +669,7 @@ private Q_SLOTS:
         QCOMPARE(art.height, 30);
         for (const int width : {640, 800, 1280, 1366, 1920}) {
             const QImage xp = r.background({QStringLiteral("taskbar"), 1, 0, {}}, QSize(width, 30));
-            const QImage ours = frameSvg(art.panel, QString(), QSize(width, 30));
+            const QImage ours = composeFrame(art.panel, QString(), QSize(width, 30));
             int differ = 0;
             for (int y = 0; y < 30; ++y)
                 for (int x = 0; x < width; ++x)
@@ -730,7 +682,7 @@ private Q_SLOTS:
             if (width <= m.left() + m.right())
                 continue;   // (narrower than its ends, XP squeezes them; FrameSvg can't)
             const QImage xp = r.background(button, QSize(width, 30));
-            const QImage ours = frameSvg(art.tasks, QStringLiteral("focus-"), QSize(width, 30));
+            const QImage ours = composeFrame(art.tasks, QStringLiteral("focus-"), QSize(width, 30));
             int differ = 0;
             for (int y = 0; y < 30; ++y)
                 for (int x = 0; x < width; ++x)

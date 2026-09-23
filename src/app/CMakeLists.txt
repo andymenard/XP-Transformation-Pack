@@ -58,3 +58,17 @@ set_target_properties(xplasma-cli PROPERTIES OUTPUT_NAME xplasma)
 # Regenerates data/schemes from the XP ISO (a dev tool; not installed).
 add_executable(xplasma-schemes ${PROJECT_SOURCE_DIR}/src/tools/schemes.cpp)
 target_link_libraries(xplasma-schemes PRIVATE stdc++ xplasma-app)
+
+# The editor: Qt Widgets, in the system's own widget style.
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
+add_executable(xplasma-edit
+  editor/main.cpp
+  editor/displayproperties.cpp
+  editor/preview.cpp
+  editor/advanced.cpp
+  editor/setupdialog.cpp
+  editor/jobs.cpp
+)
+target_link_libraries(xplasma-edit PRIVATE stdc++ xplasma-app Qt6::Widgets)
+add_test(NAME editor-screenshots COMMAND xplasma-edit --screenshots ${CMAKE_BINARY_DIR}/editor-screenshots)
+set_tests_properties(editor-screenshots PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
