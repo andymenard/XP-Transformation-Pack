@@ -1859,6 +1859,38 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
             return true;
         }
         return false;
+    case CE_ProgressBar:
+        if (const auto *bar = qstyleoption_cast<const QStyleOptionProgressBar *>(option)) {
+            // comctl32's classic progress: a 1px sunken edge, a face-coloured
+            // ring, highlight blocks two-thirds the inside's height wide with
+            // a 2px gap, as many as the value reaches into.
+            const QRect r = bar->rect;
+            painter->fillRect(r, bar->palette.button());
+            painter->fillRect(QRect(r.left(), r.top(), r.width() - 1, 1), bar->palette.color(QPalette::Dark));
+            painter->fillRect(QRect(r.left(), r.top(), 1, r.height() - 1), bar->palette.color(QPalette::Dark));
+            painter->fillRect(QRect(r.left(), r.bottom(), r.width(), 1), bar->palette.color(QPalette::Light));
+            painter->fillRect(QRect(r.right(), r.top(), 1, r.height()), bar->palette.color(QPalette::Light));
+            const QRect inner = r.adjusted(2, 2, -2, -2);
+            const bool horizontal = bar->state & State_Horizontal;
+            // The filled length is the value's share of the whole client
+            // (inside the 1px edge), rounded; then every block it starts.
+            const int length = horizontal ? r.width() - 2 : r.height() - 2;
+            const int thickness = horizontal ? inner.height() : inner.width();
+            const int block = qMax(1, thickness * 2 / 3), pitch = block + 2;
+            const qint64 range = qint64(bar->maximum) - bar->minimum;
+            const int filled = range > 0 ? int(((qint64(bar->progress) - bar->minimum) * length * 2 + range) / (2 * range)) : 0;
+            const int blocks = (filled + pitch - 1) / pitch;
+            painter->save();
+            painter->setClipRect(inner, Qt::IntersectClip);
+            for (int i = 0, at = 0; i < blocks; ++i, at += pitch) {
+                const QRect chunk = horizontal ? QRect(inner.left() + at, inner.top(), block, inner.height())
+                                               : QRect(inner.left(), inner.bottom() + 1 - at - block, inner.width(), block);
+                painter->fillRect(chunk, bar->palette.brush(QPalette::Highlight));
+            }
+            painter->restore();
+            return true;
+        }
+        return false;
     case CE_ItemViewItem:
         if (const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option))
             return drawXpViewItem(item, painter, widget);
