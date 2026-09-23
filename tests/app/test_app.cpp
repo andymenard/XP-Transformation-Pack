@@ -1116,16 +1116,61 @@ private Q_SLOTS:
         QVERIFY(n.fonts > 100);
         QCOMPARE(n.styles, 1);
         QVERIFY(n.themes >= 2);
-        QVERIFY(n.wallpapers >= 20);
+        QCOMPARE(n.wallpapers, 31);   // XP's list: 20 in Web\\Wallpaper, 11 desktop wallpapers
         QVERIFY(QFileInfo::exists(paths::themes() + QLatin1String("/Luna/luna.msstyles")));
         QVERIFY(QFileInfo::exists(paths::themes() + QLatin1String("/Luna/Luna.theme")));
         QVERIFY(QFileInfo::exists(paths::themes() + QLatin1String("/Windows Classic.theme")));
-        QVERIFY(QFileInfo::exists(paths::wallpapers() + QLatin1String("/bliss.jpg")));
+        QVERIFY(QFileInfo::exists(paths::wallpapers() + QLatin1String("/Bliss.jpg")));
         QVERIFY(QFileInfo::exists(paths::localShare() + QLatin1String("/fonts/xp/tahoma.ttf")));
         QCOMPARE(State::load().media, m_realIso);
-        // Toolbar bitmaps aren't wallpapers.
-        for (const QFileInfo &f : QDir(paths::wallpapers()).entryInfoList(QDir::Files))
-            QVERIFY2(QImage(f.absoluteFilePath()).width() >= 640, qPrintable(f.fileName()));
+        // XP's names, its small tiles included, and nothing else from I386.
+        for (const char *name : {"Red moon desert.jpg", "Windows XP.jpg", "Stonehenge.jpg", "Coffee Bean.bmp", "Blue Lace 16.bmp", "Zapotec.bmp"})
+            QVERIFY2(QFileInfo::exists(paths::wallpapers() + QLatin1Char('/') + QLatin1String(name)), name);
+        for (const char *name : {"setup_w.bmp", "table.bmp", "wpaback.jpg", "stoneh.jpg", "winnt.bmp", "bluehill.jpg"})
+            QVERIFY2(!QFileInfo::exists(paths::wallpapers() + QLatin1Char('/') + QLatin1String(name)), name);
+    }
+
+    void importMediaTidiesOldWallpapers()
+    {
+        // An older import's 8.3 names become XP's (a saved theme naming one
+        // follows); what XP didn't list goes; the user's own stays.
+        if (m_realIso.isEmpty())
+            QSKIP("no XP ISO on this machine");
+        const QString dir = paths::wallpapers();
+        writeFile(dir + QLatin1String("/stoneh.jpg"), "old");
+        writeFile(dir + QLatin1String("/setup_w.bmp"), "old");
+        writeFile(dir + QLatin1String("/mine.jpg"), "mine");
+        const QString preset = paths::themes() + QLatin1String("/Saved/Old.theme");
+        writeFile(preset, ("[Control Panel\\Desktop]\r\nWallpaper=" + dir + "/stoneh.jpg\r\n").toUtf8());
+        QString error;
+        QVERIFY2(setup::importMedia(m_realIso, nullptr, {}, nullptr, &error), qPrintable(error));
+        QVERIFY(!QFileInfo::exists(dir + QLatin1String("/stoneh.jpg")));
+        QVERIFY(!QFileInfo::exists(dir + QLatin1String("/setup_w.bmp")));
+        QVERIFY(QFileInfo::exists(dir + QLatin1String("/Stonehenge.jpg")));
+        QVERIFY(QFileInfo::exists(dir + QLatin1String("/mine.jpg")));
+        QFile f(preset);
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        QVERIFY(f.readAll().contains((dir + QLatin1String("/Stonehenge.jpg")).toUtf8()));
+    }
+
+    void wallpaperNamesFromInfs()
+    {
+        // XP's setup INFs, as they're written: UTF-16 or ANSI, %strings%,
+        // "dest, source", comments; only the wallpaper copy lists count.
+        const QString shl = QStringLiteral(
+            "[DestinationDirs]\r\nWallpaper.CopyFiles = 10,Web\\Wallpaper\r\n"
+            "[Wallpaper.CopyFiles]\r\n\"%MOON_JPG_NAME%\",moon.jpg\r\ndefault.jpg,bliss.jpg\r\n\r\n"
+            "[OldWinntBMP.CopyFiles]\r\nwinnt.bmp,win32pro.bmp\r\n"
+            "[Strings]\r\nMOON_JPG_NAME = \"Moon flower.jpg\"\r\nBLISS_JPG_NAME = \"Bliss.jpg\"\r\n");
+        QByteArray wide("\xff\xfe");
+        wide += QByteArray(reinterpret_cast<const char *>(shl.utf16()), shl.size() * 2);
+        const QByteArray accessor = "[DeskpaperCopyFilesSys]\r\n%Coffeebn%,             coffeebn.bmp ; a tile\r\n"
+                                    "[DeskpaperOldCopyFilesSys]\r\narches.bmp\r\n[Strings]\r\nCoffeebn        = \"Coffee Bean.bmp\"\r\n";
+        const QHash<QString, QString> names = setup::wallpaperNames({wide, accessor});
+        QCOMPARE(names.value(QStringLiteral("moon.jpg")), QStringLiteral("Moon flower.jpg"));
+        QCOMPARE(names.value(QStringLiteral("bliss.jpg")), QStringLiteral("Bliss.jpg"));
+        QCOMPARE(names.value(QStringLiteral("coffeebn.bmp")), QStringLiteral("Coffee Bean.bmp"));
+        QCOMPARE(names.size(), 3);
     }
 
     void importMediaRollsBack()

@@ -102,13 +102,13 @@ Each says where it came from, so it can be picked up without re-deriving it.
   Microsoft's five styles; GDI-level questions (decoding, keying) work for
   any bitmap.
 
-- **Wallpaper import drops XP's tiled wallpapers** (found 2026-09-23, carrying
-  over tests; still so in `src/app/setup.cpp`). The import filters by *size*, so the
-  small tile bitmaps XP listed in Background (Blue Lace 16, Coffee Bean, Soap
-  Bubbles, Zapotec, Santa Fe Stucco, …) are removed, while full-size
-  non-wallpapers (`setup_w.bmp`, `table.bmp`, `wpaback.jpg`, `newmark*.jpg`) are
-  kept. XP's own list is the files in `%windir%` and `%windir%\Web\Wallpaper`
-  (see `I386/LAYOUT.INF` / `HIVEDEF.INF`), which would be an exact allowlist.
+- ~~**Wallpaper import drops XP's tiled wallpapers**~~ (resolved 2026-09-23):
+  the import reads XP's own list from its setup INFs -- SHL_IMG.INF's
+  Wallpaper.CopyFiles (Web\Wallpaper) and ACCESSOR.INF's "Desktop
+  Wallpaper" component -- and names the files as XP did (31 on SP3). An
+  older import's 8.3 names are renamed and what XP didn't list removed
+  (the desktop and saved themes follow). The Sample Pictures (Blue hills,
+  Sunset, ...) went with them: XP kept those in My Pictures, not the list.
 - ~~**`test_tray_click` needs KDE's QML modules**~~ (resolved 2026-09-23):
   the C++ app's QML tests (`test-startmenu`, `plasmoid_smoke.sh`) run under
   the host's Qt, where KDE's modules are.

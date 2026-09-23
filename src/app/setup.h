@@ -12,6 +12,7 @@
 //     archive.org's metadata, not hardcoded.
 //
 // A cancelled or failed step removes what it added.
+#include <QHash>
 #include <QList>
 #include <QString>
 
@@ -38,7 +39,16 @@ struct Imported
 {
     int fonts = 0, styles = 0, themes = 0, wallpapers = 0;
 };
-// XP's install media. Cancelled or failed, nothing it added stays.
+// XP's desktop wallpapers, as its setup INFs install them (SHL_IMG.INF's
+// Web\Wallpaper, ACCESSOR.INF's "Desktop Wallpaper" component): each one's
+// file name on the media, lower case ("stoneh.jpg"), to the name XP gave it
+// ("Stonehenge.jpg").
+QHash<QString, QString> wallpaperNames(const QList<QByteArray> &infs);
+
+// XP's install media. Cancelled or failed, nothing it added stays. Its
+// wallpapers are XP's own list, by XP's names; files an older XPLasma
+// imported by their 8.3 names are renamed (and what refers to them -- the
+// desktop, saved themes -- follows), or removed if XP never listed them.
 bool importMedia(const QString &path, Imported *counts, const Progress &progress, const std::atomic_bool *cancel = nullptr,
                  QString *error = nullptr);
 

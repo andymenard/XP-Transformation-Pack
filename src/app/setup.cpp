@@ -4,6 +4,8 @@
 #include "app/host.h"
 #include "app/paths.h"
 #include "app/state.h"
+#include "app/apply.h"
+#include "app/session.h"
 #include "core/themefile.h"
 
 #include <QBuffer>
@@ -100,7 +102,15 @@ bool write(const QString &path, const QByteArray &bytes)
 
 // XP's install media is plain ISO 9660 with 8.3 names; its I386 files are
 // CAB-compressed with the last letter of the extension an underscore.
-bool doImport(const QString &path, Imported &n, const Progress &say, const std::atomic_bool *cancel, QString *error)
+// What doImport learnt about wallpapers, for tidying up after it.
+struct WallpaperImport
+{
+    QHash<QString, QString> names;   // wallpaperNames()
+    QSet<QString> onMedia;           // every image on the media, as an older XPLasma named it
+};
+
+bool doImport(const QString &path, Imported &n, WallpaperImport &wp, const Progress &say, const std::atomic_bool *cancel,
+              QString *error)
 {
     // What's wanted, and from where.
     QString media = path, i386;   // an ISO, or the folder
@@ -110,7 +120,8 @@ bool doImport(const QString &path, Imported &n, const Progress &say, const std::
         const QString name = member.section(QLatin1Char('/'), -1).toUpper();
         const bool inI386 = member.toUpper().startsWith(QLatin1String("I386/")) && member.count(QLatin1Char('/')) == 1;
         return (inI386 && (name.endsWith(QLatin1String(".TT_")) || name.endsWith(QLatin1String(".BM_"))
-                           || name.endsWith(QLatin1String(".JP_")) || name == QLatin1String("LUNA.MS_")))
+                           || name.endsWith(QLatin1String(".JP_")) || name == QLatin1String("LUNA.MS_")
+                           || name == QLatin1String("SHL_IMG.IN_") || name == QLatin1String("ACCESSOR.IN_")))
                || name.endsWith(QLatin1String(".TH_")) || name.endsWith(QLatin1String(".THEME"));
     };
     say(QStringLiteral("Reading %1 ...").arg(QFileInfo(path).fileName()));
@@ -145,10 +156,20 @@ bool doImport(const QString &path, Imported &n, const Progress &say, const std::
     if (std::none_of(members.begin(), members.end(), [](const auto &m) { return m.first.toUpper().endsWith(QLatin1String(".TT_")); }))
         return fail(error, QStringLiteral("%1 doesn't look like Windows XP's install media (no I386 fonts)").arg(path));
 
+    // XP's own wallpaper list first, from the setup INFs.
+    QList<QByteArray> infs;
+    for (const auto &[member, packed] : std::as_const(members))
+        if (member.toUpper().endsWith(QLatin1String(".IN_")))
+            if (const auto file = archive::expandCabinetFile(packed))
+                infs.append(file->second);
+    wp.names = wallpaperNames(infs);
+
     for (const auto &[member, packed] : std::as_const(members)) {
         if (cancelled(cancel))
             return fail(error, QStringLiteral("cancelled"));
         const QString name = member.section(QLatin1Char('/'), -1).toUpper();
+        if (name.endsWith(QLatin1String(".IN_")))
+            continue;
         const bool compressed = name.endsWith(QLatin1Char('_'));
         QString realName = member.section(QLatin1Char('/'), -1);
         QByteArray bytes = packed;
@@ -164,11 +185,19 @@ bool doImport(const QString &path, Imported &n, const Progress &say, const std::
         } else if (name == QLatin1String("LUNA.MS_")) {
             n.styles += write(paths::themes() + QLatin1String("/Luna/luna.msstyles"), bytes);
         } else if (name.endsWith(QLatin1String(".BM_")) || name.endsWith(QLatin1String(".JP_"))) {
-            // I386 keeps toolbar bitmaps beside the wallpapers: size tells them apart.
-            QBuffer buffer(&bytes);
-            const QSize size = QImageReader(&buffer).size();
-            if (size.width() >= 640 && size.height() >= 480)
-                n.wallpapers += write(paths::wallpapers() + QLatin1Char('/') + realName.toLower(), bytes);
+            wp.onMedia.insert(realName.toLower());
+            if (!wp.names.isEmpty()) {
+                // XP's list, by XP's names (I386 keeps toolbar bitmaps and
+                // setup's art beside them).
+                if (const QString to = wp.names.value(realName.toLower()); !to.isEmpty())
+                    n.wallpapers += write(paths::wallpapers() + QLatin1Char('/') + to, bytes);
+            } else {
+                // (Media without XP's INFs: size tells wallpapers apart.)
+                QBuffer buffer(&bytes);
+                const QSize size = QImageReader(&buffer).size();
+                if (size.width() >= 640 && size.height() >= 480)
+                    n.wallpapers += write(paths::wallpapers() + QLatin1Char('/') + realName.toLower(), bytes);
+            }
         } else {
             // .TH_ is ambiguous (NOISE.TH_ is noise.tha): a theme only if it reads as one.
             const ThemeFile theme = ThemeFile::fromBytes(bytes);
@@ -195,6 +224,61 @@ bool doImport(const QString &path, Imported &n, const Progress &say, const std::
     state.save();
     host::run({QStringLiteral("fc-cache"), QStringLiteral("-f"), fontsDir()});
     return true;
+}
+
+// An older XPLasma imported wallpapers by their 8.3 names, and some that
+// aren't wallpapers: those go, or become XP's names, and the desktop and
+// saved themes that name them follow.
+void tidyWallpapers(const WallpaperImport &wp, const Progress &say)
+{
+    if (wp.names.isEmpty())
+        return;
+    const QDir dir(paths::wallpapers());
+    QHash<QString, QString> moved;   // old path -> new path
+    int removed = 0;
+    for (const QString &f : dir.entryList(QDir::Files)) {
+        const QString low = f.toLower();
+        if (!wp.onMedia.contains(low) || f == wp.names.value(low))
+            continue;   // (not the old import's, or already XP's name)
+        const QString to = wp.names.value(low);
+        if (!to.isEmpty() && !QFileInfo::exists(dir.filePath(to)))
+            continue;   // (never drop one that has no replacement)
+        if (!QFile::remove(dir.filePath(f)))
+            continue;
+        if (to.isEmpty())
+            ++removed;
+        else
+            moved.insert(dir.filePath(f), dir.filePath(to));
+    }
+    if (moved.isEmpty() && removed == 0)
+        return;
+    say(QStringLiteral("Wallpapers: %1 renamed as XP named them, %2 that XP didn't list removed.").arg(moved.size()).arg(removed));
+    // Saved themes name their files outright.
+    QDirIterator it(paths::themes(), {QStringLiteral("*.theme")}, QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        const QString theme = it.next();
+        QFile f(theme);
+        if (!f.open(QIODevice::ReadOnly))
+            continue;
+        QByteArray text = f.readAll();
+        f.close();
+        const QByteArray before = text;
+        for (auto m = moved.cbegin(); m != moved.cend(); ++m)
+            text.replace(m.key().toUtf8(), m.value().toUtf8());
+        if (text != before)
+            write(theme, text);
+    }
+    // The desktop, when it shows one of them.
+    QFile layout(paths::config() + QLatin1String("/plasma-org.kde.plasma.desktop-appletsrc"));
+    const QByteArray desktop = layout.open(QIODevice::ReadOnly) ? layout.readAll() : QByteArray();
+    QVariantMap renames;
+    for (auto m = moved.cbegin(); m != moved.cend(); ++m)
+        if (desktop.contains(QUrl::fromLocalFile(m.key()).toEncoded()) || desktop.contains(m.key().toUtf8()))
+            renames.insert(QUrl::fromLocalFile(m.key()).toString(), QUrl::fromLocalFile(m.value()).toString());
+    if (!renames.isEmpty() && plasmaSession()) {
+        LiveSession session;
+        session.script(scriptFrom(QStringLiteral("rename-wallpapers"), {{QStringLiteral("RENAMES"), renames}}));
+    }
 }
 
 QString archiveBase()
@@ -310,13 +394,72 @@ QList<Check> preflight()
     return out;
 }
 
+QHash<QString, QString> wallpaperNames(const QList<QByteArray> &infs)
+{
+    // The copy lists XP's setup puts wallpapers with: Web\Wallpaper's, and
+    // the Accessories' "Desktop Wallpaper" component (into %windir%).
+    static const QStringList kLists{QStringLiteral("wallpaper.copyfiles"), QStringLiteral("deskpapercopyfilessys")};
+    QHash<QString, QString> out;
+    for (const QByteArray &bytes : infs) {
+        // INFs are Latin-1 or UTF-16LE (with or without a BOM).
+        const bool wide = bytes.size() > 1 && (bytes.startsWith("\xff\xfe") || (bytes.at(1) == 0 && bytes.at(0) != 0));
+        QString text = wide ? QString::fromUtf16(reinterpret_cast<const char16_t *>(bytes.constData()), bytes.size() / 2)
+                            : QString::fromLatin1(bytes);
+        if (text.startsWith(QChar(0xFEFF)))
+            text.remove(0, 1);
+        QHash<QString, QStringList> sections;
+        QString section;
+        for (QString line : text.split(QLatin1Char('\n'))) {
+            line = line.trimmed();
+            if (line.isEmpty() || line.startsWith(QLatin1Char(';')))
+                continue;
+            if (line.startsWith(QLatin1Char('['))) {
+                section = line.mid(1, line.indexOf(QLatin1Char(']')) - 1).trimmed().toLower();
+                continue;
+            }
+            sections[section].append(line);
+        }
+        QHash<QString, QString> strings;
+        for (const QString &line : sections.value(QStringLiteral("strings"))) {
+            const int eq = int(line.indexOf(QLatin1Char('=')));
+            if (eq > 0)
+                strings.insert(line.left(eq).trimmed().toLower(), line.mid(eq + 1).trimmed().remove(QLatin1Char('"')));
+        }
+        auto expand = [&](QString v) {
+            v = v.section(QLatin1Char(';'), 0, 0).trimmed().remove(QLatin1Char('"'));
+            static const QRegularExpression key(QStringLiteral("%([^%]+)%"));
+            for (auto m = key.match(v); m.hasMatch(); m = key.match(v))
+                v.replace(m.capturedStart(), m.capturedLength(), strings.value(m.captured(1).toLower()));
+            return v.trimmed();
+        };
+        for (const QString &list : kLists) {
+            for (const QString &line : sections.value(list)) {
+                const QString dest = expand(line.section(QLatin1Char(','), 0, 0));
+                const QString source = line.contains(QLatin1Char(',')) ? expand(line.section(QLatin1Char(','), 1, 1)) : dest;
+                if (source.isEmpty() || dest.isEmpty())
+                    continue;
+                QString name = dest;
+                // default.jpg is what XP calls its default wallpaper (Bliss)
+                // on disk; its own name is in the strings.
+                if (QFileInfo(dest).completeBaseName().compare(QLatin1String("default"), Qt::CaseInsensitive) == 0)
+                    for (const QString &s : std::as_const(strings))
+                        if (s.compare(source, Qt::CaseInsensitive) == 0)
+                            name = s;
+                out.insert(source.toLower(), name);
+            }
+        }
+    }
+    return out;
+}
+
 bool importMedia(const QString &path, Imported *counts, const Progress &progress, const std::atomic_bool *cancel, QString *error)
 {
     const Progress say = progress ? progress : [](const QString &) {};
     Added added({fontsDir(), paths::themes(), paths::wallpapers()});
     const QString previousMedia = State::load().media;
     Imported n;
-    if (!doImport(path, n, say, cancel, error) || n.fonts == 0 || n.styles == 0 || n.wallpapers == 0) {
+    WallpaperImport wp;
+    if (!doImport(path, n, wp, say, cancel, error) || n.fonts == 0 || n.styles == 0 || n.wallpapers == 0) {
         if (error && error->isEmpty())
             *error = QStringLiteral("the import is incomplete (%1 fonts, %2 styles, %3 wallpapers)")
                          .arg(n.fonts).arg(n.styles).arg(n.wallpapers);
@@ -329,6 +472,7 @@ bool importMedia(const QString &path, Imported *counts, const Progress &progress
     }
     say(QStringLiteral("XP media: %1 fonts, %2 style, %3 presets, %4 wallpapers.")
             .arg(n.fonts).arg(n.styles).arg(n.themes).arg(n.wallpapers));
+    tidyWallpapers(wp, say);
     if (counts)
         *counts = n;
     return true;
