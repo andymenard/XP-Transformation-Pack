@@ -523,3 +523,13 @@ new instance. So in KDE apps, a live theme switch needs only an updated
 `xplasmarc` plus the broadcast xp2plasma already sends. That gives a fresh
 style, full re-polish and relayout for free. The plugin's own config watcher
 (§4.3) is only needed for Qt apps without the KDE platform theme.
+
+**0.4 — the oracle works.** `refharness/` boots XP under `-snapshot`, hot-swaps
+a job ISO into its CD drive over QMP, XP autoruns it, and results come back
+over HTTP in about 2 s per round trip. XP SP3's uxtheme exports the file-level
+entry points (ordinals 2/3/16), so **any `.msstyles` can be rendered without
+applying it**, exactly as XP's own Display Properties previews. The first
+measurement is Royale's push button (SizingMargins 8,8,9,9, content inset 3,
+matching Appendix A), and it already set a rule for the Phase 2 gate: compare
+renders *composited* over black and white, because un-premultiplying is only
+exact to ±1. Two transport dead ends are recorded in `refharness/README.md`.
