@@ -63,6 +63,9 @@ install(TARGETS xplasma LIBRARY DESTINATION qt${QT_MAJOR}/styles)
 add_executable(xplasma-probe tools/probe.cpp)
 target_link_libraries(xplasma-probe PRIVATE ${QT}::Widgets)
 
+add_executable(xplasma-gallery tools/gallery.cpp)
+target_link_libraries(xplasma-gallery PRIVATE ${QT}::Widgets)
+
 add_executable(xplasma-render tools/render.cpp)
 target_link_libraries(xplasma-render PRIVATE stdc++ xplasma-core)
 
