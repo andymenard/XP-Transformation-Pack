@@ -1,0 +1,46 @@
+# XPLasma native: the msstyles core, renderer and Qt style plugin.
+#
+# One source tree, built once per Qt major:
+#   cmake -S native -B native/build-qt6 -G Ninja -DQT_MAJOR=6
+#   cmake -S native -B native/build-qt5 -G Ninja -DQT_MAJOR=5
+#
+# Only public Qt API is allowed (no *Private targets, no _p.h headers). That is
+# what lets a plugin built against the oldest supported Qt of a major load into
+# every newer one -- see PLAN.md, D1.
+cmake_minimum_required(VERSION 3.16)
+project(xplasma LANGUAGES CXX)
+
+set(QT_MAJOR 6 CACHE STRING "Qt major version to build against (5 or 6)")
+set_property(CACHE QT_MAJOR PROPERTY STRINGS 5 6)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_AUTOMOC ON)
+# Hidden by default: the plugin is loaded into every Qt process on the desktop
+# and must never interpose on (or be interposed by) another library's symbols.
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE RelWithDebInfo)
+endif()
+
+find_package(Qt${QT_MAJOR} REQUIRED COMPONENTS Core Gui Widgets)
+set(QT Qt${QT_MAJOR})
+
+add_compile_options(-Wall -Wextra)
+add_compile_definitions(QT_NO_KEYWORDS QT_USE_QSTRINGBUILDER)
+
+# --- the style plugin ---------------------------------------------------------
+add_library(xplasma MODULE
+  style/plugin.cpp
+  style/xplasmastyle.cpp
+)
+target_link_libraries(xplasma PRIVATE ${QT}::Widgets)
+set_target_properties(xplasma PROPERTIES PREFIX "lib" OUTPUT_NAME xplasma)
+# Installs where app/widget_style.py looks for the prebuilt plugin:
+#   <prefix>/qt<N>/styles/libxplasma.so   (prefix: app/plugins in a checkout)
+install(TARGETS xplasma LIBRARY DESTINATION qt${QT_MAJOR}/styles)
+
+# --- tools --------------------------------------------------------------------
+add_executable(xplasma-probe tools/probe.cpp)
+target_link_libraries(xplasma-probe PRIVATE ${QT}::Widgets)

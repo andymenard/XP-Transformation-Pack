@@ -478,3 +478,33 @@ or generator comments. In XPLasma each becomes plain behaviour with a test.
   the session); use write-then-rename.
 - **Performance.** `pefile` needs `fast_load` plus the resource directory only
   (89 s → 0.3 s warm for the index).
+
+---
+
+## 11. Phase 0 results
+
+**0.1 — done.** Two commits: a verbatim import, then the adaptation. The
+carried suites pass as they did in xp2plasma (119/119 editor checks; the only
+failing suite, `test_tray_click`, failed identically before). XPLasma adopts
+xp2plasma's asset library, schemes and 647 MB of downloads in place.
+
+**0.3 — D1 holds on the host side.** The spike plugin (`native/`, a
+`QProxyStyle` over "Windows") built in the dev container:
+
+| Loaded into | Qt | Result |
+| --- | --- | --- |
+| Host probe (Qt 6 build) | 6.9.1 | ✔ drawn by XPLasma |
+| Host probe (Qt 5 build) | 5.15.17 | ✔ drawn by XPLasma |
+| **Editor's pip PySide6** | **6.11.2** | ✔ created and drawn: this is what `xp_style.py` and `system_qt.py` existed to work around, and it's gone |
+
+The plugin needs only `Qt_6` symbols plus the `Qt_6.9` build-floor tag, and
+exports nothing but Qt's two plugin entry points. *Still open:* the portable
+build against Qt 6.6.3 / 5.15.2 official binaries (release container).
+
+**0.5 — KDE re-creates the style on every StyleChanged, even when the name is
+unchanged.** Measured with a probe on its own `XDG_CONFIG_HOME`: unchanged
+XPLasma → new instance; Fusion → Fusion; XPLasma → new instance; unchanged →
+new instance. So in KDE apps, a live theme switch needs only an updated
+`xplasmarc` plus the broadcast xp2plasma already sends. That gives a fresh
+style, full re-polish and relayout for free. The plugin's own config watcher
+(§4.3) is only needed for Qt apps without the KDE platform theme.
