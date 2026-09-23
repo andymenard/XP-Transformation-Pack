@@ -475,6 +475,19 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
         sb.cbSize = sizeof sb;
         if (GetScrollBarInfo(ctl, OBJID_CLIENT, &sb))
             out(L"geometry %s line=%d thumb=%d,%d\r\n", kind, sb.dxyLineButton, sb.xyThumbTop, sb.xyThumbBottom);
+    } else if (!lstrcmpW(cls, WC_LISTVIEWW)) {
+        RECT item, hdr;
+        HWND header = (HWND)SendMessageW(ctl, LVM_GETHEADER, 0, 0);
+        item.left = LVIR_BOUNDS;
+        SendMessageW(ctl, LVM_GETITEMRECT, 0, (LPARAM)&item);
+        GetClientRect(header, &hdr);
+        out(L"geometry %s item0=%d,%d,%d,%d header=%dx%d\r\n", kind, item.left, item.top, item.right, item.bottom,
+            hdr.right, hdr.bottom);
+    } else if (!lstrcmpW(cls, WC_TREEVIEWW)) {
+        out(L"geometry %s itemheight=%d indent=%d\r\n", kind, (int)SendMessageW(ctl, TVM_GETITEMHEIGHT, 0, 0),
+            (int)SendMessageW(ctl, TVM_GETINDENT, 0, 0));
+    } else if (!lstrcmpW(cls, L"LISTBOX")) {
+        out(L"geometry %s itemheight=%d\r\n", kind, (int)SendMessageW(ctl, LB_GETITEMHEIGHT, 0, 0));
     } else if (!lstrcmpW(cls, L"EDIT")) {
         RECT fr;
         SendMessageW(ctl, EM_GETRECT, 0, (LPARAM)&fr);

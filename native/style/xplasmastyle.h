@@ -68,6 +68,7 @@ private:
     QRect xpTabRect(const QStyleOptionTab *tab) const;
     int xpTextHeight(const QFont &font) const;
     QString frameClass(const QWidget *widget) const;
+    int itemRowExtra(const QWidget *widget) const;
     QSize sliderThumbSize(const QStyleOptionSlider *slider) const;
 
     std::unique_ptr<xpl::Renderer> m_renderer;

@@ -631,6 +631,10 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
                 return ok ? border : 1;
             }
             break;
+        case PM_TreeViewIndentation:
+            if (hasPart({QStringLiteral("treeview"), 0, Normal, {}}))
+                return 19;   // TVM_GETINDENT
+            break;
         case PM_CheckBoxLabelSpacing:
         case PM_RadioButtonLabelSpacing:
             return 3;   // XP: a 13px box, then the label at x = 16
@@ -662,6 +666,27 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
 {
     if (m_renderer) {
         switch (type) {
+        case CT_ItemViewItem:
+            if (const int extra = itemRowExtra(widget); extra >= 0 && hasPart({QStringLiteral("listview"), 0, Normal, {}})) {
+                // XP's row heights follow the text height (13 for Tahoma 8):
+                // list box 13, report list view 14, tree view 16
+                // (LB_GETITEMHEIGHT, LVM_GETITEMRECT, TVM_GETITEMHEIGHT).
+                QSize s = QProxyStyle::sizeFromContents(type, option, size, widget);
+                const int row = xpTextHeight(widget ? widget->font() : QApplication::font()) + extra;
+                if (const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option))
+                    if (item->decorationSize.height() > row && (item->features & QStyleOptionViewItem::HasDecoration))
+                        return s;   // a larger icon wins, as it does in XP
+                s.setHeight(row);
+                return s;
+            }
+            break;
+        case CT_HeaderSection:
+            if (hasPart({QStringLiteral("header"), 1, Normal, {}})) {
+                QSize s = QProxyStyle::sizeFromContents(type, option, size, widget);
+                s.setHeight(xpTextHeight(widget ? widget->font() : QApplication::font()) + 7);   // 20 for Tahoma 8
+                return s;
+            }
+            break;
         case CT_TabBarTab:
             if (const auto *tab = qstyleoption_cast<const QStyleOptionTab *>(option)) {
                 if (hasPart({QStringLiteral("tab"), 1, 1, {}})
@@ -728,6 +753,24 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
         return QProxyStyle::subElementRect(SE_ProgressBarGroove, option, widget);
     }
     return QProxyStyle::subElementRect(element, option, widget);
+}
+
+// How much taller than the text XP's rows are in this item view: a tree
+// view (decorated root) +3, a report-style list (a QTreeView without root
+// decoration, or a table) +1, a plain list box 0; -1 when unknown.
+int XPLasmaStyle::itemRowExtra(const QWidget *widget) const
+{
+    for (const QWidget *w = widget; w; w = w->parentWidget()) {
+        if (w->inherits("QTreeView"))
+            return w->property("rootIsDecorated").toBool() ? 3 : 1;
+        if (w->inherits("QTableView"))
+            return 1;
+        if (w->inherits("QListView"))
+            return 0;
+        if (w->inherits("QAbstractItemView"))
+            return -1;
+    }
+    return -1;
 }
 
 // The theme class that frames `widget`'s client edge, or empty for the
