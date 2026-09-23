@@ -121,7 +121,9 @@ def run(job_text: str, outdir: str, styles: list[str], timeout: float = 120.0, p
         name = os.path.basename(style)
         with open(style, "rb") as fh:
             files[name] = fh.read()
-        job_text = job_text.replace(f"{{style:{name}}}", f"{guest_dir}\\in\\{name}")
+        # {style:NAME} and {file:NAME} both name a carried file inside the VM.
+        for kind in ("style", "file"):
+            job_text = job_text.replace(f"{{{kind}:{name}}}", f"{guest_dir}\\in\\{name}")
     for tool in ("uxdump.exe", "xput.exe"):
         with open(os.path.join(HERE, "build", tool), "rb") as fh:
             files[tool] = fh.read()
@@ -185,7 +187,8 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("job")
     ap.add_argument("outdir")
-    ap.add_argument("--style", action="append", default=[], help="a .msstyles to carry into the VM")
+    ap.add_argument("--style", "--file", action="append", default=[], dest="style",
+                    help="a file (.msstyles, .bmp, ...) to carry into the VM; refer to it as {style:NAME} or {file:NAME}")
     ap.add_argument("--timeout", type=float, default=120.0)
     args = ap.parse_args(argv[1:])
     with open(args.job, encoding="utf-8") as fh:

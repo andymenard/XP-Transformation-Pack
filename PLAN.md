@@ -129,9 +129,13 @@ and bitmap hashes, and the dumps must match. Fixes to the cascade (below) land
 in both.
 
 **D5. Faithful uxtheme cascade**, including the parts the Python parser skips.
-Lookup order for (subclass, class, part, state, property):
-`Sub::Class.Part(State)` → `Sub::Class.Part` → `Sub::Class(State)`
-→ `Sub::Class` → the same four without `Sub::` → `[Globals]`.
+Lookup order for (subclass, class, part, state, property), as Wine's uxtheme
+implements XP's: **(part, state)**, then **(part, 0)**, then **(0, 0)**, each
+tried along the override chain `Sub::Class` → `Class` → `[Globals]` before
+moving to the next. A class-level `[Class(State)]` section is the (0, state)
+step, so it applies to the class's part 0 only. *(Corrected 2026-09-23;
+the first draft had a different order from memory. The oracle arbitrates any
+remaining doubt.)*
 Today's parser files `[ComboBox(Disabled)]` and `[Toolbar(Pressed)]` as
 *classes* named `combobox(disabled)` and `toolbar(pressed)`. Luna has several
 such sections, and fixing that is part of this work.
@@ -533,3 +537,15 @@ measurement is Royale's push button (SizingMargins 8,8,9,9, content inset 3,
 matching Appendix A), and it already set a rule for the Phase 2 gate: compare
 renders *composited* over black and white, because un-premultiplying is only
 exact to ±1. Two transport dead ends are recorded in `refharness/README.md`.
+
+**Phase 1 — core, first pass (2026-09-23).** `native/core/`: a bounds-checked
+PE resource reader, a DIB decoder, the INI model with D5's cascade, and
+`Theme`. `test-core` passes on Qt 6 and Qt 5. **Conformance: 128/128 styles
+(every variant, every section, every bitmap) read identically to
+xp2plasma's parser**, except 25 bitmaps in three formats where they disagree.
+All three went to XP's GDI through the oracle, and **the C++ core matched GDI
+exactly every time**, including a real Qt bug: its BMP reader leaves pixels an
+RLE stream never sets uninitialised, so the core decodes RLE itself (35/35
+corpus RLE bitmaps now match GDI). The oracle also showed that XP refuses
+unsigned fan styles (uxtheme's signature check), so uxtheme-level answers come
+from Microsoft's five styles. *Remaining for Phase 1:* fuzzing.

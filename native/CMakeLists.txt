@@ -30,6 +30,17 @@ set(QT Qt${QT_MAJOR})
 add_compile_options(-Wall -Wextra)
 add_compile_definitions(QT_NO_KEYWORDS QT_USE_QSTRINGBUILDER)
 
+# --- the core: .msstyles in, typed theme data out (QtCore + QtGui only) --------
+add_library(xplasma-core STATIC
+  core/pe.cpp
+  core/dib.cpp
+  core/ini.cpp
+  core/theme.cpp
+)
+target_include_directories(xplasma-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(xplasma-core PUBLIC ${QT}::Gui)
+set_target_properties(xplasma-core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 # --- the style plugin ---------------------------------------------------------
 add_library(xplasma MODULE
   style/plugin.cpp
@@ -40,7 +51,7 @@ add_library(xplasma MODULE
 # (_ZdlPvm@Qt_5): linked after Qt, the plugin binds it there and then fails
 # to resolve it on every distribution's Qt 5, which doesn't. check-abi.sh
 # guards against this whole class.
-target_link_libraries(xplasma PRIVATE stdc++ ${QT}::Widgets)
+target_link_libraries(xplasma PRIVATE stdc++ xplasma-core ${QT}::Widgets)
 set_target_properties(xplasma PROPERTIES PREFIX "lib" OUTPUT_NAME xplasma)
 # Installs where app/widget_style.py looks for the prebuilt plugin:
 #   <prefix>/qt<N>/styles/libxplasma.so   (prefix: app/plugins in a checkout)
@@ -49,3 +60,10 @@ install(TARGETS xplasma LIBRARY DESTINATION qt${QT_MAJOR}/styles)
 # --- tools --------------------------------------------------------------------
 add_executable(xplasma-probe tools/probe.cpp)
 target_link_libraries(xplasma-probe PRIVATE ${QT}::Widgets)
+
+add_executable(xplasma-dump tools/dump.cpp)
+target_link_libraries(xplasma-dump PRIVATE stdc++ xplasma-core)
+
+# --- tests ------------------------------------------------------------------------
+add_executable(test-core tests/test_core.cpp)
+target_link_libraries(test-core PRIVATE stdc++ xplasma-core)

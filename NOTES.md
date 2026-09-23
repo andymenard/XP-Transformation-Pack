@@ -5,6 +5,22 @@ Each says where it came from, so it can be picked up without re-deriving it.
 
 ## Open
 
+- **xp2plasma's parser (Pillow) mis-decodes three DIB formats** (found by the
+  conformance test, settled by XP's GDI through the oracle, 2026-09-23): RLE4/
+  RLE8 (undecodable; 35 corpus bitmaps, used by 10 fan styles' grippers and
+  Luna Beta's scroll shaft), 16 bpp 5-5-5 (channel expansion off), and 8 bpp
+  with a short black/white palette (drawn black instead of white). The C++
+  core matches GDI on all of them. The generators don't draw these parts
+  today, so it's low impact, but per PLAN D4 `msstyles_parse._dib_to_image`
+  should decode them the same way (RLE by hand, 5-5-5 by bit replication,
+  palettes by index).
+- **XP won't open unsigned (fan) styles** in the oracle: `OpenThemeFile`
+  returns E_FAIL for Viatz and Professional even with default colour and size,
+  consistent with uxtheme's signature check. The VM stays unpatched (the
+  theme-transfer README's rule), so uxtheme-level oracle answers come from
+  Microsoft's five styles; GDI-level questions (decoding, keying) work for
+  any bitmap.
+
 - **Wallpaper import drops XP's tiled wallpapers** (found 2026-09-23, carrying
   over tests). `setup_assets._prune_non_wallpapers` filters by *size*, so the
   small tile bitmaps XP listed in Background (Blue Lace 16, Coffee Bean, Soap

@@ -5,10 +5,17 @@
  * job.txt, one directive per line ('#' starts a comment):
  *
  *   style  C:\path\Royale.msstyles  NormalColor  NormalSize
- *          -- load a visual style that need not be applied (see below)
+ *          -- load a visual style that need not be applied (see below);
+ *             colour and size are COLORNAMES/SIZENAMES entries, or "-" for
+ *             the style's default
  *   style  -   -- use whatever style is applied to the session
  *   part   <Class> <partId> <stateId> <width> <height>
  *          -- draw it and record uxtheme's metrics for it
+ *   bitmap C:\path\file.bmp
+ *          -- GDI as the oracle for DIB decoding: load the file, blit it into
+ *             a 32bpp DIB as-is (bitmap_<name>_plain), then through
+ *             TransparentBlt with the magenta key over black and white
+ *             (bitmap_<name>_keyed_black / _white) -- how uxtheme keys
  *
  * For every `part` line the output directory gets
  *   s<N>_<Class>_<part>_<state>_<w>x<h>_black.bmp   drawn over opaque black
@@ -36,6 +43,8 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <uxtheme.h>
+
+WINGDIAPI BOOL WINAPI GdiTransparentBlt(HDC, int, int, int, int, HDC, int, int, int, int, UINT);
 
 #ifndef TMT_SIZINGMARGINS
 #define TMT_SIZINGMARGINS 3601
@@ -197,6 +206,69 @@ static void do_part(const wchar_t *cls, int part, int state, int w, int h, const
     CloseThemeData(theme);
 }
 
+/* One 32bpp top-down DIB section over a solid colour; returns its DC. */
+static HDC canvas(int w, int h, COLORREF bg, void **bits, HBITMAP *bmp)
+{
+    BITMAPINFO bi;
+    HDC dc = CreateCompatibleDC(NULL);
+    RECT rc;
+    HBRUSH brush;
+    ZeroMemory(&bi, sizeof bi);
+    bi.bmiHeader.biSize = sizeof bi.bmiHeader;
+    bi.bmiHeader.biWidth = w;
+    bi.bmiHeader.biHeight = -h;
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+    *bmp = CreateDIBSection(dc, &bi, DIB_RGB_COLORS, bits, NULL, 0);
+    SelectObject(dc, *bmp);
+    SetRect(&rc, 0, 0, w, h);
+    brush = CreateSolidBrush(bg);
+    FillRect(dc, &rc, brush);
+    DeleteObject(brush);
+    return dc;
+}
+
+static void do_bitmap(const wchar_t *file, const wchar_t *outdir)
+{
+    HBITMAP src = (HBITMAP)LoadImageW(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE | LR_CREATEDIBSECTION);
+    BITMAP info;
+    HDC from;
+    const wchar_t *name = file, *p;
+    wchar_t path[MAX_PATH];
+    int i;
+    static const struct { const wchar_t *suffix; COLORREF bg; int keyed; } passes[] = {
+        {L"plain", RGB(0, 0, 0), 0}, {L"keyed_black", RGB(0, 0, 0), 1}, {L"keyed_white", RGB(255, 255, 255), 1},
+    };
+    for (p = file; *p; p++)
+        if (*p == L'\\') name = p + 1;
+    if (!src) {
+        out(L"bitmap %s error=load-failed(%lu)\r\n", name, GetLastError());
+        return;
+    }
+    GetObjectW(src, sizeof info, &info);
+    from = CreateCompatibleDC(NULL);
+    SelectObject(from, src);
+    for (i = 0; i < 3; i++) {
+        void *bits;
+        HBITMAP bmp;
+        HDC dc = canvas(info.bmWidth, info.bmHeight, passes[i].bg, &bits, &bmp);
+        if (passes[i].keyed)
+            GdiTransparentBlt(dc, 0, 0, info.bmWidth, info.bmHeight, from, 0, 0, info.bmWidth, info.bmHeight,
+                              RGB(255, 0, 255));
+        else
+            BitBlt(dc, 0, 0, info.bmWidth, info.bmHeight, from, 0, 0, SRCCOPY);
+        GdiFlush();
+        wsprintfW(path, L"%s\\bitmap_%s_%s.bmp", outdir, name, passes[i].suffix);
+        write_bmp(path, (const DWORD *)bits, info.bmWidth, info.bmHeight);
+        DeleteDC(dc);
+        DeleteObject(bmp);
+    }
+    out(L"bitmap %s %dx%d bpp=%d\r\n", name, info.bmWidth, info.bmHeight, info.bmBitsPixel);
+    DeleteDC(from);
+    DeleteObject(src);
+}
+
 static int do_style(const wchar_t *file, const wchar_t *colour, const wchar_t *size)
 {
     HRESULT hr;
@@ -213,7 +285,9 @@ static int do_style(const wchar_t *file, const wchar_t *colour, const wchar_t *s
         out(L"# error: uxtheme has no OpenThemeFile/OpenThemeDataFromFile ordinals\r\n");
         return 0;
     }
-    hr = pOpenThemeFile(file, colour, size, &themeFile, 0);
+    /* "-" asks for the style's own default, as XP passes NULL. */
+    hr = pOpenThemeFile(file, lstrcmpW(colour, L"-") ? colour : NULL, lstrcmpW(size, L"-") ? size : NULL,
+                        &themeFile, 0);
     out(L"# style s%d: %s %s %s hr=0x%08lx\r\n", styleIndex, file, colour, size, (unsigned long)hr);
     if (FAILED(hr)) {
         themeFile = NULL;
@@ -294,6 +368,11 @@ static int run(int argc, wchar_t **argv)
             continue;
         if (lstrcmpW(tok[0], L"part") == 0 && n == 6) {
             do_part(tok[1], to_int(tok[2]), to_int(tok[3]), to_int(tok[4]), to_int(tok[5]), argv[2]);
+        } else if (lstrcmpW(tok[0], L"bitmap") == 0 && n >= 2) {
+            int i;
+            for (i = 2; i < n; i++)
+                tok[i][-1] = L' ';
+            do_bitmap(tok[1], argv[2]);
         } else if (lstrcmpW(tok[0], L"style") == 0 && n == 2 && lstrcmpW(tok[1], L"-") == 0) {
             do_style(L"-", NULL, NULL);
         } else if (lstrcmpW(tok[0], L"style") == 0 && n >= 4) {
