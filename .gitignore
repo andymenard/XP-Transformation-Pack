@@ -22,4 +22,7 @@ __pycache__/
 app/schemes/user/
 app/plugins/
 refharness/share/
+# (.theme files XPLasma writes itself: a test scheme, and XP's stock Classic
+# schemes -- names and numbers, as app/schemes/xp_classic_schemes.json had them.)
 !tests/oracle/schemes/*.theme
+!src/app/data/schemes/*.theme

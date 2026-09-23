@@ -1,6 +1,7 @@
 #include "xplasmastyle.h"
 
 #include "core/schema.h"
+#include "core/themefile.h"
 
 #include <QAbstractButton>
 #include <cstring>
@@ -81,102 +82,18 @@ std::pair<QString, QString> configuredTheme()
     return {settings.value(QStringLiteral("Path")).toString(), settings.value(QStringLiteral("Variant")).toString()};
 }
 
-// A LOGFONTA in a NONCLIENTMETRICSA blob as a SysMetrics font spec
-// ("Tahoma, 8, bold").
-static QString logFontSpec(const QByteArray &blob, int offset)
+// Windows Classic: the colour scheme a .theme holds. [XPLasma] ScrollWidth
+// overrides NonclientMetrics' scroll bar size (what the Python app writes).
+std::optional<xpl::ClassicScheme> loadScheme(const QString &path)
 {
-    if (blob.size() < offset + 60)
-        return QString();
-    auto i32 = [&](int at) { return qFromLittleEndian<qint32>(blob.constData() + at); };
-    const int height = i32(offset), weight = i32(offset + 16);
-    const QString face = QString::fromLatin1(blob.constData() + offset + 28, int(qstrnlen(blob.constData() + offset + 28, 32)));
-    const int points = height < 0 ? qRound(-height * 72.0 / 96.0) : height;
-    return QStringLiteral("%1, %2%3").arg(face).arg(points).arg(weight >= 600 ? QStringLiteral(", bold") : QString());
-}
-
-// A colour scheme's [Control Panel\Colors] from a .theme file (Windows
-// Classic and its schemes): lower-cased key -> colour. Into `metrics`, its
-// [Metrics] NonclientMetrics (NONCLIENTMETRICSA) under the names a visual
-// style's [SysMetrics] uses, and what XPLasma adds ([XPLasma] ScrollWidth);
-// into `fonts`, the caption and menu fonts.
-QHash<QString, QColor> schemeColours(const QString &path, QHash<QString, int> *metrics = nullptr,
-                                     QHash<QString, QString> *fonts = nullptr)
-{
-    QHash<QString, QColor> colours;
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly))
-        return colours;
-    bool inColours = false, inOurs = false, inMetrics = false;
-    for (const QByteArray &raw : file.readAll().split('\n')) {
-        const QString line = QString::fromLatin1(raw).trimmed();
-        if (line.startsWith(QLatin1Char('['))) {
-            inColours = line.compare(QLatin1String("[Control Panel\\Colors]"), Qt::CaseInsensitive) == 0;
-            inOurs = line.compare(QLatin1String("[XPLasma]"), Qt::CaseInsensitive) == 0;
-            inMetrics = line.compare(QLatin1String("[Metrics]"), Qt::CaseInsensitive) == 0;
-        } else if (inMetrics && metrics && line.section(QLatin1Char('='), 0, 0).trimmed().compare(
-                                               QLatin1String("NonclientMetrics"), Qt::CaseInsensitive) == 0) {
-            QByteArray blob;
-            for (const QString &b : line.section(QLatin1Char('='), 1).simplified().split(QLatin1Char(' ')))
-                blob.append(char(b.toInt()));
-            if (blob.size() >= 340) {
-                auto i32 = [&](int at) { return qFromLittleEndian<qint32>(blob.constData() + at); };
-                const struct { const char *name; int offset; } fields[] = {
-                    {"sizingborderwidth", 4}, {"scrollbarwidth", 8}, {"scrollbarheight", 12},
-                    {"captionbarwidth", 16}, {"captionbarheight", 20}, {"smcaptionbarwidth", 84},
-                    {"smcaptionbarheight", 88}, {"menubarwidth", 152}, {"menubarheight", 156},
-                };
-                for (const auto &f : fields)
-                    if (const int v = i32(f.offset); v > 0 && v < 512)
-                        metrics->insert(QLatin1String(f.name), v);
-                if (fonts) {
-                    fonts->insert(QStringLiteral("captionfont"), logFontSpec(blob, 24));
-                    fonts->insert(QStringLiteral("smallcaptionfont"), logFontSpec(blob, 92));
-                    fonts->insert(QStringLiteral("menufont"), logFontSpec(blob, 160));
-                    fonts->insert(QStringLiteral("statusfont"), logFontSpec(blob, 220));
-                    fonts->insert(QStringLiteral("msgboxfont"), logFontSpec(blob, 280));
-                }
-            }
-        } else if (inOurs && metrics && line.contains(QLatin1Char('='))) {
-            bool ok = false;
-            const int v = line.section(QLatin1Char('='), 1).trimmed().toInt(&ok);
-            const QString key = line.section(QLatin1Char('='), 0, 0).trimmed().toLower();
-            if (ok && v > 0 && key == QLatin1String("scrollwidth")) {
-                metrics->insert(QStringLiteral("scrollbarwidth"), v);
-                metrics->insert(QStringLiteral("scrollbarheight"), v);
-            }
-        } else if (inColours && line.contains(QLatin1Char('='))) {
-            const QStringList rgb = line.section(QLatin1Char('='), 1).simplified().split(QLatin1Char(' '));
-            if (rgb.size() == 3)
-                colours.insert(line.section(QLatin1Char('='), 0, 0).trimmed().toLower(),
-                               QColor(rgb[0].toInt(), rgb[1].toInt(), rgb[2].toInt()));
-        }
-    }
-    return colours;
-}
-
-// SysMetrics colour names (as a visual style spells them) -> the scheme's.
-QString schemeKey(QStringView name)
-{
-    static const QHash<QString, QString> keys = {
-        {QStringLiteral("btnface"), QStringLiteral("buttonface")},
-        {QStringLiteral("btnhighlight"), QStringLiteral("buttonhilight")},
-        {QStringLiteral("btnshadow"), QStringLiteral("buttonshadow")},
-        {QStringLiteral("btntext"), QStringLiteral("buttontext")},
-        {QStringLiteral("dkshadow3d"), QStringLiteral("buttondkshadow")},
-        {QStringLiteral("light3d"), QStringLiteral("buttonlight")},
-        {QStringLiteral("highlight"), QStringLiteral("hilight")},
-        {QStringLiteral("highlighttext"), QStringLiteral("hilighttext")},
-        {QStringLiteral("infobk"), QStringLiteral("infowindow")},
-        {QStringLiteral("activecaption"), QStringLiteral("activetitle")},
-        {QStringLiteral("captiontext"), QStringLiteral("titletext")},
-        {QStringLiteral("inactivecaption"), QStringLiteral("inactivetitle")},
-        {QStringLiteral("inactivecaptiontext"), QStringLiteral("inactivetitletext")},
-        {QStringLiteral("gradientactivecaption"), QStringLiteral("gradientactivetitle")},
-        {QStringLiteral("gradientinactivecaption"), QStringLiteral("gradientinactivetitle")},
-        {QStringLiteral("hottracking"), QStringLiteral("hottrackingcolor")},
-    };
-    const QString key = name.toString().toLower();
-    return keys.value(key, key);
+    const auto file = xpl::ThemeFile::load(path);
+    if (!file || !file->hasSection(u"Control Panel\\Colors"))
+        return std::nullopt;
+    xpl::ClassicScheme scheme = xpl::ClassicScheme::fromThemeFile(*file);
+    bool ok = false;
+    if (const int v = file->value(u"XPLasma", u"ScrollWidth").toInt(&ok); ok && v > 0 && v < 512)
+        scheme.metrics.scrollWidth = scheme.metrics.scrollHeight = v;
+    return scheme;
 }
 
 } // namespace
@@ -244,9 +161,7 @@ void XPLasmaStyle::reloadIfChanged()
         return;
     m_loaded = now;
     m_renderer.reset();
-    m_scheme.clear();
-    m_schemeMetrics.clear();
-    m_schemeFonts.clear();
+    m_scheme.reset();
     loadTheme();
     m_cache.clear();
     if (!qApp)
@@ -272,8 +187,8 @@ void XPLasmaStyle::loadTheme()
         return;
     if (path.endsWith(QLatin1String(".theme"), Qt::CaseInsensitive)) {
         // Windows Classic: no visual style, a colour scheme.
-        m_scheme = schemeColours(path, &m_schemeMetrics, &m_schemeFonts);
-        if (m_scheme.isEmpty())
+        m_scheme = loadScheme(path);
+        if (!m_scheme)
             qWarning("XPLasma: no [Control Panel\\Colors] in %s", qPrintable(path));
         return;
     }
@@ -380,8 +295,8 @@ QColor XPLasmaStyle::themeColour(const PartRef &ref, QStringView property, const
 
 QColor XPLasmaStyle::sysColour(QStringView name, const QColor &fallback) const
 {
-    if (!m_renderer && !m_scheme.isEmpty())
-        return m_scheme.value(schemeKey(name), fallback);
+    if (classic())
+        return xpl::ClassicScheme::colourIndex(name) >= 0 ? m_scheme->colour(name) : fallback;
     QRgb rgb;
     if (m_renderer && xpl::parseColour(m_renderer->theme().property(u"sysmetrics", u"", u"", name).value_or(QString()), &rgb))
         return QColor(rgb);
@@ -409,18 +324,44 @@ static QFont fontFromMetric(const QString &spec, const QFont &fallback)
 // A SysMetrics font ("captionfont"...): the style's, or the scheme's.
 QFont XPLasmaStyle::sysFont(QStringView name, const QFont &fallback) const
 {
+    if (classic()) {
+        const xpl::NonClientMetrics &m = m_scheme->metrics;
+        const xpl::LogFont *lf = name == u"captionfont"        ? &m.captionFont
+                                 : name == u"smallcaptionfont" ? &m.smCaptionFont
+                                 : name == u"menufont"         ? &m.menuFont
+                                 : name == u"statusfont"       ? &m.statusFont
+                                 : name == u"msgboxfont"       ? &m.messageFont
+                                 : name == u"iconfont"         ? &m_scheme->icons.font
+                                                               : nullptr;
+        if (!lf || lf->face.isEmpty())
+            return fallback;
+        QFont font(lf->face);
+        font.setPointSize(lf->points());
+        font.setBold(lf->bold());
+        return font;
+    }
     QString spec;
-    if (classic())
-        spec = m_schemeFonts.value(name.toString());
-    else if (m_renderer)
+    if (m_renderer)
         spec = m_renderer->theme().property(u"sysmetrics", u"", u"", name).value_or(QString());
     return fontFromMetric(spec, fallback);
 }
 
 int XPLasmaStyle::sysMetric(QStringView name, int fallback) const
 {
-    if (classic())
-        return m_schemeMetrics.value(name.toString(), fallback);
+    if (classic()) {
+        const xpl::NonClientMetrics &m = m_scheme->metrics;
+        const int v = name == u"sizingborderwidth"    ? m.borderWidth
+                      : name == u"scrollbarwidth"     ? m.scrollWidth
+                      : name == u"scrollbarheight"    ? m.scrollHeight
+                      : name == u"captionbarwidth"    ? m.captionWidth
+                      : name == u"captionbarheight"   ? m.captionHeight
+                      : name == u"smcaptionbarwidth"  ? m.smCaptionWidth
+                      : name == u"smcaptionbarheight" ? m.smCaptionHeight
+                      : name == u"menubarwidth"       ? m.menuWidth
+                      : name == u"menubarheight"      ? m.menuHeight
+                                                      : 0;
+        return v > 0 ? v : fallback;
+    }
     bool ok = false;
     const int v = m_renderer ? m_renderer->theme().property(u"sysmetrics", u"", u"", name).value_or(QString()).toInt(&ok) : 0;
     return ok && v > 0 ? v : fallback;
@@ -430,7 +371,7 @@ int XPLasmaStyle::sysMetric(QStringView name, int fallback) const
 
 QPalette XPLasmaStyle::standardPalette() const
 {
-    if (!m_renderer && m_scheme.isEmpty())
+    if (!m_renderer && !m_scheme)
         return QProxyStyle::standardPalette();
     // XP's system colours from the style. (In a Plasma session the colour
     // scheme XPLasma generates from the same SysMetrics is what apps use.)

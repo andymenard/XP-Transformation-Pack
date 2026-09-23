@@ -1,13 +1,13 @@
 // xplasma: the command line.
 //
 //   xplasma --version
-//   xplasma list [--json]      the visual styles in the library, with their colours
+//   xplasma list [--json]      the library: visual styles, themes, Classic schemes
 //
 // (apply, widgets, reset and setup arrive with the phases that build them.)
 #include "app/adopt.h"
+#include "app/library.h"
 #include "app/paths.h"
 #include "app/state.h"
-#include "core/theme.h"
 
 #include <QCommandLineParser>
 #include <QCoreApplication>
@@ -42,39 +42,48 @@ void adopt()
 int list(bool json)
 {
     adopt();
-    QJsonArray styles;
-    QDirIterator it(paths::themes(), {QStringLiteral("*.msstyles")}, QDir::Files, QDirIterator::Subdirectories);
-    QStringList files;
-    while (it.hasNext())
-        files << it.next();
-    files.sort(Qt::CaseInsensitive);
-    for (const QString &file : files) {
-        QString error;
-        const auto theme = Theme::load(file, QString(), &error);
-        QJsonObject style{{QStringLiteral("path"), file}};
-        if (!theme) {
-            style[QStringLiteral("error")] = error;
-        } else {
-            style[QStringLiteral("colours")] = QJsonArray::fromStringList(theme->variants().colourNames);
-            style[QStringLiteral("sizes")] = QJsonArray::fromStringList(theme->variants().sizeNames);
-        }
-        styles.append(style);
-    }
+    const Library lib = Library::scan();
+    const auto schemeList = schemes::list();
     if (json) {
-        out() << QJsonDocument(QJsonObject{{QStringLiteral("styles"), styles}}).toJson();
+        QJsonArray styles, themes, classic;
+        for (const StyleInfo &s : lib.styles)
+            styles.append(s.toJson());
+        for (const ThemeBundle &t : lib.themes)
+            themes.append(t.toJson());
+        for (const schemes::Entry &e : schemeList)
+            classic.append(QJsonObject{{QStringLiteral("name"), e.name}, {QStringLiteral("path"), e.path},
+                                       {QStringLiteral("stock"), e.stock}});
+        out() << QJsonDocument(QJsonObject{{QStringLiteral("styles"), styles},
+                                           {QStringLiteral("themes"), themes},
+                                           {QStringLiteral("schemes"), classic}})
+                     .toJson();
         return 0;
     }
-    if (styles.isEmpty())
-        out() << "no visual styles in " << paths::themes() << Qt::endl;
-    for (const QJsonValue &v : styles) {
-        const QJsonObject s = v.toObject();
-        out() << QDir(paths::themes()).relativeFilePath(s[QStringLiteral("path")].toString());
-        if (s.contains(QStringLiteral("error")))
-            out() << "  (unreadable: " << s[QStringLiteral("error")].toString() << ')';
-        else
-            out() << "  " << s[QStringLiteral("colours")].toVariant().toStringList().join(QStringLiteral(", "));
-        out() << Qt::endl;
+    out() << "Visual styles (" << paths::themes() << "):\n";
+    for (const StyleInfo &s : lib.styles) {
+        out() << "  " << s.label;
+        if (!s.readable()) {
+            out() << "  -- can't use: " << s.error << '\n';
+            continue;
+        }
+        QStringList colours;
+        for (const StyleOption &c : s.colours)
+            colours << c.label;
+        out() << ": " << colours.join(QStringLiteral(", ")) << '\n';
     }
+    out() << "Themes:\n";
+    for (const ThemeBundle &t : lib.themes) {
+        out() << "  " << t.label;
+        if (!t.styleMissing.isEmpty())
+            out() << "  -- its style isn't here (" << t.styleMissing << ')';
+        else if (t.classic())
+            out() << "  (Windows Classic)";
+        out() << '\n';
+    }
+    QStringList names;
+    for (const schemes::Entry &e : schemeList)
+        names << e.name + (e.stock ? QString() : QStringLiteral(" (yours)"));
+    out() << "Windows Classic schemes: " << names.join(QStringLiteral(", ")) << Qt::endl;
     return 0;
 }
 

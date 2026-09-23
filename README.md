@@ -18,9 +18,9 @@ xp2plasma into C++/Qt 6 on the same core; until that lands, the Python app in
 
 | Path | What |
 | --- | --- |
-| `src/core/` | The `.msstyles` reader (PE, DIB, INI cascade, schema) and the renderer, pixel-exact against XP. |
+| `src/core/` | The `.msstyles` reader (PE, DIB, INI cascade, schema) and the renderer, pixel-exact against XP; `.theme` files and Windows Classic schemes (NONCLIENTMETRICS, LOGFONT). |
 | `src/style/` | The Qt 5/6 style plugin, drawing every widget from the core. |
-| `src/app/` | The C++ app replacing `app/`: the library under everything (archives, host programs, state), and the `xplasma` CLI. |
+| `src/app/` | The C++ app replacing `app/`: the library under everything (archives, host programs, state, the theme library), and the `xplasma` CLI. `data/schemes/` holds XP's 36 stock Classic schemes, decoded from its `HIVEDEF.INF` by `xplasma-schemes`. |
 | `src/third_party/` | libarchive, built static and linked in (ZIP, RAR, 7z, TAR, XP's CAB-compressed files). |
 | `src/tools/` | `xplasma-render` (oracle renders, `--export`), `xplasma-dump`, `xplasma-gallery`, `xplasma-probe`. |
 | `tests/core/` | The core's unit test and fuzz targets, with their vectors. |
@@ -45,7 +45,7 @@ podman build -t xplasma-release:2  -f containers/release.Containerfile container
 
 Both install the style to `app/plugins/qt{6,5}/styles/libxplasma.so`. The
 Qt 6 tree also builds the C++ app: `build/dev-qt6/src/app/xplasma`
-(`--version`, `list`; more with each phase of the rewrite).
+(`--version`, `list [--json]`; more with each phase of the rewrite).
 
 A plugin built against Qt *6.N* loads into every Qt ≥ *6.N*, **provided** it
 uses only public Qt API and binds nothing else to Qt (the 6.6.3 build runs on

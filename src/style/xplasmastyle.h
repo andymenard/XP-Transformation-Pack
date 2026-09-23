@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/classic.h"
 #include "core/render.h"
 
 #include <QCache>
@@ -8,6 +9,7 @@
 #include <QStyleOption>
 
 #include <memory>
+#include <optional>
 
 // XPLasma's Qt style.
 //
@@ -54,7 +56,7 @@ public:
     // The theme in use, or nullptr (then everything is classic).
     const xpl::Renderer *renderer() const { return m_renderer.get(); }
     // Windows Classic: no visual style, a colour scheme's colours.
-    bool classic() const { return !m_renderer && !m_scheme.isEmpty(); }
+    bool classic() const { return !m_renderer && m_scheme.has_value(); }
 
 private Q_SLOTS:
     void reloadIfChanged();
@@ -124,9 +126,7 @@ private:
 
     std::unique_ptr<xpl::Renderer> m_renderer;
     bool m_safe = false;                   // XPLASMA_SAFE=1: classic only, draw nothing of our own
-    QHash<QString, QColor> m_scheme;       // Classic: the colour scheme's [Control Panel\Colors], keys lower-case
-    QHash<QString, int> m_schemeMetrics;   // Classic: NonclientMetrics / [XPLasma], by SysMetrics name
-    QHash<QString, QString> m_schemeFonts; // Classic: NonclientMetrics' fonts, as SysMetrics specs
+    std::optional<xpl::ClassicScheme> m_scheme;   // Classic: the colour scheme (a .theme's colours and metrics)
     mutable QCache<QString, QImage> m_cache; // rendered parts, keyed by part + size + dpi
     bool m_cues = false;                   // Alt held: show mnemonic underlines (XP's keyboard cues)
     QString m_configPath;                  // ~/.config/xplasmarc, when live

@@ -1,0 +1,40 @@
+[Theme]
+DisplayName=High Contrast Black (large)
+
+[Control Panel\Colors]
+Scrollbar=0 0 0
+Background=0 0 0
+ActiveTitle=128 0 128
+InactiveTitle=0 128 0
+Menu=0 0 0
+Window=0 0 0
+WindowFrame=255 255 255
+MenuText=255 255 255
+WindowText=255 255 255
+TitleText=255 255 255
+ActiveBorder=255 255 0
+InactiveBorder=0 128 0
+AppWorkspace=0 0 0
+Hilight=128 0 128
+HilightText=255 255 255
+ButtonFace=0 0 0
+ButtonShadow=128 128 128
+GrayText=0 255 0
+ButtonText=255 255 255
+InactiveTitleText=255 255 255
+ButtonHilight=192 192 192
+ButtonDkShadow=255 255 255
+ButtonLight=255 255 255
+InfoText=255 255 255
+InfoWindow=0 0 0
+ButtonAlternateFace=192 192 192
+HotTrackingColor=128 0 128
+GradientActiveTitle=128 0 128
+GradientInactiveTitle=0 128 0
+MenuHilight=128 0 128
+MenuBar=0 0 0
+
+[Metrics]
+IconMetrics=76 0 0 0 75 0 0 0 75 0 0 0 1 0 0 0 236 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 188 2 0 0 0 0 0 0 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+NonclientMetrics=84 1 0 0 6 0 0 0 28 0 0 0 28 0 0 0 31 0 0 0 31 0 0 0 232 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 188 2 0 0 0 0 0 0 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 26 0 0 0 26 0 0 0 236 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 188 2 0 0 0 0 0 0 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 30 0 0 0 30 0 0 0 232 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 144 1 0 0 0 0 0 0 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 236 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 144 1 0 0 0 0 0 0 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 232 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 144 1 0 0 0 0 0 0 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+

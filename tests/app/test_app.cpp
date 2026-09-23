@@ -5,9 +5,12 @@
 // real-media tests (skipped otherwise).
 #include "app/adopt.h"
 #include "app/archive.h"
+#include "app/hivedef.h"
 #include "app/host.h"
+#include "app/library.h"
 #include "app/paths.h"
 #include "app/state.h"
+#include "core/themefile.h"
 
 #include <QDir>
 #include <QFile>
@@ -117,6 +120,7 @@ class TestApp : public QObject
 
     QTemporaryDir m_home;
     QString m_realIso;
+    QString m_realThemes;   // the asset library's themes, for the real-style tests
 
 private Q_SLOTS:
     void initTestCase()
@@ -128,6 +132,8 @@ private Q_SLOTS:
             if (!isos.isEmpty() && m_realIso.isEmpty())
                 m_realIso = isos.first().absoluteFilePath();
         }
+        if (QFileInfo::exists(paths::themes() + QLatin1String("/Luna/luna.msstyles")))
+            m_realThemes = QFileInfo(paths::themes()).canonicalFilePath();
         QVERIFY(m_home.isValid());
         qputenv("HOME", QFile::encodeName(m_home.path()));
         QCOMPARE(paths::home(), m_home.path());
@@ -258,6 +264,230 @@ private Q_SLOTS:
         QVERIFY2(explorer, qPrintable(error));
         QVERIFY(explorer->startsWith("MZ"));
         QVERIFY(explorer->size() > 900000);
+    }
+
+
+    // --- the library ----------------------------------------------------------
+
+    void stockSchemes()
+    {
+        const auto list = schemes::list();
+        QCOMPARE(list.size(), 36);
+        QVERIFY(std::all_of(list.begin(), list.end(), [](const schemes::Entry &e) { return e.stock; }));
+        const auto standard = schemes::load(QStringLiteral("windows standard"));
+        QVERIFY(standard);
+        QCOMPARE(standard->name, QStringLiteral("Windows Standard"));
+        ClassicScheme fresh;   // XP's defaults, which are Windows Standard
+        fresh.name = standard->name;
+        QCOMPARE(standard->colours, fresh.colours);
+        QVERIFY(standard->metrics == fresh.metrics);
+        const auto brick = schemes::load(QStringLiteral("Brick"));
+        QVERIFY(brick);
+        QCOMPARE(brick->colour(u"ActiveTitle"), QColor(128, 0, 0));
+        QCOMPARE(brick->metrics.captionFont.face, QStringLiteral("Tahoma"));
+        QCOMPARE(brick->metrics.captionFont.points(), 9);
+        QVERIFY(!schemes::load(QStringLiteral("Nope")));
+
+        using Split = std::pair<QString, QString>;
+        QCOMPARE(schemes::split(QStringLiteral("Windows Standard (large)")),
+                 Split(QStringLiteral("Windows Standard"), QStringLiteral("LARGEFONTS")));
+        QCOMPARE(schemes::split(QStringLiteral("Pumpkin (large)")), Split(QStringLiteral("Pumpkin (large)"), QStringLiteral("NORMAL")));
+        const QStringList bases = schemes::bases();
+        QCOMPARE(bases.size(), 22);
+        QVERIFY(bases.contains(QStringLiteral("Pumpkin (large)")));
+        QVERIFY(!bases.contains(QStringLiteral("Lilac (large)")));
+        QVERIFY(schemes::sizeAvailable(QStringLiteral("Lilac"), QStringLiteral("LARGEFONTS")));
+        QVERIFY(!schemes::sizeAvailable(QStringLiteral("Brick"), QStringLiteral("LARGEFONTS")));
+        QVERIFY(schemes::sizeAvailable(QStringLiteral("Windows Classic"), QStringLiteral("EXTRALARGE")));
+    }
+
+    void stockSchemesAreXps()
+    {
+        // The shipped files are exactly what HIVEDEF.INF says.
+        if (m_realIso.isEmpty())
+            QSKIP("no XP ISO on this machine");
+        const auto inf = xpl::archive::read(m_realIso, QStringLiteral("I386/HIVEDEF.INF"));
+        QVERIFY(inf);
+        const auto fromXp = hivedef::schemes(*inf);
+        QCOMPARE(fromXp.size(), 36);
+        for (const ClassicScheme &s : fromXp) {
+            QFile shipped(QStringLiteral(":/schemes/") + s.name + QLatin1String(".theme"));
+            QVERIFY2(shipped.open(QIODevice::ReadOnly), qPrintable(s.name));
+            QCOMPARE(shipped.readAll(), hivedef::themeBytes(s));
+        }
+    }
+
+    void userSchemes()
+    {
+        ClassicScheme mine = *schemes::load(QStringLiteral("Brick"));
+        mine.name = QStringLiteral("Brick");
+        mine.setColour(u"Background", QColor(1, 2, 3));
+        QString path, error;
+        QVERIFY2(schemes::save(mine, &path, &error), qPrintable(error));
+        QVERIFY(path.startsWith(paths::schemes()));
+        // Yours hides XP's of the same name.
+        const auto list = schemes::list();
+        QCOMPARE(list.size(), 36);
+        QCOMPARE(schemes::load(QStringLiteral("Brick"))->colour(u"Background"), QColor(1, 2, 3));
+        mine.name = QStringLiteral("My / Own");
+        QVERIFY(schemes::save(mine));
+        QCOMPARE(schemes::list().size(), 37);
+        QVERIFY(schemes::load(QStringLiteral("My / Own")));
+        QVERIFY(schemes::remove(QStringLiteral("Brick")));
+        QVERIFY(!schemes::remove(QStringLiteral("Desert")));   // XP's own can't be deleted
+        QCOMPARE(schemes::load(QStringLiteral("Brick"))->colour(u"Background"), QColor(66, 0, 0));
+        mine.name = QStringLiteral("two\nlines");
+        QVERIFY(!schemes::save(mine, nullptr, &error));
+    }
+
+    void legacySchemes()
+    {
+        // xp2plasma's JSON for Brick, as its editor saved it.
+        const QByteArray json = R"({"Brick": {
+            "metrics": {"border": 1, "scroll": [13, 13], "caption": [18, 18], "smcaption": [15, 15], "menu": [18, 18]},
+            "fonts": {"caption": {"face": "Tahoma", "pt": 9, "bold": true, "italic": false},
+                      "menu": {"face": "Microsoft Sans Serif", "pt": 8, "bold": false, "italic": false}},
+            "colors": {"background": [66, 0, 0], "activetitle": [128, 0, 0], "hotlight": [128, 0, 0],
+                       "menuhilight_or_unused": [192, 192, 192]}}})";
+        const auto converted = schemes::fromLegacyJson(json);
+        QCOMPARE(converted.size(), 1);
+        const ClassicScheme &s = converted.first();
+        const ClassicScheme xp = *schemes::load(QStringLiteral("Brick"));
+        QCOMPARE(s.name, QStringLiteral("Brick"));
+        for (const char *c : {"Background", "ActiveTitle", "HotTrackingColor", "ButtonAlternateFace"})
+            QCOMPARE(s.colour(QString::fromLatin1(c)), xp.colour(QString::fromLatin1(c)));
+        QCOMPARE(s.metrics.scrollWidth, 13);
+        QCOMPARE(s.metrics.captionFont, xp.metrics.captionFont);
+        QCOMPARE(s.metrics.menuFont.face, QStringLiteral("Microsoft Sans Serif"));
+        QVERIFY(schemes::fromLegacyJson("not json").isEmpty());
+
+        // Adoption converts them.
+        writeFile(paths::legacyData() + QLatin1String("/schemes/user/brick.json"),
+                  QByteArray(json).replace("\"Brick\"", "\"Old Brick\""));
+        adoptLegacy();
+        QVERIFY(schemes::load(QStringLiteral("Old Brick")));
+    }
+
+    void assets()
+    {
+        const QString root = m_home.filePath(QStringLiteral("lib"));
+        writeFile(root + QLatin1String("/Foo.theme"), "[Theme]\r\n");
+        writeFile(root + QLatin1String("/Foo/Wall.BMP"), "mine");
+        writeFile(root + QLatin1String("/Bar/wall.bmp"), "sibling's");
+        writeFile(root + QLatin1String("/Only/deep/a/b/c/far.bmp"), "too deep");
+        writeFile(m_home.filePath(QStringLiteral("stock/bliss.jpg")), "jpg");
+        const QString theme = root + QLatin1String("/Foo.theme");
+
+        // The bundle's own folder first, by name, any case.
+        QCOMPARE(resolveAsset(theme, QStringLiteral("%WinDir%\\Web\\Wallpaper\\wall.bmp")), root + QLatin1String("/Foo/Wall.BMP"));
+        // Stock copies may differ in format, but only in the preferred places.
+        QCOMPARE(resolveAsset(theme, QStringLiteral("%WinDir%web\\wallpaper\\Bliss.bmp"), {m_home.filePath(QStringLiteral("stock"))}),
+                 m_home.filePath(QStringLiteral("stock/bliss.jpg")));
+        QCOMPARE(resolveAsset(theme, QStringLiteral("Bliss.bmp")), QString());
+        QCOMPARE(resolveAsset(theme, QStringLiteral("far.bmp")), QString());   // deeper than 3 below any root
+        // A saved preset's exact path is taken as it is.
+        QCOMPARE(resolveAsset(theme, root + QLatin1String("/Bar/wall.bmp")), root + QLatin1String("/Bar/wall.bmp"));
+        QCOMPARE(resolveAsset(theme, root + QLatin1String("/Bar/gone.bmp")), QString());
+        QCOMPARE(resolveAsset(theme, QString()), QString());
+    }
+
+    void fill_data()
+    {
+        QTest::addColumn<QByteArray>("desktop");
+        QTest::addColumn<int>("fill");   // -1: says nothing
+        QTest::newRow("stretch") << QByteArray("WallpaperStyle=2") << 0;
+        QTest::newRow("centre") << QByteArray("WallpaperStyle=0") << 6;
+        QTest::newRow("tile") << QByteArray("WallpaperStyle=0\nTileWallpaper=1") << 3;
+        QTest::newRow("fill") << QByteArray("WallpaperStyle=10") << 2;
+        QTest::newRow("unknown") << QByteArray("WallpaperStyle=7") << -1;
+        QTest::newRow("absent") << QByteArray("Wallpaper=x.bmp") << -1;
+    }
+
+    void fill()
+    {
+        QFETCH(QByteArray, desktop);
+        QFETCH(int, fill);
+        const auto got = wallpaperFill(ThemeFile::fromBytes("[Control Panel\\Desktop]\n" + desktop));
+        QCOMPARE(got.value_or(-1), fill);
+    }
+
+    void presetsSave()
+    {
+        presets::Preset p;
+        p.name = QStringLiteral("My Classic");
+        p.scheme = *schemes::load(QStringLiteral("Rose"));
+        p.desktop.wallpaper = QStringLiteral("/x/bliss.jpg");
+        p.desktop.fill = 3;
+        QString path, error;
+        QVERIFY2(presets::save(p, &path, &error), qPrintable(error));
+        QCOMPARE(path, paths::themes() + QLatin1String("/Saved/My-Classic.theme"));
+        QVERIFY(presets::owned(path));
+        const ThemeBundle b = Library::bundle(path);
+        QCOMPARE(b.label, QStringLiteral("My Classic"));
+        QVERIFY(b.classic());
+        QCOMPARE(b.fill.value_or(-1), 3);
+        const ClassicScheme back = ClassicScheme::fromThemeFile(*ThemeFile::load(path));
+        QCOMPARE(back.colour(u"ActiveTitle"), p.scheme.colour(u"ActiveTitle"));
+        QCOMPARE(back.colour(u"Background"), p.desktop.colour);   // the desktop's colour wins
+        // Never replaced.
+        QVERIFY(!presets::save(p, nullptr, &error));
+        QVERIFY(error.contains(QLatin1String("exists")));
+        p.name = QStringLiteral("bad\nname");
+        QVERIFY(!presets::save(p));
+
+        // A style preset starting from a bundle: its files are found and
+        // written as the paths they are here.
+        writeFile(m_home.filePath(QStringLiteral("b/Base.theme")),
+                  "[Theme]\r\nDisplayName=Base\r\n[Control Panel\\Cursors]\r\nArrow=%WinDir%cursors\\arrow.cur\r\n");
+        writeFile(m_home.filePath(QStringLiteral("b/Base/arrow.cur")), "cur");
+        presets::Preset s;
+        s.name = QStringLiteral("Styled");
+        s.style = QStringLiteral("/x/luna.msstyles");
+        s.colorStyle = QStringLiteral("Metallic");
+        s.size = QStringLiteral("NormalSize");
+        s.base = m_home.filePath(QStringLiteral("b/Base.theme"));
+        QVERIFY2(presets::save(s, &path, &error), qPrintable(error));
+        const ThemeFile saved = *ThemeFile::load(path);
+        QCOMPARE(saved.value(u"VisualStyles", u"ColorStyle"), QStringLiteral("Metallic"));
+        QCOMPARE(saved.value(u"Theme", u"DisplayName"), QStringLiteral("Styled"));
+        QCOMPARE(saved.value(u"Control Panel\\Cursors", u"Arrow"), m_home.filePath(QStringLiteral("b/Base/arrow.cur")));
+        QVERIFY(!presets::owned(s.base));
+    }
+
+    void realStyles()
+    {
+        if (m_realThemes.isEmpty())
+            QSKIP("no asset library on this machine");
+        const StyleInfo luna = Library::style(m_realThemes + QLatin1String("/Luna/luna.msstyles"));
+        QVERIFY2(luna.readable(), qPrintable(luna.error));
+        QCOMPARE(luna.label, QStringLiteral("Windows XP style"));
+        QVERIFY(luna.official);
+        QStringList colours;
+        for (const StyleOption &c : luna.colours)
+            colours << c.label;
+        QCOMPARE(colours, (QStringList{QStringLiteral("Default (blue)"), QStringLiteral("Silver"), QStringLiteral("Olive Green")}));
+        QCOMPARE(luna.defaultVariant, QStringLiteral("NORMALBLUE_INI"));
+        QCOMPARE(luna.resolve(QStringLiteral("Metallic"), QStringLiteral("NormalSize")), QStringLiteral("NORMALMETALLIC_INI"));
+        QCOMPARE(luna.resolve(QStringLiteral("homestead"), QString()), QStringLiteral("NORMALHOMESTEAD_INI"));
+        QCOMPARE(luna.resolve(QStringLiteral("NormalColor"), QStringLiteral("ExtraLargeFonts")), QStringLiteral("EXTRALARGEBLUE_INI"));
+        QCOMPARE(luna.resolve(QStringLiteral("Purple"), QString()), QString());
+        QCOMPARE(luna.sizesFor(QStringLiteral("BLUE")).size(), 3);
+        // Cached: the second look doesn't open the file (same answer, and the
+        // index is on disk).
+        QVERIFY(QFileInfo::exists(paths::cache() + QLatin1String("/style-index.json")));
+        QCOMPARE(Library::style(luna.path).toJson(), luna.toJson());
+
+        const StyleInfo noir = Library::style(m_realThemes + QLatin1String("/Royale Noir/Royale Noir.msstyles"));
+        QCOMPARE(noir.resolve(QStringLiteral("Metallic"), QStringLiteral("NormalSize")), QStringLiteral("NORMALDARKROYALE_INI"));
+
+        const ThemeBundle xp = Library::bundle(m_realThemes + QLatin1String("/Luna/Luna.theme"));
+        QCOMPARE(xp.label, QStringLiteral("Windows XP"));
+        QCOMPARE(QFileInfo(xp.style).fileName(), QStringLiteral("luna.msstyles"));
+        QCOMPARE(xp.variant, QStringLiteral("NORMALBLUE_INI"));
+
+        const Library lib = Library::scan({m_realThemes});
+        QVERIFY(lib.styles.size() >= 5);
+        QVERIFY(lib.styles.first().official);
     }
 
     // --- host programs --------------------------------------------------------

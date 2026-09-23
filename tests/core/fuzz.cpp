@@ -1,12 +1,15 @@
 // libFuzzer targets for everything that parses untrusted bytes.
 //
-// Built three times with -DFUZZ_TARGET=theme|dib|ini (see fuzz.sh).
+// Built once per target, -DFUZZ_TARGET_<NAME>=1: theme, dib, ini, scheme
+// (see fuzz.sh).
 // The plugin is loaded into plasmashell and every Qt app, so a crash here is
 // a crashed desktop: nothing a .msstyles contains may crash, hang or read out
 // of bounds. AddressSanitizer and UBSan run underneath.
+#include "core/classic.h"
 #include "core/dib.h"
 #include "core/ini.h"
 #include "core/theme.h"
+#include "core/themefile.h"
 
 #include <QByteArray>
 
@@ -32,8 +35,21 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     for (auto it = ini.sections().cbegin(); it != ini.sections().cend(); ++it)
         for (auto p = it.value().cbegin(); p != it.value().cend(); ++p)
             (void)ini.lookup(it.key().sub, it.key().cls, it.key().part, it.key().state, p.key());
+#elif FUZZ_TARGET_SCHEME
+    // .theme files (the style reads the Classic scheme's) and SCHEMEDATA.
+    const ThemeFile file = ThemeFile::fromBytes(bytes);
+    const ClassicScheme scheme = ClassicScheme::fromThemeFile(file);
+    ThemeFile out;
+    scheme.writeTo(out);
+    if (!(ClassicScheme::fromThemeFile(ThemeFile::fromBytes(out.toBytes())).colours == scheme.colours))
+        __builtin_trap();   // what we write must read back
+    (void)ThemeFile::fromBytes(file.toBytes());
+    (void)ClassicScheme::fromSchemeData(bytes);
+    (void)NonClientMetrics::fromA(bytes);
+    (void)NonClientMetrics::fromW(bytes);
+    (void)IconMetrics::fromA(bytes);
 #else
-#error define FUZZ_TARGET_THEME, FUZZ_TARGET_DIB or FUZZ_TARGET_INI
+#error define FUZZ_TARGET_THEME, FUZZ_TARGET_DIB, FUZZ_TARGET_INI or FUZZ_TARGET_SCHEME
 #endif
     return 0;
 }
