@@ -359,10 +359,11 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                         state = Disabled;
                     // XP's geometry (TCM_GETITEMRECT, Luna): tabs start 2px in
                     // and 2px down, 18px tall; the selected one is drawn 2px
-                    // wider each side, 2px taller, and 1px into the pane.
+                    // wider each side and 2px taller at both ends, covering
+                    // the pane's top edge and the white row under it.
                     QRect r = xpTabRect(tab);
                     if (selected)
-                        r.adjust(-2, -2, 2, 1);
+                        r.adjust(-2, -2, 2, 2);
                     if (drawPart(painter, {QStringLiteral("tab"), part, state, {}}, r))
                         return;
                 }
@@ -403,7 +404,7 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                     copy.rect = xpTabRect(tab);
                     // The selected tab's label rides up with it.
                     if (tab->state & State_Selected)
-                        copy.rect.translate(0, -1);
+                        copy.rect.translate(0, -2);
                     QProxyStyle::drawControl(element, &copy, painter, widget);
                     return;
                 }
@@ -699,11 +700,11 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
             return 0;
         case PM_TabBarTabHSpace:
             if (hasPart({QStringLiteral("tab"), 1, 1, {}}))
-                return 10;   // 5px either side of the label
+                return 12;   // TCM_SETPADDING's default: 6px either side of the label
             break;
         case PM_TabBarTabVSpace:
             if (hasPart({QStringLiteral("tab"), 1, 1, {}}))
-                return 8;    // font height 13 + 8 = 21: 2px headroom, 18px tab, 1 row over the pane
+                return 9;    // font height 13 + 9 = 22: 2px headroom, 18px tab, 2 rows over the pane
             break;
         default:
             break;
@@ -742,16 +743,16 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
             if (const auto *tab = qstyleoption_cast<const QStyleOptionTab *>(option)) {
                 if (hasPart({QStringLiteral("tab"), 1, 1, {}})
                     && (tab->shape == QTabBar::RoundedNorth || tab->shape == QTabBar::TriangularNorth)) {
-                    // Label + 10 wide (TCM_GETITEMRECT: 49/70/60 for General/
+                    // Label + 12 wide (TCM_GETITEMRECT: 49/70/60 for General/
                     // Appearance/Advanced in Tahoma 8), 18 tall plus the 2px
                     // headroom the selected tab rises into; the first tab 2px
                     // wider for XP's left inset.
                     QSize s = size;
                     if (tab->position == QStyleOptionTab::Beginning || tab->position == QStyleOptionTab::OnlyOneTab)
                         s.rwidth() += 2;
-                    // 2px headroom, the 18px tab (text + 5), one row shared
-                    // with the pane -- from XP's text height (tmHeight).
-                    s.setHeight(xpTextHeight(widget ? widget->font() : QApplication::font()) + 8);
+                    // 2px headroom, the 18px tab (text + 5), two rows over
+                    // the pane -- from XP's text height (tmHeight).
+                    s.setHeight(xpTextHeight(widget ? widget->font() : QApplication::font()) + 9);
                     return s;
                 }
             }
@@ -783,8 +784,9 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
                 // XP: the pane starts where the tabs end (y = 20), and the
                 // page sits 4px in at the sides and bottom, 2px from the top
                 // (TCM_ADJUSTRECT: 4,22 - 296,116 in a 300 x 120 control).
-                // The pane's top edge shares the bar's last row, under the tabs.
-                const int top = qMax(0, tw->tabBarSize.height() - 1);
+                // The bar's last two rows overlap the pane's top, so the
+                // selected tab can cover it.
+                const int top = qMax(0, tw->tabBarSize.height() - 2);
                 const QRect pane(tw->rect.left(), tw->rect.top() + top, tw->rect.width(), tw->rect.height() - top);
                 if (element == SE_TabWidgetTabBar)
                     return QRect(tw->rect.left(), tw->rect.top(), qMin(tw->tabBarSize.width(), tw->rect.width()),
@@ -940,9 +942,9 @@ int XPLasmaStyle::xpTextHeight(const QFont &font) const
 // is 2px wider to make room, so every later tab lands where XP puts it).
 QRect XPLasmaStyle::xpTabRect(const QStyleOptionTab *tab) const
 {
-    // The bar is 21px: 2px headroom, the 18px tab, and one row shared with
-    // the pane's top edge, which only the selected tab covers.
-    QRect r(tab->rect.left(), tab->rect.top() + 2, tab->rect.width(), qMax(0, tab->rect.height() - 3));
+    // The bar is 22px: 2px headroom, the 18px tab, and two rows over the
+    // pane's top, which only the selected tab covers.
+    QRect r(tab->rect.left(), tab->rect.top() + 2, tab->rect.width(), qMax(0, tab->rect.height() - 4));
     if (tab->position == QStyleOptionTab::Beginning || tab->position == QStyleOptionTab::OnlyOneTab)
         r.setLeft(r.left() + 2);
     return r;
