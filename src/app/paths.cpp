@@ -1,6 +1,8 @@
 #include "app/paths.h"
 
+#include <QCoreApplication>
 #include <QDir>
+#include <QFileInfo>
 
 namespace xpl::paths {
 
@@ -77,6 +79,28 @@ QString legacyData()
 QString legacyCache()
 {
     return home() + QLatin1String("/.cache/xp2plasma");
+}
+
+QString shippedStylePlugin(int qtMajor)
+{
+    const QString relative = QStringLiteral("qt%1/styles/libxplasma.so").arg(qtMajor);
+    const QDir exe(QCoreApplication::applicationDirPath());
+    QStringList candidates{exe.absoluteFilePath(QLatin1String("../lib/xplasma/") + relative)};
+    // A checkout: build/<mode>-qt6/src/app/xplasma, plugins in app/plugins.
+    for (QDir dir = exe; !dir.isRoot(); dir.cdUp())
+        if (QFileInfo::exists(dir.filePath(QStringLiteral("src/app/start-menu")))) {
+            candidates << dir.filePath(QLatin1String("app/plugins/") + relative);
+            break;
+        }
+    for (const QString &c : std::as_const(candidates))
+        if (QFileInfo::exists(c))
+            return QFileInfo(c).absoluteFilePath();
+    return QString();
+}
+
+QString stylePluginRoot(int qtMajor)
+{
+    return home() + QStringLiteral("/.local/lib/qt%1/plugins").arg(qtMajor);
 }
 
 } // namespace xpl::paths

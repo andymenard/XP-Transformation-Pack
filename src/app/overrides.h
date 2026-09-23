@@ -1,0 +1,32 @@
+#pragma once
+// Where Plasma's own widgets have to be told about XP: user-local copies of
+// KDE's QML, patched, that Plasma prefers over the system's -- and removed
+// again on reset, leaving KDE's untouched.
+//
+//   * The notification area and the clock (org.kde.plasma.systemtray,
+//     org.kde.plasma.digitalclock) over the panel theme's xp-tray art, with
+//     XP's show-hidden-icons button, 16px icons, and the clock at 96 dpi.
+//   * KWin's Aurorae renderer (kwin/aurorae/aurorae.qml), for the caption
+//     text shadows XP styles give and its QML renderer leaves out.
+//
+// Patches are data (overrides/patches.json: text found once, replaced), so a
+// Plasma whose QML has moved on is refused with a message, never
+// half-patched.
+#include <QString>
+
+#include <optional>
+
+namespace xpl::overrides {
+
+bool installPanelWidgets(const QString &plasmoids, QString *error = nullptr);
+void removePanelWidgets(const QString &plasmoids);
+
+// `themes` is where the Aurorae themes are (their rc files say which want a
+// shadow); `target` the override's path (~/.local/share/kwin/aurorae/aurorae.qml).
+bool installTitleShadows(const QString &themes, const QString &target, QString *error = nullptr);
+void removeTitleShadows(const QString &target);
+
+// Patch `source` by `file`'s rules in patches.json ("systemtray/main.qml").
+std::optional<QString> patched(const QString &file, const QString &source, QString *error = nullptr);
+
+} // namespace xpl::overrides

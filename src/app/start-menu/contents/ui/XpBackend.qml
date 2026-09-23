@@ -46,7 +46,8 @@ Item {
             const label = String(model.data(model.index(row, 0), Qt.DisplayRole) || "");
             if (!label || role(model, row, "isSeparator")) continue;
             const identity = String(role(model, row, "favoriteId") || role(model, row, "url") || label);
-            if (excluded.indexOf(identity) !== -1) continue;
+            // (Recent use can list one application more than once.)
+            if (excluded.indexOf(identity) !== -1 || result.some(entry => entry.identity === identity)) continue;
             result.push({label: label, icon: model.data(model.index(row, 0), Qt.DecorationRole),
                          description: String(role(model, row, "description") || ""), identity: identity,
                          action: {model: model, row: row, identity: identity}});

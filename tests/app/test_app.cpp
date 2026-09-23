@@ -4,6 +4,9 @@
 // when xp2plasma or XPLasma downloaded one on this machine, is used for the
 // real-media tests (skipped otherwise).
 #include "app/adopt.h"
+#include "app/apply.h"
+#include "app/overrides.h"
+#include "app/session.h"
 #include "app/decoration.h"
 #include "app/look.h"
 #include "app/icons.h"
@@ -27,6 +30,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QPainter>
+#include <QSettings>
 #include <QTemporaryDir>
 #include <QUrl>
 #include <QTest>
@@ -172,6 +176,61 @@ QImage frameSvg(const QList<std::pair<QString, QImage>> &elements, const QString
         edge(c, QRect(lw, th, size.width() - lw - rw, size.height() - th - bh));
     return out;
 }
+
+// A session that only records: what apply would run, script and signal.
+class RecordingSession : public Session
+{
+public:
+    QList<QStringList> runs;
+    QStringList scripts;
+    QStringList calls;
+    QHash<QString, QString> config;   // "file|group/group|key" -> value
+    QString layoutReply = QStringLiteral("{\"log\":[\"laid out\"],\"panels\":[{\"panel\":1,\"order\":[3,4,5]}]}");
+
+    host::Result run(const QStringList &argv) override
+    {
+        runs << argv;
+        host::Result r;
+        r.exitCode = 0;
+        if (argv.value(0) == QLatin1String("kreadconfig6") || argv.value(0) == QLatin1String("kwriteconfig6")) {
+            const int file = int(argv.indexOf(QStringLiteral("--file"))), key = int(argv.indexOf(QStringLiteral("--key")));
+            QStringList groups;
+            for (int i = 0; i < argv.size() - 1; ++i)
+                if (argv.at(i) == QLatin1String("--group"))
+                    groups << argv.at(i + 1);
+            const QString id = argv.value(file + 1) + QLatin1Char('|') + groups.join(QLatin1Char('/')) + QLatin1Char('|') + argv.value(key + 1);
+            if (argv.value(0) == QLatin1String("kreadconfig6"))
+                r.out = config.value(id).toUtf8();
+            else if (argv.contains(QStringLiteral("--delete")))
+                config.remove(id);
+            else
+                config.insert(id, argv.value(key + 2));
+        }
+        return r;
+    }
+    std::optional<QString> script(const QString &js, QString *) override
+    {
+        scripts << js;
+        if (js.contains(QLatin1String("print('up')")))
+            return QStringLiteral("up");
+        if (js.contains(QLatin1String("LAUNCHER_KEYS")))
+            return layoutReply;
+        return QString();
+    }
+    bool call(const QString &, const QString &path, const QString &, const QString &method, const QVariantList &) override
+    {
+        calls << path + QLatin1Char(' ') + method;
+        return true;
+    }
+    void signal(const QString &path, const QString &, const QString &name, const QVariantList &) override
+    {
+        calls << path + QLatin1Char(' ') + name;
+    }
+    bool ran(const QString &program) const
+    {
+        return std::any_of(runs.begin(), runs.end(), [&](const QStringList &a) { return a.value(0) == program; });
+    }
+};
 
 } // namespace
 
@@ -811,6 +870,124 @@ private Q_SLOTS:
             QVERIFY(QFileInfo::exists(QUrl(button.value(QLatin1String(state)).toString()).toLocalFile()));
         QVERIFY(theme.value(QStringLiteral("parts")).toObject().value(QStringLiteral("userpane")).toObject()
                     .value(QStringLiteral("url")).toString().startsWith(QLatin1String("file:///")));
+    }
+
+    // --- applying to the session --------------------------------------------------
+
+    void scripts()
+    {
+        const QString js = scriptFrom(QStringLiteral("wallpaper"), {{QStringLiteral("IMAGE"), QStringLiteral("file:///a \"b\".jpg")},
+                                                                     {QStringLiteral("FILL"), 2},
+                                                                     {QStringLiteral("COLOUR"), QStringLiteral("#3a6ea5")}});
+        QVERIFY(js.contains(QLatin1String("d.writeConfig('Image', \"file:///a \\\"b\\\".jpg\")")));
+        QVERIFY(js.contains(QLatin1String("d.writeConfig('FillMode', 2)")));
+        QVERIFY(!js.contains(QLatin1String("${")));
+        const QString none = scriptFrom(QStringLiteral("wallpaper"), {{QStringLiteral("IMAGE"), QVariant::fromValue(nullptr)},
+                                                                       {QStringLiteral("FILL"), QVariant::fromValue(nullptr)},
+                                                                       {QStringLiteral("COLOUR"), QStringLiteral("#000000")}});
+        QVERIFY(none.contains(QLatin1String("if (null === null)")));
+    }
+
+    void overridesPatchThisPlasma()
+    {
+        // The anchors hold against the Plasma on this machine.
+        const QString tray = QStringLiteral("/usr/share/plasma/plasmoids/org.kde.plasma.systemtray/contents/ui/main.qml");
+        if (!QFileInfo::exists(tray))
+            QSKIP("no Plasma here");
+        const QString plasmoids = m_home.filePath(QStringLiteral("plasmoids"));
+        QString error;
+        QVERIFY2(overrides::installPanelWidgets(plasmoids, &error), qPrintable(error));
+        QFile patchedTray(plasmoids + QLatin1String("/org.kde.plasma.systemtray/contents/ui/main.qml"));
+        QVERIFY(patchedTray.open(QIODevice::ReadOnly));
+        const QByteArray text = patchedTray.readAll();
+        QVERIFY(text.contains("xpTrayAvailable") && text.contains("imagePath: \"widgets/xp-tray\"") && !text.contains("{{"));
+        QVERIFY(QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.systemtray/contents/ui/PlasmaExpanderArrow.qml")));
+        QVERIFY(QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/contents/ui/DigitalClock.qml")));
+        // Again (it's ours now), then gone.
+        QVERIFY2(overrides::installPanelWidgets(plasmoids, &error), qPrintable(error));
+        overrides::removePanelWidgets(plasmoids);
+        QVERIFY(!QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.systemtray")));
+        // Someone else's is left alone.
+        writeFile(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/metadata.json"), "{}");
+        QVERIFY(!overrides::installPanelWidgets(plasmoids, &error));
+        QVERIFY(error.contains(QLatin1String("someone else")));
+        QVERIFY(!overrides::patched(QStringLiteral("systemtray/main.qml"), QStringLiteral("not KDE's QML")));
+    }
+
+    void applyAndReset()
+    {
+        if (m_realThemes.isEmpty() || m_realIso.isEmpty())
+            QSKIP("needs the asset library and the XP ISO");
+        State state;
+        state.media = m_realIso;
+        QVERIFY(state.save());
+        const QString share = paths::localShare();
+        // Another look's package, and one of the user's own.
+        writeFile(share + QLatin1String("/aurorae/themes/old-look/metadata.json"), "{\"X-XPLasma-Generated\": true}");
+        writeFile(share + QLatin1String("/aurorae/themes/Mine/metadata.json"), "{\"KPlugin\": {\"Name\": \"Mine\"}}");
+        const auto look = Look::fromStyle(m_realThemes + QLatin1String("/Luna/luna.msstyles"), QStringLiteral("NORMALMETALLIC_INI"));
+        QVERIFY(look);
+        RecordingSession session;
+        session.config.insert(QStringLiteral("kdeglobals|KDE|widgetStyle"), QStringLiteral("Breeze"));
+        session.config.insert(QStringLiteral("kdeglobals|Icons|Theme"), QStringLiteral("Papirus"));
+        ApplyOptions o;
+        o.wallpaper = Wallpaper{m_home.filePath(QStringLiteral("bliss.jpg")), 2, QColor(0, 0, 0)};
+        QStringList said;
+        o.progress = [&](const QString &line) { said << line; };
+        QString error;
+        QVERIFY2(applyLook(session, *look, o, &error), qPrintable(error + said.join(QLatin1Char('\n'))));
+
+        // Installed where Plasma looks.
+        QVERIFY(QFileInfo::exists(share + QLatin1String("/aurorae/themes/windows-xp-style-silver/decoration.svg")));
+        QVERIFY(QFileInfo::exists(share + QLatin1String("/color-schemes/windows-xp-style-silver.colors")));
+        QVERIFY(QFileInfo::exists(share + QLatin1String("/plasma/desktoptheme/windows-xp-style-silver-taskbar/widgets/tasks.svg")));
+        QVERIFY(QFileInfo::exists(share + QLatin1String("/plasma/plasmoids/fyi.hotsocket.xplasma.start/contents/ui/main.qml")));
+        QVERIFY(QFileInfo::exists(share + QLatin1String("/icons/xplasma-icons/index.theme")));
+        QVERIFY(!QFileInfo::exists(share + QLatin1String("/aurorae/themes/old-look")));
+        QVERIFY(QFileInfo::exists(share + QLatin1String("/aurorae/themes/Mine")));
+        // Switched to.
+        QCOMPARE(session.config.value(QStringLiteral("kwinrc|org.kde.kdecoration2|theme")), QStringLiteral("__aurorae__svg__windows-xp-style-silver"));
+        QCOMPARE(session.config.value(QStringLiteral("kdeglobals|KDE|widgetStyle")), QStringLiteral("XPLasma"));
+        QVERIFY(session.config.value(QStringLiteral("kdeglobals|WM|activeFont")).startsWith(QLatin1String("Trebuchet MS,10")));
+        QVERIFY(session.ran(QStringLiteral("plasma-apply-colorscheme")));
+        QVERIFY(session.ran(QStringLiteral("plasma-apply-desktoptheme")));
+        QVERIFY(session.calls.contains(QStringLiteral("/KDEPlatformTheme refreshFonts")));
+        QVERIFY(session.calls.contains(QStringLiteral("/KWin reconfigure")));
+        const QString layout = session.scripts.filter(QStringLiteral("LAUNCHER_KEYS")).value(0);
+        QVERIFY(layout.contains(QLatin1String("var START = \"fyi.hotsocket.xplasma.start\"")));
+        QVERIFY(layout.contains(QLatin1String("\"button\":{")));
+        QVERIFY(!session.scripts.filter(QStringLiteral("p.height = 30")).isEmpty());
+        QVERIFY(!session.scripts.filter(QStringLiteral("bliss.jpg")).isEmpty());
+        // The panel's order, written with the shell down.
+        QCOMPARE(session.config.value(QStringLiteral("plasma-org.kde.plasma.desktop-appletsrc|Containments/1/General|AppletOrder")),
+                 QStringLiteral("3;4;5"));
+        // Qt: the plugin, the frozen style, xplasmarc.
+        QVERIFY(QFileInfo::exists(paths::stylePluginRoot(6) + QLatin1String("/styles/libxplasma.so")));
+        QSettings rc(paths::config() + QLatin1String("/xplasmarc"), QSettings::IniFormat);
+        QVERIFY(rc.value(QStringLiteral("Theme/Path")).toString().startsWith(paths::data() + QLatin1String("/active/")));
+        QCOMPARE(rc.value(QStringLiteral("Theme/Variant")).toString(), QStringLiteral("NORMALMETALLIC_INI"));
+        const State applied = State::load();
+        QCOMPARE(applied.appliedKind, QStringLiteral("style"));
+        QCOMPARE(applied.variant, QStringLiteral("NORMALMETALLIC_INI"));
+        QCOMPARE(applied.settings.value(QStringLiteral("previousWidgetStyle")).toString(), QStringLiteral("Breeze"));
+        QCOMPARE(applied.settings.value(QStringLiteral("previousIconTheme")).toString(), QStringLiteral("Papirus"));
+
+        // Reset takes it all off.
+        RecordingSession resetSession;
+        resetSession.config = session.config;
+        QVERIFY2(resetDesktop(resetSession, {}, &error), qPrintable(error));
+        QVERIFY(!QFileInfo::exists(share + QLatin1String("/aurorae/themes/windows-xp-style-silver")));
+        QVERIFY(!QFileInfo::exists(share + QLatin1String("/color-schemes/windows-xp-style-silver.colors")));
+        QVERIFY(!QFileInfo::exists(share + QLatin1String("/plasma/plasmoids/fyi.hotsocket.xplasma.start")));
+        QVERIFY(!QFileInfo::exists(share + QLatin1String("/icons/xplasma-icons")));
+        QVERIFY(!QFileInfo::exists(paths::config() + QLatin1String("/xplasmarc")));
+        QVERIFY(QFileInfo::exists(share + QLatin1String("/aurorae/themes/Mine")));
+        QCOMPARE(resetSession.config.value(QStringLiteral("kdeglobals|KDE|widgetStyle")), QStringLiteral("Breeze"));
+        QVERIFY(!resetSession.config.contains(QStringLiteral("kdeglobals|WM|activeFont")));
+        QVERIFY(std::any_of(resetSession.runs.begin(), resetSession.runs.end(), [](const QStringList &a) {
+            return a.value(0) == QLatin1String("plasma-apply-lookandfeel") && a.contains(QStringLiteral("--resetLayout"));
+        }));
+        QCOMPARE(State::load().appliedKind, QString());
     }
 
     // --- host programs --------------------------------------------------------

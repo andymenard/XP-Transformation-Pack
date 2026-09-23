@@ -1,0 +1,80 @@
+{
+ "systemtray/main.qml": [
+  {
+   "find": "import QtQuick\n",
+   "replace": "import QtQuick\nimport org.kde.ksvg as KSvg\n",
+   "unlessContains": "import org.kde.ksvg as KSvg"
+  },
+  {
+   "find": "    id: root\n",
+   "replace": "    id: root\n{{backdrop-tray}}"
+  },
+  {
+   "find": "    readonly property bool vertical:",
+   "replace": "{{tray-state}}\n    readonly property bool vertical:"
+  },
+  {
+   "find": "        id: activeModel\n",
+   "replace": "        id: activeModel\n        sortRoleName: \"effectiveStatus\"\n        sortOrder: Qt.AscendingOrder\n        sortColumn: root.xpTrayAvailable && !root.vertical ? 0 : -1\n"
+  },
+  {
+   "find": "return value === PlasmaCore.Types.ActiveStatus;",
+   "replace": "return value === PlasmaCore.Types.ActiveStatus\n                || (value === PlasmaCore.Types.PassiveStatus\n                    && root.xpRevealHidden(sourceModel.data(sourceModel.index(sourceRow, 0, sourceParent), Qt.UserRole + 2)));"
+  },
+  {
+   "find": "return value === PlasmaCore.Types.PassiveStatus\n",
+   "replace": "return value === PlasmaCore.Types.PassiveStatus\n                && !root.xpRevealHidden(sourceModel.data(sourceModel.index(sourceRow, 0, sourceParent), Qt.UserRole + 2));\n"
+  },
+  {
+   "find": "                id: tasksGrid\n",
+   "replace": "                id: tasksGrid\n                Layout.row: 0\n                Layout.column: !root.vertical && root.xpTrayAvailable ? 1 : 0\n                // With no expander, reserve the theme's left cap ourselves.\n                Layout.leftMargin: root.xpTrayAvailable && !root.vertical && !expander.visible\n                    ? xpTrayBackground.margins.left : 0\n"
+  },
+  {
+   "find": "                id: expander\n",
+   "replace": "                id: expander\n                Layout.row: root.vertical ? 1 : 0\n                Layout.column: root.vertical || root.xpTrayAvailable ? 0 : 1\n"
+  },
+  {
+   "find": "visible: root.hiddenLayout.itemCount > 0",
+   "replace": "visible: root.xpTrayAvailable && !root.vertical\n                    ? root.xpTrayExpanded || xpExpandableModel.count > 0\n                    : root.hiddenLayout.itemCount > 0"
+  },
+  {
+   "find": "readonly property int smallIconSize: Kirigami.Units.iconSizes.smallMedium",
+   "replace": "readonly property int smallIconSize: root.xpTrayAvailable ? 16 : Kirigami.Units.iconSizes.smallMedium"
+  },
+  {
+   "find": "readonly property int cellSpacing: Kirigami.Units.smallSpacing",
+   "replace": "readonly property int cellSpacing: root.xpTrayAvailable ? 2 : Kirigami.Units.smallSpacing"
+  }
+ ],
+ "digitalclock/main.qml": [
+  {
+   "find": "import QtQuick\n",
+   "replace": "import QtQuick\nimport org.kde.ksvg as KSvg\n",
+   "unlessContains": "import org.kde.ksvg as KSvg"
+  },
+  {
+   "find": "    id: root\n",
+   "replace": "    id: root\n{{backdrop-clock}}"
+  }
+ ],
+ "systemtray/items/AbstractItem.qml": [
+  {
+   "find": "import QtQuick\n",
+   "replace": "import QtQuick\nimport QtQuick.Effects\n"
+  },
+  {
+   "find": "            id: iconContainer\n",
+   "replace": "            id: iconContainer\n{{tray-icon-shadow}}"
+  },
+  {
+   "find": "effectiveStatus: model.effectiveStatus || PlasmaCore.Types.UnknownStatus",
+   "replace": "effectiveStatus: model.effectiveStatus === PlasmaCore.Types.PassiveStatus && root.xpRevealHidden(itemId)\n        ? PlasmaCore.Types.ActiveStatus : (model.effectiveStatus || PlasmaCore.Types.UnknownStatus)"
+  }
+ ],
+ "digitalclock/DigitalClock.qml": [
+  {
+   "find": "const pixelsPerInch = Screen.pixelDensity * 25.4",
+   "replace": "const pixelsPerInch = root.xpTrayAvailable ? 96 : Screen.pixelDensity * 25.4"
+  }
+ ]
+}

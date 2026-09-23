@@ -23,6 +23,10 @@ add_library(xplasma-app STATIC
   icons.cpp
   startpanel.cpp
   startmenu.cpp
+  session.cpp
+  qttarget.cpp
+  overrides.cpp
+  apply.cpp
 )
 target_include_directories(xplasma-app PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_compile_definitions(xplasma-app PUBLIC XPLASMA_VERSION="${XPLASMA_VERSION}")
@@ -37,6 +41,13 @@ qt_add_resources(xplasma-app "schemes" PREFIX /schemes BASE data/schemes FILES $
 # The Start plasmoid's package, as :/start-menu/...
 file(GLOB_RECURSE start_menu RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS start-menu/*)
 qt_add_resources(xplasma-app "startmenu" PREFIX /start-menu BASE start-menu FILES ${start_menu})
+
+# KDE QML patched over (overrides/) and plasmashell scripts (scripts/), as
+# :/overrides/... and :/scripts/...
+file(GLOB override_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS overrides/*)
+qt_add_resources(xplasma-app "overrides" PREFIX /overrides BASE overrides FILES ${override_files})
+file(GLOB script_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS scripts/*.js)
+qt_add_resources(xplasma-app "scripts" PREFIX /scripts BASE scripts FILES ${script_files})
 
 # The CLI. (The target name `xplasma` is the style plugin's.)
 add_executable(xplasma-cli cli/main.cpp)

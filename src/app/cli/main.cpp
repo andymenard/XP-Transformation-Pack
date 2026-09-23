@@ -2,6 +2,10 @@
 //
 //   xplasma --version
 //   xplasma list [--json]      the library: visual styles, themes, Classic schemes
+//   xplasma apply LOOK [--no-widgets] [--no-taskbar] [--no-icons] [--no-wallpaper]
+//                              put a look on the running desktop
+//   xplasma widgets LOOK       only Qt apps' widgets
+//   xplasma reset              Plasma's default look back, XPLasma's gone
 //   xplasma build LOOK [--out DIR]
 //                              generate the Plasma packages for a look without
 //                              applying them (DIR: ~/.cache/xplasma/build)
@@ -11,6 +15,7 @@
 //
 // (apply, widgets, reset and setup arrive with the phases that build them.)
 #include "app/adopt.h"
+#include "app/apply.h"
 #include "app/colors.h"
 #include "app/decoration.h"
 #include "app/icons.h"
@@ -136,6 +141,70 @@ std::optional<Look> lookFrom(const QString &spec, QString *error)
     return Look::fromStyle(path, variant, error);
 }
 
+void say(const QString &line)
+{
+    out() << line << Qt::endl;
+}
+
+int apply(const QString &spec, const QCommandLineParser &parser)
+{
+    adopt();
+    QString error;
+    const auto look = lookFrom(spec, &error);
+    if (!look) {
+        err() << "xplasma: " << error << Qt::endl;
+        return 1;
+    }
+    ApplyOptions o;
+    o.widgets = !parser.isSet(QStringLiteral("no-widgets"));
+    o.taskbar = !parser.isSet(QStringLiteral("no-taskbar"));
+    o.icons = !parser.isSet(QStringLiteral("no-icons"));
+    o.progress = say;
+    // The wallpaper: a .theme's own, or Windows Classic's desktop colour.
+    if (!parser.isSet(QStringLiteral("no-wallpaper"))) {
+        if (spec.endsWith(QLatin1String(".theme"), Qt::CaseInsensitive)) {
+            const ThemeBundle b = Library::bundle(spec);
+            o.themeFile = QFileInfo(spec).absoluteFilePath();
+            const auto file = ThemeFile::load(spec);
+            const ClassicScheme colours = file ? ClassicScheme::fromThemeFile(*file) : ClassicScheme();
+            if (!b.wallpaper.isEmpty() || look->classic())
+                o.wallpaper = Wallpaper{b.wallpaper, b.fill, colours.colour(u"Background")};
+        } else if (look->classic()) {
+            o.wallpaper = Wallpaper{QString(), std::nullopt, look->system.colour(u"Background")};
+        }
+    }
+    LiveSession session;
+    if (!applyLook(session, *look, o, &error)) {
+        err() << "xplasma: " << error << Qt::endl;
+        return 1;
+    }
+    return 0;
+}
+
+int widgets(const QString &spec)
+{
+    adopt();
+    QString error;
+    const auto look = lookFrom(spec, &error);
+    LiveSession session;
+    if (!look || !applyWidgets(session, *look, say, &error)) {
+        err() << "xplasma: " << error << Qt::endl;
+        return 1;
+    }
+    return 0;
+}
+
+int reset()
+{
+    LiveSession session;
+    QString error;
+    if (!resetDesktop(session, say, &error)) {
+        err() << "xplasma: " << error << Qt::endl;
+        return 1;
+    }
+    return 0;
+}
+
 int build(const QString &spec, QString dir)
 {
     adopt();
@@ -201,7 +270,9 @@ int main(int argc, char **argv)
     parser.setApplicationDescription(QStringLiteral("Windows XP visual styles for KDE Plasma."));
     parser.addHelpOption();
     parser.addVersionOption();
-    parser.addPositionalArgument(QStringLiteral("command"), QStringLiteral("list | build LOOK"));
+    parser.addPositionalArgument(QStringLiteral("command"), QStringLiteral("list | apply LOOK | widgets LOOK | reset | build LOOK"));
+    for (const char *name : {"no-widgets", "no-taskbar", "no-icons", "no-wallpaper"})
+        parser.addOption(QCommandLineOption(QString::fromLatin1(name)));
     const QCommandLineOption jsonOption(QStringLiteral("json"), QStringLiteral("Machine-readable output."));
     parser.addOption(jsonOption);
     const QCommandLineOption outOption(QStringLiteral("out"), QStringLiteral("Where build writes."), QStringLiteral("DIR"));
@@ -212,6 +283,12 @@ int main(int argc, char **argv)
     const QString command = args.value(0);
     if (command == QLatin1String("list"))
         return list(parser.isSet(jsonOption));
+    if (command == QLatin1String("apply") && args.size() == 2)
+        return apply(args.at(1), parser);
+    if (command == QLatin1String("widgets") && args.size() == 2)
+        return widgets(args.at(1));
+    if (command == QLatin1String("reset") && args.size() == 1)
+        return reset();
     if (command == QLatin1String("build") && args.size() == 2)
         return build(args.at(1), parser.value(outOption));
     if (command.isEmpty())

@@ -30,6 +30,13 @@ QString build();         //   .../build: generated packages before install
 QString config();        // ~/.config
 QString localShare();    // ~/.local/share
 
+// The prebuilt XPLasma style plugin for a Qt major, as this copy of XPLasma
+// ships it (a checkout's build.sh puts it under app/plugins; an installed
+// copy under <prefix>/lib/xplasma); empty if there isn't one.
+QString shippedStylePlugin(int qtMajor);
+// Where Qt apps find it: ~/.local/lib/qt<N>/plugins.
+QString stylePluginRoot(int qtMajor);
+
 // xp2plasma's, adopted once (see adopt.h).
 QString legacyData();    // ~/.local/share/xp2plasma
 QString legacyCache();   // ~/.cache/xp2plasma
