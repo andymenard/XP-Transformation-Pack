@@ -15,6 +15,8 @@
 #include <QFileInfo>
 #include <QKeyEvent>
 #include <QTimer>
+#include <QScreen>
+#include <QWindow>
 #include <QFileSystemWatcher>
 #include <QMenu>
 #include <QPainter>
@@ -30,6 +32,8 @@
 #include <QStyleOption>
 #include <QTabBar>
 #include <QTabWidget>
+#include <QStackedWidget>
+#include <QDialog>
 #include <QToolBar>
 #include <QToolButton>
 
@@ -145,6 +149,12 @@ XPLasmaStyle::XPLasmaStyle()
             for (QWidget *w : QApplication::topLevelWidgets())
                 if (w->isVisible() && w->width() > 1 && w->height() > 1)
                     w->grab().save(QStringLiteral("%1/%2-%3.png").arg(dump, QCoreApplication::applicationName()).arg(n++));
+            // QtQuick windows (qqc2-desktop-style draws through us with no
+            // widget): from the screen, e.g. offscreen with QT_QUICK_BACKEND=software.
+            for (QWindow *w : QGuiApplication::topLevelWindows())
+                if (w->isVisible() && !w->inherits("QWidgetWindow") && w->screen())
+                    w->screen()->grabWindow(w->winId()).save(
+                        QStringLiteral("%1/%2-%3.png").arg(dump, QCoreApplication::applicationName()).arg(n++));
         });
     }
     // Live: follow xplasmarc (unless the environment pins a theme). The app
@@ -223,9 +233,53 @@ void XPLasmaStyle::loadTheme()
 
 // --- drawing parts -----------------------------------------------------------
 
+// --- context -------------------------------------------------------------------
+
+// The subclass (uxtheme's SetWindowTheme app name, the `Sub` of
+// [Sub::Class]) the thing being drawn asks for: an `xplasma-class` property
+// on the widget or an ancestor -- or, for QtQuick controls (no widget), on
+// the option's style object or its parents (where QML can declare it as
+// `xplasmaClass`). Parts the theme has no [Sub::Class] section for fall
+// back to the plain class, as in uxtheme.
+QString XPLasmaStyle::contextClass(const QWidget *widget, const QStyleOption *option) const
+{
+    // (Widgets only once some widget has set the property: the walk costs
+    // a meta-object lookup per ancestor on every call.)
+    if (m_anyContext)
+        for (const QWidget *w = widget; w; w = w->parentWidget())
+            if (const QVariant v = w->property("xplasma-class"); v.isValid())
+                return v.toString().toLower();
+    if (!widget && option)
+        for (const QObject *o = option->styleObject; o; o = o->parent())
+            for (const char *name : {"xplasma-class", "xplasmaClass"})
+                if (const QVariant v = o->property(name); v.isValid() && !v.toString().isEmpty())
+                    return v.toString().toLower();
+    return QString();
+}
+
+PartRef XPLasmaStyle::inContext(const PartRef &ref) const
+{
+    if (!ref.sub.isEmpty() || m_context.isEmpty())
+        return ref;
+    PartRef r = ref;
+    r.sub = m_context;
+    return r;
+}
+
+XPLasmaStyle::ContextScope::ContextScope(const XPLasmaStyle *style, const QWidget *widget, const QStyleOption *option)
+    : m_style(style), m_saved(style->m_context)
+{
+    style->m_context = style->m_renderer ? style->contextClass(widget, option) : QString();
+}
+
+XPLasmaStyle::ContextScope::~ContextScope()
+{
+    m_style->m_context = m_saved;
+}
+
 bool XPLasmaStyle::hasPart(const PartRef &ref) const
 {
-    return m_renderer && m_renderer->hasPart(ref);
+    return m_renderer && m_renderer->hasPart(inContext(ref));
 }
 
 bool XPLasmaStyle::drawPart(QPainter *painter, const PartRef &ref, const QRect &rect) const
@@ -233,33 +287,40 @@ bool XPLasmaStyle::drawPart(QPainter *painter, const PartRef &ref, const QRect &
     if (!hasPart(ref) || rect.isEmpty())
         return false;
     const qreal dpr = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
-    const QSize size = (QSizeF(rect.size()) * dpr).toSize();
-    const int dpi = qRound(96 * dpr);
-    const QString key = QStringLiteral("%1|%2|%3|%4|%5x%6@%7")
-                            .arg(ref.sub, ref.cls).arg(ref.part).arg(ref.state)
-                            .arg(size.width()).arg(size.height()).arg(dpi);
-    QImage *image = m_cache.object(key);
-    if (!image) {
-        image = new QImage(m_renderer->background(ref, size, dpi));
-        image->setDevicePixelRatio(dpr);
-        m_cache.insert(key, image, int(qMin<qint64>(image->sizeInBytes(), INT_MAX)));
-        image = m_cache.object(key);
-        if (!image)
-            return false;
-    }
+    const QImage *image = partImage(ref, rect.size(), dpr);
+    if (!image)
+        return false;
     painter->drawImage(rect.topLeft(), *image);
     return true;
 }
 
+// `ref` rendered at `size` (device-independent), cached.
+const QImage *XPLasmaStyle::partImage(const PartRef &ref, QSize logical, qreal dpr) const
+{
+    const QSize size = (QSizeF(logical) * dpr).toSize();
+    const int dpi = qRound(96 * dpr);
+    const QString key = QStringLiteral("%1|%2|%3|%4|%5x%6@%7")
+                            .arg(inContext(ref).sub, ref.cls).arg(ref.part).arg(ref.state)
+                            .arg(size.width()).arg(size.height()).arg(dpi);
+    QImage *image = m_cache.object(key);
+    if (!image) {
+        image = new QImage(m_renderer->background(inContext(ref), size, dpi));
+        image->setDevicePixelRatio(dpr);
+        m_cache.insert(key, image, int(qMin<qint64>(image->sizeInBytes(), INT_MAX)));
+        image = m_cache.object(key);
+    }
+    return image;
+}
+
 QSize XPLasmaStyle::trueSize(const PartRef &ref) const
 {
-    return m_renderer ? m_renderer->partSize(ref, xpl::PartSize::True) : QSize();
+    return m_renderer ? m_renderer->partSize(inContext(ref), xpl::PartSize::True) : QSize();
 }
 
 QColor XPLasmaStyle::themeColour(const PartRef &ref, QStringView property, const QColor &fallback) const
 {
     QRgb rgb;
-    if (m_renderer && xpl::parseColour(m_renderer->property(ref, property).value_or(QString()), &rgb))
+    if (m_renderer && xpl::parseColour(m_renderer->property(inContext(ref), property).value_or(QString()), &rgb))
         return QColor(rgb);
     return fallback;
 }
@@ -332,6 +393,15 @@ void XPLasmaStyle::polish(QWidget *widget)
         widget->setAttribute(Qt::WA_Hover, true);
     if (!m_renderer && !classic())
         return;
+    // The Places bar's checked button keeps the text colour.
+    if (auto *view = qobject_cast<QAbstractItemView *>(widget); view && isPlacesBar(view)) {
+        QPalette pal = view->palette();
+        for (QPalette::ColorGroup g : {QPalette::Active, QPalette::Inactive})
+            pal.setColor(g, QPalette::HighlightedText, pal.color(g, QPalette::Text));
+        view->setPalette(pal);
+        view->setAttribute(Qt::WA_Hover, true);
+        view->viewport()->setAttribute(Qt::WA_Hover, true);
+    }
     // XP's status bar is the text height + 10 (23 for Tahoma 8) whether or
     // not it has a size grip; QStatusBar's own layout would give 18.
     // QStatusBar rebuilds its layout (and with it its minimum size) on its
@@ -365,6 +435,12 @@ void XPLasmaStyle::unpolish(QApplication *app)
 
 bool XPLasmaStyle::eventFilter(QObject *watched, QEvent *event)
 {
+    if (event->type() == QEvent::DynamicPropertyChange && !m_anyContext
+        && static_cast<QDynamicPropertyChangeEvent *>(event)->propertyName() == "xplasma-class") {
+        m_anyContext = true;
+        if (auto *w = qobject_cast<QWidget *>(watched))
+            w->update();
+    }
     if (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease
         || event->type() == QEvent::ApplicationStateChange || event->type() == QEvent::WindowDeactivate) {
         bool cues = m_cues;
@@ -396,6 +472,33 @@ bool XPLasmaStyle::eventFilter(QObject *watched, QEvent *event)
             }
         }
     }
+    // The Places bar: its background across the whole panel (the viewport
+    // shows its share of it).
+    if (event->type() == QEvent::Paint && m_renderer && watched->isWidgetType()) {
+        auto *viewport = static_cast<QWidget *>(watched);
+        if (auto *view = qobject_cast<QAbstractItemView *>(viewport->parentWidget());
+            view && view->viewport() == viewport && isPlacesBar(view)) {
+            QPainter p(viewport);
+            p.setClipRegion(static_cast<QPaintEvent *>(event)->region());
+            p.translate(-viewport->mapTo(view, QPoint(0, 0)));
+            drawPart(&p, {QStringLiteral("toolbar"), 0, 0, QStringLiteral("placesbar")}, view->rect());
+        }
+    }
+    // A property sheet's page: a tab widget's page in a dialog is painted
+    // with the tab body (TABP_BODY), as EnableThemeDialogTexture has it.
+    if (event->type() == QEvent::Paint && m_renderer && watched->isWidgetType()) {
+        auto *page = static_cast<QWidget *>(watched);
+        // (A pattern brush of the body at its true size, from the page's
+        // corner: Luna's 600px gradient shows only its top on most pages.)
+        const PartRef body{QStringLiteral("tab"), 10, 0, {}};
+        if (const QSize tile = trueSize(body); tile.isValid() && !tile.isEmpty() && isTabBody(page)) {
+            if (const QImage *image = partImage(body, tile, page->devicePixelRatioF())) {
+                QPainter p(page);
+                p.setClipRegion(static_cast<QPaintEvent *>(event)->region());
+                p.fillRect(page->rect(), QBrush(*image));
+            }
+        }
+    }
     if (auto *bar = qobject_cast<QStatusBar *>(watched);
         bar && m_renderer && (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Show)) {
         const int want = xpTextHeight(bar->font()) + 10;
@@ -403,6 +506,35 @@ bool XPLasmaStyle::eventFilter(QObject *watched, QEvent *event)
             bar->setMinimumHeight(want);
     }
     return QProxyStyle::eventFilter(watched, event);
+}
+
+// A page of a tab widget inside a dialog (and not one that fills its own
+// background): what XP's property sheets texture with the tab body.
+bool XPLasmaStyle::isTabBody(const QWidget *page) const
+{
+    const QWidget *stack = page->parentWidget();
+    if (!stack || page->autoFillBackground() || !qobject_cast<const QStackedWidget *>(stack))
+        return false;
+    const auto *tabs = qobject_cast<const QTabWidget *>(stack->parentWidget());
+    if (!tabs || tabs->documentMode() || !hasPart({QStringLiteral("tab"), 10, 0, {}}))
+        return false;
+    for (const QWidget *w = tabs; w; w = w->parentWidget())
+        if (qobject_cast<const QDialog *>(w))
+            return true;
+    return false;
+}
+
+// A file dialog's places panel (KDE's KFilePlacesView, Qt's own QSidebar):
+// what XP's Open and Save dialogs show as the Places bar, a toolbar themed
+// PlacesBar::Toolbar.
+bool XPLasmaStyle::isPlacesBar(const QWidget *view) const
+{
+    if (!view || !m_renderer || !(view->inherits("KFilePlacesView") || view->inherits("QSidebar")))
+        return false;
+    for (const QWidget *w = view->parentWidget(); w; w = w->parentWidget())
+        if (w->inherits("KFileWidget") || w->inherits("QFileDialog"))
+            return hasPart({QStringLiteral("toolbar"), 0, 0, QStringLiteral("placesbar")});
+    return false;
 }
 
 void XPLasmaStyle::unpolish(QWidget *widget)
@@ -440,6 +572,7 @@ static void classicPushEdge(QPainter *p, const QRect &r, const QPalette &pal, bo
 void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter,
                                  const QWidget *widget) const
 {
+    const ContextScope context(this, widget, option);
     if (classic()) {
         switch (element) {
         case PE_FrameFocusRect:
@@ -618,8 +751,10 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             const bool on = option->state & State_On;
             const QColor colours[] = {sysColour(u"btnshadow", Qt::gray), sysColour(u"dkshadow3d", Qt::black),
                                       sysColour(u"btnhighlight", Qt::white), sysColour(u"light3d", Qt::lightGray),
-                                      enabled(option) ? sysColour(u"window", Qt::white) : sysColour(u"btnface", Qt::lightGray),
+                                      enabled(option) && !(option->state & State_Sunken) ? sysColour(u"window", Qt::white)
+                                                                                          : sysColour(u"btnface", Qt::lightGray),
                                       enabled(option) ? sysColour(u"windowtext", Qt::black) : sysColour(u"btnshadow", Qt::gray)};
+            // (Held down, the well is the face, as a check box's is.)
             const QPoint at = option->rect.topLeft() + QPoint(1, 0);
             for (int y = 0; y < 12; ++y)
                 for (int x = 0; x < 12; ++x) {
@@ -713,6 +848,20 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             if (drawPart(painter, {QStringLiteral("tab"), 9, 1, {}}, option->rect))
                 return;
             break;
+        case PE_PanelItemViewItem:
+            // The Places bar's items are its buttons: hot under the pointer,
+            // checked for the current place (TS_*: hot 2, pressed 3, checked
+            // 5, hot checked 6).
+            if (const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option);
+                item && isPlacesBar(widget ? widget : item->widget)) {
+                const bool selected = item->state & State_Selected;
+                const bool hot = item->state & State_MouseOver;
+                if (selected || hot)
+                    drawPart(painter, {QStringLiteral("toolbar"), 1, selected ? (hot ? 6 : 5) : Hot, QStringLiteral("placesbar")},
+                             item->rect);
+                return;
+            }
+            break;
         case PE_PanelLineEdit:
         case PE_FrameLineEdit: {
             // ETS_*: normal 1, hot 2, selected 3, disabled 4, focused 5, readonly 6.
@@ -744,7 +893,7 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
                 // in the button face when disabled or read-only (as XP's
                 // WM_CTLCOLORSTATIC does), in the window colour otherwise.
                 if (element == PE_PanelLineEdit) {
-                    const QRect inside = m_renderer->contentRect({QStringLiteral("edit"), 1, state, {}}, option->rect);
+                    const QRect inside = m_renderer->contentRect(inContext({QStringLiteral("edit"), 1, state, {}}), option->rect);
                     const bool face = state == Disabled || state == 6;
                     painter->fillRect(inside, option->palette.brush(face ? QPalette::Disabled : QPalette::Active,
                                                                      face ? QPalette::Window : QPalette::Base));
@@ -847,6 +996,7 @@ static bool drawnEnabled(const QWidget *widget)
 void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *option, QPainter *painter,
                                const QWidget *widget) const
 {
+    const ContextScope context(this, widget, option);
     // comctl32's tab control paints its tabs the same enabled or not, and a
     // list view's header is a child window of its own that stays enabled:
     // XP draws both as enabled whatever the control's state.
@@ -982,7 +1132,7 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                     // with plain TABP_TABITEM (visible only where the two
                     // stretch differently: Luna's text baseline row).
                     if (drawn && !selected && part != 1) {
-                        const QMargins m = m_renderer->margins({QStringLiteral("tab"), 1, state, {}}, u"sizingmargins");
+                        const QMargins m = m_renderer->margins(inContext({QStringLiteral("tab"), 1, state, {}}), u"sizingmargins");
                         painter->setClipRect(r.adjusted(m.left(), 0, -m.right(), 0), Qt::IntersectClip);
                         drawPart(painter, {QStringLiteral("tab"), 1, state, {}}, r);
                     }
@@ -1076,12 +1226,14 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                     // Zune's 2px bottom margin 1px); hand Qt a rect exactly
                     // one line tall inside the margin it takes off.
                     const int m = proxy()->pixelMetric(PM_HeaderMargin, option, widget);
-                    const QMargins cm = m_renderer->contentMargins({QStringLiteral("header"), 1, Normal, {}});
+                    const QMargins cm = m_renderer->contentMargins(inContext({QStringLiteral("header"), 1, Normal, {}}));
                     const int th = xpTextHeight(widget ? widget->font() : QApplication::font());
                     const int avail = header->rect.height() - cm.top() - cm.bottom();
                     const int top = header->rect.top() + cm.top() + (avail - th) / 2 - 1;
                     QStyleOptionHeader copy(*header);
                     copy.rect = QRect(header->rect.left(), top - m, header->rect.width(), th + 2 * m);
+                    if (header->state & State_Sunken)   // pressed: 1px down and right
+                        copy.rect.translate(1, 1);
                     QProxyStyle::drawControl(element, &copy, painter, widget);
                     return;
                 }
@@ -1162,7 +1314,7 @@ void XPLasmaStyle::drawProgressChunks(const QStyleOptionProgressBar *bar, QPaint
     const bool horizontal = bar->state & State_Horizontal;
     const PartRef groove{QStringLiteral("progress"), horizontal ? 1 : 2, 1, {}};
     const PartRef chunk{QStringLiteral("progress"), horizontal ? 3 : 4, 1, {}};
-    const QRect content = m_renderer->contentRect(groove, bar->rect);
+    const QRect content = m_renderer->contentRect(inContext(groove), bar->rect);
     const qint64 range = qint64(bar->maximum) - bar->minimum;
     if (range <= 0 || content.isEmpty())
         return;   // busy indicator: the classic base draws it for now
@@ -1191,6 +1343,7 @@ void XPLasmaStyle::drawProgressChunks(const QStyleOptionProgressBar *bar, QPaint
 void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOptionComplex *option, QPainter *painter,
                                       const QWidget *widget) const
 {
+    const ContextScope context(this, widget, option);
     if (classic() && drawClassicComplex(control, option, painter, widget))
         return;
     if (m_renderer) {
@@ -1270,7 +1423,7 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
                         // when disabled), and the up-down's own white ground.
                         const PartRef edit{QStringLiteral("edit"), 1, enabled(spin) ? Normal : Disabled, {}};
                         drawPart(painter, edit, spin->rect);
-                        const QRect inside = m_renderer->contentRect(edit, spin->rect);
+                        const QRect inside = m_renderer->contentRect(inContext(edit), spin->rect);
                         painter->fillRect(inside, spin->palette.brush(enabled(spin) ? QPalette::Active : QPalette::Disabled,
                                                                       enabled(spin) ? QPalette::Base : QPalette::Window));
                         const QRect up = proxy()->subControlRect(CC_SpinBox, spin, SC_SpinBoxUp, widget);
@@ -1378,7 +1531,7 @@ void XPLasmaStyle::drawScrollBar(const QStyleOptionSlider *bar, QPainter *painte
         // than it: Luna Silver (content margins 4+4, 8px gripper) leaves 11
         // and 16px thumbs plain and grips 17px and up (measured on XP).
         const QSize grip = trueSize(gripper);
-        const QRect room = m_renderer->contentRect(thumbPart, thumb);
+        const QRect room = m_renderer->contentRect(inContext(thumbPart), thumb);
         if (grip.isValid() && (horizontal ? room.width() : room.height()) > (horizontal ? grip.width() : grip.height()))
             drawPart(painter, gripper, thumb);
     }
@@ -1388,6 +1541,7 @@ void XPLasmaStyle::drawScrollBar(const QStyleOptionSlider *bar, QPainter *painte
 
 int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, const QWidget *widget) const
 {
+    const ContextScope context(this, widget, option);
     if (classic()) {
         switch (metric) {
         case PM_ExclusiveIndicatorWidth:
@@ -1484,7 +1638,7 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
             // XP's header labels sit the item's content margin (Luna: 3) plus
             // comctl32's 6px in.
             if (hasPart({QStringLiteral("header"), 1, Normal, {}}))
-                return m_renderer->contentMargins({QStringLiteral("header"), 1, Normal, {}}).left() + 6;
+                return m_renderer->contentMargins(inContext({QStringLiteral("header"), 1, Normal, {}})).left() + 6;
             break;
         case PM_TreeViewIndentation:
             if (hasPart({QStringLiteral("treeview"), 0, Normal, {}}))
@@ -1590,6 +1744,7 @@ QSize XPLasmaStyle::xpItemSize(const QStyleOption *option, const QSize &size, co
 QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *option, const QSize &size,
                                      const QWidget *widget) const
 {
+    const ContextScope context(this, widget, option);
     if (classic()) {
         switch (type) {
         case CT_ItemViewItem:
@@ -1666,9 +1821,9 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
             // focus rectangle, never below MinSize.
             const PartRef ref{QStringLiteral("button"), 1, 1, {}};
             if (hasPart(ref)) {
-                const QMargins m = m_renderer->contentMargins(ref);
+                const QMargins m = m_renderer->contentMargins(inContext(ref));
                 QSize s = size + QSize(m.left() + m.right() + 12, m.top() + m.bottom() + 4);
-                return s.expandedTo(m_renderer->partSize(ref, xpl::PartSize::Min)).expandedTo(QSize(75, 23));
+                return s.expandedTo(m_renderer->partSize(inContext(ref), xpl::PartSize::Min)).expandedTo(QSize(75, 23));
             }
             break;
         }
@@ -1681,6 +1836,7 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
 
 QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *option, const QWidget *widget) const
 {
+    const ContextScope context(this, widget, option);
     if (classic() && (element == SE_CheckBoxFocusRect || element == SE_RadioButtonFocusRect))
         return QProxyStyle::subElementRect(element, option, widget).adjusted(2, 0, -2, -1);
     if (m_renderer && (element == SE_CheckBoxFocusRect || element == SE_RadioButtonFocusRect)
@@ -1974,6 +2130,15 @@ QSize XPLasmaStyle::xpToolButtonSize(const QStyleOptionToolButton *button, const
 bool XPLasmaStyle::drawXpToolButtonLabel(const QStyleOptionToolButton *button, QPainter *painter, const QWidget *widget) const
 {
     const bool down = (button->state & (State_Sunken | State_On)) && enabled(button);
+    // A button held down takes the class-level [Toolbar(Pressed)] TextColor
+    // (comctl32 asks for part 0): Luna and Zune white, Royale and Embedded
+    // black; Classic keeps the button text.
+    QStyleOptionToolButton held(*button);
+    if ((button->state & State_Sunken) && enabled(button) && m_renderer && widget
+        && qobject_cast<const QToolBar *>(widget->parentWidget()))
+        held.palette.setColor(QPalette::ButtonText, themeColour({QStringLiteral("toolbar"), 0, Pressed, {}}, u"textcolor",
+                                                                button->palette.color(QPalette::ButtonText)));
+    button = &held;
     if (button->toolButtonStyle == Qt::ToolButtonTextOnly && button->arrowType == Qt::NoArrow) {
         // (CC_ToolButton hands us the button inset by the frame width.)
         const int fw = proxy()->pixelMetric(PM_DefaultFrameWidth, button, widget);
@@ -2012,7 +2177,7 @@ void XPLasmaStyle::drawXpHeader(const QStyleOptionHeader *header, QPainter *pain
     const int m = proxy()->pixelMetric(PM_HeaderMargin, header, widget);
     const bool sorted = header->sortIndicator != QStyleOptionHeader::None && header->orientation == Qt::Horizontal
                         && (header->textAlignment & Qt::AlignLeft);
-    const QMargins cm = m_renderer ? m_renderer->contentMargins({QStringLiteral("header"), 1, Normal, {}}) : QMargins();
+    const QMargins cm = m_renderer ? m_renderer->contentMargins(inContext({QStringLiteral("header"), 1, Normal, {}})) : QMargins();
     // (QCommonStyle's SE_HeaderLabel, which its CE_Header uses unproxied.)
     QStyleOptionHeader label(*header);
     label.rect = header->rect.adjusted(m, m, -m, -m);
@@ -2255,6 +2420,21 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
             return true;
         }
         return false;
+    case CE_ScrollBarAddPage:
+    case CE_ScrollBarSubPage:
+        // Held down, the track's halftone is inverted.
+        if (option->state & State_Sunken) {
+            if (const auto *bar = qstyleoption_cast<const QStyleOptionSlider *>(option)) {
+                auto inverse = [](const QColor &c) { return QColor(255 - c.red(), 255 - c.green(), 255 - c.blue()); };
+                QStyleOptionSlider copy(*bar);
+                // (QWindowsStyle: sunken, the shadow's halftone over the dark.)
+                copy.palette.setColor(QPalette::Shadow, inverse(bar->palette.color(QPalette::Light)));
+                copy.palette.setColor(QPalette::Dark, inverse(bar->palette.color(QPalette::Window)));
+                QProxyStyle::drawControl(element, &copy, painter, widget);
+                return true;
+            }
+        }
+        return false;
     case CE_ScrollBarSlider:
         // The thumb: the raised scroll edge (it never looks pressed). A
         // disabled scroll bar has none, only the track.
@@ -2441,6 +2621,8 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
             const int top = header->rect.top() + (header->rect.height() - th) / 2;
             QStyleOptionHeader copy(*header);
             copy.rect = QRect(header->rect.left(), top - m, header->rect.width(), th + 2 * m);
+            if (header->state & State_Sunken)
+                copy.rect.translate(1, 1);
             QProxyStyle::drawControl(element, &copy, painter, widget);
             return true;
         }
@@ -2639,6 +2821,7 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
             };
             const int along = horizontal ? handle.width() : handle.height();
             const int across = horizontal ? handle.height() : handle.width();
+            const bool dithered = !enabled(slider) || ((slider->activeSubControls & SC_SliderHandle) && sunken(slider));
             for (int j = 0; j < across; ++j) {
                 for (int i = 0; i < along; ++i) {
                     // Row j of the down-pointing thumb: the point's rows only
@@ -2660,10 +2843,10 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
                         continue;
                     const QPoint at = horizontal ? QPoint(handle.left() + i, handle.top() + j)
                                                  : QPoint(handle.left() + j, handle.top() + i);
-                    // Disabled, the face is dithered with the highlight --
-                    // all but the point's first row (so XP has it).
+                    // Disabled or held down, the face is dithered with the
+                    // highlight -- all but the point's first row (so XP has it).
                     const bool plainRow = pointed && qBound(0, flip ? across - 1 - j : j, 21) == 17;
-                    if (c == 'F' && !enabled(slider) && !plainRow && ((at.x() + at.y()) & 1))
+                    if (c == 'F' && dithered && !plainRow && ((at.x() + at.y()) & 1))
                         c = 'W';
                     painter->fillRect(at.x(), at.y(), 1, 1, colourOf(c));
                 }
@@ -2702,7 +2885,14 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
                                                          std::tuple{down, SC_SpinBoxDown, QAbstractSpinBox::StepDownEnabled, false}}) {
                 const bool pressed = (spin->activeSubControls & sub) && sunken(spin);
                 const bool live = enabled(spin) && (spin->stepEnabled & flag);
-                classicScrollButton(painter, rect, spin->palette, pressed);
+                // (Held down, an up-down button is sunken -- EDGE_SUNKEN, not
+                // the scroll bar's flat pressed arrow.)
+                if (pressed) {
+                    painter->fillRect(rect, spin->palette.button());
+                    classicSunken(painter, rect, spin->palette);
+                } else {
+                    classicScrollButton(painter, rect, spin->palette, false);
+                }
                 const int cx = rect.left() + rect.width() / 2 + (pressed ? 1 : 0);
                 const int cy = rect.top() + (rect.height() - 2) / 2 + (pressed ? 1 : 0);
                 auto arrow = [&](QPoint o, const QColor &c) {
@@ -2938,6 +3128,7 @@ void XPLasmaStyle::drawSliderTicks(const QStyleOptionSlider *slider, const QRect
 QRect XPLasmaStyle::subControlRect(ComplexControl control, const QStyleOptionComplex *option, SubControl sub,
                                    const QWidget *widget) const
 {
+    const ContextScope context(this, widget, option);
     if (control == CC_GroupBox && sub == SC_GroupBoxFrame && (classic() || hasPart({QStringLiteral("button"), 4, 1, {}}))) {
         // The frame's top runs through the caption's middle -- by GDI's
         // text height, which Qt 5 overstates by a row for Tahoma 8.
@@ -3082,6 +3273,13 @@ int XPLasmaStyle::styleHint(StyleHint hint, const QStyleOption *option, const QW
         if (!m_safe)
             return m_cues ? 1 : 0;   // until Alt is held (see eventFilter)
         break;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
+    case SH_SpinBox_SelectOnStep:
+        // An up-down steps its buddy's value and leaves the caret be.
+        if (m_renderer || classic())
+            return 0;
+        break;
+#endif
     case SH_EtchDisabledText:
         // Etched (white-shadowed) disabled text is classic Windows; XP's
         // themed controls draw it flat in the part's disabled TextColor.

@@ -65,6 +65,7 @@ private:
     // no art for it, so the caller can fall down the degradation ladder.
     bool drawPart(QPainter *painter, const xpl::PartRef &ref, const QRect &rect) const;
     bool hasPart(const xpl::PartRef &ref) const;
+    const QImage *partImage(const xpl::PartRef &ref, QSize size, qreal dpr) const;
     QSize trueSize(const xpl::PartRef &ref) const;
     QColor themeColour(const xpl::PartRef &ref, QStringView property, const QColor &fallback) const;
     QColor sysColour(QStringView name, const QColor &fallback) const;
@@ -82,6 +83,8 @@ private:
     void drawXpTabLabel(const QStyleOptionTab *tab, QPainter *painter, const QWidget *widget) const;
     int xpTextHeight(const QFont &font) const;
     QString frameClass(const QWidget *widget) const;
+    bool isTabBody(const QWidget *page) const;
+    bool isPlacesBar(const QWidget *view) const;
     int itemRowExtra(const QWidget *widget) const;
     QSize xpItemSize(const QStyleOption *option, const QSize &size, const QWidget *widget) const;
     void drawTreeBranch(const QStyleOption *option, QPainter *painter, const QWidget *widget) const;
@@ -97,6 +100,20 @@ private:
     QSize xpMenuItemSize(const QStyleOptionMenuItem *item, const QSize &size, const QWidget *widget) const;
     void drawMenuItem(const QStyleOptionMenuItem *item, QPainter *painter, const QWidget *widget) const;
     void drawMenuBarItem(const QStyleOptionMenuItem *item, QPainter *painter, const QWidget *widget) const;
+
+    // Phase 4 context: the subclass in force for the current call (set by a
+    // ContextScope at each entry point), applied to every part looked up.
+    QString contextClass(const QWidget *widget, const QStyleOption *option) const;
+    xpl::PartRef inContext(const xpl::PartRef &ref) const;
+    struct ContextScope
+    {
+        ContextScope(const XPLasmaStyle *style, const QWidget *widget, const QStyleOption *option);
+        ~ContextScope();
+        const XPLasmaStyle *m_style;
+        QString m_saved;
+    };
+    mutable QString m_context;
+    bool m_anyContext = false;   // some widget has set xplasma-class
 
     std::unique_ptr<xpl::Renderer> m_renderer;
     bool m_safe = false;                   // XPLASMA_SAFE=1: classic only, draw nothing of our own

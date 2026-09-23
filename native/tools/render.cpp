@@ -129,7 +129,10 @@ int main(int argc, char **argv)
             metrics << "# style s" << styleIndex << ": " << path << ' ' << variant
                     << (renderer ? QString() : QLatin1String(" error=") + error) << '\n';
         } else if (t.first() == QLatin1String("part") && t.size() == 6 && renderer) {
-            PartRef ref{t.at(1), t.at(2).toInt(), t.at(3).toInt(), QString()};
+            // (CLASS may be Sub::Class, as uxtheme's SetWindowTheme would apply.)
+            const qsizetype scope = t.at(1).indexOf(QLatin1String("::"));
+            PartRef ref{scope < 0 ? t.at(1) : t.at(1).mid(scope + 2), t.at(2).toInt(), t.at(3).toInt(),
+                        scope < 0 ? QString() : t.at(1).left(scope)};
             const QSize size(t.at(4).toInt(), t.at(5).toInt());
             const QImage img = renderer->background(ref, size);
             const QString stem = QStringLiteral("%1/s%2_%3_%4_%5_%6x%7").arg(outdir).arg(styleIndex)

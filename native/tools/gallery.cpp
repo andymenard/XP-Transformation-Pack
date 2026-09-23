@@ -15,6 +15,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QCheckBox>
+#include <QDialog>
 #include <QComboBox>
 #include <QGridLayout>
 #include <QGroupBox>
@@ -96,6 +97,21 @@ static QWidget *controlFor(const QString &kind, const QString &label)
             t->addTab(new QWidget, QString::fromLatin1(name));
         t->setCurrentIndex(qMax(0, value));   // tabs:N selects tab N
         return t;
+    }
+    if (base == QLatin1String("propsheet")) {
+        // A property sheet: a dialog's tab widget, a check box on the page.
+        auto *d = new QDialog(nullptr, Qt::Widget);
+        auto *t = new QTabWidget(d);
+        auto *v = new QVBoxLayout(d);
+        v->setContentsMargins(0, 0, 0, 0);
+        v->addWidget(t);
+        auto *page = new QWidget;
+        auto *check = new QCheckBox(label.isEmpty() ? QStringLiteral("Show window contents while dragging") : label, page);
+        check->setGeometry(8, 8, 200, 17);
+        t->addTab(page, QStringLiteral("General"));
+        for (const char *name : {"Appearance", "Advanced"})
+            t->addTab(new QWidget, QString::fromLatin1(name));
+        return d;
     }
     if (base == QLatin1String("listview")) {
         auto *t = new QTreeWidget;       // report-mode: a header and rows
@@ -272,6 +288,30 @@ static void hoverAt(QWidget *top, QPoint at)
     QApplication::processEvents();
 }
 
+// The left button going down at `at` (the pointer already there); returns
+// the widget pressed, to release once grabbed.
+static QWidget *pressAt(QWidget *top, QPoint at)
+{
+    hoverAt(top, at);
+    QWidget *target = top->childAt(at);
+    if (!target)
+        target = top;
+    const QPoint local = target->mapFrom(top, at);
+    QMouseEvent press(QEvent::MouseButtonPress, local, target->mapToGlobal(local), Qt::LeftButton, Qt::LeftButton,
+                      Qt::NoModifier);
+    QApplication::sendEvent(target, &press);
+    QApplication::processEvents();
+    return target;
+}
+
+static void releaseAt(QWidget *target, QPoint at)
+{
+    QMouseEvent release(QEvent::MouseButtonRelease, at, target->mapToGlobal(at), Qt::LeftButton, Qt::NoButton,
+                        Qt::NoModifier);
+    QApplication::sendEvent(target, &release);
+    QApplication::processEvents();
+}
+
 static int controls(const QString &jobPath, const QString &outdir)
 {
     QFile job(jobPath);
@@ -322,7 +362,8 @@ static int controls(const QString &jobPath, const QString &outdir)
         // Offscreen, the pointer sits over the widget: no hover unless asked,
         // and no focus unless asked (the first widget would otherwise take it).
         w->setAttribute(Qt::WA_Hover, false);
-        if (state != QLatin1String("focused"))
+        // (Pressed with the mouse, a control takes focus by its own policy.)
+        if (state != QLatin1String("focused") && !state.startsWith(QLatin1String("pressed-")))
             w->setFocusPolicy(Qt::NoFocus);
         host.move(400, 400);      // away from the offscreen pointer at (0, 0)
         host.show();
@@ -352,7 +393,18 @@ static int controls(const QString &jobPath, const QString &outdir)
                 hoverAt(w, at);
             }
         }
+        QWidget *pressed = nullptr;
+        QPoint pressedAt;
+        if (state.startsWith(QLatin1String("pressed-"))) {
+            // pressed-X-Y: the left button held down at X,Y, as uxdump does.
+            const QStringList xy = state.split(QLatin1Char('-'));
+            const QPoint at(xy.value(1).toInt(), xy.value(2).toInt());
+            pressed = pressAt(w, at);
+            pressedAt = pressed->mapFrom(w, at);
+        }
         host.grab().save(name);
+        if (pressed)
+            releaseAt(pressed, pressedAt);
     }
     return 0;
 }

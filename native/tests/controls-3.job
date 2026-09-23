@@ -44,3 +44,18 @@ control listbox 120 80 disabled
 control listview 260 100 disabled
 control treeview 160 100 disabled
 control progress:60 150 18 disabled
+control check 160 17 pressed Use drop shadows
+control check-on 160 17 pressed Use drop shadows
+control radio 160 17 pressed Tile
+control radio-on 160 17 pressed Center
+control hscroll 150 17 pressed-8-8
+control hscroll 150 17 pressed-141-8
+control hscroll 150 17 pressed-56-8
+control hscroll 150 17 pressed-110-8
+control vscroll 17 150 pressed-8-141
+control spin 80 21 pressed-70-5
+control spin 80 21 pressed-70-15
+control trackbar:40 150 30 pressed-62-13
+control listview 260 100 pressed-40-10
+control toolbar 240 30 pressed-16-9
+control tabs 300 120 pressed-86-10

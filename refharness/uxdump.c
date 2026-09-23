@@ -67,6 +67,7 @@
 #include <shellapi.h>
 #include <uxtheme.h>
 #include <commctrl.h>
+#include <commdlg.h>
 
 WINGDIAPI BOOL WINAPI GdiTransparentBlt(HDC, int, int, int, int, HDC, int, int, int, int, UINT);
 
@@ -299,7 +300,34 @@ static void do_bitmap(const wchar_t *file, const wchar_t *outdir)
 
 static LRESULT CALLBACK host_proc(HWND w, UINT m, WPARAM wp, LPARAM lp)
 {
+    /* A scroll bar control only reports; its owner moves it, as apps do. */
+    wchar_t cls[16];
+    if ((m == WM_HSCROLL || m == WM_VSCROLL) && lp && GetClassNameW((HWND)lp, cls, 16) && !lstrcmpiW(cls, L"ScrollBar")) {
+        SCROLLINFO si;
+        int pos;
+        si.cbSize = sizeof si;
+        si.fMask = SIF_ALL;
+        GetScrollInfo((HWND)lp, SB_CTL, &si);
+        pos = si.nPos;
+        switch (LOWORD(wp)) {
+        case SB_LINEUP: pos -= 1; break;
+        case SB_LINEDOWN: pos += 1; break;
+        case SB_PAGEUP: pos -= (int)si.nPage; break;
+        case SB_PAGEDOWN: pos += (int)si.nPage; break;
+        case SB_THUMBTRACK: pos = si.nTrackPos; break;
+        default: return 0;
+        }
+        si.fMask = SIF_POS;
+        si.nPos = pos;
+        SetScrollInfo((HWND)lp, SB_CTL, &si, TRUE);
+        return 0;
+    }
     return DefWindowProcW(w, m, wp, lp);
+}
+
+static INT_PTR CALLBACK page_proc(HWND w, UINT m, WPARAM wp, LPARAM lp)
+{
+    return FALSE;
 }
 
 static int to_int(const wchar_t *s);
@@ -336,7 +364,17 @@ static void settle(DWORD ms)
     }
 }
 
-static struct { const wchar_t *kind, *state, *outdir; int w, h; } pendingMenu;
+static struct { const wchar_t *kind, *state, *outdir; int w, h; } pendingMenu, pendingPress;
+
+/* pressed-X-Y: grabbed with the button still down -- from a timer, since a
+ * scroll bar tracks the press in a modal loop of its own -- then released. */
+static void CALLBACK press_timer(HWND w, UINT m, UINT_PTR id, DWORD t)
+{
+    KillTimer(w, id);
+    grab(pendingPress.kind, pendingPress.state, pendingPress.w, pendingPress.h, pendingPress.outdir);
+    mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+    pendingPress.kind = NULL;
+}
 
 /* Runs inside TrackPopupMenu's modal loop, once the menu has shown. */
 static void CALLBACK menu_timer(HWND w, UINT m, UINT_PTR id, DWORD t)
@@ -420,6 +458,47 @@ static void do_menu(const wchar_t *kind, const wchar_t *state, int w, int h, con
     if (bar) DestroyMenu(bar);
 }
 
+static struct { const wchar_t *kind, *state, *outdir; int w, h; } pendingDialog;
+
+/* The Open dialog's hook: once it's up, move it to the capture origin, let
+ * it paint, grab it and cancel it. */
+static UINT_PTR CALLBACK dialog_hook(HWND dlg, UINT m, WPARAM wp, LPARAM lp)
+{
+    HWND top = GetParent(dlg);
+    if (m == WM_NOTIFY && ((OFNOTIFYW *)lp)->hdr.code == CDN_INITDONE) {
+        SetWindowPos(top, HWND_TOPMOST, 40, 40, pendingDialog.w, pendingDialog.h, SWP_SHOWWINDOW);
+        SetCursorPos(700, 560);
+        SetTimer(dlg, 9, 2000, NULL);
+    } else if (m == WM_TIMER && wp == 9) {
+        RECT r;
+        KillTimer(dlg, 9);
+        grab(pendingDialog.kind, pendingDialog.state, pendingDialog.w, pendingDialog.h, pendingDialog.outdir);
+        GetWindowRect(top, &r);
+        out(L"geometry %s window=%d,%d,%d,%d\r\n", pendingDialog.kind, r.left - 40, r.top - 40, r.right - 40, r.bottom - 40);
+        PostMessageW(top, WM_COMMAND, IDCANCEL, 0);
+    }
+    return 0;
+}
+
+/* filedialog: comdlg32's Open dialog (the Places bar, the shell view). */
+static void do_filedialog(const wchar_t *kind, const wchar_t *state, int w, int h, const wchar_t *outdir)
+{
+    OPENFILENAMEW ofn;
+    wchar_t file[MAX_PATH];
+    file[0] = 0;
+    ZeroMemory(&ofn, sizeof ofn);
+    ofn.lStructSize = sizeof ofn;
+    ofn.lpstrFile = file;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.lpstrFilter = L"All Files (*.*)\0*.*\0";
+    ofn.lpstrInitialDir = L"C:\\WINDOWS";
+    ofn.Flags = OFN_EXPLORER | OFN_ENABLEHOOK | OFN_ENABLESIZING;
+    ofn.lpfnHook = dialog_hook;
+    pendingDialog.kind = kind; pendingDialog.state = state; pendingDialog.outdir = outdir;
+    pendingDialog.w = w; pendingDialog.h = h;
+    GetOpenFileNameW(&ofn);
+}
+
 static void do_tooltip(const wchar_t *kind, const wchar_t *state, int w, int h, const wchar_t *label,
                        const wchar_t *outdir)
 {
@@ -500,7 +579,7 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
     else if (!wcsncmp_(kind, L"combo")) { cls = L"COMBOBOX"; style |= CBS_DROPDOWNLIST; }
     else if (!wcsncmp_(kind, L"progress")) { cls = PROGRESS_CLASSW; }
     else if (!wcsncmp_(kind, L"trackbar")) { cls = TRACKBAR_CLASSW; style |= TBS_AUTOTICKS | TBS_BOTTOM; }
-    else if (!wcsncmp_(kind, L"tabs")) { cls = WC_TABCONTROLW; }
+    else if (!wcsncmp_(kind, L"tabs") || !wcsncmp_(kind, L"propsheet")) { cls = WC_TABCONTROLW; }
     else if (!wcsncmp_(kind, L"listview")) { cls = WC_LISTVIEWW; style |= LVS_REPORT | (value == 3 ? LVS_SHOWSELALWAYS : 0); }
     else if (!wcsncmp_(kind, L"treeview")) {
         cls = WC_TREEVIEWW;
@@ -515,6 +594,7 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
     else if (!wcsncmp_(kind, L"toolbar")) { cls = TOOLBARCLASSNAMEW; style |= TBSTYLE_FLAT | TBSTYLE_LIST | CCS_NODIVIDER | CCS_NORESIZE; }
     else if (!wcsncmp_(kind, L"menu")) { do_menu(kind, state, w, h, outdir); return; }
     else if (!wcsncmp_(kind, L"tooltip")) { do_tooltip(kind, state, w, h, label, outdir); return; }
+    else if (!wcsncmp_(kind, L"filedialog")) { do_filedialog(kind, state, w, h, outdir); return; }
     else { out(L"control %s error=unknown-kind\r\n", kind); return; }
 
     host = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, L"UxdumpHost", L"", WS_POPUP | WS_VISIBLE, 40, 40, w, h,
@@ -539,7 +619,7 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
     if (!wcsncmp_(kind, L"check-mixed")) SendMessageW(ctl, BM_SETCHECK, BST_INDETERMINATE, 0);
     if (!wcsncmp_(kind, L"progress")) { SendMessageW(ctl, PBM_SETRANGE32, 0, 100); SendMessageW(ctl, PBM_SETPOS, value, 0); }
     if (!wcsncmp_(kind, L"trackbar")) { SendMessageW(ctl, TBM_SETRANGE, TRUE, MAKELONG(0, 100)); SendMessageW(ctl, TBM_SETTICFREQ, 10, 0); SendMessageW(ctl, TBM_SETPOS, TRUE, value); }
-    if (!wcsncmp_(kind, L"tabs")) {
+    if (!wcsncmp_(kind, L"tabs") || !wcsncmp_(kind, L"propsheet")) {
         TCITEMW item;
         const wchar_t *names[] = {L"General", L"Appearance", L"Advanced"};
         for (i = 0; i < 3; i++) {
@@ -641,6 +721,27 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
             SendMessageW(ctl, TVM_EXPAND, TVE_EXPAND, (LPARAM)root);
     tree_done:;
     }
+    if (!wcsncmp_(kind, L"propsheet")) {
+        /* A property sheet's page: a child dialog over the tab control's
+         * display rect with the tab body texture (ETDT_ENABLETAB), and a
+         * check box on it drawn over that texture. */
+        static WORD tpl[16];
+        DLGTEMPLATE *t = (DLGTEMPLATE *)tpl;
+        RECT disp;
+        HWND page, check;
+        ZeroMemory(tpl, sizeof tpl);
+        t->style = WS_CHILD | WS_VISIBLE | DS_CONTROL;
+        page = CreateDialogIndirectParamW(NULL, t, host, page_proc, 0);
+        EnableThemeDialogTexture(page, ETDT_ENABLETAB);
+        SetRect(&disp, 0, 0, w, h);
+        SendMessageW(ctl, TCM_ADJUSTRECT, FALSE, (LPARAM)&disp);
+        SetWindowPos(page, HWND_TOP, disp.left, disp.top, disp.right - disp.left, disp.bottom - disp.top, 0);
+        check = CreateWindowExW(0, L"BUTTON", label[0] ? label : L"Show window contents while dragging",
+                                WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 8, 8, 200, 17, page, (HMENU)3, NULL, NULL);
+        SendMessageW(check, WM_SYSCOLORCHANGE, 0, 0);
+        SendMessageW(check, WM_SETFONT, (WPARAM)font, TRUE);
+        out(L"geometry %s page=%d,%d,%d,%d\r\n", kind, disp.left, disp.top, disp.right, disp.bottom);
+    }
     if (!wcsncmp_(kind, L"listbox")) {
         SendMessageW(ctl, LB_ADDSTRING, 0, (LPARAM)L"Ascent");
         SendMessageW(ctl, LB_ADDSTRING, 0, (LPARAM)L"Autumn");
@@ -694,6 +795,10 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
             r[0].left, r[0].top, r[0].right, r[0].bottom, r[1].left, r[1].top, r[1].right, r[1].bottom,
             r[2].left, r[2].top, r[2].right, r[2].bottom, r[3].left, r[3].top, r[3].right, r[3].bottom);
     }
+    /* Focus cues: XP shows or hides a new window's by the kind of the last
+     * input (keyboard or mouse), so pin them -- shown for `focused` (focus
+     * moved by the keyboard), hidden otherwise (a mouse user's view). */
+    SendMessageW(host, WM_CHANGEUISTATE, MAKEWPARAM(!lstrcmpW(state, L"focused") ? UIS_CLEAR : UIS_SET, UISF_HIDEFOCUS), 0);
     if (!lstrcmpW(state, L"disabled")) EnableWindow(ctl, FALSE);
     if (!lstrcmpW(state, L"focused")) SetFocus(ctl);
     if (!lstrcmpW(state, L"pressed")) SendMessageW(ctl, BM_SETSTATE, TRUE, 0);
@@ -715,6 +820,32 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
         SetCursorPos(40 + hx + 1, 40 + hy);
         settle(50);
         SetCursorPos(40 + hx, 40 + hy);
+    }
+    if (!wcsncmp_(state, L"pressed-")) {
+        /* pressed-X-Y: the pointer to X,Y and the left button down there,
+         * held while the screen is grabbed. */
+        const wchar_t *p = state + 8;
+        int px = to_int(p), py;
+        while (*p && *p != L'-') p++;
+        py = *p ? to_int(p + 1) : h / 2;
+        SetForegroundWindow(host);
+        settle(100);
+        SetCursorPos(40 + px, 40 + py);
+        settle(100);
+        pendingPress.kind = kind; pendingPress.state = state; pendingPress.outdir = outdir;
+        pendingPress.w = w; pendingPress.h = h;
+        SetTimer(NULL, 0, 120, press_timer);
+        mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+        settle(400);
+        if (pendingPress.kind) {   /* (never grabbed: let go regardless) */
+            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+            out(L"control %s %s error=press-not-grabbed\r\n", kind, state);
+        }
+        settle(100);
+        SetCursorPos(700, 560);
+        DestroyWindow(host);
+        DeleteObject(font);
+        return;
     }
     {
         /* Let it finish painting (and any animation), pumping messages. */
@@ -756,7 +887,7 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
         out(L"geometry %s channel=%d,%d,%d,%d thumb=%d,%d,%d,%d tic0=%d tic5=%d\r\n", kind,
             ch.left, ch.top, ch.right, ch.bottom, th.left, th.top, th.right, th.bottom,
             (int)SendMessageW(ctl, TBM_GETTICPOS, 0, 0), (int)SendMessageW(ctl, TBM_GETTICPOS, 4, 0));
-    } else if (!wcsncmp_(kind, L"tabs")) {
+    } else if (!wcsncmp_(kind, L"tabs") || !wcsncmp_(kind, L"propsheet")) {
         RECT r[3], disp;
         for (i = 0; i < 3; i++)
             SendMessageW(ctl, TCM_GETITEMRECT, i, (LPARAM)&r[i]);

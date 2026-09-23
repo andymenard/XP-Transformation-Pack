@@ -1,0 +1,2 @@
+control propsheet 300 120 normal Show window contents while dragging
+control propsheet 300 120 hot-60-40 Show window contents while dragging

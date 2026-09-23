@@ -36,6 +36,15 @@ Each says where it came from, so it can be picked up without re-deriving it.
   with addWidget follow the layout instead.
 - **Qt 5 gallery tooltip**: QToolTip under Qt 5 offscreen never creates
   the label, so control_tooltip has no Qt 5 twin (the style code is shared).
+- **Qt 5 spin boxes select their text on each step.** XP's up-down leaves
+  the buddy's caret alone; Qt 6.6+ asks the style (SH_SpinBox_SelectOnStep,
+  answered no), Qt 5 selects unconditionally.
+- **Focus cues in the oracle follow the last input** (found 2026-09-23):
+  XP shows or hides a new window's focus rectangles by whether the last
+  input was keyboard or mouse, so one mouse click flipped every later
+  `focused` capture. uxdump now pins the state (WM_CHANGEUISTATE): cues
+  shown for `focused`, hidden otherwise -- the gallery mirrors it with
+  WA_KeyboardFocusChange only for `focused`.
 
 - ~~XP's report list view header 1px further in~~ (resolved 2026-09-23):
   the list view's client edge is border + a 1px ring of fill, so the
