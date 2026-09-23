@@ -884,6 +884,31 @@ private Q_SLOTS:
         QVERIFY(!overrides::patched(QStringLiteral("systemtray/main.qml"), QStringLiteral("not KDE's QML")));
     }
 
+    void taskbarsSettleWhileShellIsDown()
+    {
+        // A floating bottom panel is put back in the shell's saved state; a
+        // top panel, and panels that aren't in the layout, are left alone.
+        writeFile(paths::config() + QLatin1String("/plasma-org.kde.plasma.desktop-appletsrc"),
+                  "[Containments][7]\nformfactor=2\nlocation=4\nplugin=org.kde.panel\n\n"
+                  "[Containments][7][Applets][9]\nplugin=org.kde.plasma.digitalclock\n\n"
+                  "[Containments][8]\nlocation=3\nplugin=org.kde.panel\n\n"
+                  "[Containments][1]\nlocation=0\nplugin=org.kde.plasma.folder\n");
+        writeFile(paths::config() + QLatin1String("/plasmashellrc"),
+                  "[PlasmaViews][Panel 7]\nfloating=1\n\n[PlasmaViews][Panel 7][Defaults]\nthickness=44\n\n"
+                  "[PlasmaViews][Panel 7][Horizontal1280]\nfloating=1\npanelOpacity=2\n\n"
+                  "[PlasmaViews][Panel 8]\nfloating=1\n\n[PlasmaViews][Panel 5]\nfloating=1\n");
+        RecordingSession session;
+        settleTaskbars(session, 30);
+        const QString rc = QStringLiteral("plasmashellrc|PlasmaViews/Panel 7");
+        QCOMPARE(session.config.value(rc + QLatin1String("|floating")), QStringLiteral("0"));
+        QCOMPARE(session.config.value(rc + QLatin1String("/Defaults|thickness")), QStringLiteral("30"));
+        QCOMPARE(session.config.value(rc + QLatin1String("/Horizontal1280|floating")), QStringLiteral("0"));
+        QCOMPARE(session.config.value(rc + QLatin1String("/Horizontal1280|panelOpacity")), QStringLiteral("1"));
+        QCOMPARE(session.config.value(rc + QLatin1String("/Horizontal1280|panelLengthMode")), QStringLiteral("0"));
+        for (auto it = session.config.cbegin(); it != session.config.cend(); ++it)
+            QVERIFY2(it.key().startsWith(rc), qPrintable(it.key()));
+    }
+
     void wallpaperAlone()
     {
         // The editor's Apply when only the desktop changed: one script, nothing rebuilt.

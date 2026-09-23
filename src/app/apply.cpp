@@ -19,6 +19,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSaveFile>
+#include <QSet>
 #include <QThread>
 #include <QUrl>
 
@@ -169,6 +170,65 @@ bool applyWidgets(Session &session, const Look &look, const std::function<void(c
     return ok;
 }
 
+// "[A][B C][D]" -> {"A", "B C", "D"}
+static QStringList configGroups(const QString &header)
+{
+    return header.trimmed().mid(1).chopped(1).split(QLatin1String("]["));
+}
+
+void settleTaskbars(Session &session, int height)
+{
+    auto lines = [](const QString &name) {
+        QFile f(paths::config() + QLatin1Char('/') + name);
+        return f.open(QIODevice::ReadOnly) ? QString::fromUtf8(f.readAll()).split(QLatin1Char('\n')) : QStringList();
+    };
+    // The bottom panels (location 4), from the layout.
+    QSet<QString> bottom;
+    QString containment;
+    bool panel = false, atBottom = false;
+    auto finish = [&] {
+        if (!containment.isEmpty() && panel && atBottom)
+            bottom.insert(containment);
+    };
+    for (const QString &line : lines(QStringLiteral("plasma-org.kde.plasma.desktop-appletsrc"))) {
+        if (line.startsWith(QLatin1Char('['))) {
+            finish();
+            const QStringList g = configGroups(line);
+            containment = g.size() == 2 && g.at(0) == QLatin1String("Containments") ? g.at(1) : QString();
+            panel = atBottom = false;
+        } else if (!containment.isEmpty()) {
+            panel |= line.trimmed() == QLatin1String("plugin=org.kde.panel");
+            atBottom |= line.trimmed() == QLatin1String("location=4");
+        }
+    }
+    finish();
+    // Their views, as the shell keeps them: per panel, its defaults, and per
+    // screen size (HorizontalNNNN).
+    const QString file = QStringLiteral("plasmashellrc");
+    QSet<QString> seen;
+    for (const QString &line : lines(file)) {
+        if (!line.startsWith(QLatin1String("[PlasmaViews][Panel ")))
+            continue;
+        const QStringList g = configGroups(line);
+        if (g.size() < 2 || !bottom.contains(g.at(1).mid(6)) || seen.contains(g.join(QLatin1Char('/'))))
+            continue;
+        seen.insert(g.join(QLatin1Char('/')));
+        const QString sub = g.value(2);
+        if (sub == QLatin1String("Defaults")) {
+            session.writeConfig(file, g, QStringLiteral("thickness"), QString::number(height), false);
+            continue;
+        }
+        if (!sub.isEmpty() && !sub.startsWith(QLatin1String("Horizontal")))
+            continue;
+        session.writeConfig(file, g, QStringLiteral("floating"), QStringLiteral("0"), false);
+        session.writeConfig(file, g, QStringLiteral("alignment"), QStringLiteral("1"), false);   // Qt::AlignLeft
+        if (!sub.isEmpty()) {
+            session.writeConfig(file, g, QStringLiteral("panelLengthMode"), QStringLiteral("0"), false);   // fill
+            session.writeConfig(file, g, QStringLiteral("panelOpacity"), QStringLiteral("1"), false);      // opaque
+        }
+    }
+}
+
 bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QString *error)
 {
     State state = State::load();
@@ -264,7 +324,9 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
             const QString cache = paths::home() + QLatin1String("/.cache/");
             QFile::remove(cache + QLatin1String("plasma_theme_") + panelId + QLatin1String(".kcache"));
             QFile::remove(cache + QLatin1String("ksvg-elements"));
+            settleTaskbars(session, panelArt(look).height);
         });
+        // (Again through the running shell, for panels it hadn't saved yet.)
         session.script(scriptFrom(QStringLiteral("panel"), {{QStringLiteral("HEIGHT"), panelArt(look).height}}));
         // The clock in the style's clock font (Classic: the status font).
         LogFont clock = look.system.metrics.statusFont;
