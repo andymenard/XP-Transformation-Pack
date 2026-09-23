@@ -14,8 +14,6 @@ Item {
     readonly property bool opened: menu.status === PlasmaExtras.Menu.Open
     signal triggered(var entry)
 
-    property var created: []
-
     PlasmaExtras.Menu {
         id: menu
         visualParent: null
@@ -26,20 +24,17 @@ Item {
     // "title", enabled, checkable, checked, subActions}.
     function show(entries, item, x, y) {
         menu.close();
+        // (It deletes the items it had -- and with them their submenus.)
         menu.clearMenuItems();
-        for (const o of created) o.destroy();
-        created = [];
-        for (const e of entries) menu.addMenuItem(make(e, menu));
-        if (created.length === 0) return;
+        if (entries.length === 0) return;
+        for (const e of entries) menu.addMenuItem(make(e, root));
         menu.visualParent = item;
         menu.open(x, y);
     }
-    function make(entry, parentMenu) {
-        const item = itemComponent.createObject(root, {entry: entry});
-        created.push(item);
+    function make(entry, owner) {
+        const item = itemComponent.createObject(owner, {entry: entry});
         if (entry.subActions && entry.subActions.length > 0) {
             const sub = menuComponent.createObject(item, {visualParent: item.action});
-            created.push(sub);
             for (const e of entry.subActions) sub.addMenuItem(make(e, sub));
         }
         return item;

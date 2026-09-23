@@ -9,13 +9,15 @@
 #include "app/state.h"
 
 #include <QDir>
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QTemporaryDir>
 #include <QTest>
+
+#include <memory>
 
 using namespace xpl;
 
@@ -119,6 +121,39 @@ private Q_SLOTS:
         }
     }
 
+    void rightClickAgainAndAgain()
+    {
+        // The right-click menu opens every time, not only the first: its
+        // previous items belong to Plasma's menu, which deletes them itself.
+        const QString qml = QCoreApplication::applicationDirPath() + QLatin1String("/../../../../src/app/start-menu/contents/ui/ActionMenu.qml");
+        QQmlEngine engine;
+        QQmlComponent component(&engine, QUrl::fromLocalFile(QFileInfo(qml).absoluteFilePath()));
+        if (component.isError() && component.errorString().contains(QLatin1String("is not installed")))
+            QSKIP("KDE's QML modules aren't here");
+        std::unique_ptr<QObject> menu(component.create());
+        QVERIFY2(menu, qPrintable(component.errorString()));
+        QQuickWindow window;
+        qobject_cast<QQuickItem *>(menu.get())->setParentItem(window.contentItem());
+        window.resize(100, 100);
+        window.show();
+        static QStringList warnings;
+        warnings.clear();
+        const auto previous = qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString &message) {
+            if (type != QtDebugMsg)
+                warnings << message;
+        });
+        const QVariantList entries{QVariantMap{{QStringLiteral("text"), QStringLiteral("Open")}, {QStringLiteral("actionId"), QStringLiteral("_xplasma_open")}},
+                                   QVariantMap{{QStringLiteral("type"), QStringLiteral("separator")}},
+                                   QVariantMap{{QStringLiteral("text"), QStringLiteral("Pin to Start menu")}}};
+        for (int i = 0; i < 3; ++i) {
+            QVERIFY(QMetaObject::invokeMethod(menu.get(), "show", Q_ARG(QVariant, entries), Q_ARG(QVariant, QVariant::fromValue(menu.get())),
+                                              Q_ARG(QVariant, 5), Q_ARG(QVariant, 5)));
+            QTRY_VERIFY2(menu->property("opened").toBool(), qPrintable(QStringLiteral("round %1: %2").arg(i).arg(warnings.join(QLatin1Char('\n')))));
+        }
+        qInstallMessageHandler(previous);
+        QVERIFY2(warnings.filter(QLatin1String("ActionMenu")).isEmpty(), qPrintable(warnings.join(QLatin1Char('\n'))));
+    }
+
     void grows()
     {
         // XP's way with a long list: the menu gets taller, and only when the
@@ -184,7 +219,8 @@ private Q_SLOTS:
 int main(int argc, char **argv)
 {
     qputenv("QT_QPA_PLATFORM", "offscreen");
-    QGuiApplication app(argc, argv);
+    // (A QApplication: the right-click menu is a real QMenu.)
+    QApplication app(argc, argv);
     TestStartMenu test;
     return QTest::qExec(&test, argc, argv);
 }
