@@ -27,6 +27,8 @@ public:
 
     void polish(QWidget *widget) override;
     void unpolish(QWidget *widget) override;
+    void polish(QApplication *app) override;
+    void unpolish(QApplication *app) override;
     void polish(QPalette &palette) override;
     QPalette standardPalette() const override;
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -100,6 +102,7 @@ private:
     QHash<QString, QColor> m_scheme;       // Classic: the colour scheme's [Control Panel\Colors], keys lower-case
     QHash<QString, int> m_schemeMetrics;   // Classic: [XPLasma] metrics (scrollwidth)
     mutable QCache<QString, QImage> m_cache; // rendered parts, keyed by part + size + dpi
+    bool m_cues = false;                   // Alt held: show mnemonic underlines (XP's keyboard cues)
     QString m_configPath;                  // ~/.config/xplasmarc, when live
     std::pair<QString, QString> m_loaded;  // (Path, Variant) in use
     class QFileSystemWatcher *m_watcher = nullptr;

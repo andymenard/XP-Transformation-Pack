@@ -315,8 +315,11 @@ static int controls(const QString &jobPath, const QString &outdir)
             w->setFocusPolicy(Qt::NoFocus);
         host.move(400, 400);      // away from the offscreen pointer at (0, 0)
         host.show();
-        if (state == QLatin1String("focused"))
-            w->setFocus();
+        if (state == QLatin1String("focused")) {
+            // Focus as the keyboard moves it: XP's captures show the cues.
+            host.setAttribute(Qt::WA_KeyboardFocusChange);
+            w->setFocus(Qt::TabFocusReason);
+        }
         if (state == QLatin1String("pressed"))
             if (auto *b = qobject_cast<QAbstractButton *>(w))
                 b->setDown(true);

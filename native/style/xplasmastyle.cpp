@@ -13,6 +13,7 @@
 #include <QFile>
 #include <QHeaderView>
 #include <QFileInfo>
+#include <QKeyEvent>
 #include <QTimer>
 #include <QFileSystemWatcher>
 #include <QMenu>
@@ -133,6 +134,19 @@ XPLasmaStyle::XPLasmaStyle()
     if (m_safe)
         return;
     loadTheme();
+    // XPLASMA_DUMP=DIR: a testing aid -- after XPLASMA_DUMP_DELAY ms (3000),
+    // save every visible top-level widget to DIR, so real apps can be
+    // inspected offscreen.
+    if (const QString dump = qEnvironmentVariable("XPLASMA_DUMP"); !dump.isEmpty()) {
+        const int delay = qEnvironmentVariableIsSet("XPLASMA_DUMP_DELAY") ? qEnvironmentVariableIntValue("XPLASMA_DUMP_DELAY") : 3000;
+        QTimer::singleShot(delay, this, [dump] {
+            QDir().mkpath(dump);
+            int n = 0;
+            for (QWidget *w : QApplication::topLevelWidgets())
+                if (w->isVisible() && w->width() > 1 && w->height() > 1)
+                    w->grab().save(QStringLiteral("%1/%2-%3.png").arg(dump, QCoreApplication::applicationName()).arg(n++));
+        });
+    }
     // Live: follow xplasmarc (unless the environment pins a theme). The app
     // replaces the file atomically, so the watch is on the file and re-armed
     // after each change; a short delay folds bursts together.
@@ -332,8 +346,42 @@ void XPLasmaStyle::polish(QWidget *widget)
     }
 }
 
+// XP's keyboard cues: mnemonic underlines stay hidden until Alt is pressed
+// (SPI_GETKEYBOARDCUES off, XP's default); focus rectangles until focus moves
+// by keyboard (Qt's State_KeyboardFocusChange).
+void XPLasmaStyle::polish(QApplication *app)
+{
+    QProxyStyle::polish(app);
+    app->installEventFilter(this);
+}
+
+void XPLasmaStyle::unpolish(QApplication *app)
+{
+    app->removeEventFilter(this);
+    QProxyStyle::unpolish(app);
+}
+
 bool XPLasmaStyle::eventFilter(QObject *watched, QEvent *event)
 {
+    if (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease
+        || event->type() == QEvent::ApplicationStateChange || event->type() == QEvent::WindowDeactivate) {
+        bool cues = m_cues;
+        if (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease) {
+            const auto *key = static_cast<QKeyEvent *>(event);
+            if (key->key() == Qt::Key_Alt && !key->isAutoRepeat())
+                cues = event->type() == QEvent::KeyPress;
+        } else {
+            cues = false;
+        }
+        if (cues != m_cues) {
+            m_cues = cues;
+            if (QWidget *window = QApplication::activeWindow()) {
+                window->update();
+                for (QWidget *w : window->findChildren<QWidget *>())
+                    w->update();
+            }
+        }
+    }
     if (auto *bar = qobject_cast<QStatusBar *>(watched);
         bar && m_renderer && (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Show)) {
         const int want = xpTextHeight(bar->font()) + 10;
@@ -381,7 +429,8 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
     if (classic()) {
         switch (element) {
         case PE_FrameFocusRect:
-            if (option->rect.isValid() && qobject_cast<const QScrollBar *>(widget)) {
+            if (option->rect.isValid() && qobject_cast<const QScrollBar *>(widget)
+                && (option->state & State_KeyboardFocusChange)) {
                 // A focused scroll bar's thumb: its whole inside inverted in
                 // a checkerboard (1px wider and taller than Qt's focus rect).
                 const QRect r = option->rect.adjusted(0, 0, 1, 1);
@@ -395,6 +444,8 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
                 painter->restore();
                 return;
             }
+            if (!(option->state & State_KeyboardFocusChange))
+                return;   // XP shows focus only once the keyboard's been used
             if (option->rect.isValid()) {
                 const auto [odd, even] = focusColours(widget);
                 drawFocusDots(painter, option->rect, odd, even);
@@ -716,6 +767,8 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             break;
         case PE_FrameFocusRect:
             // DrawFocusRect XORs with the control's DC colours (focusColours).
+            if (!(option->state & State_KeyboardFocusChange))
+                return;   // XP shows focus only once the keyboard's been used
             if (option->rect.isValid()) {
                 const auto [odd, even] = focusColours(widget);
                 drawFocusDots(painter, option->rect, odd, even);
@@ -1130,6 +1183,7 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
                         painter->fillRect(field, combo->palette.brush(QPalette::Highlight));
                         // ...ringed by a focus rect XORed with the highlight
                         // colours the field is drawn in.
+                        if (combo->state & State_KeyboardFocusChange)
                         drawFocusDots(painter, field, combo->palette.color(QPalette::Active, QPalette::Highlight),
                                       combo->palette.color(QPalette::Active, QPalette::HighlightedText));
                     }
@@ -1193,7 +1247,7 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
                         state = 4;
                     drawPart(painter, {QStringLiteral("trackbar"), sliderThumbPart(slider), state, {}}, handle);
                     // A focused trackbar's focus rect rings its whole client.
-                    if (slider->state & State_HasFocus)
+                    if ((slider->state & State_HasFocus) && (slider->state & State_KeyboardFocusChange))
                         drawFocusDots(painter, slider->rect, focusColours(widget).first, focusColours(widget).second);
                     return;
                 }
@@ -1821,7 +1875,7 @@ void XPLasmaStyle::drawXpTabLabel(const QStyleOptionTab *tab, QPainter *painter,
     if (tab->state & State_Selected)
         copy.rect.translate(0, -2);
     QProxyStyle::drawControl(CE_TabBarTabLabel, &copy, painter, widget);
-    if (tab->state & State_HasFocus)
+    if ((tab->state & State_HasFocus) && (tab->state & State_KeyboardFocusChange))
         drawFocusDots(painter, xpTabRect(tab).adjusted(1, 1, -1, -1), focusColours(widget).first, focusColours(widget).second);
 }
 
@@ -2479,7 +2533,7 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
                     painter->fillRect(at.x(), at.y(), 1, 1, colourOf(c));
                 }
             }
-            if (slider->state & State_HasFocus)
+            if ((slider->state & State_HasFocus) && (slider->state & State_KeyboardFocusChange))
                 drawFocusDots(painter, slider->rect, focusColours(widget).first, focusColours(widget).second);
             return true;
         }
@@ -2541,7 +2595,8 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
             if ((combo->state & State_HasFocus) && !combo->editable) {
                 const QRect field = proxy()->subControlRect(CC_ComboBox, combo, SC_ComboBoxEditField, widget);
                 painter->fillRect(field, combo->palette.brush(QPalette::Highlight));
-                drawFocusDots(painter, field, combo->palette.color(QPalette::Active, QPalette::Highlight),
+                if (combo->state & State_KeyboardFocusChange)
+                        drawFocusDots(painter, field, combo->palette.color(QPalette::Active, QPalette::Highlight),
                               combo->palette.color(QPalette::Active, QPalette::HighlightedText));
             }
             return true;
@@ -2618,7 +2673,7 @@ bool XPLasmaStyle::drawXpViewItem(const QStyleOptionViewItem *item, QPainter *pa
     const bool focused = widget && widget->hasFocus();
     const bool labelCell = tree || item->index.column() == 0;
     const bool selected = labelCell && (item->state & State_Selected);
-    const bool focusRect = labelCell && focused && (item->state & State_HasFocus);
+    const bool focusRect = labelCell && focused && (item->state & State_HasFocus) && (item->state & State_KeyboardFocusChange);
 
     QStyleOptionViewItem plain(*item);
     plain.state &= ~(State_Selected | State_HasFocus);
@@ -2876,6 +2931,10 @@ int XPLasmaStyle::styleHint(StyleHint hint, const QStyleOption *option, const QW
     switch (hint) {
     case SH_ComboBox_Popup:
         return 0;
+    case SH_UnderlineShortcut:
+        if (!m_safe)
+            return m_cues ? 1 : 0;   // until Alt is held (see eventFilter)
+        break;
     case SH_EtchDisabledText:
         // Etched (white-shadowed) disabled text is classic Windows; XP's
         // themed controls draw it flat in the part's disabled TextColor.
