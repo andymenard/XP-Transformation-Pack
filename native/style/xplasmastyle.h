@@ -74,6 +74,8 @@ private:
     QString frameClass(const QWidget *widget) const;
     int itemRowExtra(const QWidget *widget) const;
     void drawTreeBranch(const QStyleOption *option, QPainter *painter, const QWidget *widget) const;
+    bool drawClassicComplex(ComplexControl control, const QStyleOptionComplex *option, QPainter *painter,
+                            const QWidget *widget) const;
     bool drawClassicControl(ControlElement element, const QStyleOption *option, QPainter *painter,
                             const QWidget *widget) const;
     void drawFocusDots(QPainter *painter, const QRect &rect, const QColor &odd, const QColor &even = Qt::black) const;

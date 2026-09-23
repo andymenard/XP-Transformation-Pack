@@ -312,6 +312,20 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             break;
         case PE_FrameDefaultButton:
             return;   // drawn with the bevel (CE_PushButtonBevel)
+        case PE_PanelLineEdit:
+            // A disabled or read-only edit is filled with the button face
+            // (WM_CTLCOLORSTATIC), as the themed ones are.
+            if (const auto *frame = qstyleoption_cast<const QStyleOptionFrame *>(option);
+                frame && (!enabled(option) || (option->state & State_ReadOnly))) {
+                QStyleOptionFrame copy(*frame);
+                const QBrush face(sysColour(u"btnface", option->palette.color(QPalette::Button)));
+                copy.palette.setBrush(QPalette::Disabled, QPalette::Base, face);
+                copy.palette.setBrush(QPalette::Active, QPalette::Base, face);
+                copy.palette.setBrush(QPalette::Inactive, QPalette::Base, face);
+                QProxyStyle::drawPrimitive(element, &copy, painter, widget);
+                return;
+            }
+            break;
         case PE_IndicatorRadioButton: {
             // DFCS_BUTTONRADIO: Marlett's 12px circle in the four 3D colours,
             // the window colour inside (the face when disabled), the dot in
@@ -874,6 +888,8 @@ void XPLasmaStyle::drawProgressChunks(const QStyleOptionProgressBar *bar, QPaint
 void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOptionComplex *option, QPainter *painter,
                                       const QWidget *widget) const
 {
+    if (classic() && drawClassicComplex(control, option, painter, widget))
+        return;
     if (m_renderer) {
         switch (control) {
         case CC_ToolButton:
@@ -1354,9 +1370,9 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
             }
         }
     }
-    if (m_renderer && element == SE_LineEditContents) {
+    if ((m_renderer || classic()) && element == SE_LineEditContents) {
         const auto *frame = qstyleoption_cast<const QStyleOptionFrame *>(option);
-        if (frame && frame->lineWidth > 0 && hasPart({QStringLiteral("edit"), 1, Normal, {}})) {
+        if (frame && frame->lineWidth > 0 && (classic() || hasPart({QStringLiteral("edit"), 1, Normal, {}}))) {
             // XP's single-line Edit (EM_GETRECT, Luna, Tahoma 8): text 4px in
             // from the 2px client edge and top-aligned 1px down -- not
             // centred. QLineEdit adds 2px of its own and centres within this
@@ -1691,6 +1707,19 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
             return true;
         }
         return false;
+    case CE_ComboBoxLabel:
+        if (const auto *combo = qstyleoption_cast<const QStyleOptionComboBox *>(option); combo && !combo->editable) {
+            // QCommonStyle insets the label 1px into the field; XP draws it
+            // at the field's edge -- and disabled, plain GrayText, unetched.
+            QStyleOptionComboBox copy(*combo);
+            copy.palette.setColor(QPalette::Disabled, QPalette::Light, copy.palette.color(QPalette::Disabled, QPalette::Button));
+            painter->save();
+            painter->translate(-1, 0);
+            QProxyStyle::drawControl(element, &copy, painter, widget);
+            painter->restore();
+            return true;
+        }
+        return false;
     case CE_CheckBoxLabel:
     case CE_RadioButtonLabel:
         if (const auto *btn = qstyleoption_cast<const QStyleOptionButton *>(option)) {
@@ -1726,6 +1755,76 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
                 copy.rect.translate(1, 1);
             copy.state &= ~(State_Sunken | State_On);
             QProxyStyle::drawControl(element, &copy, painter, widget);
+            return true;
+        }
+        return false;
+    default:
+        return false;
+    }
+}
+
+// The raised edge DrawFrameControl gives scroll-type buttons (EDGE_RAISED:
+// Light3D and DkShadow outside, Highlight and Shadow inside); pressed, a
+// flat shadow line.
+static void classicScrollButton(QPainter *p, const QRect &r, const QPalette &pal, bool pressed)
+{
+    p->fillRect(r, pal.button());
+    auto frame = [&](const QRect &q, const QColor &tl, const QColor &br) {
+        p->fillRect(QRect(q.left(), q.top(), q.width() - 1, 1), tl);
+        p->fillRect(QRect(q.left(), q.top(), 1, q.height() - 1), tl);
+        p->fillRect(QRect(q.left(), q.bottom(), q.width(), 1), br);
+        p->fillRect(QRect(q.right(), q.top(), 1, q.height()), br);
+    };
+    if (pressed) {
+        frame(r, pal.color(QPalette::Dark), pal.color(QPalette::Dark));
+        return;
+    }
+    frame(r, pal.color(QPalette::Midlight), pal.color(QPalette::Shadow));
+    frame(r.adjusted(1, 1, -1, -1), pal.color(QPalette::Light), pal.color(QPalette::Dark));
+}
+
+// Marlett's combo arrow: a 7px triangle, tip down. Disabled, etched: the
+// highlight 1px down-right under the shadow.
+static void classicDownArrow(QPainter *p, const QRect &r, const QPalette &pal, bool enabled, bool pressed)
+{
+    const QPoint tip(r.left() + (r.width() - 1) / 2 + (pressed ? 1 : 0), r.top() + (r.height() - 4) / 2 + 1 + (pressed ? 1 : 0));
+    auto draw = [&](QPoint at, const QColor &c) {
+        for (int i = 0; i < 4; ++i)
+            p->fillRect(at.x() - 3 + i, at.y() + i, 7 - 2 * i, 1, c);
+    };
+    if (enabled) {
+        draw(tip, pal.color(QPalette::Active, QPalette::ButtonText));
+    } else {
+        draw(tip + QPoint(1, 1), pal.color(QPalette::Light));
+        draw(tip, pal.color(QPalette::Dark));
+    }
+}
+
+bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOptionComplex *option, QPainter *painter,
+                                      const QWidget *widget) const
+{
+    switch (control) {
+    case CC_ComboBox:
+        if (const auto *combo = qstyleoption_cast<const QStyleOptionComboBox *>(option)) {
+            // The edit's sunken client edge, the window colour inside (the
+            // face when disabled), the drop-down button, its arrow.
+            const QRect r = combo->rect;
+            if (combo->frame) {
+                qDrawWinPanel(painter, r, combo->palette, true, nullptr);
+                painter->fillRect(r.adjusted(2, 2, -2, -2),
+                                  enabled(combo) ? QBrush(sysColour(u"window", Qt::white))
+                                                 : QBrush(sysColour(u"btnface", combo->palette.color(QPalette::Button))));
+            }
+            const QRect arrow = proxy()->subControlRect(CC_ComboBox, combo, SC_ComboBoxArrow, widget);
+            const bool pressed = (combo->activeSubControls & SC_ComboBoxArrow) && sunken(combo);
+            classicScrollButton(painter, arrow, combo->palette, pressed);
+            classicDownArrow(painter, arrow, combo->palette, enabled(combo), pressed);
+            if ((combo->state & State_HasFocus) && !combo->editable) {
+                const QRect field = proxy()->subControlRect(CC_ComboBox, combo, SC_ComboBoxEditField, widget);
+                painter->fillRect(field, combo->palette.brush(QPalette::Highlight));
+                drawFocusDots(painter, field, combo->palette.color(QPalette::Active, QPalette::Highlight),
+                              combo->palette.color(QPalette::Active, QPalette::HighlightedText));
+            }
             return true;
         }
         return false;
@@ -1913,6 +2012,21 @@ QRect XPLasmaStyle::subControlRect(ComplexControl control, const QStyleOptionCom
         if (box && !box->text.isEmpty() && !(box->subControls & SC_GroupBoxCheckBox) && (box->textAlignment & Qt::AlignLeft))
             r.setLeft(r.left() - 1);
         return r;
+    }
+    if (classic() && control == CC_ComboBox && (sub == SC_ComboBoxArrow || sub == SC_ComboBoxEditField)) {
+        // The button inside the 2px client edge, SM_CXVSCROLL wide, the full
+        // height; a drop-down list's field 1px inside that edge up to 1px
+        // before the button (where the focus highlight goes); an editable
+        // one's edit 1px right and up of Qt's.
+        const QRect r = option->rect;
+        const int w = sysMetric(u"scrollbarwidth", 17);
+        const QRect arrow(r.right() - 1 - w, r.top() + 2, w, qMax(0, r.height() - 4));
+        if (sub == SC_ComboBoxArrow)
+            return arrow;
+        const auto *combo = qstyleoption_cast<const QStyleOptionComboBox *>(option);
+        if (combo && combo->editable)
+            return QProxyStyle::subControlRect(control, option, sub, widget).translated(1, -1).adjusted(0, 0, -1, 0);
+        return QRect(QPoint(r.left() + 3, r.top() + 3), QPoint(arrow.left() - 2, r.bottom() - 3));
     }
     if (m_renderer && control == CC_SpinBox) {
         const auto *spin = qstyleoption_cast<const QStyleOptionSpinBox *>(option);
