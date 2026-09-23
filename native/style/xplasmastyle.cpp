@@ -331,6 +331,23 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                 }
             }
             break;
+        case CE_ProgressBar:
+            // Laid out here rather than by QCommonStyle, which computes the
+            // contents rect with its own (non-proxied) classic inset.
+            if (const auto *bar = qstyleoption_cast<const QStyleOptionProgressBar *>(option)) {
+                if (hasPart({QStringLiteral("progress"), (bar->state & State_Horizontal) ? 1 : 2, 1, {}})) {
+                    QStyleOptionProgressBar sub(*bar);
+                    sub.rect = proxy()->subElementRect(SE_ProgressBarGroove, bar, widget);
+                    proxy()->drawControl(CE_ProgressBarGroove, &sub, painter, widget);
+                    proxy()->drawControl(CE_ProgressBarContents, &sub, painter, widget);
+                    if (bar->textVisible) {
+                        sub.rect = proxy()->subElementRect(SE_ProgressBarLabel, bar, widget);
+                        proxy()->drawControl(CE_ProgressBarLabel, &sub, painter, widget);
+                    }
+                    return;
+                }
+            }
+            break;
         case CE_ProgressBarGroove:
             if (drawPart(painter, {QStringLiteral("progress"), (option->state & State_Horizontal) ? 1 : 2, 1, {}},
                          option->rect))
@@ -358,27 +375,37 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
 
 void XPLasmaStyle::drawProgressChunks(const QStyleOptionProgressBar *bar, QPainter *painter, const QWidget *) const
 {
+    // comctl32's progress bar, measured against XP (Luna, 14 values x 3
+    // widths): the filled length is value x the *whole* control's length;
+    // chunks of ProgressChunkSize, ProgressSpaceSize apart, start at the
+    // content rect and span its thickness; there are ceil(filled / step) of
+    // them, the last clipped 1px short of the far edge (at 99% on a 150px
+    // bar, chunk 19 shows a single pixel).
     const bool horizontal = bar->state & State_Horizontal;
     const PartRef groove{QStringLiteral("progress"), horizontal ? 1 : 2, 1, {}};
     const PartRef chunk{QStringLiteral("progress"), horizontal ? 3 : 4, 1, {}};
     const QRect content = m_renderer->contentRect(groove, bar->rect);
     const qint64 range = qint64(bar->maximum) - bar->minimum;
-    if (range <= 0 || content.isEmpty()) {
-        // Busy indicator: left to the classic base for now.
-        return;
-    }
-    const int size = m_renderer->theme().property(u"progress", u"", u"", u"progresschunksize").value_or(QStringLiteral("8")).toInt();
-    const int space = m_renderer->theme().property(u"progress", u"", u"", u"progressspacesize").value_or(QStringLiteral("2")).toInt();
-    const int length = horizontal ? content.width() : content.height();
-    const int filled = int(length * (qint64(bar->progress) - bar->minimum) / range);
-    const int step = qMax(1, size + space);
-    for (int at = 0; at < filled; at += step) {
-        // XP draws whole chunks, clipped only by the groove's content area.
-        const int w = qMin(size, length - at);
-        const QRect r = horizontal ? QRect(content.left() + at, content.top(), w, content.height())
-                                   : QRect(content.left(), content.bottom() - at - w + 1, content.width(), w);
+    if (range <= 0 || content.isEmpty())
+        return;   // busy indicator: the classic base draws it for now
+    const int size = qMax(1, m_renderer->theme().property(u"progress", u"", u"", u"progresschunksize")
+                                 .value_or(QStringLiteral("8")).toInt());
+    const int space = qMax(0, m_renderer->theme().property(u"progress", u"", u"", u"progressspacesize")
+                                  .value_or(QStringLiteral("2")).toInt());
+    const int length = horizontal ? bar->rect.width() : bar->rect.height();
+    const qint64 value = qBound<qint64>(0, qint64(bar->progress) - bar->minimum, range);
+    const int filled = int((value * length + range / 2) / range);   // MulDiv
+    const int step = size + space;
+    const int count = (filled + step - 1) / step;
+    painter->save();
+    painter->setClipRect(horizontal ? bar->rect.adjusted(0, 0, -1, 0) : bar->rect.adjusted(0, 1, 0, 0));
+    for (int i = 0; i < count; ++i) {
+        const QRect r = horizontal
+            ? QRect(content.left() + i * step, content.top(), size, content.height())
+            : QRect(content.left(), content.bottom() + 1 - i * step - size, content.width(), size);
         drawPart(painter, chunk, r);
     }
+    painter->restore();
 }
 
 // --- complex controls -----------------------------------------------------------
@@ -600,6 +627,13 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
 
 QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *option, const QWidget *widget) const
 {
+    if (m_renderer && (element == SE_ProgressBarContents || element == SE_ProgressBarGroove)
+        && hasPart({QStringLiteral("progress"), 1, 1, {}})) {
+        // The chunks are laid out over the groove's own content rect, so
+        // Contents is the whole groove -- not the classic inset one. The
+        // groove leaves room for a label beside it, as the classic base does.
+        return QProxyStyle::subElementRect(SE_ProgressBarGroove, option, widget);
+    }
     return QProxyStyle::subElementRect(element, option, widget);
 }
 

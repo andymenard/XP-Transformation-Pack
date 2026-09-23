@@ -406,6 +406,40 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
     for (i = 0; path[i]; i++) if (path[i] == L':' && i > 2) path[i] = L'-';
     write_bmp(path, (const DWORD *)bits, w, h);
     out(L"control %s %s %d %d face=%lu\r\n", kind, state, w, h, (unsigned long)GetSysColor(COLOR_BTNFACE));
+    /* The control's own idea of its insides: exact targets for Qt's metrics. */
+    if (!lstrcmpW(cls, L"COMBOBOX")) {
+        COMBOBOXINFO ci;
+        ci.cbSize = sizeof ci;
+        if (GetComboBoxInfo(ctl, &ci))
+            out(L"geometry %s item=%d,%d,%d,%d button=%d,%d,%d,%d\r\n", kind,
+                ci.rcItem.left, ci.rcItem.top, ci.rcItem.right, ci.rcItem.bottom,
+                ci.rcButton.left, ci.rcButton.top, ci.rcButton.right, ci.rcButton.bottom);
+    } else if (!wcsncmp_(kind, L"trackbar")) {
+        RECT ch, th;
+        SendMessageW(ctl, TBM_GETCHANNELRECT, 0, (LPARAM)&ch);
+        SendMessageW(ctl, TBM_GETTHUMBRECT, 0, (LPARAM)&th);
+        out(L"geometry %s channel=%d,%d,%d,%d thumb=%d,%d,%d,%d tic0=%d tic5=%d\r\n", kind,
+            ch.left, ch.top, ch.right, ch.bottom, th.left, th.top, th.right, th.bottom,
+            (int)SendMessageW(ctl, TBM_GETTICPOS, 0, 0), (int)SendMessageW(ctl, TBM_GETTICPOS, 4, 0));
+    } else if (!wcsncmp_(kind, L"tabs")) {
+        RECT r[3], disp;
+        for (i = 0; i < 3; i++)
+            SendMessageW(ctl, TCM_GETITEMRECT, i, (LPARAM)&r[i]);
+        SetRect(&disp, 0, 0, w, h);
+        SendMessageW(ctl, TCM_ADJUSTRECT, FALSE, (LPARAM)&disp);
+        out(L"geometry %s tab0=%d,%d,%d,%d tab1=%d,%d,%d,%d tab2=%d,%d,%d,%d display=%d,%d,%d,%d\r\n", kind,
+            r[0].left, r[0].top, r[0].right, r[0].bottom, r[1].left, r[1].top, r[1].right, r[1].bottom,
+            r[2].left, r[2].top, r[2].right, r[2].bottom, disp.left, disp.top, disp.right, disp.bottom);
+    } else if (!lstrcmpW(cls, L"SCROLLBAR")) {
+        SCROLLBARINFO sb;
+        sb.cbSize = sizeof sb;
+        if (GetScrollBarInfo(ctl, OBJID_CLIENT, &sb))
+            out(L"geometry %s line=%d thumb=%d,%d\r\n", kind, sb.dxyLineButton, sb.xyThumbTop, sb.xyThumbBottom);
+    } else if (!lstrcmpW(cls, L"EDIT")) {
+        RECT fr;
+        SendMessageW(ctl, EM_GETRECT, 0, (LPARAM)&fr);
+        out(L"geometry %s format=%d,%d,%d,%d\r\n", kind, fr.left, fr.top, fr.right, fr.bottom);
+    }
     DeleteDC(dc);
     DeleteObject(bmp);
     DestroyWindow(host);
