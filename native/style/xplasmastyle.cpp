@@ -8,6 +8,7 @@
 #include <QComboBox>
 #include <QDir>
 #include <QFileInfo>
+#include <QMenu>
 #include <QPainter>
 #include <QRawFont>
 #include <QPushButton>
@@ -214,6 +215,26 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             if (drawPart(painter, {QStringLiteral("button"), 4, enabled(option) ? 1 : 2, {}}, option->rect))
                 return;
             break;
+        case PE_PanelMenu:
+        case PE_FrameMenu:
+            // XP's flat menus: the menu colour inside a 1px button-shadow line.
+            if (flatMenus()) {
+                if (element == PE_PanelMenu)
+                    painter->fillRect(option->rect, sysColour(u"menu", Qt::white));
+                painter->save();
+                painter->setPen(sysColour(u"btnshadow", QColor(172, 168, 153)));
+                painter->setBrush(Qt::NoBrush);
+                painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
+                painter->restore();
+                return;
+            }
+            break;
+        case PE_PanelMenuBar:
+            if (flatMenus()) {
+                painter->fillRect(option->rect, sysColour(u"menubar", option->palette.window().color()));
+                return;
+            }
+            break;
         case PE_FrameTabWidget:
             if (drawPart(painter, {QStringLiteral("tab"), 9, 1, {}}, option->rect))
                 return;
@@ -367,6 +388,30 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                     if (drawPart(painter, {QStringLiteral("tab"), part, state, {}}, r))
                         return;
                 }
+            }
+            break;
+        case CE_MenuItem:
+            if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option); item && flatMenus()) {
+                drawMenuItem(item, painter, widget);
+                return;
+            }
+            break;
+        case CE_MenuEmptyArea:
+            if (flatMenus()) {
+                painter->fillRect(option->rect, sysColour(u"menu", Qt::white));
+                return;
+            }
+            break;
+        case CE_MenuBarItem:
+            if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option); item && flatMenus()) {
+                drawMenuBarItem(item, painter, widget);
+                return;
+            }
+            break;
+        case CE_MenuBarEmptyArea:
+            if (flatMenus()) {
+                painter->fillRect(option->rect, sysColour(u"menubar", option->palette.window().color()));
+                return;
             }
             break;
         case CE_HeaderLabel:
@@ -693,6 +738,22 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
         case PM_ButtonShiftHorizontal:
         case PM_ButtonShiftVertical:
             return 0;   // XP's pressed buttons keep their label still
+        case PM_MenuPanelWidth:
+            if (flatMenus())
+                return 1;
+            break;
+        case PM_MenuHMargin:
+        case PM_MenuVMargin:
+            if (flatMenus())
+                return 2;
+            break;
+        case PM_MenuBarPanelWidth:
+        case PM_MenuBarHMargin:
+        case PM_MenuBarVMargin:
+        case PM_MenuBarItemSpacing:
+            if (flatMenus())
+                return 0;
+            break;
         case PM_TabBarTabShiftVertical:
         case PM_TabBarTabShiftHorizontal:
             return 0;
@@ -731,6 +792,26 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
                 s.setHeight(row);
                 return s;
             }
+            break;
+        case CT_MenuItem:
+            if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option); item && flatMenus()) {
+                // XP (Luna, Tahoma 8): items text + 4 tall (17), separators
+                // 9; the label 17px in, 19px of room on the right (the
+                // submenu arrow's), and 8px before the accelerator column
+                // when the menu has one (QMenu adds the column itself).
+                if (item->menuItemType == QStyleOptionMenuItem::Separator)
+                    return QSize(1, 9);
+                bool accelerators = false;
+                if (const auto *menu = qobject_cast<const QMenu *>(widget))
+                    for (const QAction *a : menu->actions())
+                        accelerators = accelerators || a->text().contains(QLatin1Char('\t')) || !a->shortcut().isEmpty();
+                const int h = qMax(xpTextHeight(item->font) + 4, qMin(item->maxIconWidth, 16) + 1);
+                return QSize(17 + size.width() + 19 + (accelerators ? 8 : 0), h);
+            }
+            break;
+        case CT_MenuBarItem:
+            if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option); item && flatMenus())
+                return QSize(size.width() + 12, xpTextHeight(item->font) + 6);   // 6px either side; 19 tall
             break;
         case CT_HeaderSection:
             if (hasPart({QStringLiteral("header"), 1, Normal, {}})) {
@@ -948,6 +1029,123 @@ QRect XPLasmaStyle::xpTabRect(const QStyleOptionTab *tab) const
     if (tab->position == QStyleOptionTab::Beginning || tab->position == QStyleOptionTab::OnlyOneTab)
         r.setLeft(r.left() + 2);
     return r;
+}
+
+bool XPLasmaStyle::flatMenus() const
+{
+    return m_renderer && xpl::parseBool(m_renderer->theme().property(u"sysmetrics", u"", u"", u"flatmenus").value_or(QString()));
+}
+
+namespace {
+// Marlett's check and submenu arrow as XP's menus draw them at 8pt.
+const char *const kMenuCheck[] = {"......#", ".....##", "#...###", "##.###.", "#####..", ".###...", "..#...."};
+const char *const kMenuBullet[] = {".###.", "#####", "#####", "#####", ".###."};
+const char *const kMenuArrow[] = {"#...", "##..", "###.", "####", "###.", "##..", "#..."};
+
+template<int N>
+void drawGlyph(QPainter *painter, const char *const (&rows)[N], QPoint at, const QColor &colour)
+{
+    for (int y = 0; y < N; ++y)
+        for (int x = 0; rows[y][x]; ++x)
+            if (rows[y][x] == '#')
+                painter->fillRect(at.x() + x, at.y() + y, 1, 1, colour);
+}
+} // namespace
+
+// A flat menu item, as XP draws them with SPI_GETFLATMENU on (every XP
+// visual style sets FlatMenus): measured against Luna Silver.
+void XPLasmaStyle::drawMenuItem(const QStyleOptionMenuItem *item, QPainter *painter, const QWidget *widget) const
+{
+    const QRect r = item->rect;
+    painter->fillRect(r, sysColour(u"menu", Qt::white));
+    if (item->menuItemType == QStyleOptionMenuItem::Separator) {
+        painter->fillRect(QRect(r.left() + 1, r.top() + 3, r.width() - 2, 1), sysColour(u"btnshadow", QColor(172, 168, 153)));
+        return;
+    }
+    const bool selected = item->state & State_Selected;
+    if (selected) {
+        painter->fillRect(r, sysColour(u"menuhilight", QColor(49, 106, 197)));
+        painter->save();
+        painter->setPen(sysColour(u"highlight", QColor(49, 106, 197)));
+        painter->drawRect(r.adjusted(0, 0, -1, -1));
+        painter->restore();
+    }
+    const QColor fg = !enabled(item) ? sysColour(u"graytext", QColor(172, 168, 153))
+                      : selected     ? sysColour(u"highlighttext", Qt::white)
+                                     : sysColour(u"menutext", Qt::black);
+
+    // The check column: the item's icon, or its check mark / bullet.
+    if (!item->icon.isNull()) {
+        const int s = qMin(16, r.height() - 1);
+        const QRect box(r.left() + 1, r.top() + (r.height() - s) / 2, s, s);
+        item->icon.paint(painter, box, Qt::AlignCenter, enabled(item) ? QIcon::Normal : QIcon::Disabled,
+                         item->checked ? QIcon::On : QIcon::Off);
+        if (item->checked && item->checkType != QStyleOptionMenuItem::NotCheckable) {
+            painter->save();
+            painter->setPen(sysColour(u"highlight", QColor(49, 106, 197)));
+            painter->drawRect(box.adjusted(-1, -1, 0, 0));
+            painter->restore();
+        }
+    } else if (item->checked && item->checkType == QStyleOptionMenuItem::Exclusive) {
+        drawGlyph(painter, kMenuBullet, QPoint(r.left() + 5, r.top() + (r.height() - 5) / 2), fg);
+    } else if (item->checked && item->checkType != QStyleOptionMenuItem::NotCheckable) {
+        drawGlyph(painter, kMenuCheck, QPoint(r.left() + 4, r.top() + (r.height() - 7 + 1) / 2 + 1), fg);
+    }
+
+    QString text = item->text, accel;
+    if (const int tab = text.indexOf(QLatin1Char('\t')); tab >= 0) {
+        accel = text.mid(tab + 1);
+        text.truncate(tab);
+    }
+    const int th = xpTextHeight(item->font);
+    const int flags = Qt::AlignLeft | Qt::AlignTop | Qt::TextSingleLine | Qt::TextDontClip
+                      | (proxy()->styleHint(SH_UnderlineShortcut, item, widget) ? Qt::TextShowMnemonic : Qt::TextHideMnemonic);
+    painter->save();
+    painter->setFont(item->font);
+    painter->setPen(fg);
+    // GDI's centring puts the odd pixel below: 17px items put the text 1 down.
+    const int top = r.top() + (r.height() - th - 1) / 2;
+    painter->drawText(QRect(r.left() + 17, top, r.width() - 17, th), flags, text);
+    if (!accel.isEmpty()) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        const int column = item->reservedShortcutWidth;
+#else
+        const int column = item->tabWidth;
+#endif
+        // Left-aligned in a column that ends 19px from the right.
+        painter->drawText(QRect(r.right() + 1 - 19 - column, top, column + 19, th), flags, accel);
+    }
+    painter->restore();
+    if (item->menuItemType == QStyleOptionMenuItem::SubMenu)
+        drawGlyph(painter, kMenuArrow, QPoint(r.right() - 9, r.top() + (r.height() - 8) / 2), fg);
+}
+
+// A menu bar title: flat, and when hot or open, the menu highlight inside
+// a 1px highlight frame.
+void XPLasmaStyle::drawMenuBarItem(const QStyleOptionMenuItem *item, QPainter *painter, const QWidget *widget) const
+{
+    const QRect r = item->rect;
+    painter->fillRect(r, sysColour(u"menubar", item->palette.window().color()));
+    const bool active = enabled(item) && (item->state & (State_Selected | State_Sunken));
+    if (active) {
+        painter->fillRect(r, sysColour(u"menuhilight", QColor(49, 106, 197)));
+        painter->save();
+        painter->setPen(sysColour(u"highlight", QColor(49, 106, 197)));
+        painter->drawRect(r.adjusted(0, 0, -1, -1));
+        painter->restore();
+    }
+    const QColor fg = !enabled(item) ? sysColour(u"graytext", QColor(172, 168, 153))
+                      : active       ? sysColour(u"highlighttext", Qt::white)
+                                     : sysColour(u"menutext", Qt::black);
+    const int th = xpTextHeight(item->font);
+    painter->save();
+    painter->setFont(item->font);
+    painter->setPen(fg);
+    painter->drawText(QRect(r.left() + 6, r.top() + (r.height() - th - 1) / 2, r.width() - 6, th),
+                      Qt::AlignLeft | Qt::AlignTop | Qt::TextSingleLine | Qt::TextDontClip
+                          | (proxy()->styleHint(SH_UnderlineShortcut, item, widget) ? Qt::TextShowMnemonic : Qt::TextHideMnemonic),
+                      item->text);
+    painter->restore();
 }
 
 // TKP_THUMB*: the pointed thumb faces its tick marks; TKP_THUMB(VERT) when

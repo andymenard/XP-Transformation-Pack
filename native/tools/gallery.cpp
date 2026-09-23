@@ -33,6 +33,12 @@
 #include <QToolBar>
 #include <QToolButton>
 #include <QListWidget>
+#include <QMenu>
+#include <QMenuBar>
+#include <QMouseEvent>
+#include <QPainter>
+#include <QStatusBar>
+#include <QToolTip>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
@@ -119,7 +125,72 @@ static QWidget *controlFor(const QString &kind, const QString &label)
         s->setValue(30);
         return s;
     }
+    if (base == QLatin1String("spin")) {
+        auto *s = new QSpinBox;
+        s->setRange(0, 100);
+        s->setValue(42);
+        return s;
+    }
+    if (base == QLatin1String("status")) {
+        // A window's status bar: the rest of the window above it.
+        auto *w = new QWidget;
+        auto *v = new QVBoxLayout(w);
+        v->setContentsMargins(0, 0, 0, 0);
+        v->setSpacing(0);
+        v->addStretch();
+        auto *bar = new QStatusBar;
+        bar->showMessage(label);
+        v->addWidget(bar);
+        return w;
+    }
+    if (base == QLatin1String("toolbar")) {
+        auto *t = new QToolBar;
+        t->setMovable(false);
+        t->setToolButtonStyle(Qt::ToolButtonTextOnly);
+        t->addAction(QStringLiteral("Back"));
+        t->addAction(QStringLiteral("Forward"));
+        t->addSeparator();
+        QAction *folders = t->addAction(QStringLiteral("Folders"));
+        folders->setCheckable(true);
+        folders->setChecked(true);
+        return t;
+    }
+    if (base == QLatin1String("menubar")) {
+        auto *w = new QWidget;
+        auto *bar = new QMenuBar(w);
+        for (const char *name : {"File", "Edit", "View", "Help"})
+            bar->addMenu(QString::fromLatin1(name));
+        bar->setGeometry(0, 0, 10000, bar->sizeHint().height());
+        return w;
+    }
     return nullptr;
+}
+
+// uxdump's popup menu (build_menu), item for item.
+static QMenu *xpMenu()
+{
+    auto *m = new QMenu;
+    m->addAction(QStringLiteral("Open"))->setShortcut(QKeySequence(QStringLiteral("Ctrl+O")));
+    m->addAction(QStringLiteral("Save As..."));
+    m->addSeparator();
+    QAction *status = m->addAction(QStringLiteral("Status Bar"));
+    status->setCheckable(true);
+    status->setChecked(true);
+    m->addMenu(QStringLiteral("View"))->addAction(QStringLiteral("Thumbnails"));
+    m->addSeparator();
+    m->addAction(QStringLiteral("Print"))->setEnabled(false);
+    m->addAction(QStringLiteral("Exit"));
+    return m;
+}
+
+// A top-level popup (menu, tooltip) as XP shows it: at the capture's
+// origin, over the host's button face.
+static QImage overHost(QWidget &host, QWidget *popup)
+{
+    QImage image = host.grab().toImage();
+    QPainter p(&image);
+    p.drawPixmap(0, 0, popup->grab());
+    return image;
 }
 
 static int controls(const QString &jobPath, const QString &outdir)
@@ -137,6 +208,29 @@ static int controls(const QString &jobPath, const QString &outdir)
         QWidget host;
         host.setAutoFillBackground(true);
         host.setFixedSize(size);
+        QString name = QStringLiteral("%1/control_%2_%3_%4x%5.png").arg(outdir, kind, state).arg(size.width()).arg(size.height());
+        name.replace(QLatin1Char(':'), QLatin1Char('-'));
+        if (kind == QLatin1String("menu")) {
+            host.show();
+            QMenu *menu = xpMenu();
+            menu->popup(QPoint(400, 400));
+            if (state == QLatin1String("hot"))
+                menu->setActiveAction(menu->actions().first());
+            QApplication::processEvents();
+            overHost(host, menu).save(name);
+            delete menu;
+            continue;
+        }
+        if (kind == QLatin1String("tooltip")) {
+            host.show();
+            QToolTip::showText(QPoint(400, 400), label);
+            QApplication::processEvents();
+            for (QWidget *top : QApplication::topLevelWidgets())
+                if (top->inherits("QTipLabel") && top->isVisible())
+                    overHost(host, top).save(name);
+            QToolTip::hideText();
+            continue;
+        }
         QWidget *w = controlFor(kind, label);
         if (!w)
             continue;
@@ -156,9 +250,14 @@ static int controls(const QString &jobPath, const QString &outdir)
             if (auto *b = qobject_cast<QAbstractButton *>(w))
                 b->setDown(true);
         QApplication::processEvents();
-        QString name = QStringLiteral("%1/control_%2_%3_%4x%5.png").arg(outdir, kind, state).arg(size.width()).arg(size.height());
-        name.replace(QLatin1Char(':'), QLatin1Char('-'));
-        name.replace(QStringLiteral("/control_"), QStringLiteral("/control_"));
+        if (state == QLatin1String("hot"))
+            if (auto *bar = w->findChild<QMenuBar *>()) {
+                // The pointer over the first title, as XP's HiliteMenuItem.
+                const QPoint at = bar->actionGeometry(bar->actions().first()).center();
+                QMouseEvent move(QEvent::MouseMove, at, bar->mapToGlobal(at), Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+                QApplication::sendEvent(bar, &move);
+                QApplication::processEvents();
+            }
         host.grab().save(name);
     }
     return 0;

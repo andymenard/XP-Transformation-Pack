@@ -17,8 +17,12 @@
  *             WM_PRINT: control_<kind>_<state>_<w>x<h>.bmp. Kinds: push,
  *             default, check, check-on, check-mixed, radio, radio-on, group,
  *             edit, combo, combo-edit, progress:<0-100>, trackbar:<0-100>,
- *             tabs, hscroll, vscroll. States: normal, disabled, focused,
- *             pressed (BM_SETSTATE). Font: the theme's message font.
+ *             tabs, listview, treeview, listbox, hscroll, vscroll, spin,
+ *             status, toolbar, tooltip, menu, menubar. States: normal,
+ *             disabled, focused, pressed (BM_SETSTATE), hot (menus: the
+ *             first item highlighted). Font: the theme's message font.
+ *             Menus and tooltips are top-level windows at the capture's
+ *             origin, so their drop shadows land on the button face.
  *   bitmap C:\path\file.bmp
  *          -- GDI as the oracle for DIB decoding: load the file, blit it into
  *             a 32bpp DIB as-is (bitmap_<name>_plain), then through
@@ -286,6 +290,141 @@ static LRESULT CALLBACK host_proc(HWND w, UINT m, WPARAM wp, LPARAM lp)
 static int to_int(const wchar_t *s);
 static int wcsncmp_(const wchar_t *s, const wchar_t *prefix);
 
+/* Grab w x h of the screen at the capture origin (40,40) and save it. */
+static void grab(const wchar_t *kind, const wchar_t *state, int w, int h, const wchar_t *outdir)
+{
+    wchar_t path[MAX_PATH];
+    void *bits;
+    HBITMAP bmp;
+    HDC dc = canvas(w, h, GetSysColor(COLOR_BTNFACE), &bits, &bmp), screen;
+    int i;
+    screen = GetDC(NULL);
+    BitBlt(dc, 0, 0, w, h, screen, 40, 40, SRCCOPY | CAPTUREBLT);
+    ReleaseDC(NULL, screen);
+    GdiFlush();
+    wsprintfW(path, L"%s\\control_%s_%s_%dx%d.bmp", outdir, kind, state, w, h);
+    for (i = 0; path[i]; i++) if (path[i] == L':' && i > 2) path[i] = L'-';
+    write_bmp(path, (const DWORD *)bits, w, h);
+    out(L"control %s %s %d %d face=%lu\r\n", kind, state, w, h, (unsigned long)GetSysColor(COLOR_BTNFACE));
+    DeleteDC(dc);
+    DeleteObject(bmp);
+}
+
+/* Let a window finish painting (and any animation), pumping messages. */
+static void settle(DWORD ms)
+{
+    DWORD until = GetTickCount() + ms;
+    MSG msg;
+    while (GetTickCount() < until) {
+        while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) { TranslateMessage(&msg); DispatchMessageW(&msg); }
+        Sleep(10);
+    }
+}
+
+static struct { const wchar_t *kind, *state, *outdir; int w, h; } pendingMenu;
+
+/* Runs inside TrackPopupMenu's modal loop, once the menu has shown. */
+static void CALLBACK menu_timer(HWND w, UINT m, UINT_PTR id, DWORD t)
+{
+    HWND popup = FindWindowW(L"#32768", NULL);
+    RECT r;
+    KillTimer(w, id);
+    grab(pendingMenu.kind, pendingMenu.state, pendingMenu.w, pendingMenu.h, pendingMenu.outdir);
+    if (popup && GetWindowRect(popup, &r))
+        out(L"geometry %s window=%d,%d,%d,%d\r\n", pendingMenu.kind, r.left - 40, r.top - 40, r.right - 40, r.bottom - 40);
+    EndMenu();
+}
+
+/* The menus both sides build: no mnemonics (XP hides the underlines of a
+ * menu opened with the mouse). */
+static HMENU build_menu(void)
+{
+    HMENU menu = CreatePopupMenu(), sub = CreatePopupMenu();
+    AppendMenuW(sub, MF_STRING, 20, L"Thumbnails");
+    AppendMenuW(menu, MF_STRING, 1, L"Open\tCtrl+O");
+    AppendMenuW(menu, MF_STRING, 2, L"Save As...");
+    AppendMenuW(menu, MF_SEPARATOR, 0, NULL);
+    AppendMenuW(menu, MF_STRING | MF_CHECKED, 3, L"Status Bar");
+    AppendMenuW(menu, MF_POPUP, (UINT_PTR)sub, L"View");
+    AppendMenuW(menu, MF_SEPARATOR, 0, NULL);
+    AppendMenuW(menu, MF_STRING | MF_GRAYED, 4, L"Print");
+    AppendMenuW(menu, MF_STRING, 5, L"Exit");
+    return menu;
+}
+
+static void do_menu(const wchar_t *kind, const wchar_t *state, int w, int h, const wchar_t *outdir)
+{
+    HWND host;
+    HMENU bar = NULL, menu = NULL;
+    const int menubar = !wcsncmp_(kind, L"menubar");
+    if (menubar) {
+        bar = CreateMenu();
+        AppendMenuW(bar, MF_POPUP, (UINT_PTR)build_menu(), L"File");
+        AppendMenuW(bar, MF_POPUP, (UINT_PTR)CreatePopupMenu(), L"Edit");
+        AppendMenuW(bar, MF_POPUP, (UINT_PTR)CreatePopupMenu(), L"View");
+        AppendMenuW(bar, MF_POPUP, (UINT_PTR)CreatePopupMenu(), L"Help");
+    }
+    host = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, L"UxdumpHost", L"", WS_POPUP | WS_VISIBLE, 40, 40, w, h,
+                           NULL, bar, NULL, NULL);
+    SetCursorPos(700, 560);
+    if (menubar) {
+        RECT item;
+        if (!lstrcmpW(state, L"hot"))
+            HiliteMenuItem(host, bar, 0, MF_BYPOSITION | MF_HILITE);
+        DrawMenuBar(host);
+        settle(250);
+        grab(kind, state, w, h, outdir);
+        GetMenuItemRect(host, bar, 0, &item);
+        out(L"geometry %s item0=%d,%d,%d,%d\r\n", kind, item.left - 40, item.top - 40, item.right - 40, item.bottom - 40);
+    } else {
+        menu = build_menu();
+        if (!lstrcmpW(state, L"hot")) {
+            MENUITEMINFOW mi;
+            ZeroMemory(&mi, sizeof mi);
+            mi.cbSize = sizeof mi;
+            mi.fMask = MIIM_STATE;
+            mi.fState = MFS_HILITE;
+            SetMenuItemInfoW(menu, 0, TRUE, &mi);
+        }
+        settle(100);
+        pendingMenu.kind = kind; pendingMenu.state = state; pendingMenu.outdir = outdir;
+        pendingMenu.w = w; pendingMenu.h = h;
+        SetForegroundWindow(host);
+        SetTimer(host, 7, 600, menu_timer);
+        TrackPopupMenu(menu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD, 40, 40, 0, host, NULL);
+        DestroyMenu(menu);
+    }
+    DestroyWindow(host);
+    if (bar) DestroyMenu(bar);
+}
+
+static void do_tooltip(const wchar_t *kind, const wchar_t *state, int w, int h, const wchar_t *label,
+                       const wchar_t *outdir)
+{
+    HWND host = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, L"UxdumpHost", L"", WS_POPUP | WS_VISIBLE,
+                                40, 40, w, h, NULL, NULL, NULL, NULL);
+    HWND tip = CreateWindowExW(WS_EX_TOPMOST, TOOLTIPS_CLASSW, NULL, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
+                               0, 0, 0, 0, host, NULL, NULL, NULL);
+    TOOLINFOW ti;
+    RECT r;
+    ZeroMemory(&ti, sizeof ti);
+    ti.cbSize = sizeof ti;
+    ti.uFlags = TTF_TRACK | TTF_ABSOLUTE;
+    ti.hwnd = host;
+    ti.lpszText = (wchar_t *)label;
+    SendMessageW(tip, TTM_ADDTOOLW, 0, (LPARAM)&ti);
+    SendMessageW(tip, TTM_TRACKPOSITION, 0, MAKELPARAM(40, 40));
+    SendMessageW(tip, TTM_TRACKACTIVATE, TRUE, (LPARAM)&ti);
+    SetCursorPos(700, 560);
+    settle(600);
+    grab(kind, state, w, h, outdir);
+    GetWindowRect(tip, &r);
+    out(L"geometry %s window=%d,%d,%d,%d\r\n", kind, r.left - 40, r.top - 40, r.right - 40, r.bottom - 40);
+    DestroyWindow(tip);
+    DestroyWindow(host);
+}
+
+
 /* A control, captured the way it paints itself into a parent: parent
  * background (button face) first, then the control via WM_PRINT. */
 static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
@@ -345,13 +484,18 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
     else if (!wcsncmp_(kind, L"listbox")) { cls = L"LISTBOX"; style |= LBS_NOINTEGRALHEIGHT; }
     else if (!wcsncmp_(kind, L"hscroll")) { cls = L"SCROLLBAR"; style |= SBS_HORZ; }
     else if (!wcsncmp_(kind, L"vscroll")) { cls = L"SCROLLBAR"; style |= SBS_VERT; }
+    else if (!wcsncmp_(kind, L"spin")) { cls = L"EDIT"; style |= ES_AUTOHSCROLL; }
+    else if (!wcsncmp_(kind, L"status")) { cls = STATUSCLASSNAMEW; style |= SBARS_SIZEGRIP; }
+    else if (!wcsncmp_(kind, L"toolbar")) { cls = TOOLBARCLASSNAMEW; style |= TBSTYLE_FLAT | TBSTYLE_LIST | CCS_NODIVIDER | CCS_NORESIZE; }
+    else if (!wcsncmp_(kind, L"menu")) { do_menu(kind, state, w, h, outdir); return; }
+    else if (!wcsncmp_(kind, L"tooltip")) { do_tooltip(kind, state, w, h, label, outdir); return; }
     else { out(L"control %s error=unknown-kind\r\n", kind); return; }
 
     host = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, L"UxdumpHost", L"", WS_POPUP | WS_VISIBLE, 40, 40, w, h,
                            NULL, NULL, NULL, NULL);
     ctl = CreateWindowExW((!lstrcmpW(cls, L"EDIT") || !lstrcmpW(cls, WC_LISTVIEWW) || !lstrcmpW(cls, WC_TREEVIEWW)
                            || !lstrcmpW(cls, L"LISTBOX")) ? WS_EX_CLIENTEDGE : 0, cls,
-                          lstrcmpW(cls, L"COMBOBOX") ? label : L"", style, 0, 0, w,
+                          lstrcmpW(cls, L"COMBOBOX") ? (wcsncmp_(kind, L"spin") ? label : L"42") : L"", style, 0, 0, w,
                           !lstrcmpW(cls, L"COMBOBOX") ? h + 100 : h, host, (HMENU)1, NULL, NULL);
     ncm.cbSize = sizeof ncm;
     SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof ncm, &ncm, 0);
@@ -415,6 +559,48 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
         si.cbSize = sizeof si; si.fMask = SIF_ALL; si.nMin = 0; si.nMax = 100; si.nPage = 10; si.nPos = 30; si.nTrackPos = 0;
         SetScrollInfo(ctl, SB_CTL, &si, TRUE);
     }
+    if (!wcsncmp_(kind, L"spin")) {
+        /* The up-down docks to its buddy's right, overlapping its edge. */
+        HWND ud = CreateWindowExW(0, UPDOWN_CLASSW, NULL, WS_CHILD | WS_VISIBLE | UDS_ALIGNRIGHT | UDS_SETBUDDYINT
+                                  | UDS_ARROWKEYS | UDS_NOTHOUSANDS, 0, 0, 0, 0, host, (HMENU)2, NULL, NULL);
+        RECT e, u;
+        SendMessageW(ud, UDM_SETBUDDY, (WPARAM)ctl, 0);
+        SendMessageW(ud, UDM_SETRANGE32, 0, 100);
+        SendMessageW(ud, UDM_SETPOS32, 0, 42);
+        GetWindowRect(ctl, &e);
+        GetWindowRect(ud, &u);
+        out(L"geometry %s edit=%d,%d,%d,%d updown=%d,%d,%d,%d\r\n", kind, e.left - 40, e.top - 40, e.right - 40,
+            e.bottom - 40, u.left - 40, u.top - 40, u.right - 40, u.bottom - 40);
+        if (!lstrcmpW(state, L"disabled")) EnableWindow(ud, FALSE);
+    }
+    if (!wcsncmp_(kind, L"status")) {
+        RECT r;
+        SendMessageW(ctl, WM_SIZE, 0, 0);
+        GetWindowRect(ctl, &r);
+        out(L"geometry %s bar=%d,%d,%d,%d\r\n", kind, r.left - 40, r.top - 40, r.right - 40, r.bottom - 40);
+    }
+    if (!wcsncmp_(kind, L"toolbar")) {
+        TBBUTTON b[4];
+        RECT r[4];
+        const wchar_t *names[] = {L"Back", L"Forward", NULL, L"Folders"};
+        ZeroMemory(b, sizeof b);
+        SendMessageW(ctl, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+        SendMessageW(ctl, TB_SETIMAGELIST, 0, 0);
+        for (i = 0; i < 4; i++) {
+            b[i].iBitmap = names[i] ? I_IMAGENONE : 6;
+            b[i].idCommand = 100 + i;
+            b[i].fsState = TBSTATE_ENABLED | (i == 3 ? TBSTATE_CHECKED : 0);
+            b[i].fsStyle = names[i] ? (BTNS_AUTOSIZE | BTNS_SHOWTEXT | (i == 3 ? BTNS_CHECK : 0)) : BTNS_SEP;
+            b[i].iString = (INT_PTR)names[i];
+        }
+        SendMessageW(ctl, TB_ADDBUTTONSW, 4, (LPARAM)b);
+        SendMessageW(ctl, TB_AUTOSIZE, 0, 0);
+        for (i = 0; i < 4; i++)
+            SendMessageW(ctl, TB_GETITEMRECT, i, (LPARAM)&r[i]);
+        out(L"geometry %s b0=%d,%d,%d,%d b1=%d,%d,%d,%d sep=%d,%d,%d,%d b3=%d,%d,%d,%d\r\n", kind,
+            r[0].left, r[0].top, r[0].right, r[0].bottom, r[1].left, r[1].top, r[1].right, r[1].bottom,
+            r[2].left, r[2].top, r[2].right, r[2].bottom, r[3].left, r[3].top, r[3].right, r[3].bottom);
+    }
     if (!lstrcmpW(state, L"disabled")) EnableWindow(ctl, FALSE);
     if (!lstrcmpW(state, L"focused")) SetFocus(ctl);
     if (!lstrcmpW(state, L"pressed")) SendMessageW(ctl, BM_SETSTATE, TRUE, 0);
@@ -438,7 +624,7 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
     SetRect(&rc, 0, 0, w, h);
     {
         HDC screen = GetDC(NULL);
-        BitBlt(dc, 0, 0, w, h, screen, 40, 40, SRCCOPY);
+        BitBlt(dc, 0, 0, w, h, screen, 40, 40, SRCCOPY | CAPTUREBLT);
         ReleaseDC(NULL, screen);
     }
     GdiFlush();
