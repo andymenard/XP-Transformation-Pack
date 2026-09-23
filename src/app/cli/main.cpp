@@ -14,8 +14,6 @@
 //
 // A LOOK is a .msstyles (optionally :VARIANT_INI), a .theme, or
 // classic:SCHEME.
-//
-// (apply, widgets, reset and setup arrive with the phases that build them.)
 #include "app/adopt.h"
 #include "app/apply.h"
 #include "app/colors.h"

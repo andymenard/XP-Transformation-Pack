@@ -77,7 +77,7 @@ def check(manifest_dir: Path) -> list[str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--styles", default=os.path.expanduser("~/.local/share/xp2plasma/assets/themes"))
+    ap.add_argument("--styles", default=os.path.expanduser("~/.local/share/xplasma/assets/themes"))
     args = ap.parse_args()
     failed = 0
     for rel, variant in STYLES:

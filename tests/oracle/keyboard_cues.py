@@ -2,7 +2,7 @@
 """XP's keyboard cues: mnemonic underlines only while Alt is held, focus
 rectangles only once focus has moved by keyboard.
 
-    keyboard_cues.py          (needs PySide6 and app/plugins/qt6 built)
+    keyboard_cues.py          (needs PySide6 and build/dev built)
 """
 import os
 import subprocess
@@ -37,7 +37,7 @@ def main() -> int:
     from PIL import Image, ImageChops
     with tempfile.TemporaryDirectory(prefix="xplasma-cues-") as tmp:
         out = os.path.join(tmp, "cues")
-        env = {**os.environ, "QT_QPA_PLATFORM": "offscreen", "QT_PLUGIN_PATH": str(ROOT / "app/plugins/qt6")}
+        env = {**os.environ, "QT_QPA_PLATFORM": "offscreen", "QT_PLUGIN_PATH": str(ROOT / "build/dev/lib/xplasma/qt6")}
         subprocess.run([sys.executable, "-c", CHILD, out], env=env, check=True, stderr=subprocess.DEVNULL)
         img = {k: Image.open(f"{out}-{k}.png").convert("RGB") for k in ("mouse", "alt", "released", "tab")}
 

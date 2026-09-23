@@ -64,9 +64,9 @@ add_library(xplasma MODULE
 # guards against this whole class.
 target_link_libraries(xplasma PRIVATE stdc++ xplasma-core ${QT}::Widgets)
 set_target_properties(xplasma PROPERTIES PREFIX "lib" OUTPUT_NAME xplasma)
-# Installs where app/widget_style.py looks for the prebuilt plugin:
-#   <prefix>/qt<N>/styles/libxplasma.so   (prefix: app/plugins in a checkout)
-install(TARGETS xplasma LIBRARY DESTINATION qt${QT_MAJOR}/styles)
+# Installs where the app looks for the prebuilt plugin (paths::shippedStylePlugin):
+#   <prefix>/lib/xplasma/qt<N>/styles/libxplasma.so
+install(TARGETS xplasma LIBRARY DESTINATION lib/xplasma/qt${QT_MAJOR}/styles)
 
 # --- tools --------------------------------------------------------------------
 add_executable(xplasma-probe src/tools/probe.cpp)

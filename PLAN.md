@@ -2,6 +2,11 @@
 
 *Draft 1 · 2026-09-23 · sequel to xp2plasma*
 
+> **Since this draft:** the Python app carried over from xp2plasma (§3, §6) has
+> been rewritten in C++/Qt 6 on the core and deleted; see §12. Where this plan
+> names Python modules (`msstyles_parse`, `widget_style.py`, `app/…`), read
+> them as history. What they learned is in Appendix A and in `src/app/`.
+
 XPLasma keeps everything that already works in xp2plasma (the Display
 Properties editor, window decorations, Start menu, taskbar, tray, icons, fonts,
 wallpapers) and replaces the one piece that has been fighting us: the Kvantum
@@ -665,3 +670,32 @@ the properties a CSS generator needs, and [SysMetrics], in
 `app/targets.py` is the toolkit registry: Apply and Reset walk Qt (real)
 and GTK 3 / GTK 4 (stubs that report "not yet"); one target's failure is
 reported and the rest still run.
+
+## 12. The app in C++ (2026-09-23)
+
+One language: everything that ships is C++/Qt 6 on `src/core`. The XP-VM
+oracle tooling (`refharness/`, `tests/oracle/`) stays Python, dev-only
+(`requirements-dev.txt`).
+
+- **`src/app/`**, the `xplasma-app` library: state (`state.json`, replacing
+  `applied.json` / `config.json`), one-time adoption of xp2plasma's library
+  (moved, with symlinks left behind), host programs through QProcess and
+  QtDBus, archives (static libarchive plus an ISO 9660 reader of its own), the
+  theme library (`.theme` read and written as XP does; user schemes are
+  `.theme` files), and the generators: colours and fonts, the Aurorae
+  decoration, the panel theme, the Start button and its StartPanel art, icons,
+  the tray and clock overrides, title shadows.
+- **The Start menu** is XPLasma's own plasmoid, `fyi.hotsocket.xplasma.start`:
+  a complete package, not a patched Kickoff (Plasma's stock launcher). Only
+  its data (`theme.json`, the images) changes per look. The Start flag comes
+  from `explorer.exe` (bitmap 143; 176 for Classic), and a pill built without
+  it is an error.
+- **`xplasma`** (CLI) and **`xplasma-edit`** (Display Properties, Qt Widgets
+  in the system's own widget style; only the samples are drawn by XPLasma).
+- **Build and install:** `build.sh` installs into `build/<mode>/`
+  (`bin/`, `lib/xplasma/qt{6,5}/styles/`, `share/applications/`);
+  `install.sh` copies that into a prefix (default `~/.local`). No AppImage or
+  Flatpak machinery, and no bundled tool binaries.
+- **Retired:** the Python app and its tests, the parser conformance test
+  (Python ↔ C++; there is one parser now), `prototypes/start_menu/`.
+

@@ -221,6 +221,21 @@ private Q_SLOTS:
         QDir().mkpath(m_home.path());
     }
 
+    // --- paths ----------------------------------------------------------------
+
+    void shippedStylePlugin()
+    {
+        // This is build/<mode>-qt6/tests/app/test-app; build.sh installs the
+        // plugins into build/<mode>.
+        QDir tree(QDir::cleanPath(QCoreApplication::applicationDirPath() + QLatin1String("/../..")));
+        const QString mode = tree.dirName().section(QLatin1String("-qt"), 0, 0);
+        const QString expected = QFileInfo(tree.filePath(QLatin1String("../") + mode + QLatin1String("/lib/xplasma/qt6/styles/libxplasma.so")))
+                                     .absoluteFilePath();
+        if (!QFileInfo::exists(expected))
+            QSKIP("build.sh hasn't installed this build yet");
+        QCOMPARE(paths::shippedStylePlugin(6), expected);
+    }
+
     // --- archives -------------------------------------------------------------
 
     void zipAndTar_data()

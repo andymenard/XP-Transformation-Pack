@@ -1,5 +1,6 @@
 #!/bin/sh
-# Build the XPLasma style plugins into app/plugins/qt{6,5}/styles/.
+# Build XPLasma -- the app, its editor and the style plugins -- and install it
+# into build/<mode>/ (bin/, lib/xplasma/qt{6,5}/styles/, share/applications/).
 #
 #   ./build.sh dev       host-matched toolchain and Qt; fastest iteration
 #   ./build.sh release   oldest supported Qt (6.6.3 / 5.15.2); portable,
@@ -7,7 +8,8 @@
 #
 # Both run in podman (the containers/ images), so the host needs no compiler.
 # `dev` output loads only into Qt >= the host's own; `release` output is what
-# ships, and loads into every Qt >= 6.6 / 5.15.
+# ships, and loads into every Qt >= 6.6 / 5.15. install.sh copies either onto
+# this machine.
 set -eu
 mode="${1:-dev}"
 root="$(cd "$(dirname "$0")" && pwd)"
@@ -21,11 +23,11 @@ for m in 6 5; do
   if [ \$m = 6 ]; then qt=$prefix6; else qt=$prefix5; fi
   cmake -S . -B build/$mode-qt\$m -G Ninja -DQT_MAJOR=\$m \
         -DCMAKE_BUILD_TYPE=$( [ "$mode" = release ] && echo Release || echo RelWithDebInfo ) \
-        \${qt:+-DCMAKE_PREFIX_PATH=\$qt} -DCMAKE_INSTALL_PREFIX=/src/app/plugins >/dev/null
+        \${qt:+-DCMAKE_PREFIX_PATH=\$qt} -DCMAKE_INSTALL_PREFIX=/src/build/$mode >/dev/null
   cmake --build build/$mode-qt\$m
   cmake --install build/$mode-qt\$m >/dev/null
 done"
 if [ "$mode" = release ]; then
-  for m in 6 5; do "$root/check-abi.sh" "$root/app/plugins/qt$m/styles/libxplasma.so"; done
+  for m in 6 5; do "$root/check-abi.sh" "$root/build/$mode/lib/xplasma/qt$m/styles/libxplasma.so"; done
 fi
-echo "installed into app/plugins ($mode)"
+echo "installed into build/$mode"

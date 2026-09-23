@@ -112,7 +112,7 @@ def compare(xp_dir: Path, qt_dir: Path) -> list[tuple[str, int, int]]:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("outdir")
-    ap.add_argument("--styles", default=os.path.expanduser("~/.local/share/xp2plasma/assets/themes"))
+    ap.add_argument("--styles", default=os.path.expanduser("~/.local/share/xplasma/assets/themes"))
     ap.add_argument("--only", nargs="*")
     ap.add_argument("--cached", action="store_true")
     ap.add_argument("--qt", default="6")
@@ -155,7 +155,7 @@ def main() -> int:
         subprocess.run([str(gallery), "--controls", str(job_file), str(qt_dir)], check=True,
                        stderr=subprocess.DEVNULL,
                        env={**os.environ, "XPLASMA_XP_TEXT": "1", "QT_QPA_PLATFORM": "offscreen",
-                            "QT_PLUGIN_PATH": str(ROOT / f"app/plugins/qt{args.qt}"),
+                            "QT_PLUGIN_PATH": str(ROOT / f"build/dev/lib/xplasma/qt{args.qt}"),
                             "XPLASMA_THEME": f"{path}:{variant}" if variant else str(path)})
         rows = compare(xp_dir / "raw", qt_dir)
         exact = sum(1 for _, bad, _ in rows if bad == 0)

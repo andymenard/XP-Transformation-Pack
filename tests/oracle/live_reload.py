@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Live reload: switching ~/.config/xplasmarc repaints a running app.
 
-    live_reload.py            (needs PySide6 and app/plugins/qt6 built)
+    live_reload.py            (needs PySide6 and build/dev built)
 
 Starts a small window on Luna Silver, then atomically replaces xplasmarc --
 as the app does -- with Royale, then with Windows Classic, grabbing after
@@ -14,7 +14,7 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-THEMES = Path(os.path.expanduser("~/.local/share/xp2plasma/assets/themes"))
+THEMES = Path(os.path.expanduser("~/.local/share/xplasma/assets/themes"))
 STEPS = [(THEMES / "Luna/luna.msstyles", "NORMALMETALLIC_INI"), (THEMES / "Royale/Royale.msstyles", "NORMALROYALE_INI"),
          (THEMES / "Windows Classic.theme", "")]
 
@@ -51,7 +51,7 @@ def run(config_dir: str, steps: list[str], out: str) -> None:
     with open(cfg, "w") as fh:
         fh.write(f"[Theme]\nPath={path}\nVariant={variant}\n")
     env = {**os.environ, "XDG_CONFIG_HOME": config_dir, "QT_QPA_PLATFORM": "offscreen",
-           "QT_PLUGIN_PATH": str(ROOT / "app/plugins/qt6")}
+           "QT_PLUGIN_PATH": str(ROOT / "build/dev/lib/xplasma/qt6")}
     env.pop("XPLASMA_THEME", None)
     subprocess.run([sys.executable, "-c", CHILD, out, *steps], env=env, check=True, stderr=subprocess.DEVNULL)
 

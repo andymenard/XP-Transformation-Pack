@@ -86,12 +86,17 @@ QString shippedStylePlugin(int qtMajor)
     const QString relative = QStringLiteral("qt%1/styles/libxplasma.so").arg(qtMajor);
     const QDir exe(QCoreApplication::applicationDirPath());
     QStringList candidates{exe.absoluteFilePath(QLatin1String("../lib/xplasma/") + relative)};
-    // A checkout: build/<mode>-qt6/src/app/xplasma, plugins in app/plugins.
-    for (QDir dir = exe; !dir.isRoot(); dir.cdUp())
-        if (QFileInfo::exists(dir.filePath(QStringLiteral("src/app/start-menu")))) {
-            candidates << dir.filePath(QLatin1String("app/plugins/") + relative);
+    // A checkout: this is build/<mode>-qt6/..., and build.sh installed into
+    // build/<mode>.
+    for (QDir dir = exe; !dir.isRoot(); dir.cdUp()) {
+        const QString name = dir.dirName();
+        const int dash = name.lastIndexOf(QLatin1String("-qt"));
+        QDir build = dir;
+        if (dash > 0 && build.cdUp() && build.dirName() == QLatin1String("build")) {
+            candidates << build.filePath(name.left(dash) + QLatin1String("/lib/xplasma/") + relative);
             break;
         }
+    }
     for (const QString &c : std::as_const(candidates))
         if (QFileInfo::exists(c))
             return QFileInfo(c).absoluteFilePath();

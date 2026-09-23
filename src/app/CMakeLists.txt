@@ -72,3 +72,8 @@ add_executable(xplasma-edit
 target_link_libraries(xplasma-edit PRIVATE stdc++ xplasma-app Qt6::Widgets)
 add_test(NAME editor-screenshots COMMAND xplasma-edit --screenshots ${CMAKE_BINARY_DIR}/editor-screenshots)
 set_tests_properties(editor-screenshots PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
+
+# Installed as <prefix>/bin/xplasma{,-edit}, beside lib/xplasma (the style
+# plugins) and the launcher; install.sh points the launcher at the real path.
+install(TARGETS xplasma-cli xplasma-edit RUNTIME DESTINATION bin)
+install(FILES data/fyi.hotsocket.xplasma.desktop DESTINATION share/applications)
