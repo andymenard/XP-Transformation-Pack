@@ -330,6 +330,23 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
         case PE_IndicatorBranch:
             drawTreeBranch(option, painter, widget);
             return;
+        case PE_IndicatorTabTearLeft:
+        case PE_IndicatorTabTearRight:
+            return;
+        case PE_FrameTabWidget: {
+            // The pane: a raised edge (the highlight top and left, the shadow
+            // and dark shadow bottom and right).
+            const QRect r = option->rect;
+            const QColor light = option->palette.color(QPalette::Light), dark = option->palette.color(QPalette::Dark),
+                         shadow = option->palette.color(QPalette::Shadow);
+            painter->fillRect(QRect(r.left(), r.top(), r.width() - 1, 1), light);
+            painter->fillRect(QRect(r.left(), r.top(), 1, r.height() - 1), light);
+            painter->fillRect(QRect(r.left(), r.bottom(), r.width(), 1), shadow);
+            painter->fillRect(QRect(r.right(), r.top(), 1, r.height()), shadow);
+            painter->fillRect(QRect(r.left() + 1, r.bottom() - 1, r.width() - 2, 1), dark);
+            painter->fillRect(QRect(r.right() - 1, r.top() + 1, 1, r.height() - 2), dark);
+            return;
+        }
         case PE_IndicatorItemViewItemCheck: {
             // An item view's check box: DrawFrameControl's flat one -- a 2px
             // frame line round the window colour, Marlett's tick.
@@ -839,18 +856,7 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
             if (const auto *tab = qstyleoption_cast<const QStyleOptionTab *>(option)) {
                 if (hasPart({QStringLiteral("tab"), 1, 1, {}})
                     && (tab->shape == QTabBar::RoundedNorth || tab->shape == QTabBar::TriangularNorth)) {
-                    QStyleOptionTab copy(*tab);
-                    copy.rect = xpTabRect(tab);
-                    copy.state &= ~State_HasFocus;
-                    // The selected tab's label rides up with it.
-                    if (tab->state & State_Selected)
-                        copy.rect.translate(0, -2);
-                    QProxyStyle::drawControl(element, &copy, painter, widget);
-                    // XP rings the tab's own (unselected) rect, 1px in, XORed
-                    // with the button face.
-                    if (tab->state & State_HasFocus)
-                        drawFocusDots(painter, xpTabRect(tab).adjusted(1, 1, -1, -1),
-                                      sysColour(u"btnface", tab->palette.color(QPalette::Button)));
+                    drawXpTabLabel(tab, painter, widget);
                     return;
                 }
             }
@@ -1140,6 +1146,16 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
             return 19;   // TVM_GETINDENT
         case PM_HeaderMargin:
             return 6;    // the header label's inset
+        case PM_TabBarTabShiftVertical:
+        case PM_TabBarTabShiftHorizontal:
+        case PM_TabBarBaseOverlap:
+            return 0;
+        case PM_TabBarTabHSpace:
+            return 12;   // as themed: TCM_SETPADDING's 6px either side
+        case PM_TabBarScrollButtonWidth:
+            return sysMetric(u"scrollbarwidth", 17);
+        case PM_TabBarTabVSpace:
+            return 9;
         case PM_MenuPanelWidth:
             return 2;   // the raised edge
         case PM_FocusFrameHMargin:
@@ -1324,6 +1340,11 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
             s.setHeight(xpTextHeight(widget ? widget->font() : QApplication::font()) + 4);   // 17 for Tahoma 8
             return s;
         }
+        case CT_TabBarTab:
+            if (const auto *tab = qstyleoption_cast<const QStyleOptionTab *>(option);
+                tab && (tab->shape == QTabBar::RoundedNorth || tab->shape == QTabBar::TriangularNorth))
+                return xpTabSize(tab, size, widget);
+            break;
         case CT_MenuItem:
             if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option))
                 return xpMenuItemSize(item, size, widget);
@@ -1378,23 +1399,8 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
         case CT_TabBarTab:
             if (const auto *tab = qstyleoption_cast<const QStyleOptionTab *>(option)) {
                 if (hasPart({QStringLiteral("tab"), 1, 1, {}})
-                    && (tab->shape == QTabBar::RoundedNorth || tab->shape == QTabBar::TriangularNorth)) {
-                    // Label + 12 wide (TCM_GETITEMRECT: 49/70/60 for General/
-                    // Appearance/Advanced in Tahoma 8), 18 tall plus the 2px
-                    // headroom the selected tab rises into; the first tab 2px
-                    // wider for XP's left inset.
-                    QSize s = size;
-                    if (tab->position == QStyleOptionTab::Beginning || tab->position == QStyleOptionTab::OnlyOneTab)
-                        s.rwidth() += 2;
-                    // ...and the last 2px wider on the right, where the
-                    // selected tab's inflation lands.
-                    if (tab->position == QStyleOptionTab::End || tab->position == QStyleOptionTab::OnlyOneTab)
-                        s.rwidth() += 2;
-                    // 2px headroom, the 18px tab (text + 5), two rows over
-                    // the pane -- from XP's text height (tmHeight).
-                    s.setHeight(xpTextHeight(widget ? widget->font() : QApplication::font()) + 9);
-                    return s;
-                }
+                    && (tab->shape == QTabBar::RoundedNorth || tab->shape == QTabBar::TriangularNorth))
+                    return xpTabSize(tab, size, widget);
             }
             break;
         case CT_PushButton: {
@@ -1431,7 +1437,7 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
         // anywhere in its window -- not just over its box and label.
         return option->rect;
     }
-    if (m_renderer && hasPart({QStringLiteral("spin"), 3, 1, {}}) && option->rect.width() >= option->rect.height()) {
+    if ((classic() || (m_renderer && hasPart({QStringLiteral("spin"), 3, 1, {}}))) && option->rect.width() >= option->rect.height()) {
         // XP scrolls a tab row that doesn't fit with an up-down in its
         // top-right corner: two SM_CXVSCROLL-wide halves, 1px down, 17px
         // tall for Tahoma 8 (the bar less 5), with no tear marks.
@@ -1449,7 +1455,7 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
             break;
         }
     }
-    if (m_renderer && hasPart({QStringLiteral("tab"), 9, 1, {}})) {
+    if (classic() || (m_renderer && hasPart({QStringLiteral("tab"), 9, 1, {}}))) {
         if (const auto *tw = qstyleoption_cast<const QStyleOptionTabWidgetFrame *>(option)) {
             if (tw->shape == QTabBar::RoundedNorth || tw->shape == QTabBar::TriangularNorth) {
                 // XP: the pane starts where the tabs end (y = 20), and the
@@ -1655,6 +1661,40 @@ int XPLasmaStyle::xpTextHeight(const QFont &font) const
     }
     const QFontMetrics fm(font);
     return fm.ascent() + fm.descent();
+}
+
+// Label + 12 wide (TCM_GETITEMRECT: 49/70/60 for General/Appearance/
+// Advanced in Tahoma 8), 18 tall plus the 2px headroom the selected tab
+// rises into; the first tab 2px wider for XP's left inset, the last 2px
+// wider on the right where the selected tab's inflation lands. comctl32's,
+// themed or Classic.
+QSize XPLasmaStyle::xpTabSize(const QStyleOptionTab *tab, const QSize &size, const QWidget *widget) const
+{
+    QSize s = size;
+    if (tab->position == QStyleOptionTab::Beginning || tab->position == QStyleOptionTab::OnlyOneTab)
+        s.rwidth() += 2;
+    if (tab->position == QStyleOptionTab::End || tab->position == QStyleOptionTab::OnlyOneTab)
+        s.rwidth() += 2;
+    // 2px headroom, the 18px tab (text + 5), two rows over the pane -- from
+    // XP's text height (tmHeight).
+    s.setHeight(xpTextHeight(widget ? widget->font() : QApplication::font()) + 9);
+    return s;
+}
+
+// A north tab's label where XP puts it: centred in the (unselected) tab
+// rect, riding up 2px with the selected tab; the focus rect rings that rect
+// 1px in, XORed with the button face.
+void XPLasmaStyle::drawXpTabLabel(const QStyleOptionTab *tab, QPainter *painter, const QWidget *widget) const
+{
+    QStyleOptionTab copy(*tab);
+    copy.rect = xpTabRect(tab);
+    copy.state &= ~State_HasFocus;
+    if (tab->state & State_Selected)
+        copy.rect.translate(0, -2);
+    QProxyStyle::drawControl(CE_TabBarTabLabel, &copy, painter, widget);
+    if (tab->state & State_HasFocus)
+        drawFocusDots(painter, xpTabRect(tab).adjusted(1, 1, -1, -1),
+                      sysColour(u"btnface", tab->palette.color(QPalette::Button)));
 }
 
 // A north tab's rect as XP lays it out, inside Qt's: 2px down (the tab bar
@@ -1912,6 +1952,42 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
     case CE_MenuEmptyArea:
         painter->fillRect(option->rect, sysColour(u"menu", option->palette.color(QPalette::Button)));
         return true;
+    case CE_TabBarTabShape:
+        if (const auto *tab = qstyleoption_cast<const QStyleOptionTab *>(option);
+            tab && (tab->shape == QTabBar::RoundedNorth || tab->shape == QTabBar::TriangularNorth)) {
+            // comctl32's classic tab: the highlight up the left and along the
+            // top with 1px diagonal corners, the shadow and dark shadow down
+            // the right; the selected one inflated over the pane's top edge.
+            QRect r = xpTabRect(tab);
+            if (tab->state & State_Selected)
+                r.adjust(-2, -2, 2, 2);
+            const QColor light = tab->palette.color(QPalette::Light), dark = tab->palette.color(QPalette::Dark),
+                         shadow = tab->palette.color(QPalette::Shadow);
+            painter->save();
+            if (const auto *bar = qobject_cast<const QTabBar *>(widget))
+                for (const QToolButton *b : bar->findChildren<QToolButton *>(QString(), Qt::FindDirectChildrenOnly))
+                    if (b->isVisible() && b->arrowType() == Qt::LeftArrow)
+                        painter->setClipRect(QRect(0, 0, b->x(), bar->height()), Qt::IntersectClip);
+            // (The selected tab's edges stop a row short of its foot.)
+            const int edge = r.height() - 2 - ((tab->state & State_Selected) ? 1 : 0);
+            painter->fillRect(QRect(r.left() + 1, r.top() + 1, r.width() - 2, r.height() - 1), tab->palette.button());
+            painter->fillRect(QRect(r.left(), r.top() + 2, 1, edge), light);
+            painter->fillRect(r.left() + 1, r.top() + 1, 1, 1, light);
+            painter->fillRect(QRect(r.left() + 2, r.top(), r.width() - 4, 1), light);
+            painter->fillRect(r.right() - 1, r.top() + 1, 1, 1, shadow);
+            painter->fillRect(QRect(r.right() - 1, r.top() + 2, 1, edge), dark);
+            painter->fillRect(QRect(r.right(), r.top() + 2, 1, edge), shadow);
+            painter->restore();
+            return true;
+        }
+        return false;
+    case CE_TabBarTabLabel:
+        if (const auto *tab = qstyleoption_cast<const QStyleOptionTab *>(option);
+            tab && (tab->shape == QTabBar::RoundedNorth || tab->shape == QTabBar::TriangularNorth)) {
+            drawXpTabLabel(tab, painter, widget);
+            return true;
+        }
+        return false;
     case CE_HeaderEmptyArea: {
         // Past the last column: another raised section, running off the
         // right edge.
@@ -2087,6 +2163,17 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
                                       const QWidget *widget) const
 {
     switch (control) {
+    case CC_ToolButton:
+        // A tab row's scroll buttons: the halves of a classic up-down.
+        if (const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option);
+            button && widget && qobject_cast<const QTabBar *>(widget->parentWidget())
+            && (button->arrowType == Qt::LeftArrow || button->arrowType == Qt::RightArrow)) {
+            const bool pressed = sunken(button);
+            classicScrollButton(painter, button->rect, button->palette, pressed);
+            classicArrow(painter, button->rect, button->arrowType, button->palette, widget->parentWidget()->isEnabled(), pressed);
+            return true;
+        }
+        return false;
     case CC_Slider:
         if (const auto *slider = qstyleoption_cast<const QStyleOptionSlider *>(option)) {
             // comctl32's classic trackbar, laid out as the themed one: a

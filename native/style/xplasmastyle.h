@@ -70,6 +70,8 @@ private:
     void drawSliderTicks(const QStyleOptionSlider *slider, const QRect &channel, const QRect &handle, QPainter *painter) const;
     int sliderThumbPart(const QStyleOptionSlider *slider) const;
     QRect xpTabRect(const QStyleOptionTab *tab) const;
+    QSize xpTabSize(const QStyleOptionTab *tab, const QSize &size, const QWidget *widget) const;
+    void drawXpTabLabel(const QStyleOptionTab *tab, QPainter *painter, const QWidget *widget) const;
     int xpTextHeight(const QFont &font) const;
     QString frameClass(const QWidget *widget) const;
     int itemRowExtra(const QWidget *widget) const;
