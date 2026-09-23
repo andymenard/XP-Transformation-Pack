@@ -61,6 +61,9 @@ def scheme_lines(theme: Path) -> list[str]:
         elif section == "[control panel\\colors]" and "=" in line:
             key, value = line.split("=", 1)
             colours[key.strip().lower()] = value.split()
+    # (What the scheme leaves out, Windows' defaults -- not whatever the
+    # style applied before happened to leave in the session.)
+    colours.setdefault("hottrackingcolor", ["0", "0", "128"])
     lines = []
     for index, name in enumerate(SYSCOLORS):
         rgb = colours.get(name.lower())

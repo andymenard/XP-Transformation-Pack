@@ -30,3 +30,5 @@ control combo 150 21 focused Windows XP style
 control trackbar:40 150 30 focused
 control tabs 300 120 focused
 control hscroll 150 17 focused
+control link 200 20 normal Visit <a>the web site</a> now
+control listview:4 260 100 normal

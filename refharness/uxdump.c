@@ -486,7 +486,7 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
         wc.lpszClassName = L"UxdumpHost";
         RegisterClassW(&wc);
         icc.dwSize = sizeof icc;
-        icc.dwICC = ICC_WIN95_CLASSES | ICC_STANDARD_CLASSES;
+        icc.dwICC = ICC_WIN95_CLASSES | ICC_STANDARD_CLASSES | ICC_LINK_CLASS;
         InitCommonControlsEx(&icc);
         registered = 1;
     }
@@ -510,6 +510,7 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
     else if (!wcsncmp_(kind, L"hscroll")) { cls = L"SCROLLBAR"; style |= SBS_HORZ; }
     else if (!wcsncmp_(kind, L"vscroll")) { cls = L"SCROLLBAR"; style |= SBS_VERT; }
     else if (!wcsncmp_(kind, L"spin")) { cls = L"EDIT"; style |= ES_AUTOHSCROLL; }
+    else if (!wcsncmp_(kind, L"link")) { cls = L"SysLink"; }   /* label: text with <a>...</a> */
     else if (!wcsncmp_(kind, L"status")) { cls = STATUSCLASSNAMEW; style |= SBARS_SIZEGRIP; }
     else if (!wcsncmp_(kind, L"toolbar")) { cls = TOOLBARCLASSNAMEW; style |= TBSTYLE_FLAT | TBSTYLE_LIST | CCS_NODIVIDER | CCS_NORESIZE; }
     else if (!wcsncmp_(kind, L"menu")) { do_menu(kind, state, w, h, outdir); return; }
@@ -559,6 +560,14 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
             col.pszText = (wchar_t *)heads[i];
             col.cx = widths[i];
             SendMessageW(ctl, LVM_INSERTCOLUMNW, i, (LPARAM)&col);
+        }
+        if (value == 4) {   /* listview:4 -- column 0 sorted ascending (HDF_SORTUP) */
+            HWND header = (HWND)SendMessageW(ctl, LVM_GETHEADER, 0, 0);
+            HDITEMW hd;
+            hd.mask = HDI_FORMAT;
+            SendMessageW(header, HDM_GETITEMW, 0, (LPARAM)&hd);
+            hd.fmt |= HDF_SORTUP;
+            SendMessageW(header, HDM_SETITEMW, 0, (LPARAM)&hd);
         }
         if (value == 1)   /* listview:1 -- LVS_EX_CHECKBOXES, File 0 and 2 ticked */
             SendMessageW(ctl, LVM_SETEXTENDEDLISTVIEWSTYLE, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);

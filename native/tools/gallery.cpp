@@ -106,6 +106,10 @@ static QWidget *controlFor(const QString &kind, const QString &label)
         t->setColumnWidth(2, 80);
         t->header()->setStretchLastSection(false);   // XP's columns keep their widths
         t->header()->setSectionsClickable(true);     // HDS_BUTTONS, as XP's list view has
+        if (value == 4) {   // listview:4 -- column 0 sorted ascending
+            t->header()->setSortIndicatorShown(true);
+            t->header()->setSortIndicator(0, Qt::AscendingOrder);
+        }
         for (int i = 0; i < 4; ++i) {
             auto *item = new QTreeWidgetItem(t, {QStringLiteral("File %1").arg(i)});
             if (value == 1)   // listview:1 -- checkboxes, File 0 and 2 ticked
@@ -155,6 +159,13 @@ static QWidget *controlFor(const QString &kind, const QString &label)
         s->setPageStep(10);
         s->setValue(30);
         return s;
+    }
+    if (base == QLatin1String("link")) {
+        // SysLink: the <a> markup as XP's control takes it.
+        auto *l = new QLabel(QString(label).replace(QLatin1String("<a>"), QLatin1String("<a href=\"#\">")));
+        l->setTextFormat(Qt::RichText);
+        l->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+        return l;
     }
     if (base == QLatin1String("spin")) {
         auto *s = new QSpinBox;

@@ -308,6 +308,8 @@ QPalette XPLasmaStyle::standardPalette() const
     pal.setColor(QPalette::Midlight, sysColour(u"light3d", face));
     pal.setColor(QPalette::Highlight, sysColour(u"highlight", QColor(49, 106, 197)));
     pal.setColor(QPalette::HighlightedText, sysColour(u"highlighttext", Qt::white));
+    // Links as SysLink draws them: the hot-tracking colour (COLOR_HOTLIGHT).
+    pal.setColor(QPalette::Link, sysColour(u"hottracking", QColor(0, 0, 128)));
     pal.setColor(QPalette::ToolTipBase, sysColour(u"infobk", QColor(255, 255, 225)));
     pal.setColor(QPalette::ToolTipText, sysColour(u"infotext", Qt::black));
     for (QPalette::ColorRole role : {QPalette::WindowText, QPalette::Text, QPalette::ButtonText})
@@ -993,6 +995,13 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
             if (const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option);
                 button && hasPart({QStringLiteral("toolbar"), 1, Normal, {}}) && drawXpToolButtonLabel(button, painter, widget))
                 return;
+            break;
+        case CE_Header:
+            if (const auto *header = qstyleoption_cast<const QStyleOptionHeader *>(option);
+                header && hasPart({QStringLiteral("header"), 1, Normal, {}})) {
+                drawXpHeader(header, painter, widget);
+                return;
+            }
             break;
         case CE_HeaderLabel:
             if (const auto *header = qstyleoption_cast<const QStyleOptionHeader *>(option)) {
@@ -1922,6 +1931,43 @@ bool XPLasmaStyle::drawXpToolButtonLabel(const QStyleOptionToolButton *button, Q
     return false;
 }
 
+// A header section as QCommonStyle composes it (section, label, arrow), but
+// with XP's sort arrow: a GrayText triangle (9 x 5 themed, 7 x 4 Classic)
+// 9px past the label, centred in the item's content rect, pointing up for an
+// ascending sort (HDF_SORTUP; Qt calls ascending SortDown). A sorted label
+// moves right by the item's left content margin (Luna 3, Royale 0).
+void XPLasmaStyle::drawXpHeader(const QStyleOptionHeader *header, QPainter *painter, const QWidget *widget) const
+{
+    painter->save();
+    painter->setClipRect(header->rect, Qt::IntersectClip);
+    proxy()->drawControl(CE_HeaderSection, header, painter, widget);
+    const int m = proxy()->pixelMetric(PM_HeaderMargin, header, widget);
+    const bool sorted = header->sortIndicator != QStyleOptionHeader::None && header->orientation == Qt::Horizontal
+                        && (header->textAlignment & Qt::AlignLeft);
+    const QMargins cm = m_renderer ? m_renderer->contentMargins({QStringLiteral("header"), 1, Normal, {}}) : QMargins();
+    // (QCommonStyle's SE_HeaderLabel, which its CE_Header uses unproxied.)
+    QStyleOptionHeader label(*header);
+    label.rect = header->rect.adjusted(m, m, -m, -m);
+    if (sorted)
+        label.rect.translate(cm.left(), 0);
+    if (label.rect.isValid())
+        proxy()->drawControl(CE_HeaderLabel, &label, painter, widget);
+    if (sorted) {
+        const QSize size = classic() ? QSize(7, 4) : QSize(9, 5);
+        const int origin = header->rect.left() + m + cm.left();
+        const int avail = header->rect.height() - cm.top() - cm.bottom();
+        const QRect arrow(QPoint(origin + header->fontMetrics.horizontalAdvance(header->text) + 9,
+                                 header->rect.top() + cm.top() + (avail - size.height()) / 2), size);
+        const bool up = header->sortIndicator == QStyleOptionHeader::SortDown;
+        const QColor colour = sysColour(u"graytext", header->palette.color(QPalette::Disabled, QPalette::Text));
+        for (int i = 0; i < size.height(); ++i) {
+            const int w = up ? 1 + 2 * i : size.width() - 2 * i;
+            painter->fillRect(arrow.left() + (size.width() - w) / 2, arrow.top() + i, w, 1, colour);
+        }
+    }
+    painter->restore();
+}
+
 // A north tab's rect as XP lays it out, inside Qt's: 2px down (the tab bar
 // is 20px tall), and for the first tab 2px in from the left (Qt's first tab
 // is 2px wider to make room, so every later tab lands where XP puts it).
@@ -2267,6 +2313,12 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
         if (const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option);
             button && widget && qobject_cast<const QToolBar *>(widget->parentWidget()))
             return drawXpToolButtonLabel(button, painter, widget);
+        return false;
+    case CE_Header:
+        if (const auto *header = qstyleoption_cast<const QStyleOptionHeader *>(option)) {
+            drawXpHeader(header, painter, widget);
+            return true;
+        }
         return false;
     case CE_HeaderSection:
         // DFCS_BUTTONPUSH's edge; pressed, a flat shadow line.
