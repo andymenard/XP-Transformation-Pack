@@ -1,6 +1,6 @@
 // libFuzzer targets for everything that parses untrusted bytes.
 //
-// Built three times with -DFUZZ_TARGET=theme|dib|ini (see native/fuzz.sh).
+// Built three times with -DFUZZ_TARGET=theme|dib|ini (see fuzz.sh).
 // The plugin is loaded into plasmashell and every Qt app, so a crash here is
 // a crashed desktop: nothing a .msstyles contains may crash, hang or read out
 // of bounds. AddressSanitizer and UBSan run underneath.

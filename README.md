@@ -8,19 +8,53 @@ it: window decorations, taskbar and Start menu, tray, fonts, colours,
 wallpaper, icons, and **every Qt application's widgets**, drawn by a native Qt
 style that reads the `.msstyles` itself.
 
-**Status: early.** The Python app is carried over from xp2plasma and works as
-it did. The native style (`native/`) is being built, following
-[PLAN.md](PLAN.md). Findings and follow-ups live in [NOTES.md](NOTES.md).
+**Status:** the style is done to the pixel against real XP (see PLAN.md and
+NOTES.md). The app around it -- the Display Properties editor, the
+generators and the CLI -- is being rewritten from the Python carried over from
+xp2plasma into C++/Qt 6 on the same core; until that lands, the Python app in
+`app/` is what runs.
 
 ## Layout
 
 | Path | What |
 | --- | --- |
-| `app/` | The Python app: the Display Properties editor, the generators (decorations, panel, Start menu, icons, …) and the CLI. Carried over from xp2plasma. |
-| `native/` | The C++ core, renderer and Qt 5/6 style plugin *(in progress)*. |
-| `refharness/` | Programs that run inside the Windows XP reference VM and dump what real uxtheme draws *(in progress)*. |
-| `containers/` | Build containers: the dev image (host-matched toolchain) and release images (oldest supported Qt). |
+| `src/core/` | The `.msstyles` reader (PE, DIB, INI cascade, schema) and the renderer, pixel-exact against XP. |
+| `src/style/` | The Qt 5/6 style plugin, drawing every widget from the core. |
+| `src/tools/` | `xplasma-render` (oracle renders, `--export`), `xplasma-dump`, `xplasma-gallery`, `xplasma-probe`. |
+| `tests/core/` | The core's unit test and fuzz targets, with their vectors. |
+| `tests/oracle/` | Dev tooling that holds the style against the Windows XP reference VM (`styles_matrix.py`, …). |
+| `refharness/` | The programs that run inside the XP VM and dump what real uxtheme draws. |
+| `app/` | The Python app carried over from xp2plasma, being replaced (see above). |
+| `containers/` | Build containers: the dev image (host-matched toolchain) and the release image (oldest supported Qt). |
 | `docs/xp2plasma/` | xp2plasma's README and visual notes, kept for reference. |
+
+## Building
+
+The host needs no compiler; everything builds in podman.
+
+```sh
+podman build -t xplasma-dev:3.8.1x -f containers/dev.Containerfile containers   # once
+podman build -t xplasma-release:1  -f containers/release.Containerfile containers  # once
+
+./build.sh dev       # host-matched Qt, for iterating: build/dev-qt{6,5}/
+./build.sh release   # Qt 6.6.3 / 5.15.2: the portable, shipping build
+```
+
+Both install the style to `app/plugins/qt{6,5}/styles/libxplasma.so`.
+
+A plugin built against Qt *6.N* loads into every Qt ≥ *6.N*, **provided** it
+uses only public Qt API and binds nothing else to Qt (the 6.6.3 build runs on
+the host's 6.9.1 and in PySide6's 6.11.2; the 5.15.2 build on 5.15.17).
+`check-abi.sh` enforces that on every release build: no private Qt symbols, no
+non-Qt symbol bound to a Qt version (the Qt Company's 5.15 binaries export sized
+`operator delete`, which is why libstdc++ is linked first), only the plugin
+entry points exported, glibc no newer than 2.34.
+
+```sh
+QT_PLUGIN_PATH=$PWD/app/plugins/qt6 build/dev-qt6/xplasma-probe --out /tmp/probe.png
+QT_PLUGIN_PATH=$PWD/app/plugins/qt6 dolphin -style XPLasma
+XPLASMA_SAFE=1 …    # the plugin draws nothing of its own (classic only)
+```
 
 ## Running from a checkout
 
@@ -38,7 +72,9 @@ see `app/paths.py`. Nothing Microsoft-copyrighted is in this repository.
 ## Tests
 
 ```sh
-for t in app/tests/test_*.py; do QT_QPA_PLATFORM=offscreen .venv/bin/python3 "$t"; done
+build/dev-qt6/test-core                              # the core
+tests/oracle/styles_matrix.py OUT                     # the style against real XP (needs refharness/vm.sh)
+for t in app/tests/test_*.py; do QT_QPA_PLATFORM=offscreen .venv/bin/python3 "$t"; done   # the Python app
 ```
 
 Tests that need the official styles or the XP media find them through

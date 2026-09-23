@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The C++ core must read every .msstyles exactly as xp2plasma's parser does.
 
-    native/tests/conformance.py [--dump PATH/TO/xplasma-dump] [--jobs N] [STYLE ...]
+    tests/oracle/conformance.py [--dump PATH/TO/xplasma-dump] [--jobs N] [STYLE ...]
 
 Compares, per style: the variant tables, the default variant, every layout
 INI's sections (both sides canonicalised to sub::class.part(state)) and the
@@ -30,7 +30,7 @@ sys.path.insert(0, str(ROOT / "app" / "tests"))
 
 FAN_CORPUS = Path(os.environ.get("XPLASMA_FAN_CORPUS",
                                  Path.home() / "clod/xp2plasma/parked/ultimate/extracted"))
-DUMP = ROOT / "native/build-dev-qt6/xplasma-dump"
+DUMP = ROOT / "build/dev-qt6/xplasma-dump"
 
 
 def canonical(header: str) -> str:

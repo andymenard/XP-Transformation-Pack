@@ -24,7 +24,7 @@ from pathlib import Path
 from PIL import Image, ImageChops
 
 ROOT = Path(__file__).resolve().parents[2]
-RENDER = ROOT / "native/build-dev-qt6/xplasma-render"
+RENDER = ROOT / "build/dev-qt6/xplasma-render"
 sys.path.insert(0, str(ROOT / "refharness"))
 
 

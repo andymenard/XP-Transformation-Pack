@@ -1,7 +1,7 @@
 #!/bin/sh
 # Release gate for a built style plugin: is it really portable?
 #
-#   native/check-abi.sh path/to/libxplasma.so [max-glibc]
+#   ./check-abi.sh path/to/libxplasma.so [max-glibc]
 #
 # A plugin that passes loads into every Qt of its major at or above its build
 # floor, on any distribution with at least `max-glibc` (default 2.34, the same

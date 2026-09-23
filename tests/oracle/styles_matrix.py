@@ -5,7 +5,7 @@
 
 For each style below, XP applies it for real (uxdump's `apply`: the visual
 style and its system colours, as Display Properties would), captures
-native/tests/controls-*.job, then puts Luna Silver back; xplasma-gallery
+tests/oracle/controls-*.job, then puts Luna Silver back; xplasma-gallery
 renders the same controls from the same .msstyles. Prints a table of exact
 controls and differing pixels per style; OUTDIR/<label>/ keeps the XP
 captures (oracle/), the Qt renders (qt<N>/) and a magnified sheet.
@@ -23,7 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "refharness"))
-sys.path.insert(0, str(ROOT / "native/tests"))
+sys.path.insert(0, str(ROOT / "tests/oracle"))
 
 import oracle  # noqa: E402
 import vm as vmmod  # noqa: E402
@@ -40,7 +40,7 @@ STYLES = [
     # Visual styles off, the scheme's colours from its .theme file.
     ("classic", "Windows Classic.theme", None, None),
     # ...and a synthetic scheme giving every colour role its own value.
-    ("classic-synthetic", str(ROOT / "native/tests/schemes/Synthetic.theme"), None, None),
+    ("classic-synthetic", str(ROOT / "tests/oracle/schemes/Synthetic.theme"), None, None),
 ]
 
 # [Control Panel\Colors] keys by COLOR_* index.
@@ -86,7 +86,7 @@ RESTORE = r"apply C:\WINDOWS\Resources\Themes\Luna\luna.msstyles Metallic Normal
 
 def control_lines() -> list[str]:
     lines: list[str] = []
-    for job in sorted((ROOT / "native/tests").glob("controls-*.job")):
+    for job in sorted((ROOT / "tests/oracle").glob("controls-*.job")):
         for line in job.read_text().splitlines():
             if line.startswith("control ") and line not in lines:
                 lines.append(line)
@@ -119,7 +119,7 @@ def main() -> int:
     args = ap.parse_args()
     out = Path(args.outdir)
     lines = control_lines()
-    gallery = ROOT / f"native/build-dev-qt{args.qt}/xplasma-gallery"
+    gallery = ROOT / f"build/dev-qt{args.qt}/xplasma-gallery"
     job_file = out / "controls.job"
     out.mkdir(parents=True, exist_ok=True)
     job_file.write_text("style -\n" + "\n".join(lines) + "\n")
@@ -164,7 +164,7 @@ def main() -> int:
         for stem, bad, total in rows:
             if bad:
                 print(f"    {stem:44s} {bad:6d} / {total}")
-        subprocess.run([sys.executable, str(ROOT / "native/tests/controls_compare.py"), str(xp_dir / "raw"),
+        subprocess.run([sys.executable, str(ROOT / "tests/oracle/controls_compare.py"), str(xp_dir / "raw"),
                         str(qt_dir), str(out / label / "sheet.png")], stdout=subprocess.DEVNULL)
     if vm:
         vm.close()

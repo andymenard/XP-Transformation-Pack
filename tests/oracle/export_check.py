@@ -24,7 +24,7 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
-RENDER = ROOT / "native/build-dev-qt6/xplasma-render"
+RENDER = ROOT / "build/dev-qt6/xplasma-render"
 STYLES = [
     ("Luna/luna.msstyles", "NORMALBLUE_INI"),
     ("Luna/luna.msstyles", "NORMALMETALLIC_INI"),

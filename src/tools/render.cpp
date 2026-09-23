@@ -8,7 +8,7 @@
 // For every `part` line, writes s<N>_<Class>_<part>_<state>_<w>x<h>_black.png
 // and _white.png (the render composited over opaque black / white, exactly
 // how uxdump captures real uxtheme) and a metrics.txt line in uxdump's
-// format. native/tests/oracle_compare.py puts the two side by side.
+// format. tests/oracle/oracle_compare.py puts the two side by side.
 // `style -` (whatever style XP has applied) has no meaning here; parts under
 // it are skipped.
 #include "core/render.h"

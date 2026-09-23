@@ -5,7 +5,7 @@
 //
 // --controls reads uxdump's `control` lines and grabs the same Qt widget at
 // the same size into OUTDIR/control_<kind>_<state>_<w>x<h>.png, for
-// native/tests/controls_compare.py to hold against XP's own.
+// tests/oracle/controls_compare.py to hold against XP's own.
 //
 // The same layout as refharness's refdialog.exe (the Win32 twin, drawn by
 // real XP), so the two can be compared side by side. With --out it renders

@@ -1,8 +1,8 @@
-# XPLasma native: the msstyles core, renderer and Qt style plugin.
+# XPLasma: the msstyles core, renderer, Qt style plugin and tools.
 #
-# One source tree, built once per Qt major:
-#   cmake -S native -B native/build-qt6 -G Ninja -DQT_MAJOR=6
-#   cmake -S native -B native/build-qt5 -G Ninja -DQT_MAJOR=5
+# One source tree, built once per Qt major (build.sh does this in podman):
+#   cmake -S . -B build/dev-qt6 -G Ninja -DQT_MAJOR=6
+#   cmake -S . -B build/dev-qt5 -G Ninja -DQT_MAJOR=5
 #
 # Only public Qt API is allowed (no *Private targets, no _p.h headers). That is
 # what lets a plugin built against the oldest supported Qt of a major load into
@@ -32,21 +32,21 @@ add_compile_definitions(QT_NO_KEYWORDS QT_USE_QSTRINGBUILDER)
 
 # --- the core: .msstyles in, typed theme data out (QtCore + QtGui only) --------
 add_library(xplasma-core STATIC
-  core/pe.cpp
-  core/dib.cpp
-  core/ini.cpp
-  core/theme.cpp
-  core/schema.cpp
-  core/render.cpp
+  src/core/pe.cpp
+  src/core/dib.cpp
+  src/core/ini.cpp
+  src/core/theme.cpp
+  src/core/schema.cpp
+  src/core/render.cpp
 )
-target_include_directories(xplasma-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(xplasma-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(xplasma-core PUBLIC ${QT}::Gui)
 set_target_properties(xplasma-core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # --- the style plugin ---------------------------------------------------------
 add_library(xplasma MODULE
-  style/plugin.cpp
-  style/xplasmastyle.cpp
+  src/style/plugin.cpp
+  src/style/xplasmastyle.cpp
 )
 # libstdc++ first. Link order decides which library a symbol is bound to, and
 # the Qt Company's official Qt 5.15 binaries export sized operator delete
@@ -60,28 +60,28 @@ set_target_properties(xplasma PROPERTIES PREFIX "lib" OUTPUT_NAME xplasma)
 install(TARGETS xplasma LIBRARY DESTINATION qt${QT_MAJOR}/styles)
 
 # --- tools --------------------------------------------------------------------
-add_executable(xplasma-probe tools/probe.cpp)
+add_executable(xplasma-probe src/tools/probe.cpp)
 target_link_libraries(xplasma-probe PRIVATE ${QT}::Widgets)
 
-add_executable(xplasma-gallery tools/gallery.cpp)
+add_executable(xplasma-gallery src/tools/gallery.cpp)
 target_link_libraries(xplasma-gallery PRIVATE ${QT}::Widgets)
 
-add_executable(xplasma-render tools/render.cpp)
+add_executable(xplasma-render src/tools/render.cpp)
 target_link_libraries(xplasma-render PRIVATE stdc++ xplasma-core)
 
-add_executable(xplasma-dump tools/dump.cpp)
+add_executable(xplasma-dump src/tools/dump.cpp)
 target_link_libraries(xplasma-dump PRIVATE stdc++ xplasma-core)
 
 # --- tests ------------------------------------------------------------------------
-add_executable(test-core tests/test_core.cpp)
+add_executable(test-core tests/core/test_core.cpp)
 target_link_libraries(test-core PRIVATE stdc++ xplasma-core)
 
-# --- fuzzing (native/fuzz.sh; clang only) --------------------------------------------
+# --- fuzzing (fuzz.sh; clang only) --------------------------------------------
 option(XPLASMA_FUZZ "Build the libFuzzer targets (needs clang)" OFF)
 if(XPLASMA_FUZZ)
   foreach(target theme dib ini)
     string(TOUPPER ${target} TARGET_UPPER)
-    add_executable(fuzz-${target} tests/fuzz.cpp)
+    add_executable(fuzz-${target} tests/core/fuzz.cpp)
     target_compile_definitions(fuzz-${target} PRIVATE FUZZ_TARGET_${TARGET_UPPER}=1)
     target_link_libraries(fuzz-${target} PRIVATE xplasma-core)
     target_link_options(fuzz-${target} PRIVATE -fsanitize=fuzzer,address,undefined)

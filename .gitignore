@@ -8,7 +8,7 @@ iso/
 samples/
 
 # Build output
-native/build*/
+build/
 out/
 refharness/build/
 
@@ -22,5 +22,4 @@ __pycache__/
 app/schemes/user/
 app/plugins/
 refharness/share/
-native/build-fuzz/
-!native/tests/schemes/*.theme
+!tests/oracle/schemes/*.theme

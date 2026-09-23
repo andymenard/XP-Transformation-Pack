@@ -31,12 +31,12 @@ static QString get(const Ini &ini, const char *sub, const char *cls, const char 
         .value_or(QStringLiteral("<none>"));
 }
 
-// Test vectors live in native/tests/vectors; build trees sit in native/build-*/.
+// Test vectors live in tests/core/vectors; build trees sit in build/<mode>-qt<N>/.
 static QString vectors;
 
 int main(int, char **argv)
 {
-    vectors = QFileInfo(QString::fromLocal8Bit(argv[0])).absolutePath() + QLatin1String("/../tests/vectors");
+    vectors = QFileInfo(QString::fromLocal8Bit(argv[0])).absolutePath() + QLatin1String("/../../tests/core/vectors");
 
     // Headers: every piece but the class is optional; a trailing state
     // belongs to the part, or to the class when there's no part.

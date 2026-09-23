@@ -2,7 +2,7 @@
 //
 //   xplasma-dump FILE.msstyles [--variant NAME_INI | --all-variants] [--no-bitmaps]
 //
-// The conformance test (native/tests/conformance.py) compares this with
+// The conformance test (tests/oracle/conformance.py) compares this with
 // xp2plasma's Python parser over the whole corpus: variant tables, every INI
 // section (headers canonicalised to sub::class.part(state)), and a SHA-256 of
 // every bitmap's decoded RGBA pixels.
