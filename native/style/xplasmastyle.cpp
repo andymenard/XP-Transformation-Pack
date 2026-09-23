@@ -303,6 +303,20 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
     if (classic()) {
         switch (element) {
         case PE_FrameFocusRect:
+            if (option->rect.isValid() && qobject_cast<const QScrollBar *>(widget)) {
+                // A focused scroll bar's thumb: its whole inside inverted in
+                // a checkerboard (1px wider and taller than Qt's focus rect).
+                const QRect r = option->rect.adjusted(0, 0, 1, 1);
+                const QPoint origin = painter->deviceTransform().map(QPoint(0, 0));
+                painter->save();
+                painter->setCompositionMode(QPainter::RasterOp_SourceXorDestination);
+                for (int y = r.top(); y <= r.bottom(); ++y)
+                    for (int x = r.left(); x <= r.right(); ++x)
+                        if ((x + y + origin.x() + origin.y()) & 1)
+                            painter->fillRect(x, y, 1, 1, Qt::white);
+                painter->restore();
+                return;
+            }
             if (option->rect.isValid()) {
                 const bool face = qobject_cast<const QAbstractButton *>(widget);
                 drawFocusDots(painter, option->rect,
@@ -1085,6 +1099,8 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
             return 13;   // DFCS_BUTTONRADIO's cell: the 12px glyph, 1px in
         case PM_RadioButtonLabelSpacing:
             return QProxyStyle::pixelMetric(metric, option, widget) - 1;   // the label stays where XP has it
+        case PM_ScrollBarExtent:
+            return sysMetric(u"scrollbarwidth", 17);   // SM_CXVSCROLL / SM_CYHSCROLL
         default:
             break;
         }
@@ -1659,6 +1675,9 @@ void XPLasmaStyle::drawMenuBarItem(const QStyleOptionMenuItem *item, QPainter *p
     painter->restore();
 }
 
+static void classicScrollButton(QPainter *p, const QRect &r, const QPalette &pal, bool pressed);
+static void classicArrow(QPainter *p, const QRect &r, Qt::ArrowType dir, const QPalette &pal, bool enabled, bool pressed);
+
 // Windows Classic (visual styles off), control by control against XP's own
 // classic controls in the scheme's colours. True when drawn.
 bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption *option, QPainter *painter,
@@ -1704,6 +1723,19 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
             if (btn->features & QStyleOptionButton::DefaultButton)
                 focus.rect.adjust(1, 1, -1, -1);
             proxy()->drawPrimitive(PE_FrameFocusRect, &focus, painter, widget);
+            return true;
+        }
+        return false;
+    case CE_ScrollBarAddLine:
+    case CE_ScrollBarSubLine:
+        if (const auto *bar = qstyleoption_cast<const QStyleOptionSlider *>(option)) {
+            // DFCS_SCROLL*: the raised scroll edge and Marlett's arrow.
+            const bool horizontal = bar->orientation == Qt::Horizontal;
+            const bool add = element == CE_ScrollBarAddLine;
+            const Qt::ArrowType dir = horizontal ? (add ? Qt::RightArrow : Qt::LeftArrow) : (add ? Qt::DownArrow : Qt::UpArrow);
+            const bool pressed = sunken(bar) && (bar->activeSubControls & (add ? SC_ScrollBarAddLine : SC_ScrollBarSubLine));
+            classicScrollButton(painter, bar->rect, bar->palette, pressed);
+            classicArrow(painter, bar->rect, dir, bar->palette, enabled(bar), pressed);
             return true;
         }
         return false;
@@ -1783,20 +1815,36 @@ static void classicScrollButton(QPainter *p, const QRect &r, const QPalette &pal
     frame(r.adjusted(1, 1, -1, -1), pal.color(QPalette::Light), pal.color(QPalette::Dark));
 }
 
-// Marlett's combo arrow: a 7px triangle, tip down. Disabled, etched: the
-// highlight 1px down-right under the shadow.
-static void classicDownArrow(QPainter *p, const QRect &r, const QPalette &pal, bool enabled, bool pressed)
+// Marlett's scroll arrows: 7px triangles, 4 deep, placed about the
+// button's centre c as XP does (measured in a 17px button: left c-3..c,
+// right c-1..c+2, up c-2..c+1, down c-1..c+2). Pressed, 1px down-right;
+// disabled, etched -- the highlight 1px down-right under the shadow.
+static void classicArrow(QPainter *p, const QRect &r, Qt::ArrowType dir, const QPalette &pal, bool enabled, bool pressed)
 {
-    const QPoint tip(r.left() + (r.width() - 1) / 2 + (pressed ? 1 : 0), r.top() + (r.height() - 4) / 2 + 1 + (pressed ? 1 : 0));
-    auto draw = [&](QPoint at, const QColor &c) {
-        for (int i = 0; i < 4; ++i)
-            p->fillRect(at.x() - 3 + i, at.y() + i, 7 - 2 * i, 1, c);
+    const QPoint c(r.left() + (r.width() - 1) / 2 + (pressed ? 1 : 0), r.top() + (r.height() - 1) / 2 + (pressed ? 1 : 0));
+    auto draw = [&](QPoint o, const QColor &col) {
+        for (int i = 0; i < 4; ++i) {
+            switch (dir) {
+            case Qt::LeftArrow:   // tip at c-3, widening to 7 at c
+                p->fillRect(c.x() - 3 + i + o.x(), c.y() - i + o.y(), 1, 1 + 2 * i, col);
+                break;
+            case Qt::RightArrow:  // base at c-1, tip at c+2
+                p->fillRect(c.x() - 1 + i + o.x(), c.y() - 3 + i + o.y(), 1, 7 - 2 * i, col);
+                break;
+            case Qt::UpArrow:     // tip at c-2, base at c+1
+                p->fillRect(c.x() - i + o.x(), c.y() - 2 + i + o.y(), 1 + 2 * i, 1, col);
+                break;
+            default:              // down: base at c-1, tip at c+2
+                p->fillRect(c.x() - 3 + i + o.x(), c.y() - 1 + i + o.y(), 7 - 2 * i, 1, col);
+                break;
+            }
+        }
     };
     if (enabled) {
-        draw(tip, pal.color(QPalette::Active, QPalette::ButtonText));
+        draw(QPoint(), pal.color(QPalette::Active, QPalette::ButtonText));
     } else {
-        draw(tip + QPoint(1, 1), pal.color(QPalette::Light));
-        draw(tip, pal.color(QPalette::Dark));
+        draw(QPoint(1, 1), pal.color(QPalette::Light));
+        draw(QPoint(), pal.color(QPalette::Dark));
     }
 }
 
@@ -1818,7 +1866,7 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
             const QRect arrow = proxy()->subControlRect(CC_ComboBox, combo, SC_ComboBoxArrow, widget);
             const bool pressed = (combo->activeSubControls & SC_ComboBoxArrow) && sunken(combo);
             classicScrollButton(painter, arrow, combo->palette, pressed);
-            classicDownArrow(painter, arrow, combo->palette, enabled(combo), pressed);
+            classicArrow(painter, arrow, Qt::DownArrow, combo->palette, enabled(combo), pressed);
             if ((combo->state & State_HasFocus) && !combo->editable) {
                 const QRect field = proxy()->subControlRect(CC_ComboBox, combo, SC_ComboBoxEditField, widget);
                 painter->fillRect(field, combo->palette.brush(QPalette::Highlight));
