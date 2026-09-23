@@ -487,7 +487,10 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
     else if (!wcsncmp_(kind, L"trackbar")) { cls = TRACKBAR_CLASSW; style |= TBS_AUTOTICKS | TBS_BOTTOM; }
     else if (!wcsncmp_(kind, L"tabs")) { cls = WC_TABCONTROLW; }
     else if (!wcsncmp_(kind, L"listview")) { cls = WC_LISTVIEWW; style |= LVS_REPORT; }
-    else if (!wcsncmp_(kind, L"treeview")) { cls = WC_TREEVIEWW; style |= TVS_HASLINES | TVS_HASBUTTONS | TVS_LINESATROOT; }
+    else if (!wcsncmp_(kind, L"treeview")) {
+        cls = WC_TREEVIEWW;
+        style |= TVS_HASLINES | TVS_HASBUTTONS | TVS_LINESATROOT;
+    }
     else if (!wcsncmp_(kind, L"listbox")) { cls = L"LISTBOX"; style |= LBS_NOINTEGRALHEIGHT; }
     else if (!wcsncmp_(kind, L"hscroll")) { cls = L"SCROLLBAR"; style |= SBS_HORZ; }
     else if (!wcsncmp_(kind, L"vscroll")) { cls = L"SCROLLBAR"; style |= SBS_VERT; }
@@ -538,14 +541,26 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
             col.cx = widths[i];
             SendMessageW(ctl, LVM_INSERTCOLUMNW, i, (LPARAM)&col);
         }
+        if (value == 1)   /* listview:1 -- LVS_EX_CHECKBOXES, File 0 and 2 ticked */
+            SendMessageW(ctl, LVM_SETEXTENDEDLISTVIEWSTYLE, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
         for (i = 0; i < 4; i++) {
             wsprintfW(text, L"File %d", i);
             item.mask = LVIF_TEXT; item.iItem = i; item.iSubItem = 0; item.pszText = text;
             SendMessageW(ctl, LVM_INSERTITEMW, 0, (LPARAM)&item);
         }
+        if (value == 1)
+            for (i = 0; i < 4; i += 2) {
+                item.mask = LVIF_STATE; item.iItem = i; item.iSubItem = 0;
+                item.state = INDEXTOSTATEIMAGEMASK(2); item.stateMask = LVIS_STATEIMAGEMASK;
+                SendMessageW(ctl, LVM_SETITEMSTATE, i, (LPARAM)&item);
+            }
     }
     if (!wcsncmp_(kind, L"treeview")) {
         TVINSERTSTRUCTW ins;
+        /* treeview:4 -- checkboxes; comctl32 wants TVS_CHECKBOXES set after
+         * creation and before the items go in, or the states don't stick. */
+        if (value == 4)
+            SetWindowLongW(ctl, GWL_STYLE, GetWindowLongW(ctl, GWL_STYLE) | TVS_CHECKBOXES);
         HTREEITEM root;
         ZeroMemory(&ins, sizeof ins);
         ins.hParent = TVI_ROOT; ins.hInsertAfter = TVI_LAST; ins.item.mask = TVIF_TEXT;
@@ -553,7 +568,15 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
         root = (HTREEITEM)SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
         if (value == 2) goto tree_done;   /* treeview:2 -- a lone leaf root */
         ins.hParent = root; ins.item.pszText = L"My Documents";
-        SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
+        {
+            HTREEITEM docs = (HTREEITEM)SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
+            if (value == 4) {   /* tick My Documents */
+                TVITEMW tv;
+                tv.mask = TVIF_STATE; tv.hItem = docs;
+                tv.state = INDEXTOSTATEIMAGEMASK(2); tv.stateMask = TVIS_STATEIMAGEMASK;
+                SendMessageW(ctl, TVM_SETITEMW, 0, (LPARAM)&tv);
+            }
+        }
         ins.item.pszText = L"My Computer";
         {
             HTREEITEM computer = (HTREEITEM)SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);

@@ -40,6 +40,7 @@
 #include <QStatusBar>
 #include <QToolTip>
 #include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
 #include <QVBoxLayout>
 
 static QWidget *controlFor(const QString &kind, const QString &label)
@@ -102,8 +103,11 @@ static QWidget *controlFor(const QString &kind, const QString &label)
         t->setColumnWidth(1, 70);
         t->setColumnWidth(2, 80);
         t->header()->setStretchLastSection(false);   // XP's columns keep their widths
-        for (int i = 0; i < 4; ++i)
-            new QTreeWidgetItem(t, {QStringLiteral("File %1").arg(i)});
+        for (int i = 0; i < 4; ++i) {
+            auto *item = new QTreeWidgetItem(t, {QStringLiteral("File %1").arg(i)});
+            if (value == 1)   // listview:1 -- checkboxes, File 0 and 2 ticked
+                item->setCheckState(0, i % 2 ? Qt::Unchecked : Qt::Checked);
+        }
         return t;
     }
     if (base == QLatin1String("treeview")) {
@@ -112,7 +116,7 @@ static QWidget *controlFor(const QString &kind, const QString &label)
         auto *root = new QTreeWidgetItem(t, {QStringLiteral("Desktop")});
         if (value == 2)   // treeview:2 -- a lone leaf root
             return t;
-        new QTreeWidgetItem(root, {QStringLiteral("My Documents")});
+        auto *docs = new QTreeWidgetItem(root, {QStringLiteral("My Documents")});
         auto *computer = new QTreeWidgetItem(root, {QStringLiteral("My Computer")});
         if (value == 1) {   // treeview:1 -- uxdump's nesting, item for item
             new QTreeWidgetItem(computer, {QStringLiteral("Local Disk (C:)")});
@@ -123,6 +127,10 @@ static QWidget *controlFor(const QString &kind, const QString &label)
             auto *bin = new QTreeWidgetItem(t, {QStringLiteral("Recycle Bin")});
             new QTreeWidgetItem(bin, {QStringLiteral("Old")});
             new QTreeWidgetItem(t, {QStringLiteral("Leaf")});
+        }
+        if (value == 4) {   // treeview:4 -- checkboxes, My Documents ticked
+            for (QTreeWidgetItemIterator it(t); *it; ++it)
+                (*it)->setCheckState(0, *it == docs ? Qt::Checked : Qt::Unchecked);
         }
         root->setExpanded(value != 3);   // treeview:3 -- collapsed
         return t;

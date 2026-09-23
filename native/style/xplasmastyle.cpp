@@ -336,6 +336,14 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             if (drawPart(painter, {QStringLiteral("status"), 1, 0, {}}, option->rect))
                 return;
             break;
+        case PE_IndicatorItemViewItemCheck: {
+            // A list or tree view's check box: the button's CBS_* art, never
+            // hot (XP draws these from a state image list).
+            const int base = (option->state & State_NoChange) ? 8 : (option->state & State_On) ? 4 : 0;
+            if (drawPart(painter, {QStringLiteral("button"), 3, base + (enabled(option) ? Normal : Disabled), {}}, option->rect))
+                return;
+            break;
+        }
         case PE_IndicatorToolBarSeparator:
             // TP_SEPARATOR (a vertical line, for a horizontal toolbar) or
             // TP_SEPARATORVERT.
@@ -977,7 +985,12 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
                 // list box 13, report list view 14, tree view 16
                 // (LB_GETITEMHEIGHT, LVM_GETITEMRECT, TVM_GETITEMHEIGHT).
                 QSize s = QProxyStyle::sizeFromContents(type, option, size, widget);
-                const int row = xpTextHeight(widget ? widget->font() : QApplication::font()) + extra;
+                int row = xpTextHeight(widget ? widget->font() : QApplication::font()) + extra;
+                // Check boxes are 16px state images: a report row fits one
+                // plus its 1px, a tree row just the image.
+                if (const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option);
+                    item && (item->features & QStyleOptionViewItem::HasCheckIndicator) && (extra == 1 || extra == 3))
+                    row = qMax(row, extra == 1 ? 17 : 16);
                 if (const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option))
                     if (item->decorationSize.height() > row && (item->features & QStyleOptionViewItem::HasDecoration))
                         return s;   // a larger icon wins, as it does in XP
@@ -1133,10 +1146,31 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
         // XP's list box draws its labels 1px lower within their row...
         return QProxyStyle::subElementRect(element, option, widget).translated(0, 1);
     }
-    if (m_renderer && element == SE_ItemViewItemText && itemRowExtra(widget) == 1) {
-        // ...and a report view's at the top of their 14px row, where Qt
-        // centres the 13px text 1px lower.
-        return QProxyStyle::subElementRect(element, option, widget).translated(0, -1);
+    if (m_renderer && (element == SE_ItemViewItemText || element == SE_ItemViewItemCheckIndicator)
+        && (itemRowExtra(widget) == 1 || itemRowExtra(widget) == 3) && hasPart({QStringLiteral("button"), 3, 1, {}})) {
+        const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option);
+        const bool report = itemRowExtra(widget) == 1;
+        if (item && (item->features & QStyleOptionViewItem::HasCheckIndicator)) {
+            // XP's check boxes are state images: the 13px box takes the
+            // label's place (a report view's 2px down in its 17px row, a
+            // tree's 3px down), and the label moves over a 16px cell --
+            // 3px more in a report view.
+            QStyleOptionViewItem plain(*item);
+            plain.features &= ~QStyleOptionViewItem::HasCheckIndicator;
+            const QRect text = subElementRect(SE_ItemViewItemText, &plain, widget);
+            if (element == SE_ItemViewItemText)
+                return text.adjusted(report ? 19 : 16, 0, 0, 0);
+            const int margin = proxy()->pixelMetric(PM_FocusFrameHMargin, option, widget) + 1;
+            const int top = report ? item->rect.top() + (item->rect.height() - 13) / 2 : item->rect.top() + 3;
+            return QRect(text.left() + margin, top, 13, 13);
+        }
+        if (element == SE_ItemViewItemText && report) {
+            // ...and a report view's centred in their row, rounding up, where
+            // Qt rounds down: hand Qt a rect exactly one line tall.
+            const QRect r = QProxyStyle::subElementRect(element, option, widget);
+            const int th = xpTextHeight(widget ? widget->font() : QApplication::font());
+            return QRect(r.left(), item ? item->rect.top() + (item->rect.height() - th) / 2 : r.top(), r.width(), th);
+        }
     }
     if (m_renderer && (element == SE_ProgressBarContents || element == SE_ProgressBarGroove)
         && hasPart({QStringLiteral("progress"), 1, 1, {}})) {

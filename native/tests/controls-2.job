@@ -16,3 +16,5 @@ control tabs:1 150 60 normal
 control treeview:1 200 160 normal
 control treeview:2 160 60 normal
 control treeview:3 160 60 normal
+control listview:1 260 100 normal
+control treeview:4 160 100 normal
