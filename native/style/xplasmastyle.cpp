@@ -3,13 +3,16 @@
 #include "core/schema.h"
 
 #include <QAbstractButton>
+#include <cstring>
 #include <QAbstractItemView>
 #include <QApplication>
 #include <QComboBox>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QMenu>
 #include <QPainter>
+#include <qdrawutil.h>
 #include <QRawFont>
 #include <QPushButton>
 #include <QScrollBar>
@@ -62,6 +65,50 @@ std::pair<QString, QString> configuredTheme()
     return {settings.value(QStringLiteral("Path")).toString(), settings.value(QStringLiteral("Variant")).toString()};
 }
 
+// A colour scheme's [Control Panel\Colors] from a .theme file (Windows
+// Classic and its schemes): lower-cased key -> colour.
+QHash<QString, QColor> schemeColours(const QString &path)
+{
+    QHash<QString, QColor> colours;
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly))
+        return colours;
+    bool inColours = false;
+    for (const QByteArray &raw : file.readAll().split('\n')) {
+        const QString line = QString::fromLatin1(raw).trimmed();
+        if (line.startsWith(QLatin1Char('['))) {
+            inColours = line.compare(QLatin1String("[Control Panel\\Colors]"), Qt::CaseInsensitive) == 0;
+        } else if (inColours && line.contains(QLatin1Char('='))) {
+            const QStringList rgb = line.section(QLatin1Char('='), 1).simplified().split(QLatin1Char(' '));
+            if (rgb.size() == 3)
+                colours.insert(line.section(QLatin1Char('='), 0, 0).trimmed().toLower(),
+                               QColor(rgb[0].toInt(), rgb[1].toInt(), rgb[2].toInt()));
+        }
+    }
+    return colours;
+}
+
+// SysMetrics colour names (as a visual style spells them) -> the scheme's.
+QString schemeKey(QStringView name)
+{
+    static const QHash<QString, QString> keys = {
+        {QStringLiteral("btnface"), QStringLiteral("buttonface")},
+        {QStringLiteral("btnhighlight"), QStringLiteral("buttonhilight")},
+        {QStringLiteral("btnshadow"), QStringLiteral("buttonshadow")},
+        {QStringLiteral("btntext"), QStringLiteral("buttontext")},
+        {QStringLiteral("dkshadow3d"), QStringLiteral("buttondkshadow")},
+        {QStringLiteral("light3d"), QStringLiteral("buttonlight")},
+        {QStringLiteral("highlight"), QStringLiteral("hilight")},
+        {QStringLiteral("highlighttext"), QStringLiteral("hilighttext")},
+        {QStringLiteral("infobk"), QStringLiteral("infowindow")},
+        {QStringLiteral("activecaption"), QStringLiteral("activetitle")},
+        {QStringLiteral("captiontext"), QStringLiteral("titletext")},
+        {QStringLiteral("hottracking"), QStringLiteral("hottrackingcolor")},
+    };
+    const QString key = name.toString().toLower();
+    return keys.value(key, key);
+}
+
 } // namespace
 
 XPLasmaStyle::XPLasmaStyle()
@@ -79,6 +126,13 @@ void XPLasmaStyle::loadTheme()
     const auto [path, variant] = configuredTheme();
     if (path.isEmpty())
         return;
+    if (path.endsWith(QLatin1String(".theme"), Qt::CaseInsensitive)) {
+        // Windows Classic: no visual style, a colour scheme.
+        m_scheme = schemeColours(path);
+        if (m_scheme.isEmpty())
+            qWarning("XPLasma: no [Control Panel\\Colors] in %s", qPrintable(path));
+        return;
+    }
     QString error;
     if (auto theme = xpl::Theme::load(path, variant, &error))
         m_renderer = std::make_unique<xpl::Renderer>(theme);
@@ -131,6 +185,8 @@ QColor XPLasmaStyle::themeColour(const PartRef &ref, QStringView property, const
 
 QColor XPLasmaStyle::sysColour(QStringView name, const QColor &fallback) const
 {
+    if (!m_renderer && !m_scheme.isEmpty())
+        return m_scheme.value(schemeKey(name), fallback);
     QRgb rgb;
     if (m_renderer && xpl::parseColour(m_renderer->theme().property(u"sysmetrics", u"", u"", name).value_or(QString()), &rgb))
         return QColor(rgb);
@@ -148,7 +204,7 @@ int XPLasmaStyle::sysMetric(QStringView name, int fallback) const
 
 QPalette XPLasmaStyle::standardPalette() const
 {
-    if (!m_renderer)
+    if (!m_renderer && m_scheme.isEmpty())
         return QProxyStyle::standardPalette();
     // XP's system colours from the style. (In a Plasma session the colour
     // scheme XPLasma generates from the same SysMetrics is what apps use.)
@@ -158,6 +214,9 @@ QPalette XPLasmaStyle::standardPalette() const
     const QColor gray = sysColour(u"graytext", QColor(172, 168, 153));
     QPalette pal(sysColour(u"btntext", text), face, sysColour(u"btnhighlight", Qt::white),
                  sysColour(u"btnshadow", QColor(172, 168, 153)), face, text, text, window, face);
+    // The 3D colours: the classic bevels' outer shadow and inner light.
+    pal.setColor(QPalette::Shadow, sysColour(u"dkshadow3d", QColor(113, 111, 100)));
+    pal.setColor(QPalette::Midlight, sysColour(u"light3d", face));
     pal.setColor(QPalette::Highlight, sysColour(u"highlight", QColor(49, 106, 197)));
     pal.setColor(QPalette::HighlightedText, sysColour(u"highlighttext", Qt::white));
     pal.setColor(QPalette::ToolTipBase, sysColour(u"infobk", QColor(255, 255, 225)));
@@ -220,11 +279,93 @@ void XPLasmaStyle::unpolish(QWidget *widget)
     QProxyStyle::unpolish(widget);
 }
 
+namespace {
+// Marlett's check and submenu arrow as XP's menus draw them at 8pt.
+const char *const kMenuCheck[] = {"......#", ".....##", "#...###", "##.###.", "#####..", ".###...", "..#...."};
+const char *const kMenuBullet[] = {".###.", "#####", "#####", "#####", ".###."};
+const char *const kMenuArrow[] = {"#...", "##..", "###.", "####", "###.", "##..", "#..."};
+
+template<int N>
+void drawGlyph(QPainter *painter, const char *const (&rows)[N], QPoint at, const QColor &colour)
+{
+    for (int y = 0; y < N; ++y)
+        for (int x = 0; rows[y][x]; ++x)
+            if (rows[y][x] == '#')
+                painter->fillRect(at.x() + x, at.y() + y, 1, 1, colour);
+}
+} // namespace
+
 // --- primitives -------------------------------------------------------------------
 
 void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter,
                                  const QWidget *widget) const
 {
+    if (classic()) {
+        switch (element) {
+        case PE_FrameFocusRect:
+            if (option->rect.isValid()) {
+                const bool face = qobject_cast<const QAbstractButton *>(widget);
+                drawFocusDots(painter, option->rect,
+                              face ? sysColour(u"btnface", option->palette.color(QPalette::Button)) : QColor(Qt::white));
+                return;
+            }
+            break;
+        case PE_FrameDefaultButton:
+            return;   // drawn with the bevel (CE_PushButtonBevel)
+        case PE_IndicatorRadioButton: {
+            // DFCS_BUTTONRADIO: Marlett's 12px circle in the four 3D colours,
+            // the window colour inside (the face when disabled), the dot in
+            // the text colour (the shadow when disabled).
+            static const char *const kRadio[] = {
+                "....SSSS....", "..SSDDDDSS..", ".SDDWWWWDDH.", ".SDWWWWWWLH.", "SDWWWKKWWWLH", "SDWWKKKKWWLH",
+                "SDWWKKKKWWLH", "SDWWWKKWWWLH", ".SDWWWWWWLH.", ".SLLWWWWLLH.", "..HHLLLLHH..", "....HHHH....",
+            };
+            const bool on = option->state & State_On;
+            const QColor colours[] = {sysColour(u"btnshadow", Qt::gray), sysColour(u"dkshadow3d", Qt::black),
+                                      sysColour(u"btnhighlight", Qt::white), sysColour(u"light3d", Qt::lightGray),
+                                      enabled(option) ? sysColour(u"window", Qt::white) : sysColour(u"btnface", Qt::lightGray),
+                                      enabled(option) ? sysColour(u"windowtext", Qt::black) : sysColour(u"btnshadow", Qt::gray)};
+            const QPoint at = option->rect.topLeft() + QPoint(1, 0);
+            for (int y = 0; y < 12; ++y)
+                for (int x = 0; x < 12; ++x) {
+                    const char *key = std::strchr("SDHLWK", kRadio[y][x]);
+                    if (!key || kRadio[y][x] == '.')
+                        continue;
+                    int i = int(key - "SDHLWK");
+                    if (i == 5 && !on)
+                        i = 4;
+                    painter->fillRect(at.x() + x, at.y() + y, 1, 1, colours[i]);
+                }
+            return;
+        }
+        case PE_IndicatorCheckBox: {
+            // Qt's box is XP's; the tick is Marlett's (as in the menus), in
+            // the button shadow when mixed or disabled, over the mixed
+            // state's dither.
+            QStyleOption box(*option);
+            box.state &= ~(State_On | State_NoChange);
+            box.state |= State_Off;
+            QProxyStyle::drawPrimitive(element, &box, painter, widget);
+            const QRect inner = option->rect.adjusted(2, 2, -2, -2);
+            if (option->state & State_NoChange) {
+                const QPoint origin = painter->deviceTransform().map(QPoint(0, 0));
+                const QColor face = sysColour(u"btnface", option->palette.color(QPalette::Button));
+                const QColor light = sysColour(u"btnhighlight", Qt::white);
+                for (int y = inner.top(); y <= inner.bottom(); ++y)
+                    for (int x = inner.left(); x <= inner.right(); ++x)
+                        painter->fillRect(x, y, 1, 1, ((x + y + origin.x() + origin.y()) & 1) ? light : face);
+            }
+            if (option->state & (State_On | State_NoChange)) {
+                const bool grey = (option->state & State_NoChange) || !enabled(option);
+                drawGlyph(painter, kMenuCheck, option->rect.topLeft() + QPoint(3, 3),
+                          grey ? sysColour(u"btnshadow", Qt::gray) : sysColour(u"windowtext", Qt::black));
+            }
+            return;
+        }
+        default:
+            break;
+        }
+    }
     if (m_renderer) {
         switch (element) {
         case PE_IndicatorCheckBox: {
@@ -391,6 +532,8 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
 void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *option, QPainter *painter,
                                const QWidget *widget) const
 {
+    if (classic() && drawClassicControl(element, option, painter, widget))
+        return;
     if (m_renderer) {
         switch (element) {
         case CE_PushButtonBevel:
@@ -919,6 +1062,17 @@ void XPLasmaStyle::drawScrollBar(const QStyleOptionSlider *bar, QPainter *painte
 
 int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, const QWidget *widget) const
 {
+    if (classic()) {
+        switch (metric) {
+        case PM_ExclusiveIndicatorWidth:
+        case PM_ExclusiveIndicatorHeight:
+            return 13;   // DFCS_BUTTONRADIO's cell: the 12px glyph, 1px in
+        case PM_RadioButtonLabelSpacing:
+            return QProxyStyle::pixelMetric(metric, option, widget) - 1;   // the label stays where XP has it
+        default:
+            break;
+        }
+    }
     if (m_renderer) {
         switch (metric) {
         case PM_IndicatorWidth:
@@ -1149,6 +1303,8 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
 
 QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *option, const QWidget *widget) const
 {
+    if (classic() && (element == SE_CheckBoxFocusRect || element == SE_RadioButtonFocusRect))
+        return QProxyStyle::subElementRect(element, option, widget).adjusted(2, 0, -2, -1);
     if (m_renderer && (element == SE_CheckBoxFocusRect || element == SE_RadioButtonFocusRect)
         && hasPart({QStringLiteral("button"), element == SE_CheckBoxFocusRect ? 3 : 2, 1, {}})) {
         // XP rings the label 1px tighter than Qt (2px in, 1px down).
@@ -1390,21 +1546,6 @@ bool XPLasmaStyle::flatMenus() const
     return m_renderer && xpl::parseBool(m_renderer->theme().property(u"sysmetrics", u"", u"", u"flatmenus").value_or(QString()));
 }
 
-namespace {
-// Marlett's check and submenu arrow as XP's menus draw them at 8pt.
-const char *const kMenuCheck[] = {"......#", ".....##", "#...###", "##.###.", "#####..", ".###...", "..#...."};
-const char *const kMenuBullet[] = {".###.", "#####", "#####", "#####", ".###."};
-const char *const kMenuArrow[] = {"#...", "##..", "###.", "####", "###.", "##..", "#..."};
-
-template<int N>
-void drawGlyph(QPainter *painter, const char *const (&rows)[N], QPoint at, const QColor &colour)
-{
-    for (int y = 0; y < N; ++y)
-        for (int x = 0; rows[y][x]; ++x)
-            if (rows[y][x] == '#')
-                painter->fillRect(at.x() + x, at.y() + y, 1, 1, colour);
-}
-} // namespace
 
 // A flat menu item, as XP draws them with SPI_GETFLATMENU on (every XP
 // visual style sets FlatMenus): measured against Luna Silver.
@@ -1500,6 +1641,97 @@ void XPLasmaStyle::drawMenuBarItem(const QStyleOptionMenuItem *item, QPainter *p
                           | (proxy()->styleHint(SH_UnderlineShortcut, item, widget) ? Qt::TextShowMnemonic : Qt::TextHideMnemonic),
                       item->text);
     painter->restore();
+}
+
+// Windows Classic (visual styles off), control by control against XP's own
+// classic controls in the scheme's colours. True when drawn.
+bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption *option, QPainter *painter,
+                                      const QWidget *widget) const
+{
+    switch (element) {
+    case CE_PushButtonBevel:
+        if (const auto *btn = qstyleoption_cast<const QStyleOptionButton *>(option)) {
+            // DrawFrameControl(DFCS_BUTTONPUSH); the default button inside a
+            // WindowFrame line, pressed as a single shadow line within it.
+            QRect r = btn->rect;
+            const bool pressed = btn->state & (State_Sunken | State_On);
+            if (btn->features & QStyleOptionButton::DefaultButton) {
+                painter->save();
+                painter->setPen(sysColour(u"windowframe", Qt::black));
+                painter->setBrush(Qt::NoBrush);
+                painter->drawRect(r.adjusted(0, 0, -1, -1));
+                r.adjust(1, 1, -1, -1);
+                if (pressed) {
+                    painter->setPen(btn->palette.color(QPalette::Dark));
+                    painter->drawRect(r.adjusted(0, 0, -1, -1));
+                    painter->fillRect(r.adjusted(1, 1, -1, -1), btn->palette.button());
+                    painter->restore();
+                    return true;
+                }
+                painter->restore();
+            }
+            const QBrush fill = btn->palette.button();
+            qDrawWinButton(painter, r, btn->palette, pressed, &fill);
+            return true;
+        }
+        return false;
+    case CE_PushButton:
+        if (const auto *btn = qstyleoption_cast<const QStyleOptionButton *>(option); btn && (btn->state & State_HasFocus)) {
+            // The focus rect 1px further in on a default button (its bevel
+            // sits inside the frame line); QCommonStyle places it itself.
+            QStyleOptionButton copy(*btn);
+            copy.state &= ~State_HasFocus;
+            QProxyStyle::drawControl(element, &copy, painter, widget);
+            QStyleOptionFocusRect focus;
+            focus.QStyleOption::operator=(*btn);
+            focus.rect = QProxyStyle::subElementRect(SE_PushButtonFocusRect, btn, widget);
+            if (btn->features & QStyleOptionButton::DefaultButton)
+                focus.rect.adjust(1, 1, -1, -1);
+            proxy()->drawPrimitive(PE_FrameFocusRect, &focus, painter, widget);
+            return true;
+        }
+        return false;
+    case CE_CheckBoxLabel:
+    case CE_RadioButtonLabel:
+        if (const auto *btn = qstyleoption_cast<const QStyleOptionButton *>(option)) {
+            // GDI puts the label a line higher than Qt.
+            QStyleOptionButton copy(*btn);
+            copy.rect.translate(0, -1);
+            QProxyStyle::drawControl(element, &copy, painter, widget);
+            return true;
+        }
+        return false;
+    case CE_CheckBox:
+    case CE_RadioButton:
+        if (const auto *btn = qstyleoption_cast<const QStyleOptionButton *>(option); btn && (btn->state & State_HasFocus)) {
+            QStyleOptionButton copy(*btn);
+            copy.state &= ~State_HasFocus;
+            QProxyStyle::drawControl(element, &copy, painter, widget);
+            QStyleOptionFocusRect focus;
+            focus.QStyleOption::operator=(*btn);
+            focus.rect = proxy()->subElementRect(element == CE_CheckBox ? SE_CheckBoxFocusRect : SE_RadioButtonFocusRect,
+                                                 btn, widget);
+            proxy()->drawPrimitive(PE_FrameFocusRect, &focus, painter, widget);
+            return true;
+        }
+        return false;
+    case CE_PushButtonLabel:
+        if (const auto *btn = qstyleoption_cast<const QStyleOptionButton *>(option)) {
+            // The label centred as GDI centres it (a line above where Qt
+            // would), pressed 1px down and right.
+            QStyleOptionButton copy(*btn);
+            const int th = xpTextHeight(widget ? widget->font() : QApplication::font());
+            copy.rect = QRect(btn->rect.left(), btn->rect.top() + (btn->rect.height() - th) / 2 - 1, btn->rect.width(), th);
+            if (btn->state & (State_Sunken | State_On))
+                copy.rect.translate(1, 1);
+            copy.state &= ~(State_Sunken | State_On);
+            QProxyStyle::drawControl(element, &copy, painter, widget);
+            return true;
+        }
+        return false;
+    default:
+        return false;
+    }
 }
 
 // DrawFocusRect: the outline XORed with a checkerboard brush, whose two

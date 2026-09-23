@@ -3,6 +3,7 @@
 #include "core/render.h"
 
 #include <QCache>
+#include <QHash>
 #include <QProxyStyle>
 #include <QStyleOption>
 
@@ -50,6 +51,8 @@ public:
 
     // The theme in use, or nullptr (then everything is classic).
     const xpl::Renderer *renderer() const { return m_renderer.get(); }
+    // Windows Classic: no visual style, a colour scheme's colours.
+    bool classic() const { return !m_renderer && !m_scheme.isEmpty(); }
 
 private:
     void loadTheme();
@@ -71,6 +74,8 @@ private:
     QString frameClass(const QWidget *widget) const;
     int itemRowExtra(const QWidget *widget) const;
     void drawTreeBranch(const QStyleOption *option, QPainter *painter, const QWidget *widget) const;
+    bool drawClassicControl(ControlElement element, const QStyleOption *option, QPainter *painter,
+                            const QWidget *widget) const;
     void drawFocusDots(QPainter *painter, const QRect &rect, const QColor &odd, const QColor &even = Qt::black) const;
     bool drawXpViewItem(const QStyleOptionViewItem *item, QPainter *painter, const QWidget *widget) const;
     QSize sliderThumbSize(const QStyleOptionSlider *slider) const;
@@ -80,5 +85,6 @@ private:
 
     std::unique_ptr<xpl::Renderer> m_renderer;
     bool m_safe = false;                   // XPLASMA_SAFE=1: classic only, draw nothing of our own
+    QHash<QString, QColor> m_scheme;       // Classic: the colour scheme's [Control Panel\Colors], keys lower-case
     mutable QCache<QString, QImage> m_cache; // rendered parts, keyed by part + size + dpi
 };

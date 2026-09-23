@@ -37,7 +37,34 @@ STYLES = [
     ("royale-noir", "Royale Noir/Royale Noir.msstyles", "Metallic", "NORMALDARKROYALE_INI"),
     ("zune", "Zune/Zune.msstyles", "NormalColor", "NORMALDEFAULT_INI"),
     ("embedded", "Embedded/Embedded.msstyles", "NormalColor", "NORMALDEFAULT_INI"),
+    # Visual styles off, the scheme's colours from its .theme file.
+    ("classic", "Windows Classic.theme", None, None),
 ]
+
+# [Control Panel\Colors] keys by COLOR_* index.
+SYSCOLORS = ["Scrollbar", "Background", "ActiveTitle", "InactiveTitle", "Menu", "Window", "WindowFrame",
+             "MenuText", "WindowText", "TitleText", "ActiveBorder", "InactiveBorder", "AppWorkspace", "Hilight",
+             "HilightText", "ButtonFace", "ButtonShadow", "GrayText", "ButtonText", "InactiveTitleText",
+             "ButtonHilight", "ButtonDkShadow", "ButtonLight", "InfoText", "InfoWindow", "ButtonAlternateFace",
+             "HotTrackingColor", "GradientActiveTitle", "GradientInactiveTitle", "MenuHilight", "MenuBar"]
+
+
+def scheme_lines(theme: Path) -> list[str]:
+    """`syscolor` lines for a .theme file's [Control Panel\\Colors]."""
+    colours, section = {}, None
+    for raw in theme.read_bytes().decode("latin-1").splitlines():
+        line = raw.strip()
+        if line.startswith("["):
+            section = line.lower()
+        elif section == "[control panel\\colors]" and "=" in line:
+            key, value = line.split("=", 1)
+            colours[key.strip().lower()] = value.split()
+    lines = []
+    for index, name in enumerate(SYSCOLORS):
+        rgb = colours.get(name.lower())
+        if rgb and len(rgb) == 3:
+            lines.append(f"syscolor {index} {rgb[0]} {rgb[1]} {rgb[2]}")
+    return lines
 RESTORE = r"apply C:\WINDOWS\Resources\Themes\Luna\luna.msstyles Metallic NormalSize"
 
 
@@ -91,14 +118,19 @@ def main() -> int:
         xp_dir = out / label / "oracle"
         if not (args.cached and (xp_dir / "raw").is_dir()):
             vm = vm or vmmod.connect()
-            job = "\n".join([f"apply {{style:{name}}} {colour} NormalSize", *lines, RESTORE]) + "\n"
-            oracle.run(job, str(xp_dir), [str(path)], timeout=300, progress=lambda *_: None, vm=vm)
+            if colour is None:
+                job = "\n".join(["classic", *scheme_lines(path), *lines, RESTORE]) + "\n"
+                carried = []
+            else:
+                job = "\n".join([f"apply {{style:{name}}} {colour} NormalSize", *lines, RESTORE]) + "\n"
+                carried = [str(path)]
+            oracle.run(job, str(xp_dir), carried, timeout=300, progress=lambda *_: None, vm=vm)
         qt_dir = out / label / f"qt{args.qt}"
         subprocess.run([str(gallery), "--controls", str(job_file), str(qt_dir)], check=True,
                        stderr=subprocess.DEVNULL,
                        env={**os.environ, "XPLASMA_XP_TEXT": "1", "QT_QPA_PLATFORM": "offscreen",
                             "QT_PLUGIN_PATH": str(ROOT / f"app/plugins/qt{args.qt}"),
-                            "XPLASMA_THEME": f"{path}:{variant}"})
+                            "XPLASMA_THEME": f"{path}:{variant}" if variant else str(path)})
         rows = compare(xp_dir / "raw", qt_dir)
         exact = sum(1 for _, bad, _ in rows if bad == 0)
         summary.append((label, exact, len(rows), sum(bad for _, bad, _ in rows)))

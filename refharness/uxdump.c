@@ -28,6 +28,12 @@
  *             SetSystemVisualStyle -- what Display Properties does), so
  *             later `control` lines are drawn by it. The VM runs from a
  *             snapshot: nothing outlives the session.
+ *   classic
+ *          -- turn visual styles off for the session (EnableTheming(FALSE),
+ *             flat menus off): the Windows Classic look, in whatever system
+ *             colours are set -- `syscolor` lines set a scheme's.
+ *   syscolor <COLOR_ index> <r> <g> <b>
+ *          -- SetSysColors for one colour.
  *   bitmap C:\path\file.bmp
  *          -- GDI as the oracle for DIB decoding: load the file, blit it into
  *             a 32bpp DIB as-is (bitmap_<name>_plain), then through
@@ -78,6 +84,8 @@ static OpenThemeFile_t pOpenThemeFile;
 static CloseThemeFile_t pCloseThemeFile;
 static OpenThemeDataFromFile_t pOpenThemeDataFromFile;
 typedef HRESULT (WINAPI *SetSystemVisualStyle_t)(LPCWSTR, LPCWSTR, LPCWSTR, DWORD);
+typedef HRESULT (WINAPI *EnableTheming_t)(BOOL);
+static EnableTheming_t pEnableTheming;
 static SetSystemVisualStyle_t pSetSystemVisualStyle;
 static HTHEMEFILE themeFile;        /* NULL: use the applied style */
 static HWND hwnd;
@@ -507,6 +515,10 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
                            || !lstrcmpW(cls, L"LISTBOX")) ? WS_EX_CLIENTEDGE : 0, cls,
                           lstrcmpW(cls, L"COMBOBOX") ? (wcsncmp_(kind, L"spin") ? label : L"42") : L"", style, 0, 0, w,
                           !lstrcmpW(cls, L"COMBOBOX") ? h + 100 : h, host, (HMENU)1, NULL, NULL);
+    /* comctl32 caches the system colours process-wide and refreshes them
+     * on WM_SYSCOLORCHANGE -- which `syscolor` lines, set before any of its
+     * windows existed, never delivered. */
+    SendMessageW(ctl, WM_SYSCOLORCHANGE, 0, 0);
     ncm.cbSize = sizeof ncm;
     SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof ncm, &ncm, 0);
     font = CreateFontIndirectW(&ncm.lfMessageFont);
@@ -854,6 +866,7 @@ static int run(int argc, wchar_t **argv)
     pCloseThemeFile = (CloseThemeFile_t)GetProcAddress(ux, MAKEINTRESOURCEA(3));
     pOpenThemeDataFromFile = (OpenThemeDataFromFile_t)GetProcAddress(ux, MAKEINTRESOURCEA(16));
     pSetSystemVisualStyle = (SetSystemVisualStyle_t)GetProcAddress(ux, MAKEINTRESOURCEA(65));
+    pEnableTheming = (EnableTheming_t)GetProcAddress(ux, "EnableTheming");
     /* Any window will do: uxtheme only wants one to hang theme data off. */
     hwnd = CreateWindowExW(0, L"STATIC", L"uxdump", WS_POPUP, 0, 0, 1, 1, NULL, NULL, NULL, NULL);
     v.dwOSVersionInfoSize = sizeof v;
@@ -885,6 +898,9 @@ static int run(int argc, wchar_t **argv)
             HRESULT hr = E_FAIL;
             for (i = 2; i < n - 2; i++)
                 tok[i][-1] = L' ';
+            if (pEnableTheming)
+                pEnableTheming(TRUE);
+            SystemParametersInfoW(SPI_SETFLATMENU, 0, (PVOID)TRUE, SPIF_SENDCHANGE);
             if (pSetSystemVisualStyle)
                 hr = pSetSystemVisualStyle(tok[1], tok[n - 2], tok[n - 1], 0);
             settle(1500);
@@ -908,6 +924,15 @@ static int run(int argc, wchar_t **argv)
             out(L"# apply %s %s %s hr=0x%08lx face=%lu window=%lu highlight=%lu menu=%lu\r\n", tok[1], tok[n - 2], tok[n - 1],
                 (unsigned long)hr, (unsigned long)GetSysColor(COLOR_BTNFACE), (unsigned long)GetSysColor(COLOR_WINDOW),
                 (unsigned long)GetSysColor(COLOR_HIGHLIGHT), (unsigned long)GetSysColor(COLOR_MENU));
+        } else if (lstrcmpW(tok[0], L"classic") == 0) {
+            HRESULT hr = pEnableTheming ? pEnableTheming(FALSE) : E_FAIL;
+            SystemParametersInfoW(SPI_SETFLATMENU, 0, (PVOID)FALSE, SPIF_SENDCHANGE);
+            settle(1500);
+            out(L"# classic hr=0x%08lx themed=%d\r\n", (unsigned long)hr, IsThemeActive());
+        } else if (lstrcmpW(tok[0], L"syscolor") == 0 && n == 5) {
+            int id = to_int(tok[1]);
+            COLORREF c = RGB(to_int(tok[2]), to_int(tok[3]), to_int(tok[4]));
+            SetSysColors(1, &id, &c);
         } else if (lstrcmpW(tok[0], L"style") == 0 && n == 2 && lstrcmpW(tok[1], L"-") == 0) {
             do_style(L"-", NULL, NULL);
         } else if (lstrcmpW(tok[0], L"style") == 0 && n >= 4) {
