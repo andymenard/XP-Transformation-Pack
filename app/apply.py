@@ -93,8 +93,19 @@ def apply_desktoptheme(plugin_id: str) -> None:
     # A running plasmashell neither discovers a theme package created after
     # it started nor reliably re-reads regenerated SVGs of the current one;
     # it keeps painting the (translucent) fallback. Restarting the shell
-    # service is the only dependable way to get the new panel art on screen.
-    host.run(["systemctl", "--user", "restart", "plasma-plasmashell.service"], check=False)
+    # service is the only dependable way to get the new panel art on screen
+    # -- and Plasma caches a theme's rendered SVGs under the theme's *name*,
+    # which a regenerated package keeps (another colour of the same style:
+    # Luna Silver's panel came up Blue), so those caches go too, with the
+    # shell stopped so it can't write them back.
+    host.run(["systemctl", "--user", "stop", "plasma-plasmashell.service"], check=False)
+    cache = os.path.join(os.path.expanduser("~"), ".cache")
+    for stale in (f"plasma_theme_{plugin_id}.kcache", "ksvg-elements"):
+        try:
+            os.remove(os.path.join(cache, stale))
+        except FileNotFoundError:
+            pass
+    host.run(["systemctl", "--user", "start", "plasma-plasmashell.service"], check=False)
     time.sleep(5)
 
 
