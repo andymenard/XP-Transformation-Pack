@@ -46,6 +46,7 @@ add_library(xplasma-core STATIC
   src/core/render.cpp
   src/core/themefile.cpp
   src/core/classic.cpp
+  src/core/icons.cpp
 )
 target_include_directories(xplasma-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(xplasma-core PUBLIC ${QT}::Gui)
@@ -95,7 +96,7 @@ endif()
 # --- fuzzing (fuzz.sh; clang only) --------------------------------------------
 option(XPLASMA_FUZZ "Build the libFuzzer targets (needs clang)" OFF)
 if(XPLASMA_FUZZ)
-  foreach(target theme dib ini scheme)
+  foreach(target theme dib ini scheme icon)
     string(TOUPPER ${target} TARGET_UPPER)
     add_executable(fuzz-${target} tests/core/fuzz.cpp)
     target_compile_definitions(fuzz-${target} PRIVATE FUZZ_TARGET_${TARGET_UPPER}=1)

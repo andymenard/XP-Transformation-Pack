@@ -6,9 +6,11 @@
 #include "app/adopt.h"
 #include "app/decoration.h"
 #include "app/look.h"
+#include "app/icons.h"
 #include "app/media.h"
 #include "app/panel.h"
 #include "app/startbutton.h"
+#include "app/startpanel.h"
 #include "app/archive.h"
 #include "app/hivedef.h"
 #include "app/host.h"
@@ -21,6 +23,7 @@
 #include <QFile>
 #include <QFontDatabase>
 #include <QGuiApplication>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QPainter>
 #include <QTemporaryDir>
@@ -724,6 +727,49 @@ private Q_SLOTS:
         const auto classicArt = xpl::startButton(classic, flag, QStringLiteral("start"), &error);
         QVERIFY2(classicArt, qPrintable(error));
         QCOMPARE(classicArt->normal.height(), 28);
+    }
+
+    void iconTheme()
+    {
+        if (m_realIso.isEmpty())
+            QSKIP("no XP ISO on this machine");
+        State state;
+        state.media = m_realIso;
+        QVERIFY(state.save());
+        QString error;
+        const QString theme = writeIconTheme(m_home.filePath(QStringLiteral("out")), QStringLiteral("breeze"), &error);
+        QVERIFY2(!theme.isEmpty(), qPrintable(error));
+        // XP's own sizes only: shell32's folder at 16, 32 and 48, never larger.
+        for (const char *size : {"16x16", "32x32", "48x48"})
+            QVERIFY(QFileInfo::exists(theme + QLatin1Char('/') + QLatin1String(size) + QLatin1String("/places/folder.png")));
+        QVERIFY(!QFileInfo::exists(theme + QLatin1String("/96x96/places/folder.png")));
+        QCOMPARE(QImage(theme + QLatin1String("/32x32/places/folder.png")).size(), QSize(32, 32));
+        // Battery frames come from batmeter's image lists, keyed.
+        const QImage battery(theme + QLatin1String("/16x16/status/battery-050.png"));
+        QCOMPARE(battery.size(), QSize(16, 16));
+        QCOMPARE(qAlpha(battery.pixel(0, 0)), 0);
+        QFile index(theme + QLatin1String("/index.theme"));
+        QVERIFY(index.open(QIODevice::ReadOnly));
+        QVERIFY(index.readAll().contains("Inherits=breeze,hicolor"));
+    }
+
+    void startPanel()
+    {
+        if (m_realThemes.isEmpty())
+            QSKIP("no asset library on this machine");
+        const auto look = Look::fromStyle(m_realThemes + QLatin1String("/Luna/luna.msstyles"));
+        QVERIFY(look);
+        QString error;
+        const QString dir = m_home.filePath(QStringLiteral("menu"));
+        const QJsonObject theme = writeStartPanel(*look, dir, &error);
+        QVERIFY2(!theme.isEmpty(), qPrintable(error));
+        const QJsonObject parts = theme.value(QStringLiteral("parts")).toObject();
+        QVERIFY(parts.contains(QStringLiteral("moreprogramsarrow-hot")));
+        QCOMPARE(parts.value(QStringLiteral("logoff")).toObject().value(QStringLiteral("sizing")).toArray().at(0).toInt(), 48);
+        QCOMPARE(theme.value(QStringLiteral("layout")).toObject().value(QStringLiteral("headerHeight")).toInt(), 64);
+        QVERIFY(QFileInfo::exists(dir + QLatin1String("/button-shutdown-hot.png")));
+        QVERIFY(QFileInfo::exists(dir + QLatin1String("/theme.json")));
+        QVERIFY(writeStartPanel(Look::fromScheme(ClassicScheme()), dir, &error).isEmpty());
     }
 
     // --- host programs --------------------------------------------------------

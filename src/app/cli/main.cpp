@@ -13,9 +13,11 @@
 #include "app/adopt.h"
 #include "app/colors.h"
 #include "app/decoration.h"
+#include "app/icons.h"
 #include "app/media.h"
 #include "app/panel.h"
 #include "app/startbutton.h"
+#include "app/startpanel.h"
 #include "app/library.h"
 #include "app/paths.h"
 #include "app/state.h"
@@ -177,6 +179,19 @@ int build(const QString &spec, QString dir)
     start->hover.save(startDir + look->id + QLatin1String("-hover.png"));
     start->pressed.save(startDir + look->id + QLatin1String("-pressed.png"));
     out() << "  start       " << startDir + look->id + QLatin1String("-{normal,hover,pressed}.png") << '\n';
+    if (!look->classic()) {
+        const QString menuDir = dir + QLatin1String("/start/") + look->id + QLatin1String("-menu");
+        if (writeStartPanel(*look, menuDir, &error).isEmpty())
+            out() << "  start menu  (none: " << error << ")\n";
+        else
+            out() << "  start menu  " << menuDir << '\n';
+    }
+    const QString icons = writeIconTheme(dir + QLatin1String("/icons"), QStringLiteral("breeze"), &error);
+    if (icons.isEmpty()) {
+        err() << "xplasma: the icons: " << error << Qt::endl;
+        return 1;
+    }
+    out() << "  icons       " << icons << '\n';
     for (const ConfigValue &v : fontSettings(look->system))
         out() << "  font        " << v.file << " [" << v.group << "] " << v.key << '=' << v.value << '\n';
     out().flush();

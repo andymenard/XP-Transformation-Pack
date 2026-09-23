@@ -13,6 +13,7 @@
 #include <QTextStream>
 
 #include "core/dib.h"
+#include "core/icons.h"
 
 using namespace xpl;
 
@@ -198,6 +199,43 @@ int main(int, char **argv)
         absurd[21] = char(0xff);   // caption height 65535
         CHECK(!NonClientMetrics::fromA(absurd));
         CHECK(!ClassicScheme::fromSchemeData(QByteArray(100, '\0')));
+    }
+
+    // Icons: a 4bpp DIB with its AND mask, twice its height; a 32bpp one
+    // with alpha (the mask ignored); PNG; garbage.
+    {
+        auto le32 = [](QByteArray &b, int v) { for (int i = 0; i < 4; ++i) b.append(char((v >> (8 * i)) & 0xff)); };
+        auto le16 = [](QByteArray &b, int v) { b.append(char(v & 0xff)); b.append(char(v >> 8)); };
+        auto header = [&](int size, int bpp) {
+            QByteArray h;
+            le32(h, 40); le32(h, size); le32(h, size * 2); le16(h, 1); le16(h, bpp);
+            le32(h, 0); le32(h, 0); le32(h, 0); le32(h, 0); le32(h, 0); le32(h, 0);
+            return h;
+        };
+        // 4bpp 8x8: palette index 1 (red) everywhere, the mask's top-left
+        // pixel set (transparent). Rows are bottom-up, 4-byte aligned.
+        QByteArray four = header(8, 4);
+        for (int i = 0; i < 16; ++i)
+            le32(four, i == 1 ? 0x00ff0000 : 0);
+        for (int y = 0; y < 8; ++y)
+            le32(four, 0x11111111);
+        for (int y = 0; y < 8; ++y)
+            le32(four, y == 7 ? 0x80 : 0);   // bottom-up: the last row is the top
+        const QImage a = decodeIconImage(four);
+        CHECK(a.size() == QSize(8, 8));
+        CHECK(a.pixel(0, 0) == 0);
+        CHECK(a.pixel(1, 0) == qRgb(255, 0, 0));
+        CHECK(a.pixel(7, 7) == qRgb(255, 0, 0));
+        QByteArray argb = header(2, 32);
+        for (int i = 0; i < 4; ++i)
+            le32(argb, int(0x80102030u));
+        le32(argb, 0); le32(argb, 0);   // mask
+        const QImage b = decodeIconImage(argb);
+        CHECK(b.size() == QSize(2, 2) && qAlpha(b.pixel(0, 0)) == 0x80);
+        CHECK(decodeIconImage(QByteArray(30, 'x')).isNull());
+        QByteArray huge = header(8, 4);
+        huge.truncate(40);
+        CHECK(decodeIconImage(huge).isNull());   // claims pixels it doesn't have
     }
 
     QTextStream(stdout) << (failures ? "FAILED " : "ok ") << failures << " failure(s)\n";

@@ -1,12 +1,13 @@
 // libFuzzer targets for everything that parses untrusted bytes.
 //
-// Built once per target, -DFUZZ_TARGET_<NAME>=1: theme, dib, ini, scheme
+// Built once per target, -DFUZZ_TARGET_<NAME>=1: theme, dib, ini, scheme, icon
 // (see fuzz.sh).
 // The plugin is loaded into plasmashell and every Qt app, so a crash here is
 // a crashed desktop: nothing a .msstyles contains may crash, hang or read out
 // of bounds. AddressSanitizer and UBSan run underneath.
 #include "core/classic.h"
 #include "core/dib.h"
+#include "core/icons.h"
 #include "core/ini.h"
 #include "core/theme.h"
 #include "core/themefile.h"
@@ -48,8 +49,14 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     (void)NonClientMetrics::fromA(bytes);
     (void)NonClientMetrics::fromW(bytes);
     (void)IconMetrics::fromA(bytes);
+#elif FUZZ_TARGET_ICON
+    // An RT_ICON payload, and a PE's icon groups.
+    (void)decodeIconImage(bytes);
+    if (auto pe = PeResources::parse(bytes))
+        for (const Resource *group : pe->ofType(u"14"))
+            (void)iconGroup(*pe, group->name);
 #else
-#error define FUZZ_TARGET_THEME, FUZZ_TARGET_DIB, FUZZ_TARGET_INI or FUZZ_TARGET_SCHEME
+#error define FUZZ_TARGET_THEME, FUZZ_TARGET_DIB, FUZZ_TARGET_INI, FUZZ_TARGET_SCHEME or FUZZ_TARGET_ICON
 #endif
     return 0;
 }
