@@ -239,7 +239,7 @@ void XPLasmaStyle::polish(QWidget *widget)
         || qobject_cast<QScrollBar *>(widget) || qobject_cast<QSlider *>(widget) || qobject_cast<QTabBar *>(widget)
         || widget->inherits("QAbstractSpinBox") || widget->inherits("QHeaderView"))
         widget->setAttribute(Qt::WA_Hover, true);
-    if (!m_renderer)
+    if (!m_renderer && !classic())
         return;
     // XP's status bar is the text height + 10 (23 for Tahoma 8) whether or
     // not it has a size grip; QStatusBar's own layout would give 18.
@@ -1852,6 +1852,45 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
                                       const QWidget *widget) const
 {
     switch (control) {
+    case CC_SpinBox:
+        if (const auto *spin = qstyleoption_cast<const QStyleOptionSpinBox *>(option);
+            spin && spin->buttonSymbols != QAbstractSpinBox::NoButtons) {
+            // The buddy edit's sunken edge, its inside, and the up-down: two
+            // raised scroll-edge buttons with a face row between, Marlett's
+            // arrows shrunk to 3x2.
+            const QRect r = spin->rect;
+            if (spin->frame) {
+                qDrawWinPanel(painter, r, spin->palette, true, nullptr);
+                painter->fillRect(r.adjusted(2, 2, -2, -2),
+                                  enabled(spin) ? QBrush(sysColour(u"window", Qt::white))
+                                                : QBrush(sysColour(u"btnface", spin->palette.color(QPalette::Button))));
+            }
+            const QRect up = proxy()->subControlRect(CC_SpinBox, spin, SC_SpinBoxUp, widget);
+            const QRect down = proxy()->subControlRect(CC_SpinBox, spin, SC_SpinBoxDown, widget);
+            painter->fillRect(QRect(up.left(), up.bottom() + 1, up.width(), down.top() - up.bottom() - 1), spin->palette.button());
+            for (const auto &[rect, sub, flag, isUp] : {std::tuple{up, SC_SpinBoxUp, QAbstractSpinBox::StepUpEnabled, true},
+                                                         std::tuple{down, SC_SpinBoxDown, QAbstractSpinBox::StepDownEnabled, false}}) {
+                const bool pressed = (spin->activeSubControls & sub) && sunken(spin);
+                const bool live = enabled(spin) && (spin->stepEnabled & flag);
+                classicScrollButton(painter, rect, spin->palette, pressed);
+                const int cx = rect.left() + rect.width() / 2 + (pressed ? 1 : 0);
+                const int cy = rect.top() + (rect.height() - 2) / 2 + (pressed ? 1 : 0);
+                auto arrow = [&](QPoint o, const QColor &c) {
+                    for (int i = 0; i < 2; ++i) {   // i = 0 the 1px tip, 1 the 3px base
+                        const int row = isUp ? i : 1 - i;
+                        painter->fillRect(cx - i + o.x(), cy + row + o.y(), 1 + 2 * i, 1, c);
+                    }
+                };
+                if (live) {
+                    arrow(QPoint(), spin->palette.color(QPalette::Active, QPalette::ButtonText));
+                } else {
+                    arrow(QPoint(1, 1), spin->palette.color(QPalette::Light));
+                    arrow(QPoint(), spin->palette.color(QPalette::Dark));
+                }
+            }
+            return true;
+        }
+        return false;
     case CC_ComboBox:
         if (const auto *combo = qstyleoption_cast<const QStyleOptionComboBox *>(option)) {
             // The edit's sunken client edge, the window colour inside (the
@@ -2043,7 +2082,7 @@ void XPLasmaStyle::drawSliderTicks(const QStyleOptionSlider *slider, const QRect
 QRect XPLasmaStyle::subControlRect(ComplexControl control, const QStyleOptionComplex *option, SubControl sub,
                                    const QWidget *widget) const
 {
-    if (m_renderer && control == CC_GroupBox && sub == SC_GroupBoxFrame && hasPart({QStringLiteral("button"), 4, 1, {}})) {
+    if (control == CC_GroupBox && sub == SC_GroupBoxFrame && (classic() || hasPart({QStringLiteral("button"), 4, 1, {}}))) {
         // The frame's top runs through the caption's middle -- by GDI's
         // text height, which Qt 5 overstates by a row for Tahoma 8.
         const auto *box = qstyleoption_cast<const QStyleOptionGroupBox *>(option);
@@ -2052,14 +2091,45 @@ QRect XPLasmaStyle::subControlRect(ComplexControl control, const QStyleOptionCom
             r.setTop(option->rect.top() + xpTextHeight(widget ? widget->font() : QApplication::font()) / 2);
         return r;
     }
-    if (m_renderer && control == CC_GroupBox && sub == SC_GroupBoxLabel && hasPart({QStringLiteral("button"), 4, 1, {}})) {
+    if (control == CC_GroupBox && sub == SC_GroupBoxLabel && (classic() || hasPart({QStringLiteral("button"), 4, 1, {}}))) {
         // XP breaks the frame 1px before the caption; QCommonStyle cuts
-        // the frame by exactly this rect.
+        // the frame by exactly this rect. (Classic's caption also sits a
+        // row lower than Qt's.)
         const auto *box = qstyleoption_cast<const QStyleOptionGroupBox *>(option);
         QRect r = QProxyStyle::subControlRect(control, option, sub, widget);
         if (box && !box->text.isEmpty() && !(box->subControls & SC_GroupBoxCheckBox) && (box->textAlignment & Qt::AlignLeft))
             r.setLeft(r.left() - 1);
+        if (classic())
+            r.translate(0, 1);
         return r;
+    }
+    if (classic() && control == CC_SpinBox) {
+        const auto *spin = qstyleoption_cast<const QStyleOptionSpinBox *>(option);
+        if (spin && spin->buttonSymbols != QAbstractSpinBox::NoButtons) {
+            // XP's up-down (Classic, 80 x 21): SM_CXVSCROLL - 1 wide inside
+            // the edit's 2px edge, two 8px buttons with a face row between.
+            const QRect r = spin->rect;
+            const int inset = spin->frame ? 2 : 0;
+            const int bw = sysMetric(u"scrollbarwidth", 17) - 1;
+            const int x = r.right() - inset - bw + 1;
+            const int top = r.top() + inset, avail = r.height() - 2 * inset;
+            const int upH = (avail - 1) / 2;
+            switch (sub) {
+            case SC_SpinBoxUp:
+                return QRect(x, top, bw, upH);
+            case SC_SpinBoxDown:
+                return QRect(x, top + upH + 1, bw, avail - 1 - upH);
+            case SC_SpinBoxEditField: {
+                const int left = r.left() + (spin->frame ? 4 : 0);
+                const int th = qMin(xpTextHeight(widget ? widget->font() : QApplication::font()), r.height());
+                return QRect(left, r.top() + (spin->frame ? 3 : (r.height() - th) / 2), qMax(0, x - 2 - left), th);
+            }
+            case SC_SpinBoxFrame:
+                return r;
+            default:
+                break;
+            }
+        }
     }
     if (classic() && control == CC_ComboBox && (sub == SC_ComboBoxArrow || sub == SC_ComboBoxEditField)) {
         // The button inside the 2px client edge, SM_CXVSCROLL wide, the full
