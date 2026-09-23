@@ -591,3 +591,31 @@ says, labels placed within about 1px (glyph shapes differ; XP-style text
 rendering is recorded as a font setting). Qt 5 and Qt 6 draw identically
 apart from glyphs, once the tab height is computed from the font's OS/2
 metrics as GDI does.
+
+**Phase 3 / 3b — control fidelity, themed and Classic (2026-09-23).** The
+control oracle now covers 79 controls and states (`native/tests/controls-1..3
+.job`: buttons, check boxes, radios, group boxes, edits, combos, spin boxes,
+progress bars, trackbars, scroll bars, tabs including overflowing rows,
+list views (report, check boxes, selections), tree views (nesting, lone
+roots, check boxes, selections), list boxes, menus and menu bars, toolbars,
+status bars, tooltips; normal, hot, pressed, focused and disabled states),
+and `native/tests/styles_matrix.py` runs all of it under every Microsoft
+style *applied for real in XP* (uxdump `apply`: SetSystemVisualStyle plus the
+style's system colours) and under Windows Classic (uxdump `classic`:
+EnableTheming(FALSE) plus a scheme's colours from its .theme file), against
+the plugin rendering the same .msstyles or .theme:
+
+| Style | Pixel-exact controls |
+| --- | --- |
+| Luna Silver, Royale, Royale Noir, Zune, Embedded | 76 / 79 each |
+| Windows Classic (the plugin's own, from the scheme's colours) | 76 / 79 |
+| Luna Blue, Luna Olive | 65 / 79 |
+
+The 3 left everywhere are Qt-side, not drawable from a style: QTabBar
+scrolls an overflowing row by pixels where XP scrolls by whole tabs (2),
+and QStatusBar hard-codes its message's position. Luna Blue/Olive's extra
+11 are ±1 colour rounding on antialiased edges (Qt's raster blend
+approximates /255). Text is compared too, with Qt in the XP-text mode
+(hinted, unantialiased, unkerned Tahoma 8), where FreeType matches GDI.
+Qt 5 matches Qt 6 apart from glyph rasterisation (and the gallery can't
+show a Qt 5 tooltip offscreen).

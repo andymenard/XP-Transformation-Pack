@@ -334,6 +334,16 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
         case PE_IndicatorTabTearLeft:
         case PE_IndicatorTabTearRight:
             return;
+        case PE_PanelStatusBar: {
+            // A simple status bar's one pane: a sunken 1px edge round it all.
+            const QRect r = option->rect;
+            painter->fillRect(r, option->palette.button());
+            painter->fillRect(QRect(r.left(), r.top(), r.width() - 1, 1), option->palette.color(QPalette::Dark));
+            painter->fillRect(QRect(r.left(), r.top(), 1, r.height() - 1), option->palette.color(QPalette::Dark));
+            painter->fillRect(QRect(r.left(), r.bottom(), r.width(), 1), option->palette.color(QPalette::Light));
+            painter->fillRect(QRect(r.right(), r.top(), 1, r.height()), option->palette.color(QPalette::Light));
+            return;
+        }
         case PE_IndicatorToolBarSeparator: {
             // Etched: the shadow then the highlight, 2px in from the ends.
             const QRect r = option->rect;
@@ -2011,6 +2021,17 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
     case CE_MenuEmptyArea:
         painter->fillRect(option->rect, sysColour(u"menu", option->palette.color(QPalette::Button)));
         return true;
+    case CE_SizeGrip: {
+        // Over a face-filled square (it cuts the pane's edge), the lines
+        // 1px in from Qt's corner.
+        painter->fillRect(option->rect, option->palette.button());
+        painter->save();
+        painter->setClipRect(option->rect.adjusted(0, 0, -1, -1), Qt::IntersectClip);   // 1px short of the edges
+        painter->translate(-1, 0);
+        QProxyStyle::drawControl(element, option, painter, widget);
+        painter->restore();
+        return true;
+    }
     case CE_TabBarTabShape:
         if (const auto *tab = qstyleoption_cast<const QStyleOptionTab *>(option);
             tab && (tab->shape == QTabBar::RoundedNorth || tab->shape == QTabBar::TriangularNorth)) {
