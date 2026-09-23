@@ -12,6 +12,10 @@ add_library(xplasma-app STATIC
   archive.cpp
   hivedef.cpp
   library.cpp
+  look.cpp
+  package.cpp
+  colors.cpp
+  decoration.cpp
 )
 target_include_directories(xplasma-app PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_compile_definitions(xplasma-app PUBLIC XPLASMA_VERSION="${XPLASMA_VERSION}")

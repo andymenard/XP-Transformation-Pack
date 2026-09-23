@@ -208,6 +208,11 @@ QString Renderer::chooseImage(const PartRef &ref, int dpi, QSize destination, bo
     return property(ref, u"imagefile1").value_or(QString());
 }
 
+QImage Renderer::stateImage(const PartRef &ref, bool glyph, QSize destination, int dpi) const
+{
+    return frame(ref, glyph ? QStringLiteral("glyphimagefile") : QStringLiteral("imagefile"), dpi, destination).image;
+}
+
 Renderer::Frame Renderer::frame(const PartRef &ref, const QString &imageProperty, int dpi, QSize destination) const
 {
     Frame out;

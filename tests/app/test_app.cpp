@@ -4,6 +4,8 @@
 // when xp2plasma or XPLasma downloaded one on this machine, is used for the
 // real-media tests (skipped otherwise).
 #include "app/adopt.h"
+#include "app/decoration.h"
+#include "app/look.h"
 #include "app/archive.h"
 #include "app/hivedef.h"
 #include "app/host.h"
@@ -15,6 +17,7 @@
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
+#include <QPainter>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QtEndian>
@@ -111,6 +114,41 @@ struct IsoBuilder
         put(21, "abc");
     }
 };
+
+// What KSvg's FrameSvg paints for `prefix` at `size`: corners at their own
+// size (the side elements' widths, the top and bottom elements' heights),
+// edges stretched (with hint-stretch-borders) or tiled, the centre too.
+QImage frameSvg(const DecorationArt &art, const QString &prefix, QSize size)
+{
+    const QImage tl = art.element(prefix + QLatin1String("-topleft")), t = art.element(prefix + QLatin1String("-top")),
+                 tr = art.element(prefix + QLatin1String("-topright")), l = art.element(prefix + QLatin1String("-left")),
+                 r = art.element(prefix + QLatin1String("-right")), bl = art.element(prefix + QLatin1String("-bottomleft")),
+                 b = art.element(prefix + QLatin1String("-bottom")), br = art.element(prefix + QLatin1String("-bottomright"));
+    bool stretch = false;
+    for (const auto &[id, image] : art.frame)
+        stretch |= id == prefix + QLatin1String("-hint-stretch-borders");
+    const int lw = l.width(), rw = r.width(), th = t.height(), bh = b.height();
+    QImage out(size, QImage::Format_ARGB32_Premultiplied);
+    out.fill(Qt::transparent);
+    QPainter p(&out);
+    auto edge = [&](const QImage &img, const QRect &to) {
+        if (to.isEmpty())
+            return;
+        if (stretch)
+            p.drawImage(to, img.scaled(to.size(), Qt::IgnoreAspectRatio, Qt::FastTransformation));
+        else
+            p.drawTiledPixmap(to, QPixmap::fromImage(img));
+    };
+    p.drawImage(QRect(0, 0, lw, th), tl);
+    p.drawImage(QRect(size.width() - rw, 0, rw, th), tr);
+    p.drawImage(QRect(0, size.height() - bh, lw, bh), bl);
+    p.drawImage(QRect(size.width() - rw, size.height() - bh, rw, bh), br);
+    edge(t, QRect(lw, 0, size.width() - lw - rw, th));
+    edge(b, QRect(lw, size.height() - bh, size.width() - lw - rw, bh));
+    edge(l, QRect(0, th, lw, size.height() - th - bh));
+    edge(r, QRect(size.width() - rw, th, rw, size.height() - th - bh));
+    return out;
+}
 
 } // namespace
 
@@ -488,6 +526,83 @@ private Q_SLOTS:
         const Library lib = Library::scan({m_realThemes});
         QVERIFY(lib.styles.size() >= 5);
         QVERIFY(lib.styles.first().official);
+    }
+
+    // --- generators -------------------------------------------------------------
+
+    void decoration_data()
+    {
+        QTest::addColumn<QString>("style");
+        QTest::addColumn<QString>("variant");
+        for (const char *v : {"NORMALBLUE_INI", "NORMALMETALLIC_INI", "NORMALHOMESTEAD_INI"})
+            QTest::newRow(v) << QStringLiteral("Luna/luna.msstyles") << QString::fromLatin1(v);
+        QTest::newRow("royale") << QStringLiteral("Royale/Royale.msstyles") << QString();
+        QTest::newRow("royale-noir") << QStringLiteral("Royale Noir/Royale Noir.msstyles") << QStringLiteral("NORMALDARKROYALE_INI");
+        QTest::newRow("zune") << QStringLiteral("Zune/Zune.msstyles") << QString();
+        QTest::newRow("embedded") << QStringLiteral("Embedded/Embedded.msstyles") << QString();
+    }
+
+    void decoration()
+    {
+        // Aurorae's frame, as KSvg lays it out, is XP's own caption and
+        // frames drawn at that window size -- every pixel of the border.
+        if (m_realThemes.isEmpty())
+            QSKIP("no asset library on this machine");
+        QFETCH(QString, style);
+        QFETCH(QString, variant);
+        QString error;
+        const auto look = Look::fromStyle(m_realThemes + QLatin1Char('/') + style, variant, &error);
+        QVERIFY2(look, qPrintable(error));
+        const DecorationArt art = decorationArt(*look);
+        const DecorationLayout l = decorationLayout(*look);
+        const Renderer &r = *look->renderer;
+        const int F = l.frame, H = l.frame + l.caption;
+        // (Stretched edges come from an 800 x 600 window: exact there; at
+        // other sizes only what XP keeps fixed is, and what it stretches
+        // unevenly -- Luna's bottom and sides -- is within a few levels.)
+        const QMargins capM = r.margins({QStringLiteral("window"), 1, 1, {}}, u"sizingmargins");
+        const QMargins botM = r.margins({QStringLiteral("window"), 9, 1, {}}, u"sizingmargins");
+        for (const QSize size : {QSize(800, 600), QSize(160, 120), QSize(437, 311), QSize(1024, 700)})
+            for (const bool active : {true, false}) {
+                const int state = active ? 1 : 2;
+                QImage xp(size, QImage::Format_ARGB32_Premultiplied);
+                xp.fill(Qt::transparent);
+                {
+                    QPainter p(&xp);
+                    p.drawImage(0, 0, r.background({QStringLiteral("window"), 1, state, {}}, QSize(size.width(), H)));
+                    p.drawImage(0, H, r.background({QStringLiteral("window"), 7, state, {}}, QSize(F, size.height() - H - F)));
+                    p.drawImage(size.width() - F, H, r.background({QStringLiteral("window"), 8, state, {}}, QSize(F, size.height() - H - F)));
+                    p.drawImage(0, size.height() - F, r.background({QStringLiteral("window"), 9, state, {}}, QSize(size.width(), F)));
+                }
+                const QImage ours = frameSvg(art, active ? QStringLiteral("decoration") : QStringLiteral("decoration-inactive"), size);
+                const bool reference = size == QSize(800, 600);
+                int fixedDiffer = 0, worst = 0;
+                for (int y = 0; y < size.height(); ++y)
+                    for (int x = 0; x < size.width(); ++x) {
+                        const bool top = y < H, bottom = y >= size.height() - F;
+                        if (!top && !bottom && x >= F && x < size.width() - F)
+                            continue;   // the client's
+                        const QMargins &m = top ? capM : botM;
+                        const bool fixed = reference || ((top || bottom) && (x < m.left() || x >= size.width() - m.right()));
+                        const QRgb a = xp.pixel(x, y), b = ours.pixel(x, y);
+                        if (a == b)
+                            continue;
+                        if (fixed)
+                            ++fixedDiffer;
+                        worst = std::max({worst, qAbs(qRed(a) - qRed(b)), qAbs(qGreen(a) - qGreen(b)), qAbs(qBlue(a) - qBlue(b)),
+                                      qAbs(qAlpha(a) - qAlpha(b))});
+                    }
+                const QString where = QStringLiteral("%1x%2 %3").arg(size.width()).arg(size.height()).arg(active ? "active" : "inactive");
+                QVERIFY2(fixedDiffer == 0, qPrintable(QStringLiteral("%1 fixed px differ at %2").arg(fixedDiffer).arg(where)));
+                QVERIFY2(worst <= 16, qPrintable(QStringLiteral("stretched edge off by %1 at %2").arg(worst).arg(where)));
+            }
+        // Buttons at XP's size, every state.
+        QCOMPARE(art.buttons.size(), r.hasPart({QStringLiteral("window"), 23, 1, {}}) ? 5 : 4);
+        for (const auto &[file, states] : art.buttons) {
+            QCOMPARE(states.size(), 8);
+            for (const auto &[state, image] : states)
+                QCOMPARE(image.size(), l.button);
+        }
     }
 
     // --- host programs --------------------------------------------------------

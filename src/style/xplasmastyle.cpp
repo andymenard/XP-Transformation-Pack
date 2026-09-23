@@ -1818,34 +1818,15 @@ void XPLasmaStyle::drawClassicTitleBar(const QStyleOptionTitleBar *bar, QPainter
     const int left = icon.isValid() ? icon.right() + 2 : caption.left();
     painter->fillRect(QRect(caption.left(), caption.top(), left - caption.left(), caption.height()), from);
     painter->fillRect(QRect(right, caption.top(), caption.right() + 1 - right, caption.height()), to);
-    // (GradientFill steps in 16.16 fixed point -- step = delta * 65536 /
-    // width, column i the start + step * (i + 1) >> 16 -- over a rect 1px
-    // wider than what's left of it: its last column is the end colour's.)
-    const int span = qMax(1, right + 1 - left);
-    for (int x = left; x < right; ++x) {
-        auto mix = [&](int a, int b) {
-            const qint64 step = qint64(b - a) * 65536 / span;
-            return a + int(std::floor(double(step * (x - left + 1)) / 65536.0));
-        };
-        painter->fillRect(QRect(x, caption.top(), 1, caption.height()),
-                          QColor(mix(from.red(), to.red()), mix(from.green(), to.green()), mix(from.blue(), to.blue())));
-    }
+    xpl::classic::gradientFill(painter, QRect(left, caption.top(), qMax(0, right - left), caption.height()), from, to);
     if (icon.isValid() && !bar->icon.isNull())
         bar->icon.paint(painter, icon);
 
-    // Marlett's caption glyphs at the standard 16x14 button: rows of
-    // '#', from the button's corner.
-    static const char *const kMin[] = {"...........", ".........", "...", "...", "...", "...", "...", "...", "...",
-                                       "....######", "....######"};
-    static const char *const kMax[] = {"", "", "...#########", "...#########", "...#.......#", "...#.......#",
-                                       "...#.......#", "...#.......#", "...#.......#", "...#.......#", "...#########"};
-    static const char *const kRestore[] = {"", "", ".....######", ".....######", ".....#....#", "...######.#",
-                                           "...######.#", "...#....###", "...#....#", "...#....#", "...######"};
-    static const char *const kClose[] = {"", "", "", "....##....##", ".....##..##", "......####", ".......##",
-                                         "......####", ".....##..##", "....##....##", ""};
-    const struct { SubControl sub; const char *const *glyph; } buttons[] = {
-        {SC_TitleBarCloseButton, kClose}, {SC_TitleBarMaxButton, kMax}, {SC_TitleBarNormalButton, kRestore},
-        {SC_TitleBarMinButton, kMin},
+    // DFC_CAPTION buttons: Marlett's glyphs in the push bevel.
+    using xpl::classic::CaptionGlyph;
+    const struct { SubControl sub; CaptionGlyph glyph; } buttons[] = {
+        {SC_TitleBarCloseButton, CaptionGlyph::Close}, {SC_TitleBarMaxButton, CaptionGlyph::Maximize},
+        {SC_TitleBarNormalButton, CaptionGlyph::Restore}, {SC_TitleBarMinButton, CaptionGlyph::Minimize},
     };
     for (const auto &b : buttons) {
         const QRect r = xpTitleBarRect(bar, b.sub, widget);
@@ -1853,18 +1834,12 @@ void XPLasmaStyle::drawClassicTitleBar(const QStyleOptionTitleBar *bar, QPainter
             continue;
         const bool down = (bar->activeSubControls & b.sub) && (bar->state & State_Sunken);
         classicPushEdge(painter, r, bar->palette, down);
-        auto glyph = [&](QPoint at, const QColor &c) {
-            for (int y = 0; y < 11; ++y)
-                for (int x = 0; b.glyph[y][x]; ++x)
-                    if (b.glyph[y][x] == '#')
-                        painter->fillRect(at.x() + x, at.y() + y, 1, 1, c);
-        };
         const QPoint at = r.topLeft() + (down ? QPoint(1, 1) : QPoint());
         if (enabled(bar)) {
-            glyph(at, sysColour(u"btntext", Qt::black));
+            xpl::classic::captionGlyph(painter, at, b.glyph, sysColour(u"btntext", Qt::black));
         } else {
-            glyph(at + QPoint(1, 1), sysColour(u"btnhighlight", Qt::white));
-            glyph(at, sysColour(u"btnshadow", Qt::gray));
+            xpl::classic::captionGlyph(painter, at + QPoint(1, 1), b.glyph, sysColour(u"btnhighlight", Qt::white));
+            xpl::classic::captionGlyph(painter, at, b.glyph, sysColour(u"btnshadow", Qt::gray));
         }
     }
 
@@ -2919,35 +2894,13 @@ static void classicPushEdge(QPainter *p, const QRect &r, const QPalette &pal, bo
 // inside.
 static void classicSunken(QPainter *p, const QRect &r, const QPalette &pal)
 {
-    auto frame = [&](const QRect &q, const QColor &tl, const QColor &br) {
-        p->fillRect(QRect(q.left(), q.top(), q.width() - 1, 1), tl);
-        p->fillRect(QRect(q.left(), q.top(), 1, q.height() - 1), tl);
-        p->fillRect(QRect(q.left(), q.bottom(), q.width(), 1), br);
-        p->fillRect(QRect(q.right(), q.top(), 1, q.height()), br);
-    };
-    frame(r, pal.color(QPalette::Dark), pal.color(QPalette::Light));
-    frame(r.adjusted(1, 1, -1, -1), pal.color(QPalette::Shadow), pal.color(QPalette::Midlight));
+    xpl::classic::sunkenEdge(p, r, pal);
 }
 
-// DrawFrameControl's push button: the highlight and dark shadow outside,
-// Light3D and the shadow inside; pressed, the dark shadow and highlight
-// outside, the shadow and Light3D inside.
+// DrawFrameControl's push button (see core/classic).
 static void classicPushEdge(QPainter *p, const QRect &r, const QPalette &pal, bool pressed)
 {
-    auto frame = [&](const QRect &q, const QColor &tl, const QColor &br) {
-        p->fillRect(QRect(q.left(), q.top(), q.width() - 1, 1), tl);
-        p->fillRect(QRect(q.left(), q.top(), 1, q.height() - 1), tl);
-        p->fillRect(QRect(q.left(), q.bottom(), q.width(), 1), br);
-        p->fillRect(QRect(q.right(), q.top(), 1, q.height()), br);
-    };
-    p->fillRect(r.adjusted(2, 2, -2, -2), pal.button());
-    if (pressed) {
-        frame(r, pal.color(QPalette::Shadow), pal.color(QPalette::Light));
-        frame(r.adjusted(1, 1, -1, -1), pal.color(QPalette::Dark), pal.color(QPalette::Midlight));
-    } else {
-        frame(r, pal.color(QPalette::Light), pal.color(QPalette::Shadow));
-        frame(r.adjusted(1, 1, -1, -1), pal.color(QPalette::Midlight), pal.color(QPalette::Dark));
-    }
+    xpl::classic::pushEdge(p, r, pal, pressed);
 }
 static void classicArrow(QPainter *p, const QRect &r, Qt::ArrowType dir, const QPalette &pal, bool enabled, bool pressed);
 

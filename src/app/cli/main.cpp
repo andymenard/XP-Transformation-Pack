@@ -2,16 +2,28 @@
 //
 //   xplasma --version
 //   xplasma list [--json]      the library: visual styles, themes, Classic schemes
+//   xplasma build LOOK [--out DIR]
+//                              generate the Plasma packages for a look without
+//                              applying them (DIR: ~/.cache/xplasma/build)
+//
+// A LOOK is a .msstyles (optionally :VARIANT_INI), a .theme, or
+// classic:SCHEME.
 //
 // (apply, widgets, reset and setup arrive with the phases that build them.)
 #include "app/adopt.h"
+#include "app/colors.h"
+#include "app/decoration.h"
 #include "app/library.h"
 #include "app/paths.h"
 #include "app/state.h"
+#include "core/themefile.h"
 
 #include <QCommandLineParser>
 #include <QCoreApplication>
+#include <QDir>
 #include <QDirIterator>
+#include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -87,6 +99,69 @@ int list(bool json)
     return 0;
 }
 
+// A look from the command line: STYLE[:VARIANT_INI], a .theme, or classic:SCHEME.
+std::optional<Look> lookFrom(const QString &spec, QString *error)
+{
+    if (spec.startsWith(QLatin1String("classic:"), Qt::CaseInsensitive)) {
+        const auto scheme = schemes::load(spec.mid(8), error);
+        return scheme ? std::optional(Look::fromScheme(*scheme)) : std::nullopt;
+    }
+    if (spec.endsWith(QLatin1String(".theme"), Qt::CaseInsensitive)) {
+        const ThemeBundle b = Library::bundle(spec);
+        if (!b.styleMissing.isEmpty()) {
+            *error = QStringLiteral("%1 names %2, which isn't here").arg(spec, b.styleMissing);
+            return std::nullopt;
+        }
+        if (b.classic()) {
+            const auto file = ThemeFile::load(spec, error);
+            if (!file)
+                return std::nullopt;
+            ClassicScheme scheme = ClassicScheme::fromThemeFile(*file);
+            scheme.name = b.label;
+            return Look::fromScheme(scheme);
+        }
+        return Look::fromStyle(b.style, b.variant, error);
+    }
+    QString path = spec, variant;
+    if (const int colon = int(spec.lastIndexOf(QLatin1Char(':'))); colon > 0 && spec.mid(colon + 1).endsWith(QLatin1String("_INI"), Qt::CaseInsensitive)) {
+        path = spec.left(colon);
+        variant = spec.mid(colon + 1).toUpper();
+    }
+    return Look::fromStyle(path, variant, error);
+}
+
+int build(const QString &spec, QString dir)
+{
+    adopt();
+    QString error;
+    const auto look = lookFrom(spec, &error);
+    if (!look) {
+        err() << "xplasma: " << error << Qt::endl;
+        return 1;
+    }
+    if (dir.isEmpty())
+        dir = paths::build();
+    out() << look->name << '\n';
+    const QString colors = dir + QLatin1String("/color-schemes/") + look->id + QLatin1String(".colors");
+    QDir().mkpath(QFileInfo(colors).absolutePath());
+    QFile c(colors);
+    if (!c.open(QIODevice::WriteOnly) || c.write(colorScheme(look->system, look->name)) < 0) {
+        err() << "xplasma: " << colors << ": " << c.errorString() << Qt::endl;
+        return 1;
+    }
+    out() << "  colours     " << colors << '\n';
+    const QString decoration = writeDecoration(*look, dir + QLatin1String("/aurorae"), &error);
+    if (decoration.isEmpty()) {
+        err() << "xplasma: " << error << Qt::endl;
+        return 1;
+    }
+    out() << "  decoration  " << decoration << '\n';
+    for (const ConfigValue &v : fontSettings(look->system))
+        out() << "  font        " << v.file << " [" << v.group << "] " << v.key << '=' << v.value << '\n';
+    out().flush();
+    return 0;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -99,15 +174,19 @@ int main(int argc, char **argv)
     parser.setApplicationDescription(QStringLiteral("Windows XP visual styles for KDE Plasma."));
     parser.addHelpOption();
     parser.addVersionOption();
-    parser.addPositionalArgument(QStringLiteral("command"), QStringLiteral("list"));
+    parser.addPositionalArgument(QStringLiteral("command"), QStringLiteral("list | build LOOK"));
     const QCommandLineOption jsonOption(QStringLiteral("json"), QStringLiteral("Machine-readable output."));
     parser.addOption(jsonOption);
+    const QCommandLineOption outOption(QStringLiteral("out"), QStringLiteral("Where build writes."), QStringLiteral("DIR"));
+    parser.addOption(outOption);
     parser.process(app);
 
     const QStringList args = parser.positionalArguments();
     const QString command = args.value(0);
     if (command == QLatin1String("list"))
         return list(parser.isSet(jsonOption));
+    if (command == QLatin1String("build") && args.size() == 2)
+        return build(args.at(1), parser.value(outOption));
     if (command.isEmpty())
         parser.showHelp(2);
     err() << "xplasma: unknown command: " << command << Qt::endl;

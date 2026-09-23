@@ -60,7 +60,8 @@ int main(int, char **argv)
         "[Button(Disabled)]\nFillColor=9 9 9\n"
         "[Media::Button.PushButton]\nImageFile=Media\\Button.bmp\n"
         "[Button.PushButton]\nImageCount=6\n"    // duplicate section: merges, last key wins
-        "[Rebar.Band]; a header with a comment is still a header\nImageFile=Band.bmp\n"));
+        "[Rebar.Band]; a header with a comment is still a header\nImageFile=Band.bmp\n"
+        "[Start::Button]\nImageFile=Start.bmp\n"));
 
     CHECK(get(ini, "", "Button", "PushButton", "", "textcolor") == QLatin1String("2 2 2"));
     CHECK(get(ini, "", "Button", "PushButton", "", "imagecount") == QLatin1String("6"));
@@ -79,6 +80,10 @@ int main(int, char **argv)
     CHECK(get(ini, "Media", "Button", "PushButton", "", "imagefile") == QLatin1String("Media\\Button.bmp"));
     CHECK(get(ini, "Media", "Button", "PushButton", "", "imagecount") == QLatin1String("6"));
     CHECK(get(ini, "", "Button", "PushButton", "", "imagefile") == QLatin1String("<none>"));
+    // ...and all of a Sub::Class comes first, its class-level section too:
+    // XP draws Start::Button's push button from [Start::Button].
+    CHECK(get(ini, "Start", "Button", "PushButton", "Hot", "imagefile") == QLatin1String("Start.bmp"));
+    CHECK(get(ini, "Start", "Button", "PushButton", "", "imagecount") == QLatin1String("6"));
     // A commented header still opens its own section.
     CHECK(get(ini, "", "Rebar", "Band", "", "imagefile") == QLatin1String("Band.bmp"));
     CHECK(get(ini, "", "Button", "PushButton", "", "imagefile") == QLatin1String("<none>"));

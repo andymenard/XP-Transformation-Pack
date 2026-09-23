@@ -204,10 +204,14 @@ static int render(HTHEME theme, int part, int state, int w, int h, COLORREF bg, 
     return ok;
 }
 
-static void do_part(const wchar_t *cls, int part, int state, int w, int h, const wchar_t *outdir)
+static void do_part(const wchar_t *spec, int part, int state, int w, int h, const wchar_t *outdir)
 {
-    HTHEME theme = themeFile ? pOpenThemeDataFromFile(themeFile, hwnd, cls, 0)
-                             : OpenThemeData(hwnd, cls);
+    /* SUB::CLASS is drawn as an application draws it: SetWindowTheme(hwnd,
+       SUB, NULL), then the plain class opened on that window (uxtheme doesn't
+       take "Sub::Class" as a class name). Files name it SUB--CLASS. */
+    wchar_t sub[64], cls_[64], name[132];
+    const wchar_t *cls = spec, *p;
+    HTHEME theme;
     wchar_t path[MAX_PATH];
     SIZE smin, strue, sdraw;
     RECT rc, content;
@@ -215,16 +219,31 @@ static void do_part(const wchar_t *cls, int part, int state, int w, int h, const
     HDC screen;
     int drawn;
 
+    sub[0] = 0;
+    lstrcpynW(name, spec, 132);
+    for (p = spec; *p; p++)
+        if (p[0] == L':' && p[1] == L':' && p - spec < 63) {
+            lstrcpynW(sub, spec, (int)(p - spec) + 1);
+            lstrcpynW(cls_, p + 2, 64);
+            cls = cls_;
+            wsprintfW(name, L"%s--%s", sub, cls_);
+            break;
+        }
+    if (sub[0])
+        SetWindowTheme(hwnd, sub, NULL);
+    theme = themeFile ? pOpenThemeDataFromFile(themeFile, hwnd, cls, 0) : OpenThemeData(hwnd, cls);
     if (!theme) {
-        out(L"%s %d %d %d %d error=no-theme-data\r\n", cls, part, state, w, h);
+        out(L"%s %d %d %d %d error=no-theme-data\r\n", spec, part, state, w, h);
+        if (sub[0])
+            SetWindowTheme(hwnd, NULL, NULL);
         return;
     }
     ZeroMemory(&smin, sizeof smin); ZeroMemory(&strue, sizeof strue); ZeroMemory(&sdraw, sizeof sdraw);
     ZeroMemory(&content, sizeof content); ZeroMemory(&sizing, sizeof sizing); ZeroMemory(&contentm, sizeof contentm);
     SetRect(&rc, 0, 0, w, h);
-    wsprintfW(path, L"%s\\s%d_%s_%d_%d_%dx%d_black.bmp", outdir, styleIndex, cls, part, state, w, h);
+    wsprintfW(path, L"%s\\s%d_%s_%d_%d_%dx%d_black.bmp", outdir, styleIndex, name, part, state, w, h);
     drawn = render(theme, part, state, w, h, RGB(0, 0, 0), path);
-    wsprintfW(path, L"%s\\s%d_%s_%d_%d_%dx%d_white.bmp", outdir, styleIndex, cls, part, state, w, h);
+    wsprintfW(path, L"%s\\s%d_%s_%d_%d_%dx%d_white.bmp", outdir, styleIndex, name, part, state, w, h);
     drawn = render(theme, part, state, w, h, RGB(255, 255, 255), path) && drawn;
 
     screen = GetDC(NULL);
@@ -237,11 +256,13 @@ static void do_part(const wchar_t *cls, int part, int state, int w, int h, const
     ReleaseDC(NULL, screen);
     out(L"s%d %s %d %d %d %d drawn=%d min=%d,%d true=%d,%d draw=%d,%d content=%d,%d,%d,%d "
         L"sizing=%d,%d,%d,%d contentmargins=%d,%d,%d,%d\r\n",
-        styleIndex, cls, part, state, w, h, drawn, smin.cx, smin.cy, strue.cx, strue.cy, sdraw.cx, sdraw.cy,
+        styleIndex, spec, part, state, w, h, drawn, smin.cx, smin.cy, strue.cx, strue.cy, sdraw.cx, sdraw.cy,
         content.left, content.top, content.right, content.bottom,
         sizing.cxLeftWidth, sizing.cxRightWidth, sizing.cyTopHeight, sizing.cyBottomHeight,
         contentm.cxLeftWidth, contentm.cxRightWidth, contentm.cyTopHeight, contentm.cyBottomHeight);
     CloseThemeData(theme);
+    if (sub[0])
+        SetWindowTheme(hwnd, NULL, NULL);
 }
 
 /* One 32bpp top-down DIB section over a solid colour; returns its DC. */

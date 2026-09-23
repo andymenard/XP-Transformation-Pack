@@ -48,9 +48,9 @@ public:
     const QHash<SectionKey, Properties> &sections() const { return m_sections; }
     const Properties *section(const SectionKey &key) const;
 
-    // uxtheme's property lookup (as Wine's uxtheme implements it):
-    //   (part, state), then (part, 0), then (0, 0) -- each tried along the
-    //   class's override chain Sub::Class -> Class -> Globals before moving on.
+    // uxtheme's property lookup: a Sub::Class's own (part, state), (part, 0)
+    //   and (0, 0) first (unlike Wine's uxtheme -- checked against XP); then
+    //   (part, state), (part, 0), (0, 0), each tried in Class, then Globals.
     // A class-level state section [Class(State)] is only ever the (0, state)
     // step, i.e. it applies when drawing the class's part 0.
     std::optional<QString> lookup(QStringView sub, QStringView cls, QStringView part,

@@ -11,14 +11,19 @@
 //     (HKCU\Control Panel\Appearance\Schemes, in I386\HIVEDEF.INF).
 #include <QByteArray>
 #include <QColor>
+#include <QPalette>
+#include <QRect>
 #include <QString>
 #include <QStringList>
 
 #include <array>
 #include <optional>
 
+class QPainter;
+
 namespace xpl {
 
+class Theme;
 class ThemeFile;
 
 // A LOGFONT: what XP stores for every UI font. Height is in pixels at 96 dpi,
@@ -120,7 +125,44 @@ public:
     // A SCHEMEDATA (version 2) blob, as HIVEDEF.INF has XP's stock schemes.
     static std::optional<ClassicScheme> fromSchemeData(const QByteArray &blob);
 
+    // What applying a visual style sets: its [SysMetrics] colours, fonts
+    // ("Trebuchet MS, 10, bold") and sizes, over Windows Standard's.
+    static ClassicScheme fromSysMetrics(const Theme &theme);
+
+    // The system colours as a QPalette, for the drawing below: Button is
+    // BtnFace, Light BtnHighlight, Midlight Light3D, Dark BtnShadow, Shadow
+    // DkShadow3D, ButtonText BtnText.
+    QPalette palette() const;
+
     bool operator==(const ClassicScheme &o) const;
 };
+
+// GDI's drawing of the classic look, measured against XP (the style draws
+// with these too). Colours come from a palette as ClassicScheme::palette()
+// fills it.
+namespace classic {
+
+// A 1px frame: top and left in `topLeft`, bottom and right in `bottomRight`
+// (the bottom-left and top-right corners are the latter's), as DrawEdge.
+void frame(QPainter *p, const QRect &r, const QColor &topLeft, const QColor &bottomRight);
+// DrawEdge(EDGE_SUNKEN): a text box's, a list's.
+void sunkenEdge(QPainter *p, const QRect &r, const QPalette &pal);
+// DrawEdge(EDGE_RAISED): a window's frame, a raised panel's.
+void raisedEdge(QPainter *p, const QRect &r, const QPalette &pal);
+// DrawFrameControl(DFC_BUTTON, DFCS_BUTTONPUSH): face and bevel, up or pushed.
+void pushEdge(QPainter *p, const QRect &r, const QPalette &pal, bool pressed);
+// GradientFill, horizontal, as a caption's: 16.16 fixed-point steps over a
+// rect one column wider than `r` (so the end colour itself isn't reached).
+void gradientFill(QPainter *p, const QRect &r, const QColor &from, const QColor &to);
+
+enum class CaptionGlyph { Close, Minimize, Maximize, Restore };
+// Marlett's caption glyph for the standard 16x14 button, from its top-left
+// corner, in one colour.
+void captionGlyph(QPainter *p, QPoint at, CaptionGlyph glyph, const QColor &colour);
+// A whole DFC_CAPTION button: the push bevel and the glyph, shifted when
+// pushed, embossed (highlight under shadow) when disabled.
+void captionButton(QPainter *p, const QRect &r, CaptionGlyph glyph, const QPalette &pal, bool pressed, bool disabled);
+
+} // namespace classic
 
 } // namespace xpl

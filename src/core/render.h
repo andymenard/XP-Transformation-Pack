@@ -41,6 +41,14 @@ public:
     // ImageFile1..5 the way XP does at 96/120/144 DPI.
     QImage background(const PartRef &ref, QSize size, int dpi = 96) const;
 
+    // The part's bitmap for its state as uxtheme picks and keys it --
+    // ImageFile's (GlyphImageFile's with `glyph`) frame, premultiplied, at its
+    // own size -- for consumers that stretch art themselves (a Plasma
+    // FrameSvg, a QML BorderImage) by the part's SizingMargins. `destination`
+    // chooses among ImageFile1..5 as background() would at that size. Null if
+    // the part has no image.
+    QImage stateImage(const PartRef &ref, bool glyph = false, QSize destination = QSize(), int dpi = 96) const;
+
     // GetThemePartSize / GetThemeBackgroundContentRect / GetThemeMargins.
     QSize partSize(const PartRef &ref, PartSize kind, QSize draw = QSize(), int dpi = 96) const;
     QRect contentRect(const PartRef &ref, const QRect &bounds) const;

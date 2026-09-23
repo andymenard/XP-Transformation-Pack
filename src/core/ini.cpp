@@ -126,20 +126,38 @@ std::optional<QString> Ini::lookup(QStringView sub, QStringView cls, QStringView
     const QString prop = property.toString().toLower();
     const QString c = cls.toString().toLower();
     const QString s = sub.toString().toLower();
+    auto find = [&](const SectionKey &key) -> std::optional<QString> {
+        if (const Properties *props = section(key)) {
+            auto it = props->constFind(prop);
+            if (it != props->cend())
+                return it.value();
+        }
+        return std::nullopt;
+    };
+    // A Sub::Class is complete before the class it overrides: its (part,
+    // state), (part, 0) and (0, 0) all come first. XP draws Start::Button's
+    // push button (part 1) from [Start::Button], not [Button.PushButton]
+    // (oracle: SetWindowTheme(hwnd, "Start") then OpenThemeData "Button").
+    if (!s.isEmpty()) {
+        QString p = part.toString().toLower(), st = state.toString().toLower();
+        for (;;) {
+            if (auto v = find({s, c, p, st}))
+                return v;
+            if (!st.isEmpty())
+                st.clear();
+            else if (!p.isEmpty())
+                p.clear();
+            else
+                break;
+        }
+    }
     QString p = part.toString().toLower();
     QString st = state.toString().toLower();
     for (;;) {
-        // The override chain: Sub::Class, then Class, then Globals.
-        const SectionKey chain[] = {{s, c, p, st}, {QString(), c, p, st}, {QString(), QStringLiteral("globals"), p, st}};
-        for (const SectionKey &key : chain) {
-            if (&key == &chain[0] && s.isEmpty())
-                continue;
-            if (const Properties *props = section(key)) {
-                auto it = props->constFind(prop);
-                if (it != props->cend())
-                    return it.value();
-            }
-        }
+        // Then the class, then Globals.
+        for (const SectionKey &key : {SectionKey{QString(), c, p, st}, SectionKey{QString(), QStringLiteral("globals"), p, st}})
+            if (auto v = find(key))
+                return v;
         if (!st.isEmpty())
             st.clear();
         else if (!p.isEmpty())

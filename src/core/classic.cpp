@@ -1,9 +1,11 @@
 #include "classic.h"
 
+#include "theme.h"
 #include "themefile.h"
 
 #include <limits>   // before QtEndian: Qt 5.15.2's qfloat16.h uses it unincluded (GCC 11+)
 
+#include <QPainter>
 #include <QtEndian>
 
 #include <cmath>
@@ -372,9 +374,175 @@ std::optional<ClassicScheme> ClassicScheme::fromSchemeData(const QByteArray &blo
     return s;
 }
 
+ClassicScheme ClassicScheme::fromSysMetrics(const Theme &theme)
+{
+    ClassicScheme s;
+    auto value = [&](const char *name) {
+        return theme.property(u"sysmetrics", u"", u"", QString::fromLatin1(name)).value_or(QString()).trimmed();
+    };
+    for (int i = 0; i < kColourCount; ++i) {
+        // [SysMetrics] spells most of them its own way ("BtnFace").
+        QStringList spellings{colourNames().at(i)};
+        for (const Alias &a : kAliases)
+            if (a.index == i)
+                spellings << QLatin1String(a.sysMetrics);
+        for (const QString &name : std::as_const(spellings)) {
+            const QStringList rgb = theme.property(u"sysmetrics", u"", u"", name).value_or(QString())
+                                        .simplified().replace(QLatin1Char(','), QLatin1Char(' ')).split(QLatin1Char(' '), Qt::SkipEmptyParts);
+            if (rgb.size() == 3)
+                s.colours[size_t(i)] = QColor(qBound(0, rgb[0].toInt(), 255), qBound(0, rgb[1].toInt(), 255), qBound(0, rgb[2].toInt(), 255));
+        }
+    }
+    auto size = [&](const char *name, int *out) {
+        bool ok = false;
+        const int v = value(name).toInt(&ok);
+        if (ok && v > 0 && v < 512)
+            *out = v;
+    };
+    NonClientMetrics &m = s.metrics;
+    size("SizingBorderWidth", &m.borderWidth);
+    size("ScrollbarWidth", &m.scrollWidth);
+    size("ScrollbarHeight", &m.scrollHeight);
+    size("CaptionBarWidth", &m.captionWidth);
+    size("CaptionBarHeight", &m.captionHeight);
+    size("SmCaptionBarWidth", &m.smCaptionWidth);
+    size("SmCaptionBarHeight", &m.smCaptionHeight);
+    size("MenuBarWidth", &m.menuWidth);
+    size("MenuBarHeight", &m.menuHeight);
+    // "Trebuchet MS, 10, bold"
+    auto font = [&](const char *name, LogFont *out) {
+        const QStringList parts = value(name).split(QLatin1Char(','));
+        if (parts.size() < 2 || parts.at(0).trimmed().isEmpty())
+            return;
+        bool ok = false;
+        const int points = parts.at(1).trimmed().toInt(&ok);
+        if (!ok || points <= 0 || points > 200)
+            return;
+        bool bold = false, italic = false, underline = false;
+        for (int i = 2; i < parts.size(); ++i) {
+            const QString flag = parts.at(i).trimmed().toLower();
+            bold |= flag == QLatin1String("bold");
+            italic |= flag == QLatin1String("italic");
+            underline |= flag == QLatin1String("underline");
+        }
+        *out = LogFont::fromPoints(parts.at(0).trimmed(), points, bold);
+        out->italic = italic;
+        out->underline = underline;
+    };
+    font("CaptionFont", &m.captionFont);
+    font("SmallCaptionFont", &m.smCaptionFont);
+    font("MenuFont", &m.menuFont);
+    font("StatusFont", &m.statusFont);
+    font("MsgBoxFont", &m.messageFont);
+    font("IconTitleFont", &s.icons.font);
+    return s;
+}
+
+QPalette ClassicScheme::palette() const
+{
+    const QColor face = colour(u"ButtonFace"), text = colour(u"WindowText");
+    QPalette pal(text, face, colour(u"ButtonHilight"), colour(u"ButtonShadow"), face, text, text, colour(u"Window"), face);
+    pal.setColor(QPalette::ButtonText, colour(u"ButtonText"));
+    pal.setColor(QPalette::Shadow, colour(u"ButtonDkShadow"));
+    pal.setColor(QPalette::Midlight, colour(u"ButtonLight"));
+    pal.setColor(QPalette::Highlight, colour(u"Hilight"));
+    pal.setColor(QPalette::HighlightedText, colour(u"HilightText"));
+    return pal;
+}
+
 bool ClassicScheme::operator==(const ClassicScheme &o) const
 {
     return name == o.name && colours == o.colours && metrics == o.metrics && icons == o.icons;
 }
+
+// --- drawing --------------------------------------------------------------------------
+
+namespace classic {
+
+void frame(QPainter *p, const QRect &r, const QColor &topLeft, const QColor &bottomRight)
+{
+    p->fillRect(QRect(r.left(), r.top(), r.width() - 1, 1), topLeft);
+    p->fillRect(QRect(r.left(), r.top(), 1, r.height() - 1), topLeft);
+    p->fillRect(QRect(r.left(), r.bottom(), r.width(), 1), bottomRight);
+    p->fillRect(QRect(r.right(), r.top(), 1, r.height()), bottomRight);
+}
+
+void sunkenEdge(QPainter *p, const QRect &r, const QPalette &pal)
+{
+    frame(p, r, pal.color(QPalette::Dark), pal.color(QPalette::Light));
+    frame(p, r.adjusted(1, 1, -1, -1), pal.color(QPalette::Shadow), pal.color(QPalette::Midlight));
+}
+
+void raisedEdge(QPainter *p, const QRect &r, const QPalette &pal)
+{
+    frame(p, r, pal.color(QPalette::Midlight), pal.color(QPalette::Shadow));
+    frame(p, r.adjusted(1, 1, -1, -1), pal.color(QPalette::Light), pal.color(QPalette::Dark));
+}
+
+// (The highlight and dark shadow outside, Light3D and the shadow inside;
+// pushed, the dark shadow and highlight outside, the shadow and Light3D
+// inside.)
+void pushEdge(QPainter *p, const QRect &r, const QPalette &pal, bool pressed)
+{
+    p->fillRect(r.adjusted(2, 2, -2, -2), pal.button());
+    if (pressed) {
+        frame(p, r, pal.color(QPalette::Shadow), pal.color(QPalette::Light));
+        frame(p, r.adjusted(1, 1, -1, -1), pal.color(QPalette::Dark), pal.color(QPalette::Midlight));
+    } else {
+        frame(p, r, pal.color(QPalette::Light), pal.color(QPalette::Shadow));
+        frame(p, r.adjusted(1, 1, -1, -1), pal.color(QPalette::Midlight), pal.color(QPalette::Dark));
+    }
+}
+
+void gradientFill(QPainter *p, const QRect &r, const QColor &from, const QColor &to)
+{
+    // step = delta * 65536 / width, column i the start + step * (i + 1) >> 16,
+    // over a rect 1px wider than `r`.
+    const int span = qMax(1, r.width() + 1);
+    for (int i = 0; i < r.width(); ++i) {
+        auto mix = [&](int a, int b) {
+            const qint64 step = qint64(b - a) * 65536 / span;
+            return a + int(std::floor(double(step * (i + 1)) / 65536.0));
+        };
+        p->fillRect(QRect(r.left() + i, r.top(), 1, r.height()),
+                    QColor(mix(from.red(), to.red()), mix(from.green(), to.green()), mix(from.blue(), to.blue())));
+    }
+}
+
+void captionGlyph(QPainter *p, QPoint at, CaptionGlyph glyph, const QColor &colour)
+{
+    // Rows of '#' at the standard 16x14 button, from its corner.
+    static const char *const kMin[] = {"...........", ".........", "...", "...", "...", "...", "...", "...", "...",
+                                       "....######", "....######"};
+    static const char *const kMax[] = {"", "", "...#########", "...#########", "...#.......#", "...#.......#",
+                                       "...#.......#", "...#.......#", "...#.......#", "...#.......#", "...#########"};
+    static const char *const kRestore[] = {"", "", ".....######", ".....######", ".....#....#", "...######.#",
+                                           "...######.#", "...#....###", "...#....#", "...#....#", "...######"};
+    static const char *const kClose[] = {"", "", "", "....##....##", ".....##..##", "......####", ".......##",
+                                         "......####", ".....##..##", "....##....##", ""};
+    const char *const *rows = glyph == CaptionGlyph::Close      ? kClose
+                              : glyph == CaptionGlyph::Minimize ? kMin
+                              : glyph == CaptionGlyph::Maximize ? kMax
+                                                                : kRestore;
+    for (int y = 0; y < 11; ++y)
+        for (int x = 0; rows[y][x]; ++x)
+            if (rows[y][x] == '#')
+                p->fillRect(at.x() + x, at.y() + y, 1, 1, colour);
+}
+
+void captionButton(QPainter *p, const QRect &r, CaptionGlyph glyph, const QPalette &pal, bool pressed, bool disabled)
+{
+    pushEdge(p, r, pal, pressed);
+    // (Centred on the standard 16x14 button's placement at other sizes.)
+    const QPoint at = r.topLeft() + QPoint((r.width() - 16) / 2, (r.height() - 14) / 2) + (pressed ? QPoint(1, 1) : QPoint());
+    if (disabled) {
+        captionGlyph(p, at + QPoint(1, 1), glyph, pal.color(QPalette::Light));
+        captionGlyph(p, at, glyph, pal.color(QPalette::Dark));
+    } else {
+        captionGlyph(p, at, glyph, pal.color(QPalette::ButtonText));
+    }
+}
+
+} // namespace classic
 
 } // namespace xpl
