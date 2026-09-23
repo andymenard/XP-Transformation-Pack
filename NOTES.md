@@ -45,6 +45,11 @@ Each says where it came from, so it can be picked up without re-deriving it.
   bold from GDI against FreeType's. Everything else in an MDI child --
   caption art, frame, buttons in all states, text position and shadow,
   Classic's gradient to the pixel -- matches.
+- **An editable combo's text isn't selected while its list is down.** XP
+  selects the edit's text when the list drops (the list is a window that
+  never takes focus); Qt's list popup takes the focus, and the line edit
+  paints no selection meanwhile. The drop-down list itself matches XP
+  exactly under every style (combo `open`).
 - **A maximized MDI child's menu titles sit 4px left of XP's.** XP gives
   the child's icon a menu item SM_CXMENUSIZE + 2 wide with the icon 4px in;
   Qt's QMdi::ControlLabel is exactly its icon and QMenuBar lays it out by

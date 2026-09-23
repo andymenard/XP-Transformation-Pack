@@ -14,6 +14,7 @@
 #include <QFile>
 #include <QHeaderView>
 #include <QFileInfo>
+#include <QFrame>
 #include <QKeyEvent>
 #include <QTimer>
 #include <QtEndian>
@@ -650,10 +651,33 @@ static void classicPushEdge(QPainter *p, const QRect &r, const QPalette &pal, bo
 
 // --- primitives -------------------------------------------------------------------
 
+// Inside a combo box's drop-down list (XP's ComboLBox)?
+static bool inComboPopup(const QWidget *widget)
+{
+    for (const QWidget *w = widget; w; w = w->parentWidget())
+        if (w->inherits("QComboBoxPrivateContainer"))
+            return true;
+    return false;
+}
+
 void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter,
                                  const QWidget *widget) const
 {
     const ContextScope context(this, widget, option);
+    if ((m_renderer || classic()) && widget) {
+        // A drop-down list: WS_BORDER, 1px of the window frame colour, and
+        // no focus rectangle on its current item.
+        if (element == PE_Frame && widget->inherits("QComboBoxPrivateContainer")) {
+            painter->save();
+            painter->setPen(sysColour(u"windowframe", Qt::black));
+            painter->setBrush(Qt::NoBrush);
+            painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
+            painter->restore();
+            return;
+        }
+        if (element == PE_FrameFocusRect && inComboPopup(widget))
+            return;
+    }
     if (classic()) {
         switch (element) {
         case PE_FrameFocusRect:
@@ -1549,7 +1573,7 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
                     if (!enabled(combo))
                         state = Disabled;
                     else if ((combo->activeSubControls & SC_ComboBoxArrow) && sunken(combo))
-                        state = Pressed;
+                        state = Pressed;   // (not while the list is merely down: XP keeps the normal art)
                     else if (hovered(combo))
                         state = Hot;
                     drawPart(painter, {QStringLiteral("combobox"), 1, state, {}}, arrow);
@@ -1964,6 +1988,8 @@ void XPLasmaStyle::drawScrollBar(const QStyleOptionSlider *bar, QPainter *painte
 int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, const QWidget *widget) const
 {
     const ContextScope context(this, widget, option);
+    if (metric == PM_DefaultFrameWidth && (m_renderer || classic()) && widget && widget->inherits("QComboBoxPrivateContainer"))
+        return 1;   // a drop-down list's WS_BORDER
     if (classic()) {
         switch (metric) {
         case PM_ExclusiveIndicatorWidth:
@@ -2183,6 +2209,12 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
                                      const QWidget *widget) const
 {
     const ContextScope context(this, widget, option);
+    if (type == CT_ComboBox && (m_renderer || classic()) && widget) {
+        // XP's combo box is its font's height + 8 tall: 21 at Tahoma 8.
+        QSize s = QProxyStyle::sizeFromContents(type, option, size, widget);
+        s.setHeight(qMax(s.height(), xpTextHeight(widget->font()) + 8));
+        return s;
+    }
     if (type == CT_MdiControls && m_renderer && hasPart({QStringLiteral("window"), 20, 1, {}}))
         return QSize(3 * sysMetric(u"menubarwidth", 18), sysMetric(u"menubarheight", 19));
     if (type == CT_MdiControls && (classic() || m_renderer))
@@ -3605,6 +3637,10 @@ QRect XPLasmaStyle::subControlRect(ComplexControl control, const QStyleOptionCom
                                    const QWidget *widget) const
 {
     const ContextScope context(this, widget, option);
+    if (control == CC_ComboBox && sub == SC_ComboBoxListBoxPopup && (m_renderer || classic()))
+        // QComboBox drops its list from this rect's bottom-left: XP's list
+        // starts under the combo's last row, not on it.
+        return option->rect.adjusted(0, 0, 0, 1);
     if (control == CC_MdiControls && m_renderer && hasPart({QStringLiteral("window"), 20, 1, {}})) {
         // Themed (a real frame's menu bar): WP_MDI*BUTTON, SM_CXMENUSIZE by
         // the bar's height, flush right and touching.
@@ -3817,6 +3853,10 @@ int XPLasmaStyle::styleHint(StyleHint hint, const QStyleOption *option, const QW
     switch (hint) {
     case SH_ComboBox_Popup:
         return 0;
+    case SH_ComboBox_PopupFrameStyle:
+        if (m_renderer || classic())
+            return QFrame::StyledPanel | QFrame::Plain;   // drawn as XP's WS_BORDER (PE_Frame)
+        break;
     case SH_MainWindow_SpaceBelowMenuBar:
         // The row under XP's menu bar is part of it (SM_CYMENU), drawn
         // with the bar.

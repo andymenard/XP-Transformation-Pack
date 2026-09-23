@@ -266,11 +266,11 @@ static QMenu *xpMenu()
 
 // A top-level popup (menu, tooltip) as XP shows it: at the capture's
 // origin, over the host's button face.
-static QImage overHost(QWidget &host, QWidget *popup)
+static QImage overHost(QWidget &host, QWidget *popup, QPoint at = QPoint())
 {
     QImage image = host.grab().toImage();
     QPainter p(&image);
-    p.drawPixmap(0, 0, popup->grab());
+    p.drawPixmap(at, popup->grab());
     return image;
 }
 
@@ -415,6 +415,26 @@ static int controls(const QString &jobPath, const QString &outdir)
             if (auto *area = qobject_cast<QMdiArea *>(w)) {
                 area->setActiveSubWindow(nullptr);
                 QApplication::processEvents();
+            }
+        if (state == QLatin1String("open"))
+            if (auto *combo = qobject_cast<QComboBox *>(w)) {
+                // The drop-down list, down: composited where it opened.
+                combo->addItems({QStringLiteral("Windows Classic style"), QStringLiteral("Silver")});
+                combo->setCurrentIndex(0);
+                combo->setGeometry(0, 0, size.width(), combo->sizeHint().height());
+                // (Opened with the mouse: the combo has focus, without cues.)
+                combo->setFocusPolicy(Qt::StrongFocus);
+                combo->setFocus(Qt::MouseFocusReason);
+                combo->showPopup();
+                QApplication::processEvents();
+                QWidget *popup = nullptr;
+                for (QWidget *top : QApplication::allWidgets())
+                    if (top->isWindow() && top->isVisible() && top->inherits("QComboBoxPrivateContainer"))
+                        popup = top;
+                if (popup)
+                    overHost(host, popup, popup->mapToGlobal(QPoint()) - host.mapToGlobal(QPoint())).save(name);
+                combo->hidePopup();
+                continue;
             }
         if (state.startsWith(QLatin1String("hot"))) {
             if (auto *bar = w->findChild<QMenuBar *>()) {

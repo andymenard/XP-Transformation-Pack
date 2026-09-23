@@ -753,6 +753,10 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
     SendMessageW(ctl, WM_SETFONT, (WPARAM)font, TRUE);
     if (!lstrcmpW(cls, L"COMBOBOX")) {
         SendMessageW(ctl, CB_ADDSTRING, 0, (LPARAM)label);
+        if (!lstrcmpW(state, L"open")) {   /* open: two more items, for the drop-down list */
+            SendMessageW(ctl, CB_ADDSTRING, 0, (LPARAM)L"Windows Classic style");
+            SendMessageW(ctl, CB_ADDSTRING, 0, (LPARAM)L"Silver");
+        }
         SendMessageW(ctl, CB_SETCURSEL, 0, 0);
     }
     if (!wcsncmp_(kind, L"check-on") || !wcsncmp_(kind, L"radio-on")) SendMessageW(ctl, BM_SETCHECK, BST_CHECKED, 0);
@@ -942,6 +946,10 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
     if (!lstrcmpW(state, L"disabled")) EnableWindow(ctl, FALSE);
     if (!lstrcmpW(state, L"focused")) SetFocus(ctl);
     if (!lstrcmpW(state, L"pressed")) SendMessageW(ctl, BM_SETSTATE, TRUE, 0);
+    if (!lstrcmpW(state, L"open")) {   /* the drop-down list, down (the pointer stays away) */
+        SetForegroundWindow(host);
+        SendMessageW(ctl, CB_SHOWDROPDOWN, TRUE, 0);
+    }
     /* Keep the pointer well away: a hot control isn't a normal one. */
     SetCursorPos(700, 560);
     UpdateWindow(host);
