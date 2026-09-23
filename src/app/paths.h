@@ -17,6 +17,7 @@ QString data();          // ~/.local/share/xplasma
 QString assets();        // data()/assets: the imported library
 QString themes();        //   .../themes: .msstyles and .theme files
 QString wallpapers();    //   .../wallpapers
+QString xpFonts();       // ~/.local/share/fonts/xp: XP's fonts, from its media
 QString schemes();       // data()/schemes: saved Classic schemes (.theme)
 QString extracted();     // data()/extracted: files taken out of XP's media once (the Start flag...)
 QString statePath();     // data()/state.json

@@ -42,7 +42,7 @@ bool cancelled(const std::atomic_bool *cancel)
 
 QString fontsDir()
 {
-    return paths::localShare() + QLatin1String("/fonts/xp");
+    return paths::xpFonts();
 }
 
 // What a job added, so it can be taken away again -- and only that.

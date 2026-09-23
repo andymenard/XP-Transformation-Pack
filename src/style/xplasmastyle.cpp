@@ -448,6 +448,23 @@ void XPLasmaStyle::polish(QApplication *app)
 {
     QProxyStyle::polish(app);
     app->installEventFilter(this);
+    unkern(app);
+}
+
+// XP's text (xplasmarc [Text] Kerning=false, which XPLasma's apply writes):
+// GDI never kerned, and fontconfig, which sets the rest of XP's text up,
+// can't tell Qt not to. The application font goes unkerned -- again after
+// the platform theme hands out new fonts.
+void XPLasmaStyle::unkern(QApplication *app)
+{
+    const QString rc = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QLatin1String("/xplasmarc");
+    if (QSettings(rc, QSettings::IniFormat).value(QStringLiteral("Text/Kerning"), true).toBool())
+        return;
+    QFont font = app->font();
+    if (!font.kerning())
+        return;
+    font.setKerning(false);
+    app->setFont(font);
 }
 
 void XPLasmaStyle::unpolish(QApplication *app)
@@ -458,6 +475,8 @@ void XPLasmaStyle::unpolish(QApplication *app)
 
 bool XPLasmaStyle::eventFilter(QObject *watched, QEvent *event)
 {
+    if (event->type() == QEvent::ApplicationFontChange && watched == qApp)
+        QTimer::singleShot(0, this, [this] { unkern(qApp); });
     if (event->type() == QEvent::DynamicPropertyChange && !m_anyContext
         && static_cast<QDynamicPropertyChangeEvent *>(event)->propertyName() == "xplasma-class") {
         m_anyContext = true;

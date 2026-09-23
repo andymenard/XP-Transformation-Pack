@@ -169,7 +169,9 @@ bool apply(Session &session, const Look &look, State &state, QStringList *log, Q
         return false;
     const QString source = look.classic() ? QStringLiteral("classic:") + look.system.name : look.stylePath;
     const QByteArray rc = "[Theme]\nPath=" + frozen.toUtf8() + "\nVariant=" + (look.classic() ? QByteArray() : look.variant.toUtf8())
-                          + "\nSource=" + source.toUtf8() + "\n";
+                          + "\nSource=" + source.toUtf8() + "\n"
+                          // (XP's text: GDI never kerned. See xptext.h.)
+                          + "\n[Text]\nKerning=false\n";
     if (!writeAtomically(configPath(), rc, error))
         return false;
     // (Apps that still have an older one open read it into memory already.)

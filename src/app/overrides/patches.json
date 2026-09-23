@@ -76,5 +76,43 @@
    "find": "const pixelsPerInch = Screen.pixelDensity * 25.4",
    "replace": "const pixelsPerInch = root.xpTrayAvailable ? 96 : Screen.pixelDensity * 25.4"
   }
+ ],
+ "taskmanager/main.qml": [
+  {
+   "find": "    readonly property bool shouldShrinkToZero: tasksModel.count === 0\n",
+   "replace": "    // XPLasma: an XP taskbar's panel theme marks its task buttons, laid out\n    // as XP's TaskBand lays them out.\n    KSvg.Svg { id: xpTasksSvg; imagePath: \"widgets/tasks\" }\n    readonly property bool xpTaskband: xpTasksSvg.hasElement(\"hint-xplasma-taskband\") && !vertical\n    readonly property bool shouldShrinkToZero: tasksModel.count === 0\n"
+  }
+ ],
+ "taskmanager/code/layoutmetrics.js": [
+  {
+   "find": "function preferredMaxWidth() {\n    if (tasks.iconsOnly) {",
+   "replace": "function preferredMaxWidth() {\n    // XPLasma: XP's task buttons, one every 160px at most.\n    if (tasks.xpTaskband) {\n        return 160;\n    }\n    if (tasks.iconsOnly) {"
+  }
+ ],
+ "taskmanager/Task.qml": [
+  {
+   "find": "            rightMargin: ((inPopup || tasksRoot.vertical) && taskList.columns > 1) ? LayoutMetrics.iconMargin : 0\n        }\n\n        imagePath: \"widgets/tasks\"",
+   "replace": "            rightMargin: tasksRoot.xpTaskband && !inPopup ? 2 : ((inPopup || tasksRoot.vertical) && taskList.columns > 1) ? LayoutMetrics.iconMargin : 0   // XPLasma: XP's 2px between buttons\n        }\n\n        imagePath: \"widgets/tasks\""
+  },
+  {
+   "find": "            leftMargin: adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))",
+   "replace": "            // XPLasma: XP's 16px icon, 10px in, centred.\n            leftMargin: tasksRoot.xpTaskband && !task.inPopup ? 10 : adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: tasksRoot.xpTaskband && !task.inPopup ? Math.round((parent.height - 16) / 2) : adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))"
+  },
+  {
+   "find": "                    width: Math.min(task.parent.minimumWidth, tasks.height)\n",
+   "replace": "                    width: tasksRoot.xpTaskband && !task.inPopup ? 16 : Math.min(task.parent.minimumWidth, tasks.height)\n"
+  },
+  {
+   "find": "            leftMargin: taskFrame.margins.left + iconBox.width + LayoutMetrics.labelMargin\n",
+   "replace": "            leftMargin: tasksRoot.xpTaskband && !inPopup ? 10 + 16 + 3 : taskFrame.margins.left + iconBox.width + LayoutMetrics.labelMargin   // XPLasma\n"
+  },
+  {
+   "find": "            topMargin: taskFrame.margins.top\n            rightMargin: taskFrame.margins.right + (audioStreamIcon",
+   "replace": "            topMargin: taskFrame.margins.top - (tasksRoot.xpTaskband && !inPopup ? 1 : 0)   // XPLasma: XP's baseline, 1px higher\n            rightMargin: taskFrame.margins.right + (audioStreamIcon"
+  },
+  {
+   "find": "            bottomMargin: taskFrame.margins.bottom\n        }\n\n        wrapMode",
+   "replace": "            bottomMargin: taskFrame.margins.bottom + (tasksRoot.xpTaskband && !inPopup ? 1 : 0)\n        }\n\n        wrapMode"
+  }
  ]
 }

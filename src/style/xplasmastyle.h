@@ -91,6 +91,7 @@ private:
     QSize xpTabSize(const QStyleOptionTab *tab, const QSize &size, const QWidget *widget) const;
     void drawXpTabLabel(const QStyleOptionTab *tab, QPainter *painter, const QWidget *widget) const;
     int xpTextHeight(const QFont &font) const;
+    void unkern(QApplication *app);
     QString frameClass(const QWidget *widget) const;
     bool isTabBody(const QWidget *page) const;
     bool isPlacesBar(const QWidget *view) const;

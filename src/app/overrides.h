@@ -6,6 +6,10 @@
 //   * The notification area and the clock (org.kde.plasma.systemtray,
 //     org.kde.plasma.digitalclock) over the panel theme's xp-tray art, with
 //     XP's show-hidden-icons button, 16px icons, and the clock at 96 dpi.
+//   * The task manager (org.kde.plasma.taskmanager), with XP's task button
+//     layout when the panel theme marks its buttons as XP's TaskBand
+//     (hint-xplasma-taskband): one every 160px at most, 2px apart, a 16px
+//     icon 10px in and the label 3px after it.
 //   * KWin's Aurorae renderer (kwin/aurorae/aurorae.qml), for the caption
 //     text shadows XP styles give and its QML renderer leaves out.
 //

@@ -36,6 +36,11 @@ QString themes()
     return assets() + QLatin1String("/themes");
 }
 
+QString xpFonts()
+{
+    return localShare() + QLatin1String("/fonts/xp");
+}
+
 QString wallpapers()
 {
     return assets() + QLatin1String("/wallpapers");

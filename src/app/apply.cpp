@@ -9,6 +9,7 @@
 #include "app/qttarget.h"
 #include "app/startmenu.h"
 #include "app/state.h"
+#include "app/xptext.h"
 #include "core/schema.h"
 
 #include <QDir>
@@ -301,6 +302,9 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
 
     // --- apply -------------------------------------------------------------------
     report(o, QStringLiteral("Applying ..."));
+    // XP's text first: the shell restarts below, and reads fontconfig anew.
+    if (!xptext::apply(session, state, &why))
+        report(o, QStringLiteral("  text stays as it was: %1").arg(why));
     applyDecoration(session, look.id);
     if (!session.run({QStringLiteral("plasma-apply-colorscheme"), look.id}).ok())
         report(o, QStringLiteral("  plasma-apply-colorscheme failed"));
@@ -420,6 +424,7 @@ bool resetDesktop(Session &session, const std::function<void(const QString &)> &
     overrides::removePanelWidgets(share(QStringLiteral("plasma/plasmoids")));
 
     say(QStringLiteral("Clearing the XP fonts ..."));
+    xptext::revert(session, state);
     for (const ConfigValue &v : fontSettings(ClassicScheme()))
         session.deleteConfig(v.file, v.group.split(QLatin1Char('/')), v.key);
     session.signal(QStringLiteral("/KDEPlatformTheme"), QStringLiteral("org.kde.KDEPlatformTheme"), QStringLiteral("refreshFonts"));

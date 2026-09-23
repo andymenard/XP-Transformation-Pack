@@ -126,6 +126,8 @@ bool installPanelWidgets(const QString &plasmoids, QString *error)
          {QStringLiteral("main.qml"), QStringLiteral("items/AbstractItem.qml")}},
         {QStringLiteral("org.kde.plasma.digitalclock"), QStringLiteral("digitalclock"),
          {QStringLiteral("main.qml"), QStringLiteral("DigitalClock.qml")}},
+        {QStringLiteral("org.kde.plasma.taskmanager"), QStringLiteral("taskmanager"),
+         {QStringLiteral("main.qml"), QStringLiteral("Task.qml"), QStringLiteral("code/layoutmetrics.js")}},
     };
     // Everything is checked before anything is replaced.
     QList<QList<std::pair<QString, QString>>> prepared;
@@ -176,7 +178,8 @@ bool installPanelWidgets(const QString &plasmoids, QString *error)
 
 void removePanelWidgets(const QString &plasmoids)
 {
-    for (const QString &id : {QStringLiteral("org.kde.plasma.systemtray"), QStringLiteral("org.kde.plasma.digitalclock")})
+    for (const QString &id : {QStringLiteral("org.kde.plasma.systemtray"), QStringLiteral("org.kde.plasma.digitalclock"),
+                              QStringLiteral("org.kde.plasma.taskmanager")})
         for (const QString &suffix : {QString(), QStringLiteral(".xplasma-new"), QStringLiteral(".xp2plasma-new")}) {
             const QString dir = plasmoids + QLatin1Char('/') + id + suffix;
             if (ownedWidget(dir))

@@ -102,6 +102,9 @@ void styleArt(const Look &look, PanelArt &art)
             frame(art.tasks, QLatin1String(location) + QLatin1String(t.prefix), img, r.margins(ref, u"sizingmargins"),
                   tilePeriod(r, ref), r.contentMargins(ref));
     }
+    // (The patched task manager lays its buttons out as XP's TaskBand: see
+    // overrides.h. Measured on XP, Luna, 800x600.)
+    art.tasks.append({QStringLiteral("hint-xplasma-taskband"), QImage()});
     // A window asking for attention: XP flashes its button.
     const PartRef flash{QStringLiteral("taskband"), schema::partId(u"taskband", u"flashbutton"), 1, {}};
     if (r.hasPart(flash)) {

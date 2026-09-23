@@ -22,6 +22,7 @@
 #include "app/library.h"
 #include "app/paths.h"
 #include "app/state.h"
+#include "app/xptext.h"
 #include "core/themefile.h"
 
 #include <QDir>
@@ -31,6 +32,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QPainter>
+#include <QRegularExpression>
 #include <QSettings>
 #include <QTcpServer>
 #include <QTcpSocket>
@@ -196,6 +198,7 @@ class TestApp : public QObject
     QTemporaryDir m_home;
     QString m_realIso;
     QString m_realThemes;   // the asset library's themes, for the real-style tests
+    QString m_realFonts;    // XP's fonts, as setup imported them
 
 private Q_SLOTS:
     void initTestCase()
@@ -209,6 +212,8 @@ private Q_SLOTS:
         }
         if (QFileInfo::exists(paths::themes() + QLatin1String("/Luna/luna.msstyles")))
             m_realThemes = QFileInfo(paths::themes()).canonicalFilePath();
+        if (QFileInfo::exists(paths::xpFonts() + QLatin1String("/tahoma.ttf")))
+            m_realFonts = paths::xpFonts();
         QVERIFY(m_home.isValid());
         qputenv("HOME", QFile::encodeName(m_home.path()));
         QCOMPARE(paths::home(), m_home.path());
@@ -873,6 +878,8 @@ private Q_SLOTS:
         QVERIFY(text.contains("xpTrayAvailable") && text.contains("imagePath: \"widgets/xp-tray\"") && !text.contains("{{"));
         QVERIFY(QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.systemtray/contents/ui/PlasmaExpanderArrow.qml")));
         QVERIFY(QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/contents/ui/DigitalClock.qml")));
+        QFile metrics(plasmoids + QLatin1String("/org.kde.plasma.taskmanager/contents/ui/code/layoutmetrics.js"));
+        QVERIFY(metrics.open(QIODevice::ReadOnly) && metrics.readAll().contains("tasks.xpTaskband"));
         // Again (it's ours now), then gone.
         QVERIFY2(overrides::installPanelWidgets(plasmoids, &error), qPrintable(error));
         overrides::removePanelWidgets(plasmoids);
@@ -882,6 +889,67 @@ private Q_SLOTS:
         QVERIFY(!overrides::installPanelWidgets(plasmoids, &error));
         QVERIFY(error.contains(QLatin1String("someone else")));
         QVERIFY(!overrides::patched(QStringLiteral("systemtray/main.qml"), QStringLiteral("not KDE's QML")));
+    }
+
+    void xpTextRules()
+    {
+        // XP's Tahoma 8 (11 px) is one-bit text: its gasp table says no
+        // greyscale there, and the rules say so to fontconfig.
+        if (m_realFonts.isEmpty())
+            QSKIP("no XP fonts on this machine");
+        const QString rules = QString::fromUtf8(xptext::rules(m_realFonts));
+        QVERIFY(rules.contains(QLatin1String("<const>hintfull</const>")));
+        QVERIFY(rules.contains(QLatin1String("<const>none</const>")));
+        bool crisp11 = false, kern = false;
+        for (const QString &block : rules.split(QLatin1String("<match target=\"font\">"))) {
+            if (!block.contains(QLatin1String("<string>Tahoma</string>")))
+                continue;
+            kern |= block.contains(QLatin1String("kern off"));
+            if (!block.contains(QLatin1String("name=\"antialias\"><bool>false")))
+                continue;
+            const QRegularExpression lo(QStringLiteral("more_eq\"><double>([0-9.]+)")), hi(QStringLiteral("less\"><double>([0-9.]+)"));
+            const auto l = lo.match(block), h = hi.match(block);
+            const double from = l.hasMatch() ? l.captured(1).toDouble() : 0, to = h.hasMatch() ? h.captured(1).toDouble() : 1e9;
+            crisp11 |= from <= 10.67 && 10.67 < to && from <= 11 && 11 < to;
+        }
+        QVERIFY2(crisp11, qPrintable(rules));
+        QVERIFY(kern);
+    }
+
+    void xpTextApplyAndRevert()
+    {
+        // Included at the end of KDE's fonts.conf (read after its settings),
+        // KDE's Xft settings switched, and all of it undone.
+        const QString conf = paths::config() + QLatin1String("/fontconfig/fonts.conf");
+        const QByteArray kde = "<?xml version='1.0'?>\n<fontconfig>\n <match target=\"font\">\n  <edit mode=\"assign\" name=\"hintstyle\">\n"
+                               "   <const>hintnone</const>\n  </edit>\n </match>\n</fontconfig>\n";
+        writeFile(conf, kde);
+        RecordingSession session;
+        session.config.insert(QStringLiteral("kdeglobals|General|XftHintStyle"), QStringLiteral("hintnone"));
+        State state;
+        QString error;
+        QVERIFY2(xptext::apply(session, state, &error), qPrintable(error));
+        QFile f(conf);
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        const QByteArray text = f.readAll();
+        f.close();
+        QVERIFY(text.indexOf("xplasma-xp-text.conf") > text.indexOf("hintnone"));
+        QVERIFY(text.indexOf("xplasma-xp-text.conf") < text.indexOf("</fontconfig>"));
+        QVERIFY(QFileInfo::exists(paths::config() + QLatin1String("/fontconfig/xplasma-xp-text.conf")));
+        QCOMPARE(session.config.value(QStringLiteral("kdeglobals|General|XftHintStyle")), QStringLiteral("hintfull"));
+        QCOMPARE(session.config.value(QStringLiteral("kdeglobals|General|XftSubPixel")), QStringLiteral("none"));
+        QVERIFY(xptext::apply(session, state, &error));   // (twice: one include, the first previous kept)
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        QCOMPARE(f.readAll().count("xplasma-xp-text.conf"), 1);
+        f.close();
+
+        xptext::revert(session, state);
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        QCOMPARE(f.readAll(), kde);
+        f.close();
+        QVERIFY(!QFileInfo::exists(paths::config() + QLatin1String("/fontconfig/xplasma-xp-text.conf")));
+        QCOMPARE(session.config.value(QStringLiteral("kdeglobals|General|XftHintStyle")), QStringLiteral("hintnone"));
+        QVERIFY(!session.config.contains(QStringLiteral("kdeglobals|General|XftSubPixel")));
     }
 
     void taskbarsSettleWhileShellIsDown()

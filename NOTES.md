@@ -125,22 +125,21 @@ Each says where it came from, so it can be picked up without re-deriving it.
   worked at 01:44 the same day. Live-app checks (Dolphin with the XPLasma
   style) wait for the user, or for a headless nested KWin; the gallery and
   the control oracle cover the style meanwhile.
-- **XP-style text rendering, measured to pixel-exact** (2026-09-23, XP VM
-  switched to Standard smoothing by the user): full hinting + no
-  antialiasing + **no kerning** (GDI's ExtTextOut never kerned) makes push
-  buttons, radios, check boxes and edits pixel-exact against XP, labels
-  included. Design: an opt-in "XP text" setting. Hinting and AA go through
-  fontconfig (fonts_gen, the "exclude range from anti-aliasing" rule);
-  kerning can't, so the style turns it off in polish(QApplication*) when
-  xplasmarc says so.
-- **XP-style text rendering: a session font setting worth adding**
-  (measured 2026-09-23 with the control oracle). Rendering Tahoma 8 with
-  full hinting and no antialiasing, as XP's "Standard" smoothing did,
-  brings the 20 compared controls from 6333 to 4691 differing pixels; the
-  push-button label's box becomes identical to XP's and check-box labels
-  match in size (87x11). It isn't the style's job: `fonts_gen` should
-  offer it on Apply, through the same fontconfig rule KDE's Fonts module
-  writes for "exclude range from anti-aliasing" (0-8 pt).
+- ~~**XP-style text rendering**~~ (done 2026-09-23, `src/app/xptext.cpp`):
+  apply sets the whole desktop to XP's "Standard" smoothing -- a fontconfig
+  rules file (full hinting, no colour; XP's own fonts unkerned and one-bit
+  where their gasp tables say), included at the end of KDE's fonts.conf so
+  it's read after KDE's settings; kdeglobals' Xft keys to match; and the
+  style turns kerning off in Qt apps (xplasmarc [Text] Kerning=false), which
+  fontconfig can't. Reset restores the user's. Measured against XP's Display
+  Properties: tab widths now land where XP's do (FreeType's unhinted 10.67 px
+  Tahoma had made "Themes" 1px wider, shifting every tab after it).
+- **The XP VM's image is on Luna Silver** (found 2026-09-23): comparisons
+  with a live Luna Blue need the VM switched first (desk.cpl, Appearance,
+  Color scheme). Its ClearType is on too, unlike XP's default.
+- **Task buttons are laid out as XP's only for visual styles**: the
+  hint-xplasma-taskband marker is in the Luna/style panel theme, not in
+  Windows Classic's, whose task-button geometry hasn't been measured.
 - ~~**The XP VM has ClearType on**~~ (resolved 2026-09-23): the image
   boots with ClearType; uxdump now sets XP's default "Standard" smoothing
   for the session at the start of every job (SPI_SETFONTSMOOTHINGTYPE, thrown
