@@ -1180,24 +1180,35 @@ void XPLasmaStyle::drawTreeBranch(const QStyleOption *option, QPainter *painter,
     const int cx = r.width() >= 19 ? r.left() + 13 : r.center().x();
     const int cy = r.top() + r.height() / 2 + 1;
     const QColor colour = sysColour(u"graytext", option->palette.color(QPalette::Disabled, QPalette::Text));
+    // XP's dots aren't a checkerboard: each line starts on a dot -- the
+    // horizontal one at the column's centre (so with the odd 19px indent
+    // the phase alternates by level), the vertical ones at the row's
+    // centre line.
     auto dotsH = [&](int x0, int x1, int y) {
         for (int x = x0; x <= x1; ++x)
-            if ((x + y) & 1)
+            if (!((x - cx) & 1))
                 painter->fillRect(x, y, 1, 1, colour);
     };
     auto dotsV = [&](int x, int y0, int y1) {
         for (int y = y0; y <= y1; ++y)
-            if ((x + y) & 1)
+            if (!((y - cy) & 1))
                 painter->fillRect(x, y, 1, 1, colour);
     };
     if (option->state & State_Item) {
-        dotsH(cx, cx + 8, cy);
         // Up to the previous item: a sibling above, or the parent. The
         // option doesn't say, so ask the view about this row's index.
         bool above = true;
         if (const auto *view = qobject_cast<const QAbstractItemView *>(widget)) {
             const QModelIndex index = view->indexAt(QPoint(r.right() + 2, cy));
             above = !index.isValid() || index.row() > 0 || index.parent().isValid();
+        }
+        if (!above && !(option->state & State_Sibling) && (option->state & State_Children)) {
+            // A lone root with a button: XP runs its line from just left of
+            // the button, under it, and not on to the label.
+            for (int x = cx - 5; x <= cx + 4; x += 2)
+                painter->fillRect(x, cy, 1, 1, colour);
+        } else {
+            dotsH(cx, cx + 8, cy);
         }
         if (above)
             dotsV(cx, r.top(), cy);
@@ -1454,6 +1465,15 @@ void XPLasmaStyle::drawSliderTicks(const QStyleOptionSlider *slider, const QRect
 QRect XPLasmaStyle::subControlRect(ComplexControl control, const QStyleOptionComplex *option, SubControl sub,
                                    const QWidget *widget) const
 {
+    if (m_renderer && control == CC_GroupBox && sub == SC_GroupBoxLabel && hasPart({QStringLiteral("button"), 4, 1, {}})) {
+        // XP breaks the frame 1px before the caption; QCommonStyle cuts
+        // the frame by exactly this rect.
+        const auto *box = qstyleoption_cast<const QStyleOptionGroupBox *>(option);
+        QRect r = QProxyStyle::subControlRect(control, option, sub, widget);
+        if (box && !box->text.isEmpty() && !(box->subControls & SC_GroupBoxCheckBox) && (box->textAlignment & Qt::AlignLeft))
+            r.setLeft(r.left() - 1);
+        return r;
+    }
     if (m_renderer && control == CC_SpinBox) {
         const auto *spin = qstyleoption_cast<const QStyleOptionSpinBox *>(option);
         if (spin && spin->buttonSymbols != QAbstractSpinBox::NoButtons && hasPart({QStringLiteral("spin"), 1, 1, {}})) {

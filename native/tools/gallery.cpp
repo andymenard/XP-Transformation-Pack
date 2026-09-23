@@ -109,9 +109,21 @@ static QWidget *controlFor(const QString &kind, const QString &label)
         auto *t = new QTreeWidget;
         t->setHeaderHidden(true);
         auto *root = new QTreeWidgetItem(t, {QStringLiteral("Desktop")});
+        if (value == 2)   // treeview:2 -- a lone leaf root
+            return t;
         new QTreeWidgetItem(root, {QStringLiteral("My Documents")});
-        new QTreeWidgetItem(root, {QStringLiteral("My Computer")});
-        root->setExpanded(true);
+        auto *computer = new QTreeWidgetItem(root, {QStringLiteral("My Computer")});
+        if (value == 1) {   // treeview:1 -- uxdump's nesting, item for item
+            new QTreeWidgetItem(computer, {QStringLiteral("Local Disk (C:)")});
+            new QTreeWidgetItem(computer, {QStringLiteral("CD Drive (D:)")});
+            computer->setExpanded(true);
+            auto *network = new QTreeWidgetItem(root, {QStringLiteral("Network")});
+            new QTreeWidgetItem(network, {QStringLiteral("Workgroup")});
+            auto *bin = new QTreeWidgetItem(t, {QStringLiteral("Recycle Bin")});
+            new QTreeWidgetItem(bin, {QStringLiteral("Old")});
+            new QTreeWidgetItem(t, {QStringLiteral("Leaf")});
+        }
+        root->setExpanded(value != 3);   // treeview:3 -- collapsed
         return t;
     }
     if (base == QLatin1String("listbox")) {

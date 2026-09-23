@@ -544,11 +544,35 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
         ins.hParent = TVI_ROOT; ins.hInsertAfter = TVI_LAST; ins.item.mask = TVIF_TEXT;
         ins.item.pszText = L"Desktop";
         root = (HTREEITEM)SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
+        if (value == 2) goto tree_done;   /* treeview:2 -- a lone leaf root */
         ins.hParent = root; ins.item.pszText = L"My Documents";
         SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
         ins.item.pszText = L"My Computer";
-        SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
-        SendMessageW(ctl, TVM_EXPAND, TVE_EXPAND, (LPARAM)root);
+        {
+            HTREEITEM computer = (HTREEITEM)SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
+            if (value == 1) {
+                /* treeview:1 -- nesting, a collapsed parent, a second root. */
+                HTREEITEM second;
+                ins.hParent = computer; ins.item.pszText = L"Local Disk (C:)";
+                SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
+                ins.item.pszText = L"CD Drive (D:)";
+                SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
+                SendMessageW(ctl, TVM_EXPAND, TVE_EXPAND, (LPARAM)computer);
+                ins.hParent = root; ins.item.pszText = L"Network";
+                second = (HTREEITEM)SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
+                ins.hParent = second; ins.item.pszText = L"Workgroup";
+                SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
+                ins.hParent = TVI_ROOT; ins.item.pszText = L"Recycle Bin";
+                second = (HTREEITEM)SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
+                ins.hParent = second; ins.item.pszText = L"Old";
+                SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
+                ins.hParent = TVI_ROOT; ins.item.pszText = L"Leaf";
+                SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
+            }
+        }
+        if (value != 3)   /* treeview:3 -- the same, collapsed */
+            SendMessageW(ctl, TVM_EXPAND, TVE_EXPAND, (LPARAM)root);
+    tree_done:;
     }
     if (!wcsncmp_(kind, L"listbox")) {
         SendMessageW(ctl, LB_ADDSTRING, 0, (LPARAM)L"Ascent");

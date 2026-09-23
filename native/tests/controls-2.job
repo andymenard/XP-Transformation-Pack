@@ -13,3 +13,6 @@ control tabs:2 300 120 normal
 control tabs 181 60 normal
 control tabs:2 181 60 normal
 control tabs:1 150 60 normal
+control treeview:1 200 160 normal
+control treeview:2 160 60 normal
+control treeview:3 160 60 normal
