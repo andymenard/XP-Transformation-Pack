@@ -427,9 +427,12 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
             if (const auto *combo = qstyleoption_cast<const QStyleOptionComboBox *>(option)) {
                 const PartRef button{QStringLiteral("combobox"), 1, 0, {}};
                 if (hasPart(button)) {
-                    // The field: the Edit border, then XP's drop-down button.
-                    int editState = enabled(combo) ? ((combo->state & State_HasFocus) ? 5 : Normal) : Disabled;
-                    drawPart(painter, {QStringLiteral("edit"), 1, editState, {}}, combo->rect);
+                    // The frame is the ComboBox class's own background (part 0:
+                    // Luna Silver's border is 127,157,185, not Edit's
+                    // 165,172,178), falling back to Edit's; then the button.
+                    const int frameState = enabled(combo) ? Normal : Disabled;
+                    if (!drawPart(painter, {QStringLiteral("combobox"), 0, frameState, {}}, combo->rect))
+                        drawPart(painter, {QStringLiteral("edit"), 1, enabled(combo) ? Normal : Disabled, {}}, combo->rect);
                     const QRect arrow = proxy()->subControlRect(CC_ComboBox, combo, SC_ComboBoxArrow, widget);
                     int state = Normal;
                     if (!enabled(combo))
@@ -533,8 +536,16 @@ void XPLasmaStyle::drawScrollBar(const QStyleOptionSlider *bar, QPainter *painte
              proxy()->subControlRect(CC_ScrollBar, bar, SC_ScrollBarAddPage, widget));
     if (on) {
         const QRect thumb = proxy()->subControlRect(CC_ScrollBar, bar, SC_ScrollBarSlider, widget);
-        drawPart(painter, {QStringLiteral("scrollbar"), horizontal ? 2 : 3, stateOf(SC_ScrollBarSlider), {}}, thumb);
-        drawPart(painter, {QStringLiteral("scrollbar"), horizontal ? 8 : 9, stateOf(SC_ScrollBarSlider), {}}, thumb);
+        const PartRef thumbPart{QStringLiteral("scrollbar"), horizontal ? 2 : 3, stateOf(SC_ScrollBarSlider), {}};
+        const PartRef gripper{QStringLiteral("scrollbar"), horizontal ? 8 : 9, stateOf(SC_ScrollBarSlider), {}};
+        drawPart(painter, thumbPart, thumb);
+        // The gripper only when the thumb's content area is strictly longer
+        // than it: Luna Silver (content margins 4+4, 8px gripper) leaves 11
+        // and 16px thumbs plain and grips 17px and up (measured on XP).
+        const QSize grip = trueSize(gripper);
+        const QRect room = m_renderer->contentRect(thumbPart, thumb);
+        if (grip.isValid() && (horizontal ? room.width() : room.height()) > (horizontal ? grip.width() : grip.height()))
+            drawPart(painter, gripper, thumb);
     }
 }
 
@@ -727,15 +738,18 @@ QRect XPLasmaStyle::subControlRect(ComplexControl control, const QStyleOptionCom
     }
     if (m_renderer && control == CC_ComboBox && hasPart({QStringLiteral("combobox"), 1, 1, {}})) {
         if (const auto *combo = qstyleoption_cast<const QStyleOptionComboBox *>(option)) {
-            // XP's drop-down button: a scroll bar's width, inside the 1px border.
+            // XP's own geometry (GetComboBoxInfo, 150 x 21, Luna): the button
+            // is a scroll bar's width inside the 1px border (132,1 - 149,20),
+            // the field 3px in from the edges and 2px short of the button
+            // (3,3 - 130,18).
             const int w = sysMetric(u"scrollbarwidth", 17);
-            const QRect inner = combo->rect.adjusted(1, 1, -1, -1);
-            const QRect arrow(inner.right() - w + 1, inner.top(), w, inner.height());
+            const QRect r = combo->rect;
+            const QRect arrow(r.right() - w, r.top() + 1, w, r.height() - 2);
             if (sub == SC_ComboBoxArrow)
-                return visualRect(combo->direction, combo->rect, arrow);
+                return visualRect(combo->direction, r, arrow);
             if (sub == SC_ComboBoxEditField)
-                return visualRect(combo->direction, combo->rect,
-                                  QRect(inner.left() + 1, inner.top() + 1, inner.width() - w - 2, inner.height() - 2));
+                return visualRect(combo->direction, r,
+                                  QRect(r.left() + 3, r.top() + 3, arrow.left() - 2 - (r.left() + 3), r.height() - 6));
         }
     }
     return QProxyStyle::subControlRect(control, option, sub, widget);
