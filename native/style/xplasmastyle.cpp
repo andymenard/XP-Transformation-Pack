@@ -555,10 +555,17 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                     // QCommonStyle insets the label by PM_HeaderMargin on every
                     // side through a non-proxied call, which clips a 20px
                     // header's text to 2px. XP's margin is horizontal only.
-                    // Qt also centres the text 1px lower than XP does.
+                    // Vertically XP centres the text in the item's content
+                    // rect and then 1px up (measured: Luna 2px down in its 20,
+                    // Zune's 2px bottom margin 1px); hand Qt a rect exactly
+                    // one line tall inside the margin it takes off.
                     const int m = proxy()->pixelMetric(PM_HeaderMargin, option, widget);
+                    const QMargins cm = m_renderer->contentMargins({QStringLiteral("header"), 1, Normal, {}});
+                    const int th = xpTextHeight(widget ? widget->font() : QApplication::font());
+                    const int avail = header->rect.height() - cm.top() - cm.bottom();
+                    const int top = header->rect.top() + cm.top() + (avail - th) / 2 - 1;
                     QStyleOptionHeader copy(*header);
-                    copy.rect = header->rect.adjusted(0, -m - 1, 0, m - 1);
+                    copy.rect = QRect(header->rect.left(), top - m, header->rect.width(), th + 2 * m);
                     QProxyStyle::drawControl(element, &copy, painter, widget);
                     return;
                 }

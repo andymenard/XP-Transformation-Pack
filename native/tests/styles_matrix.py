@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+"""Every control job under every visual style: real XP against XPLasma.
+
+    styles_matrix.py OUTDIR [--styles DIR] [--only LABEL ...] [--cached] [--qt 5|6]
+
+For each style below, XP applies it for real (uxdump's `apply`: the visual
+style and its system colours, as Display Properties would), captures
+native/tests/controls-*.job, then puts Luna Silver back; xplasma-gallery
+renders the same controls from the same .msstyles. Prints a table of exact
+controls and differing pixels per style; OUTDIR/<label>/ keeps the XP
+captures (oracle/), the Qt renders (qt<N>/) and a magnified sheet.
+
+Needs refharness/vm.sh running, and the MS styles under --styles (default:
+xp2plasma's asset directory). --cached reuses earlier XP captures.
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "refharness"))
+sys.path.insert(0, str(ROOT / "native/tests"))
+
+import oracle  # noqa: E402
+import vm as vmmod  # noqa: E402
+
+# label, file under the styles dir, colour name, layout INI
+STYLES = [
+    ("luna-blue", "Luna/luna.msstyles", "NormalColor", "NORMALBLUE_INI"),
+    ("luna-olive", "Luna/luna.msstyles", "HomeStead", "NORMALHOMESTEAD_INI"),
+    ("luna-silver", "Luna/luna.msstyles", "Metallic", "NORMALMETALLIC_INI"),
+    ("royale", "Royale/Royale.msstyles", "NormalColor", "NORMALROYALE_INI"),
+    ("royale-noir", "Royale Noir/Royale Noir.msstyles", "Metallic", "NORMALDARKROYALE_INI"),
+    ("zune", "Zune/Zune.msstyles", "NormalColor", "NORMALDEFAULT_INI"),
+    ("embedded", "Embedded/Embedded.msstyles", "NormalColor", "NORMALDEFAULT_INI"),
+]
+RESTORE = r"apply C:\WINDOWS\Resources\Themes\Luna\luna.msstyles Metallic NormalSize"
+
+
+def control_lines() -> list[str]:
+    lines: list[str] = []
+    for job in sorted((ROOT / "native/tests").glob("controls-*.job")):
+        for line in job.read_text().splitlines():
+            if line.startswith("control ") and line not in lines:
+                lines.append(line)
+    return lines
+
+
+def compare(xp_dir: Path, qt_dir: Path) -> list[tuple[str, int, int]]:
+    from PIL import Image, ImageChops
+    from controls_compare import differing
+    rows = []
+    for xp_file in sorted(xp_dir.glob("control_*.bmp")):
+        a = Image.open(xp_file).convert("RGB")
+        qt_file = qt_dir / (xp_file.stem + ".png")
+        if not qt_file.exists():
+            rows.append((xp_file.stem, a.width * a.height, a.width * a.height))
+            continue
+        b = Image.open(qt_file).convert("RGB")
+        bad = differing(ImageChops.difference(a, b))
+        rows.append((xp_file.stem, bad, a.width * a.height))
+    return rows
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("outdir")
+    ap.add_argument("--styles", default=os.path.expanduser("~/.local/share/xp2plasma/assets/themes"))
+    ap.add_argument("--only", nargs="*")
+    ap.add_argument("--cached", action="store_true")
+    ap.add_argument("--qt", default="6")
+    args = ap.parse_args()
+    out = Path(args.outdir)
+    lines = control_lines()
+    gallery = ROOT / f"native/build-dev-qt{args.qt}/xplasma-gallery"
+    job_file = out / "controls.job"
+    out.mkdir(parents=True, exist_ok=True)
+    job_file.write_text("style -\n" + "\n".join(lines) + "\n")
+
+    vm = None
+    summary = []
+    for label, rel, colour, variant in STYLES:
+        if args.only and label not in args.only:
+            continue
+        path = Path(args.styles) / rel
+        name = path.name
+        xp_dir = out / label / "oracle"
+        if not (args.cached and (xp_dir / "raw").is_dir()):
+            vm = vm or vmmod.connect()
+            job = "\n".join([f"apply {{style:{name}}} {colour} NormalSize", *lines, RESTORE]) + "\n"
+            oracle.run(job, str(xp_dir), [str(path)], timeout=300, progress=lambda *_: None, vm=vm)
+        qt_dir = out / label / f"qt{args.qt}"
+        subprocess.run([str(gallery), "--controls", str(job_file), str(qt_dir)], check=True,
+                       stderr=subprocess.DEVNULL,
+                       env={**os.environ, "XPLASMA_XP_TEXT": "1", "QT_QPA_PLATFORM": "offscreen",
+                            "QT_PLUGIN_PATH": str(ROOT / f"app/plugins/qt{args.qt}"),
+                            "XPLASMA_THEME": f"{path}:{variant}"})
+        rows = compare(xp_dir / "raw", qt_dir)
+        exact = sum(1 for _, bad, _ in rows if bad == 0)
+        summary.append((label, exact, len(rows), sum(bad for _, bad, _ in rows)))
+        print(f"{label:12s} {exact:3d}/{len(rows)} exact, {summary[-1][3]:7d} px differ")
+        for stem, bad, total in rows:
+            if bad:
+                print(f"    {stem:44s} {bad:6d} / {total}")
+        subprocess.run([sys.executable, str(ROOT / "native/tests/controls_compare.py"), str(xp_dir / "raw"),
+                        str(qt_dir), str(out / label / "sheet.png")], stdout=subprocess.DEVNULL)
+    if vm:
+        vm.close()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

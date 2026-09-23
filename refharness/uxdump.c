@@ -23,6 +23,11 @@
  *             first item highlighted). Font: the theme's message font.
  *             Menus and tooltips are top-level windows at the capture's
  *             origin, so their drop shadows land on the button face.
+ *   apply <file> <colour> <size>
+ *          -- make a style the session's visual style (uxtheme ordinal 65,
+ *             SetSystemVisualStyle -- what Display Properties does), so
+ *             later `control` lines are drawn by it. The VM runs from a
+ *             snapshot: nothing outlives the session.
  *   bitmap C:\path\file.bmp
  *          -- GDI as the oracle for DIB decoding: load the file, blit it into
  *             a 32bpp DIB as-is (bitmap_<name>_plain), then through
@@ -72,6 +77,8 @@ typedef HTHEME  (WINAPI *OpenThemeDataFromFile_t)(HTHEMEFILE, HWND, LPCWSTR, DWO
 static OpenThemeFile_t pOpenThemeFile;
 static CloseThemeFile_t pCloseThemeFile;
 static OpenThemeDataFromFile_t pOpenThemeDataFromFile;
+typedef HRESULT (WINAPI *SetSystemVisualStyle_t)(LPCWSTR, LPCWSTR, LPCWSTR, DWORD);
+static SetSystemVisualStyle_t pSetSystemVisualStyle;
 static HTHEMEFILE themeFile;        /* NULL: use the applied style */
 static HWND hwnd;
 static HANDLE metrics = INVALID_HANDLE_VALUE;
@@ -797,6 +804,7 @@ static int run(int argc, wchar_t **argv)
     pOpenThemeFile = (OpenThemeFile_t)GetProcAddress(ux, MAKEINTRESOURCEA(2));
     pCloseThemeFile = (CloseThemeFile_t)GetProcAddress(ux, MAKEINTRESOURCEA(3));
     pOpenThemeDataFromFile = (OpenThemeDataFromFile_t)GetProcAddress(ux, MAKEINTRESOURCEA(16));
+    pSetSystemVisualStyle = (SetSystemVisualStyle_t)GetProcAddress(ux, MAKEINTRESOURCEA(65));
     /* Any window will do: uxtheme only wants one to hang theme data off. */
     hwnd = CreateWindowExW(0, L"STATIC", L"uxdump", WS_POPUP, 0, 0, 1, 1, NULL, NULL, NULL, NULL);
     v.dwOSVersionInfoSize = sizeof v;
@@ -823,6 +831,34 @@ static int run(int argc, wchar_t **argv)
             for (i = 2; i < n; i++)
                 tok[i][-1] = L' ';
             do_bitmap(tok[1], argv[2]);
+        } else if (lstrcmpW(tok[0], L"apply") == 0 && n >= 4) {
+            int i;
+            HRESULT hr = E_FAIL;
+            for (i = 2; i < n - 2; i++)
+                tok[i][-1] = L' ';
+            if (pSetSystemVisualStyle)
+                hr = pSetSystemVisualStyle(tok[1], tok[n - 2], tok[n - 1], 0);
+            settle(1500);
+            if (SUCCEEDED(hr)) {
+                /* Display Properties also loads the style's system colours
+                 * (its [SysMetrics]); SetSystemVisualStyle alone doesn't. */
+                HTHEME t = OpenThemeData(hwnd, L"WINDOW");
+                if (t) {
+                    int ids[COLOR_MENUBAR + 1];
+                    COLORREF cols[COLOR_MENUBAR + 1];
+                    int k;
+                    for (k = 0; k <= COLOR_MENUBAR; k++) {
+                        ids[k] = k;
+                        cols[k] = GetThemeSysColor(t, k);
+                    }
+                    SetSysColors(COLOR_MENUBAR + 1, ids, cols);
+                    CloseThemeData(t);
+                    settle(1000);
+                }
+            }
+            out(L"# apply %s %s %s hr=0x%08lx face=%lu window=%lu highlight=%lu menu=%lu\r\n", tok[1], tok[n - 2], tok[n - 1],
+                (unsigned long)hr, (unsigned long)GetSysColor(COLOR_BTNFACE), (unsigned long)GetSysColor(COLOR_WINDOW),
+                (unsigned long)GetSysColor(COLOR_HIGHLIGHT), (unsigned long)GetSysColor(COLOR_MENU));
         } else if (lstrcmpW(tok[0], L"style") == 0 && n == 2 && lstrcmpW(tok[1], L"-") == 0) {
             do_style(L"-", NULL, NULL);
         } else if (lstrcmpW(tok[0], L"style") == 0 && n >= 4) {

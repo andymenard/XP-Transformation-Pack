@@ -5,6 +5,14 @@ Each says where it came from, so it can be picked up without re-deriving it.
 
 ## Open
 
+- **±1 blend rounding on Luna Blue/Olive** (styles_matrix, 2026-09-23):
+  a push button's and a tab's antialiased edge pixels come out 1 unit off
+  over the button face. GDI's AlphaBlend rounds dst*(255-a)/255 exactly;
+  Qt's raster engine uses the (t + (t>>8) + 0x80) >> 8 approximation. Only
+  pre-compositing over a known background would fix it, and a style
+  doesn't know what's behind a widget. Luna Silver, Royale, Noir, Zune and
+  Embedded happen to hit no such values.
+
 - **Tab rows that overflow scroll differently.** XP scrolls a tab row by
   whole tabs (the first visible tab flush at x=2); QTabBar scrolls by
   pixels, just far enough to show the current tab (makeVisible), with no

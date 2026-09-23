@@ -15,6 +15,12 @@ from pathlib import Path
 from PIL import Image, ImageChops, ImageDraw
 
 
+def differing(diff: Image.Image) -> int:
+    """Pixels where any channel of an RGB difference image is non-zero."""
+    r, g, b = diff.split()
+    return diff.width * diff.height - ImageChops.lighter(ImageChops.lighter(r, g), b).histogram()[0]
+
+
 def main() -> int:
     xp_dir, qt_dir = Path(sys.argv[1]), Path(sys.argv[2])
     sheet_path = sys.argv[3] if len(sys.argv) > 3 else None
@@ -24,7 +30,7 @@ def main() -> int:
         a = Image.open(xp_file).convert("RGB")
         b = Image.open(qt_file).convert("RGB") if qt_file.exists() else Image.new("RGB", a.size, (255, 0, 255))
         diff = ImageChops.difference(a, b)
-        bad = sum(1 for p in diff.getdata() if p != (0, 0, 0))
+        bad = differing(diff)
         rows.append((xp_file.stem, a, b, diff, bad))
         print(f"{xp_file.stem:44s} {bad:6d} / {a.width * a.height} px differ")
     if sheet_path:
