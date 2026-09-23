@@ -25,6 +25,7 @@
 #include <QStyleOption>
 #include <QTabBar>
 #include <QTabWidget>
+#include <QToolBar>
 #include <QToolButton>
 
 using xpl::PartRef;
@@ -333,6 +334,45 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
         case PE_IndicatorTabTearLeft:
         case PE_IndicatorTabTearRight:
             return;
+        case PE_IndicatorToolBarSeparator: {
+            // Etched: the shadow then the highlight, 2px in from the ends.
+            const QRect r = option->rect;
+            if (option->state & State_Horizontal) {
+                painter->fillRect(QRect(r.left() + 2, r.top() + 2, 1, r.height() - 4), option->palette.color(QPalette::Dark));
+                painter->fillRect(QRect(r.left() + 3, r.top() + 2, 1, r.height() - 4), option->palette.color(QPalette::Light));
+            } else {
+                painter->fillRect(QRect(r.left() + 2, r.top() + 2, r.width() - 4, 1), option->palette.color(QPalette::Dark));
+                painter->fillRect(QRect(r.left() + 2, r.top() + 3, r.width() - 4, 1), option->palette.color(QPalette::Light));
+            }
+            return;
+        }
+        case PE_PanelButtonTool:
+            if (option->state & State_AutoRaise) {
+                // A flat toolbar button: nothing at rest, a 1px raised edge
+                // when hot, sunken when pressed -- and checked, sunken over
+                // a dither, 2px in.
+                const QRect r = option->rect;
+                const bool down = option->state & (State_Sunken | State_On);
+                if (!enabled(option) || (!down && !hovered(option)))
+                    return;
+                const QColor tl = option->palette.color(down ? QPalette::Dark : QPalette::Light);
+                const QColor br = option->palette.color(down ? QPalette::Light : QPalette::Dark);
+                painter->fillRect(QRect(r.left(), r.top(), r.width() - 1, 1), tl);
+                painter->fillRect(QRect(r.left(), r.top(), 1, r.height() - 1), tl);
+                painter->fillRect(QRect(r.left(), r.bottom(), r.width(), 1), br);
+                painter->fillRect(QRect(r.right(), r.top(), 1, r.height()), br);
+                if ((option->state & State_On) && !(option->state & State_Sunken)) {
+                    const QRect inner = r.adjusted(2, 2, -2, -2);
+                    const QPoint origin = painter->deviceTransform().map(QPoint(0, 0));
+                    const QColor light = option->palette.color(QPalette::Light);
+                    for (int y = inner.top(); y <= inner.bottom(); ++y)
+                        for (int x = inner.left(); x <= inner.right(); ++x)
+                            if ((x + y + origin.x() + origin.y()) & 1)
+                                painter->fillRect(x, y, 1, 1, light);
+                }
+                return;
+            }
+            break;
         case PE_FrameTabWidget: {
             // The pane: a raised edge (the highlight top and left, the shadow
             // and dark shadow bottom and right).
@@ -788,34 +828,8 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
             break;
         case CE_ToolButtonLabel:
             if (const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option);
-                button && hasPart({QStringLiteral("toolbar"), 1, Normal, {}})) {
-                // XP presses a toolbar button's contents 1px down and right.
-                const bool down = (button->state & (State_Sunken | State_On)) && enabled(button);
-                if (button->toolButtonStyle == Qt::ToolButtonTextOnly && button->arrowType == Qt::NoArrow) {
-                    // TBSTYLE_LIST text: 2px into the button, centred
-                    // vertically. (CC_ToolButton hands us the button inset
-                    // by the frame width.)
-                    const int fw = proxy()->pixelMetric(PM_DefaultFrameWidth, option, widget);
-                    const QRect whole = button->rect.adjusted(-fw, -fw, fw, fw);
-                    const int th = xpTextHeight(button->font);
-                    QRect text(whole.left() + 2, whole.top() + (whole.height() - th) / 2, whole.width() - 2, th);
-                    if (down)
-                        text.translate(1, 1);
-                    painter->save();
-                    painter->setFont(button->font);
-                    proxy()->drawItemText(painter, text, Qt::AlignLeft | Qt::AlignTop | Qt::TextShowMnemonic,
-                                          button->palette, enabled(button), button->text, QPalette::ButtonText);
-                    painter->restore();
-                    return;
-                }
-                if (down) {
-                    painter->save();
-                    painter->translate(1, 1);
-                    QProxyStyle::drawControl(element, option, painter, widget);
-                    painter->restore();
-                    return;
-                }
-            }
+                button && hasPart({QStringLiteral("toolbar"), 1, Normal, {}}) && drawXpToolButtonLabel(button, painter, widget))
+                return;
             break;
         case CE_HeaderLabel:
             if (const auto *header = qstyleoption_cast<const QStyleOptionHeader *>(option)) {
@@ -1154,6 +1168,12 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
             return 12;   // as themed: TCM_SETPADDING's 6px either side
         case PM_TabBarScrollButtonWidth:
             return sysMetric(u"scrollbarwidth", 17);
+        case PM_ToolBarFrameWidth:
+        case PM_ToolBarItemMargin:
+        case PM_ToolBarItemSpacing:
+            return 0;    // buttons edge to edge from 0,0, as themed
+        case PM_ToolBarSeparatorExtent:
+            return 6;
         case PM_TabBarTabVSpace:
             return 9;
         case PM_MenuPanelWidth:
@@ -1345,6 +1365,11 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
                 tab && (tab->shape == QTabBar::RoundedNorth || tab->shape == QTabBar::TriangularNorth))
                 return xpTabSize(tab, size, widget);
             break;
+        case CT_ToolButton:
+            if (const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option);
+                button && widget && qobject_cast<const QToolBar *>(widget->parentWidget()))
+                return xpToolButtonSize(button, size);
+            break;
         case CT_MenuItem:
             if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option))
                 return xpMenuItemSize(item, size, widget);
@@ -1369,17 +1394,8 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
             break;
         case CT_ToolButton:
             if (const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option);
-                button && hasPart({QStringLiteral("toolbar"), 1, Normal, {}})) {
-                // XP (TB_GETITEMRECT, Luna, Tahoma 8): a text-only button is
-                // the text + 11 by text + 6 (Back: 33 x 19); an icon button
-                // is the icon + 7 by + 6 (23 x 22). QToolButton hands in
-                // the text with a space either side.
-                if (button->toolButtonStyle == Qt::ToolButtonTextOnly) {
-                    const int space = QFontMetrics(button->font).horizontalAdvance(QLatin1Char(' '));
-                    return QSize(size.width() - 2 * space + 11, xpTextHeight(button->font) + 6);
-                }
-                return size + QSize(7, 6);
-            }
+                button && hasPart({QStringLiteral("toolbar"), 1, Normal, {}}))
+                return xpToolButtonSize(button, size);
             break;
         case CT_MenuItem:
             if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option); item && flatMenus())
@@ -1697,6 +1713,49 @@ void XPLasmaStyle::drawXpTabLabel(const QStyleOptionTab *tab, QPainter *painter,
                       sysColour(u"btnface", tab->palette.color(QPalette::Button)));
 }
 
+// XP's toolbar buttons (TB_GETITEMRECT, Luna and Classic, Tahoma 8): a
+// text-only button is the text + 11 by text + 6 (Back: 33 x 19); an icon
+// button is the icon + 7 by + 6 (23 x 22). QToolButton hands in the text
+// with a space either side.
+QSize XPLasmaStyle::xpToolButtonSize(const QStyleOptionToolButton *button, const QSize &size) const
+{
+    if (button->toolButtonStyle == Qt::ToolButtonTextOnly) {
+        const int space = QFontMetrics(button->font).horizontalAdvance(QLatin1Char(' '));
+        return QSize(size.width() - 2 * space + 11, xpTextHeight(button->font) + 6);
+    }
+    return size + QSize(7, 6);
+}
+
+// XP presses a toolbar button's contents 1px down and right; TBSTYLE_LIST
+// text sits 2px into the button, centred vertically. True when drawn.
+bool XPLasmaStyle::drawXpToolButtonLabel(const QStyleOptionToolButton *button, QPainter *painter, const QWidget *widget) const
+{
+    const bool down = (button->state & (State_Sunken | State_On)) && enabled(button);
+    if (button->toolButtonStyle == Qt::ToolButtonTextOnly && button->arrowType == Qt::NoArrow) {
+        // (CC_ToolButton hands us the button inset by the frame width.)
+        const int fw = proxy()->pixelMetric(PM_DefaultFrameWidth, button, widget);
+        const QRect whole = button->rect.adjusted(-fw, -fw, fw, fw);
+        const int th = xpTextHeight(button->font);
+        QRect text(whole.left() + 2, whole.top() + (whole.height() - th) / 2, whole.width() - 2, th);
+        if (down)
+            text.translate(1, 1);
+        painter->save();
+        painter->setFont(button->font);
+        proxy()->drawItemText(painter, text, Qt::AlignLeft | Qt::AlignTop | Qt::TextShowMnemonic, button->palette,
+                              enabled(button), button->text, QPalette::ButtonText);
+        painter->restore();
+        return true;
+    }
+    if (down) {
+        painter->save();
+        painter->translate(1, 1);
+        QProxyStyle::drawControl(CE_ToolButtonLabel, button, painter, widget);
+        painter->restore();
+        return true;
+    }
+    return false;
+}
+
 // A north tab's rect as XP lays it out, inside Qt's: 2px down (the tab bar
 // is 20px tall), and for the first tab 2px in from the left (Qt's first tab
 // is 2px wider to make room, so every later tab lands where XP puts it).
@@ -1987,6 +2046,11 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
             drawXpTabLabel(tab, painter, widget);
             return true;
         }
+        return false;
+    case CE_ToolButtonLabel:
+        if (const auto *button = qstyleoption_cast<const QStyleOptionToolButton *>(option);
+            button && widget && qobject_cast<const QToolBar *>(widget->parentWidget()))
+            return drawXpToolButtonLabel(button, painter, widget);
         return false;
     case CE_HeaderEmptyArea: {
         // Past the last column: another raised section, running off the
