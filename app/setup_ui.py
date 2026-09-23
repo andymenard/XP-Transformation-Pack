@@ -17,11 +17,10 @@ from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtGui import QBrush, QColor, QFont, QPalette
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QDialog, QHBoxLayout,
                                QHeaderView, QLabel, QMessageBox, QPlainTextEdit, QProgressBar,
-                               QPushButton, QTableWidget, QTableWidgetItem, QToolButton,
-                               QVBoxLayout, QWidget)
+                               QPushButton, QStyleFactory, QTableWidget, QTableWidgetItem,
+                               QToolButton, QVBoxLayout, QWidget)
 
 import hostexec as host
-import xp_style
 
 
 def live_palette():
@@ -96,27 +95,20 @@ def system_widget_style_name() -> str | None:
 
 
 def apply_system_theme(app: QApplication) -> None:
-    """Make `app` look like the live KDE session: its real widget style where
-    that can actually load, and always its colours and font -- so a light
-    desktop gets a light window and a dark one gets a dark window, instead of
-    a hardcoded look picked without knowing what session it will run in.
+    """Make `app` look like the live KDE session: its real widget style, and
+    always its colours and font -- so a light desktop gets a light window and a
+    dark one gets a dark window, instead of a hardcoded look picked without
+    knowing what session it will run in.
 
-    Trying the real style is opportunistic, not assumed to work: under a
-    system-Qt-linked interpreter (see system_qt.py) ``QStyleFactory.create()``
-    genuinely loads whatever the session has configured -- kvantum-xp, Breeze,
-    anything -- exactly like any other native KDE app, and that is used as-is.
-    A pip-installed PySide6 bundles its own Qt with no ``styles/`` plugin
-    directory at all, so there ``QStyleFactory.create()`` cleanly returns None;
-    only *then* does this fall back to Fusion plus, if xp2plasma's own theme is
-    the one active, xp_style's SVG-based approximation of it -- a fallback for
-    our own output specifically, never a substitute for loading a real,
-    possibly different, user-configured style.
+    The style is whatever the session has configured, loaded through Qt's own
+    plugin loader. XPLasma's plugin uses only public Qt API and is built
+    against the oldest supported Qt, so it loads into a pip-installed PySide6
+    as readily as into a system app; if a style can't load at all, Fusion
+    stands in -- honestly, rather than approximating the configured one.
     """
     name = system_widget_style_name()
-    style, loaded = xp_style.base_style(name)
-    if not loaded:
-        style = xp_style.wrap(style)
-    app.setStyle(style)
+    style = QStyleFactory.create(name) if name else None
+    app.setStyle(style or QStyleFactory.create("Fusion"))
 
     colours, font = live_palette()
     if colours is not None:

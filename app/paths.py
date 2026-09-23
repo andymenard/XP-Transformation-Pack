@@ -1,32 +1,24 @@
-"""Where xp2plasma keeps its own files, and where it looks for the user's.
+"""Where XPLasma keeps its own files, and where it looks for the user's.
 
 Two rules:
 
 * Every path is built from ``expanduser("~")`` and never from an ``XDG_*``
   environment variable. What matters is writing where the *running desktop
   session* will look: Plasma reads ``~/.local/share`` and ``~/.config``, and it
-  does not consult environment variables the app changed for itself. In an
-  AppImage that distinction stops being theoretical, because the runtime
-  prepends its own directories to the ``XDG_*_DIRS`` search paths -- an
-  XDG-derived path can resolve into the mount, where a theme would install
-  "successfully" and change nothing.
-* Nothing is written inside the application directory. An AppImage mount is a
-  read-only squashfs, so the old in-tree ``build/`` and ``cache/`` were not
-  merely untidy, they raised OSError.
+  does not consult environment variables the app changed for itself. (A
+  bundled runtime, such as the AppImage xp2plasma shipped as, prepends its own
+  directories to ``XDG_*_DIRS``; a theme written to an XDG-derived path could
+  then install "successfully" into the bundle and change nothing.)
+* Nothing is written inside the application directory, which may be
+  read-only once installed.
 
 The KDE-facing install directories (aurorae themes, color-schemes,
-desktoptheme, plasmoids, fonts, the Kvantum plugin dir) also have to be real
-home paths for that same reason -- the session reads them. They stay with
-the modules that own them; this one covers xp2plasma's own working files.
+desktoptheme, plasmoids, fonts, Qt style plugins) also have to be real home
+paths for that same reason -- the session reads them. They stay with the
+modules that own them; this one covers XPLasma's own working files.
 
-``HERE`` is still the right root for *shipped, read-only* data -- the classic
-schemes table, the Kvantum build sources -- which works in a source checkout,
-an installed copy and an AppImage mount alike.
-
-The legacy fallbacks matter: an existing install (this machine, today) has its
-themes in ``samples/`` and ``iso/cache`` inside the checkout. Those keep
-working unchanged, so moving the working files to XDG locations is a no-op
-rather than a migration the user has to perform.
+``HERE`` is the root for *shipped, read-only* data (the classic schemes
+table), which works in a source checkout and an installed copy alike.
 """
 from __future__ import annotations
 
@@ -37,57 +29,59 @@ import sys
 REAL_HOME = os.path.expanduser("~")
 HERE = os.path.dirname(os.path.abspath(__file__))   # read-only when packaged
 
-# --- xp2plasma's own files (~/.local/share/xp2plasma) -------------------------
+# --- xp2plasma, XPLasma's predecessor -----------------------------------------
+#
+# XPLasma adopts what xp2plasma already put on this machine rather than asking
+# for it again: the imported asset library (fonts, styles, wallpapers, icons --
+# ~100 MB, taken from ~600 MB of downloaded XP media), the user's saved classic
+# schemes, and the download cache. Each is used from xp2plasma's location only
+# while XPLasma has no copy of its own, so a fresh machine gets clean XPLasma
+# paths and an upgraded one loses nothing.
 
-DATA = os.path.join(REAL_HOME, ".local", "share", "xp2plasma")
-ASSETS = os.path.join(DATA, "assets")
+LEGACY_DATA = os.path.join(REAL_HOME, ".local", "share", "xp2plasma")
+LEGACY_CACHE = os.path.join(REAL_HOME, ".cache", "xp2plasma")
+
+
+def _adopt(own: str, legacy: str) -> str:
+    """`own` if it exists or there is nothing to adopt, else `legacy`."""
+    return legacy if not os.path.exists(own) and os.path.exists(legacy) else own
+
+
+# --- XPLasma's own files (~/.local/share/xplasma) -----------------------------
+
+DATA = os.path.join(REAL_HOME, ".local", "share", "xplasma")
+ASSETS = _adopt(os.path.join(DATA, "assets"), os.path.join(LEGACY_DATA, "assets"))
 THEMES = os.path.join(ASSETS, "themes")            # the user's .msstyles / .theme library
 WALLPAPERS = os.path.join(ASSETS, "wallpapers")
 MEDIA = os.path.join(ASSETS, "media")              # XP install media the user pointed us at
-SCHEMES = os.path.join(DATA, "schemes")
+SCHEMES = _adopt(os.path.join(DATA, "schemes"), os.path.join(LEGACY_DATA, "schemes"))
 USER_SCHEMES = os.path.join(SCHEMES, "user")
 BACKUP = os.path.join(DATA, "backup")
 FONTS_XP = os.path.join(REAL_HOME, ".local", "share", "fonts", "xp")   # read by fontconfig
 
-# --- regenerable caches (~/.cache/xp2plasma) ---------------------------------
+# --- regenerable caches (~/.cache/xplasma) ------------------------------------
 
-CACHE = os.path.join(REAL_HOME, ".cache", "xp2plasma")
+CACHE = os.path.join(REAL_HOME, ".cache", "xplasma")
+# Not regenerable in practice: the XP media is a ~589 MB one-time fetch.
+DOWNLOADS = _adopt(os.path.join(CACHE, "downloads"), os.path.join(LEGACY_CACHE, "downloads"))
 BUILD = os.path.join(CACHE, "build")               # generated theme packages
 PREVIEW_CACHE = os.path.join(CACHE, "preview")
 INDEX_CACHE = os.path.join(CACHE, "style_index.json")
-KVANTUM_BUILD = os.path.join(CACHE, "kvantum-build")   # staged for the host-side build
-KVANTUM_OUT = os.path.join(CACHE, "kvantum-out")
 
 # --- read-only data that ships with the app ---------------------------------
 
 def _shipped(*parts: str) -> str:
-    """A shipped, read-only data path.
-
-    Has to work from a source checkout, from an installed copy, and from inside
-    the AppImage. In a checkout the data sits beside the modules; an installed
-    copy (pip, or install.py) puts it under ``<prefix>/share/xp2plasma``; the
-    AppImage also lays it out under ``sys.prefix/share/xp2plasma``, which is
-    ``$APPDIR/usr`` there. One resolver covers all three.
-    """
+    """A shipped, read-only data path: beside the modules in a source
+    checkout, or under ``<prefix>/share/xplasma`` in an installed copy."""
     candidates = (os.path.join(HERE, *parts),
-                  os.path.join(sys.prefix, "share", "xp2plasma", *parts))
+                  os.path.join(sys.prefix, "share", "xplasma", *parts))
     return next((c for c in candidates if os.path.exists(c)), candidates[0])
 
 
 SHIPPED_SCHEMES = _shipped("schemes", "xp_classic_schemes.json")
-KVANTUM_SRC = _shipped("kvantum-xp")     # build.sh, patch.py, the Kvantum tarball
-
-# --- legacy in-tree locations, still honoured if present --------------------
-
-_LEGACY_THEME_ROOTS = (
-    os.path.join(HERE, "samples"),
-    os.path.join(HERE, "iso", "cache"),
-)
-_LEGACY_WALLPAPERS = os.path.join(HERE, "xp_wallpapers")
-_LEGACY_EXTRACTED = os.path.join(HERE, "iso", "extracted")
-_LEGACY_ISO_CACHE = os.path.join(HERE, "iso", "cache")
 
 CONFIG = os.path.join(DATA, "config.json")
+LEGACY_CONFIG = os.path.join(LEGACY_DATA, "config.json")
 
 
 def ensure(path: str) -> str:
@@ -97,14 +91,8 @@ def ensure(path: str) -> str:
 
 
 def theme_roots() -> list[str]:
-    """Directories to scan for .theme / .msstyles files.
-
-    The new asset library first, then whatever in-tree trees still exist, so an
-    install that predates the move keeps finding its themes.
-    """
-    roots = [THEMES, ASSETS]
-    roots.extend(_LEGACY_THEME_ROOTS)
-    return [root for root in dict.fromkeys(roots) if os.path.isdir(root)]
+    """Directories to scan for .theme / .msstyles files."""
+    return [root for root in dict.fromkeys((THEMES, ASSETS)) if os.path.isdir(root)]
 
 
 def browse_root() -> str:
@@ -114,19 +102,22 @@ def browse_root() -> str:
 
 def wallpaper_roots() -> tuple[str, ...]:
     """Where to look for a .theme bundle's wallpaper image."""
-    roots = [WALLPAPERS]
-    if os.path.isdir(_LEGACY_WALLPAPERS):
-        roots.append(_LEGACY_WALLPAPERS)
-    return tuple(roots)
+    return (WALLPAPERS,)
 
 
-def load_config() -> dict:
+def _read_json(path: str) -> dict:
     try:
-        with open(CONFIG, encoding="utf-8") as fh:
+        with open(path, encoding="utf-8") as fh:
             data = json.load(fh)
         return data if isinstance(data, dict) else {}
     except (OSError, ValueError):
         return {}
+
+
+def load_config() -> dict:
+    """Setup choices. Until XPLasma has saved any, xp2plasma's are used, so
+    the media it was pointed at is still found."""
+    return _read_json(CONFIG) if os.path.exists(CONFIG) else _read_json(LEGACY_CONFIG)
 
 
 def save_config(**fields) -> None:
@@ -146,13 +137,13 @@ def save_config(**fields) -> None:
 
 
 def media_root() -> str | None:
-    """The XP install media the user pointed us at (recorded by setup.py).
+    """The XP install media the user pointed us at (recorded by setup).
 
     Recorded by path rather than copied: an extracted XP ISO is ~600 MB and
     there is no reason to duplicate it into our own asset directory.
     """
     configured = load_config().get("media")
-    for candidate in (configured, MEDIA, _LEGACY_EXTRACTED):
+    for candidate in (configured, MEDIA):
         if candidate and os.path.isdir(candidate):
             return candidate
     return None
@@ -177,21 +168,12 @@ def iso_cache() -> str | None:
     unpacked *from* that media, including a full explorer.exe, and it should be
     thrown away with the media it came from rather than outliving it.
     """
-    if os.path.isdir(_LEGACY_ISO_CACHE):
-        return _LEGACY_ISO_CACHE
     root = media_root()
     return os.path.join(root, "cache") if root else None
 
 
 def stock_classic_theme() -> str | None:
-    """XP's own "Windows Classic" appearance bundle, if we have it.
-
-    Comes from the user's install media once setup.py has run; the in-tree copy
-    is honoured so an existing install keeps working. With neither, the classic
-    pipeline falls back to its built-in scheme table.
-    """
-    for candidate in (os.path.join(THEMES, "Windows Classic.theme"),
-                      os.path.join(_LEGACY_ISO_CACHE, "Windows Classic.theme")):
-        if os.path.exists(candidate):
-            return candidate
-    return None
+    """XP's own "Windows Classic" appearance bundle, if setup imported it.
+    Without it, the classic pipeline falls back to its built-in scheme table."""
+    candidate = os.path.join(THEMES, "Windows Classic.theme")
+    return candidate if os.path.exists(candidate) else None

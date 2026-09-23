@@ -1,234 +1,157 @@
 """Install and switch the Qt widget style for the live Plasma session.
 
-Visual styles get a generated theme for **kvantum-xp**, xp2plasma's own build
-of Kvantum (see kvantum-xp/patch.py): the same engine, but with its own style
-key (`kvantum-xp`), library (`libkvantum-xp.so`), config folder
-(`~/.config/KvantumXP`) and hidden symbols, so it never touches or clashes with
-a real Kvantum install -- plus the Windows/Breeze-style progress label beside
-the bar. Windows Classic gets Qt's own built-in "Windows" style.
+Visual styles are drawn by **XPLasma's own Qt style plugin**, which reads the
+``.msstyles`` itself -- there is no generated intermediate theme. This module's
+job is only to put the plugin where Qt looks, tell it which style to draw, and
+switch the session to it:
 
-Nothing is installed system-wide. The plugin is built by kvantum-xp/build.sh
-against **the host's own Qt**, copied into ~/.local/lib/qt6/plugins, and exposed
-through QT_PLUGIN_PATH: a plasma-workspace env script for future logins, plus
-the systemd user environment for apps started from this session once
-plasmashell restarts. `remove_kvantum()` undoes all of it.
+* The plugins ship prebuilt, one per Qt major (``plugins/qt6`` and
+  ``plugins/qt5`` beside the app). Each is built against the *oldest* Qt of its
+  major that XPLasma supports and uses only public Qt API, so it loads into
+  every newer Qt of that major: nothing is compiled on the user's machine, and
+  a system update never makes it stale.
+* The active style is a **frozen copy**: ``~/.local/share/xplasma/active/
+  <sha256>.msstyles``. Every running Qt app reads it, so it must never change
+  underneath them; a new Apply writes a new file and repoints the config.
+* ``~/.config/xplasmarc`` names that copy and its variant. The plugin watches
+  it, which is how a new Apply reaches apps that are already running.
 
-Two things about that build are worth knowing. It has to be built against the
-Qt the host's applications load -- a plugin compiled against a different Qt is
-refused by Qt's loader and apps silently fall back to the default style, which
-is why the version is recorded and checked rather than assumed. And it runs on
-the *host* (through hostexec), so every input has to be staged under the real
-home first: build.sh, patch.py and the Kvantum tarball ship inside the
-application directory, which the host cannot see.
+Windows Classic currently uses Qt's built-in "Windows" style; it moves into the
+plugin in Phase 3b (see PLAN.md).
 """
 from __future__ import annotations
 
+import configparser
 import filecmp
 import hashlib
 import os
-import re
 import shutil
 
 import hostexec as host
 import paths
 
 HOME = os.path.expanduser("~")
-PLUGIN_DIR = os.path.join(HOME, ".local", "lib", "qt6", "plugins")
-PLUGIN = os.path.join(PLUGIN_DIR, "styles", "libkvantum-xp.so")
-LEGACY_PLUGIN = os.path.join(PLUGIN_DIR, "styles", "libkvantum.so")   # the stock build used at first
-ENV_SCRIPT = os.path.join(HOME, ".config", "plasma-workspace", "env", "xp2plasma-kvantum.sh")
-KVANTUM_CONFIG = os.path.join(HOME, ".config", "KvantumXP")
-STYLE_KEY = "kvantum-xp"
-STATE_DIR = paths.DATA
-PREVIOUS_STYLE = os.path.join(STATE_DIR, "widgetstyle-previous.txt")
-
-# The build runs on the host, so its inputs and output live under the real home
-# rather than next to the source, which is read-only once installed.
-BUILD_WORK = paths.KVANTUM_BUILD
-BUILT_PLUGIN = os.path.join(paths.KVANTUM_OUT, "libkvantum-xp.so")
-BUILT_AGAINST = os.path.join(paths.KVANTUM_OUT, "built-against.txt")
-BUILD_INPUTS = ("build.sh", "patch.py", "Kvantum-1.1.5.tar.xz")
-
-_VERSION_RE = re.compile(r"\d+\.\d+(?:\.\d+)?")
+STYLE_KEY = "XPLasma"                 # what System Settings lists; Qt matches keys case-insensitively
+LIBRARY = "libxplasma.so"
+QT_MAJORS = ("6", "5")
+CONFIG = os.path.join(HOME, ".config", "xplasmarc")
+ACTIVE_DIR = os.path.join(paths.DATA, "active")
+ENV_SCRIPT = os.path.join(HOME, ".config", "plasma-workspace", "env", "xplasma-style.sh")
+PREVIOUS_STYLE = os.path.join(paths.DATA, "widgetstyle-previous.txt")
 
 
-def _libqt_version() -> str | None:
-    """Read the version off the host's libQt6Core filename."""
-    dirs: list[str] = []
-    for line in host.run(["ldconfig", "-p"], capture=True).stdout.splitlines():
-        if "libQt6Core.so.6" in line and "=>" in line:
-            dirs.append(os.path.dirname(line.rsplit("=>", 1)[-1].strip()))
-    dirs += ["/usr/lib", "/usr/lib64", "/usr/local/lib",
-             "/usr/lib/x86_64-linux-gnu", "/usr/lib/aarch64-linux-gnu"]
-    for directory in dict.fromkeys(dirs):
-        for entry in host.listdir(directory):
-            # libQt6Core.so.6.9.1 -- the whole "6.9.1" is the version; the 6 in
-            # the soname is the Qt major, so it has to be captured, not consumed.
-            match = re.fullmatch(r"libQt6Core\.so\.(\d+\.\d+(?:\.\d+)?)", entry)
-            if match:
-                return match.group(1)
-    return None
+def plugin_root(major: str) -> str:
+    """The user-local Qt plugin root for one Qt major (``.../qt6/plugins``)."""
+    return os.path.join(HOME, ".local", "lib", f"qt{major}", "plugins")
 
 
-def host_qt_version() -> str | None:
-    """The host's Qt version as "6.9.1", from whichever probe this distro has.
+def installed_plugin(major: str) -> str:
+    return os.path.join(plugin_root(major), "styles", LIBRARY)
 
-    Deliberately not the distro package manager: what matters is the Qt the
-    host's applications will load the plugin into, and the version alone
-    determines that. Every probe goes through hostexec, which resolves against
-    the host's PATH with the AppImage mount subtracted -- so this reports the
-    Qt the plugin will actually be loaded into, never the bundle's own.
+
+def shipped_plugin(major: str) -> str:
+    """The prebuilt plugin that ships with the app (native/ builds put it here)."""
+    return paths._shipped("plugins", f"qt{major}", "styles", LIBRARY)
+
+
+def plugins_available() -> list[str]:
+    """Qt majors we have a prebuilt plugin for."""
+    return [major for major in QT_MAJORS if os.path.isfile(shipped_plugin(major))]
+
+
+def plugins_installed() -> bool:
+    return any(os.path.isfile(installed_plugin(major)) for major in QT_MAJORS)
+
+
+def install_plugins(progress=print) -> list[str]:
+    """Copy every shipped plugin into place. Returns the Qt majors installed.
+
+    Raises RuntimeError when there is nothing to install -- a source checkout
+    whose native/ build hasn't been run yet.
     """
-    for argv in (["qmake6", "-query", "QT_VERSION"], ["qtpaths6", "--qt-version"]):
-        if host.have(argv[0]):
-            out = host.run(argv, capture=True).stdout.strip()
-            if _VERSION_RE.fullmatch(out):
-                return out
-    return _libqt_version()
+    majors = plugins_available()
+    if not majors:
+        raise RuntimeError("no prebuilt XPLasma style plugin found; build native/ first "
+                           "(see native/README.md)")
+    for major in majors:
+        dest = installed_plugin(major)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        _install_file(shipped_plugin(major), dest)
+        progress(f"  Qt {major} style plugin installed")
+    install_session_env()
+    return majors
 
 
-def build_inputs_fingerprint() -> str:
-    """A short digest of the sources the plugin is built from.
-
-    The recorded Qt version alone can't tell a rebuild is needed after *our*
-    side changes: edit patch.py or build.sh and the cached .so is still
-    "current" for the same Qt, so the edit silently never ships. Hashing the
-    inputs makes that case rebuild the way a Qt upgrade does.
-    """
-    digest = hashlib.sha256()
-    for name in sorted(BUILD_INPUTS):
-        try:
-            with open(os.path.join(paths.KVANTUM_SRC, name), "rb") as fh:
-                digest.update(fh.read())
-        except OSError:
-            return ""                # can't fingerprint; fall back to Qt alone
-    return digest.hexdigest()[:16]
-
-
-def plugin_is_current() -> bool:
-    """True when the built plugin matches the host Qt *and* the sources it was
-    built from.
-
-    After a Qt upgrade Qt refuses to load a mismatched plugin and apps quietly
-    fall back to the default style -- this is how that gets noticed and
-    rebuilt. If the version cannot be determined at all we trust the recorded
-    build instead, so a machine we can't probe doesn't rebuild on every apply.
-    """
-    try:
-        with open(BUILT_AGAINST, encoding="utf-8") as fh:
-            built = fh.read().strip()
-    except OSError:
-        return False
-    if not built:
-        return False
-    # build.sh writes the bare Qt version; anything after "|" is our own
-    # fingerprint, so a plugin built before this existed still reads cleanly.
-    built_qt, _, built_inputs = built.partition("|")
-    fingerprint = build_inputs_fingerprint()
-    if fingerprint and built_inputs != fingerprint:
-        return False
-    current = host_qt_version()
-    return True if current is None else built_qt == current
-
-
-def kvantum_installed() -> bool:
-    return os.path.exists(PLUGIN) and plugin_is_current()
-
-
-def _stage_build_inputs() -> str:
-    """Copy build.sh, patch.py and the Kvantum tarball where the host can see them.
-
-    They ship inside the application directory, which is read-only when
-    packaged and invisible to the host in any case.
-    """
-    work = paths.ensure(BUILD_WORK)
-    for name in BUILD_INPUTS:
-        src = os.path.join(paths.KVANTUM_SRC, name)
-        if not os.path.exists(src):
-            raise RuntimeError(f"missing build input: {src}")
-        shutil.copy2(src, os.path.join(work, name))
-    paths.ensure(paths.KVANTUM_OUT)
-    return work
-
-
-def install_kvantum(progress=print) -> str:
-    """Build kvantum-xp against the host Qt if needed, then install it.
-    Idempotent; the first build takes several minutes."""
-    if not (os.path.exists(BUILT_PLUGIN) and plugin_is_current()):
-        qt = host_qt_version()
-        if qt is None:
-            raise RuntimeError(
-                "couldn't work out which Qt the host is running, so the widget style "
-                "can't be built against it. Install Qt 6 development files (Arch: "
-                "qt6-base; Debian/Ubuntu: qt6-base-dev; Fedora: qt6-qtbase-devel).")
-        progress(f"Building widget style for Qt {qt} ...")
-        work = _stage_build_inputs()
-        result = host.run(["bash", os.path.join(work, "build.sh")], capture=True,
-                          env={"XP2P_WORK": work, "XP2P_OUT": paths.KVANTUM_OUT})
-        if result.returncode != 0 or not os.path.exists(BUILT_PLUGIN):
-            raise RuntimeError("kvantum-xp build failed:\n" + (result.stdout + result.stderr)[-2000:])
-        _record_build_inputs()
-    os.makedirs(os.path.dirname(PLUGIN), exist_ok=True)
-    _install_plugin(BUILT_PLUGIN, PLUGIN)
-    if os.path.exists(LEGACY_PLUGIN):
-        os.remove(LEGACY_PLUGIN)
-    return PLUGIN
-
-
-def _record_build_inputs() -> None:
-    """Append our own fingerprint to the Qt version build.sh just wrote, so a
-    later patch.py/build.sh edit is seen as stale (see plugin_is_current)."""
-    fingerprint = build_inputs_fingerprint()
-    if not fingerprint:
-        return
-    try:
-        with open(BUILT_AGAINST, encoding="utf-8") as fh:
-            qt = fh.read().strip().partition("|")[0]
-        with open(BUILT_AGAINST, "w", encoding="utf-8") as fh:
-            fh.write(f"{qt}|{fingerprint}")
-    except OSError:
-        pass                        # a missing marker just means "rebuild next time"
-
-
-def _install_plugin(source: str, dest: str) -> None:
+def _install_file(source: str, dest: str) -> None:
     """Put `source` at `dest` without ever writing into the live file.
 
     Every running Qt app has the installed plugin mmap'd and executable --
-    plasmashell, kwin_wayland, kded6, every dialog on screen. Copying onto it
-    truncates and rewrites that same inode, which invalidates all of those
-    mappings, and the whole session then takes a SIGBUS the moment it next
-    executes from one of the affected pages: kwin and plasmashell included.
-
-    Renaming a freshly written file over it gives the new build its own inode
-    instead. Processes that already mapped the old one keep it (unlinked but
-    still mapped) and carry on; only apps started afterwards pick up the new
-    build, which is the same "restart to get the new style" rule the rest of
-    this module already works by.
+    plasmashell, kwin_wayland, every dialog on screen. Copying onto it rewrites
+    that inode under them, and the whole session takes a SIGBUS the next time
+    it executes from an affected page (learned the hard way with kvantum-xp).
+    Renaming a freshly written file over it gives the new build its own inode;
+    processes that mapped the old one keep it and carry on.
     """
     if os.path.exists(dest) and filecmp.cmp(source, dest, shallow=False):
         return                      # identical already; don't churn the inode
     staged = f"{dest}.new"
     shutil.copy2(source, staged)
-    os.replace(staged, dest)        # atomic: readers see old or new, never a torn file
+    os.replace(staged, dest)
 
 
 def install_session_env() -> None:
-    """Make the plugin visible to Qt apps: this login (via the systemd user
+    """Make the plugins visible to Qt apps: this login (via the systemd user
     environment, which plasmashell and the apps it launches inherit on their
-    next start) and every later one (plasma-workspace env script)."""
+    next start) and every later one (a plasma-workspace env script).
+
+    Both majors' roots go on the one QT_PLUGIN_PATH. Each Qt reads a plugin's
+    metadata before loading it and skips the other major's build.
+    """
+    roots = [plugin_root(major) for major in QT_MAJORS]
     os.makedirs(os.path.dirname(ENV_SCRIPT), exist_ok=True)
     with open(ENV_SCRIPT, "w", encoding="utf-8") as fh:
-        fh.write("# Written by xp2plasma: lets Qt find the user-local Kvantum style plugin.\n"
-                 f'export QT_PLUGIN_PATH="{PLUGIN_DIR}${{QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}}"\n')
-    # Read the *host's* value, not this process's: the AppImage exports its own
-    # QT_PLUGIN_PATH pointing into the mount, and pushing that into the host's
-    # systemd environment would clobber a real setting with a directory that
-    # stops existing the moment the installer exits.
-    current = host.show_environment("QT_PLUGIN_PATH") or ""
-    value = PLUGIN_DIR if not current else (
-        current if PLUGIN_DIR in current.split(":") else f"{PLUGIN_DIR}:{current}")
+        fh.write("# Written by XPLasma: lets Qt find the user-local XPLasma style plugins.\n"
+                 f'export QT_PLUGIN_PATH="{":".join(roots)}${{QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}}"\n')
+    current = [p for p in (host.show_environment("QT_PLUGIN_PATH") or "").split(":") if p]
+    value = ":".join(dict.fromkeys(roots + current))
     host.run(["systemctl", "--user", "set-environment", f"QT_PLUGIN_PATH={value}"], check=False)
     host.run(["dbus-update-activation-environment", "--systemd", f"QT_PLUGIN_PATH={value}"], check=False)
+
+
+def freeze(msstyles: str) -> str:
+    """The frozen, content-addressed copy of `msstyles` that apps will read."""
+    digest = hashlib.sha256()
+    with open(msstyles, "rb") as fh:
+        for block in iter(lambda: fh.read(1 << 20), b""):
+            digest.update(block)
+    dest = os.path.join(paths.ensure(ACTIVE_DIR), f"{digest.hexdigest()}.msstyles")
+    if not os.path.exists(dest):
+        staged = f"{dest}.new"
+        shutil.copyfile(msstyles, staged)
+        os.replace(staged, dest)
+    return dest
+
+
+def write_config(frozen: str, variant: str | None, source: str) -> None:
+    """Point the plugin at a frozen style. Atomic, so a watching app never
+    reads half a file."""
+    cp = configparser.ConfigParser(interpolation=None)
+    cp.optionxform = str
+    cp["Theme"] = {"Path": frozen, "Variant": variant or "", "Source": os.path.abspath(source)}
+    tmp = f"{CONFIG}.tmp"
+    os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
+    with open(tmp, "w", encoding="utf-8") as fh:
+        cp.write(fh, space_around_delimiters=False)
+    os.replace(tmp, CONFIG)
+
+
+def prune_frozen(keep: str) -> None:
+    """Drop frozen copies other than `keep`. An app that still has an old one
+    open keeps reading it (it was read into memory); nothing reads it after."""
+    for entry in os.listdir(ACTIVE_DIR) if os.path.isdir(ACTIVE_DIR) else []:
+        path = os.path.join(ACTIVE_DIR, entry)
+        if entry.endswith(".msstyles") and path != keep:
+            os.remove(path)
 
 
 def _current_style() -> str:
@@ -241,7 +164,7 @@ def _set_style(style: str) -> None:
     """Switch [KDE] widgetStyle and tell running KDE apps (KGlobalSettings
     StyleChanged). Apps that can't load the style keep their current one."""
     if not os.path.exists(PREVIOUS_STYLE):
-        os.makedirs(STATE_DIR, exist_ok=True)
+        os.makedirs(os.path.dirname(PREVIOUS_STYLE), exist_ok=True)
         with open(PREVIOUS_STYLE, "w", encoding="utf-8") as fh:
             fh.write(_current_style() or "Breeze")
     host.run(["kwriteconfig6", "--notify", "--file", "kdeglobals", "--group", "KDE",
@@ -250,37 +173,39 @@ def _set_style(style: str) -> None:
               "org.kde.KGlobalSettings.notifyChange", "int32:2", "int32:0"], check=False)
 
 
-def apply_kvantum_theme(theme_name: str, progress=print) -> None:
-    install_kvantum(progress)
-    install_session_env()
-    os.makedirs(KVANTUM_CONFIG, exist_ok=True)
-    with open(os.path.join(KVANTUM_CONFIG, "kvantum.kvconfig"), "w", encoding="utf-8") as fh:
-        fh.write(f"[General]\ntheme={theme_name}\n")
+def apply_visual_style(msstyles: str, variant: str | None, progress=print) -> None:
+    """Draw every Qt app with `msstyles` (in `variant`, or its default)."""
+    install_plugins(progress)
+    frozen = freeze(msstyles)
+    write_config(frozen, variant, msstyles)
+    prune_frozen(keep=frozen)
     _set_style(STYLE_KEY)
 
 
 def apply_classic_style() -> None:
-    """Windows Classic: Qt's built-in Windows style is the real thing."""
+    """Windows Classic: Qt's built-in Windows style until Phase 3b."""
     _set_style("Windows")
 
 
-def remove_kvantum() -> str:
-    """Undo everything: restore the previous style, drop the env hook and
-    the plugin. Generated themes in ~/.config/KvantumXP are left for reuse."""
+def remove() -> str:
+    """Undo everything: restore the previous style, drop the env hook, the
+    plugins, the config and the frozen styles."""
     previous = "Breeze"
     if os.path.exists(PREVIOUS_STYLE):
         with open(PREVIOUS_STYLE, encoding="utf-8") as fh:
             previous = fh.read().strip() or previous
     host.run(["kwriteconfig6", "--notify", "--file", "kdeglobals", "--group", "KDE",
               "--key", "widgetStyle", previous], check=True)
-    for path in (ENV_SCRIPT, PLUGIN, LEGACY_PLUGIN, PREVIOUS_STYLE):
+    for path in (ENV_SCRIPT, CONFIG, PREVIOUS_STYLE, *(installed_plugin(m) for m in QT_MAJORS)):
         if os.path.exists(path):
             os.remove(path)
-    host.run(["systemctl", "--user", "unset-environment", "QT_PLUGIN_PATH"], check=False)
+    shutil.rmtree(ACTIVE_DIR, ignore_errors=True)
+    # Take only our roots back out: anything else on the path belongs to
+    # someone else (kvantum-xp, while it's still installed, for one).
+    ours = {plugin_root(major) for major in QT_MAJORS}
+    rest = [p for p in (host.show_environment("QT_PLUGIN_PATH") or "").split(":") if p and p not in ours]
+    if rest:
+        host.run(["systemctl", "--user", "set-environment", f"QT_PLUGIN_PATH={':'.join(rest)}"], check=False)
+    else:
+        host.run(["systemctl", "--user", "unset-environment", "QT_PLUGIN_PATH"], check=False)
     return previous
-
-
-def kvantum_theme_name(name: str) -> str:
-    """A folder-safe Kvantum theme id for a display name."""
-    slug = re.sub(r"[^A-Za-z0-9]+", "-", name).strip("-") or "theme"
-    return f"xp2plasma-{slug}"

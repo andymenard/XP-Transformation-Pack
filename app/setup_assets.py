@@ -543,7 +543,7 @@ def _cached_archive(download: Download) -> str | None:
     matches by suffix -- there is only ever one of each such download, so
     "some .iso is already here" is an unambiguous answer.
     """
-    directory = os.path.join(paths.CACHE, "downloads")
+    directory = paths.DOWNLOADS
     if not os.path.isdir(directory):
         return None
     pattern = download.filename.lower()
@@ -635,7 +635,7 @@ def download_pack(download: Download, progress=print, on_bytes=None) -> bool:
         if not name:
             raise AssetError(f"{download.filename} was not found in archive.org item {download.item}. "
                              "Retry later or choose local install media.")
-        archive = os.path.join(paths.ensure(os.path.join(paths.CACHE, "downloads")),
+        archive = os.path.join(paths.ensure(paths.DOWNLOADS),
                                os.path.basename(name))
         if not os.path.exists(archive):
             if not _fetch(download, name, archive, progress, on_bytes):
@@ -663,23 +663,23 @@ def download_pack(download: Download, progress=print, on_bytes=None) -> bool:
 
 # --- the widget style --------------------------------------------------------
 
-def install_widget_style(progress=print) -> str | None:
-    """Build and install the Kvantum plugin, or explain why we can't."""
+def install_widget_style(progress=print) -> list[str] | None:
+    """Put the prebuilt XPLasma style plugins in place, or explain why not."""
     try:
-        return widget_style.install_kvantum(progress)
+        return widget_style.install_plugins(progress)
     except RuntimeError as exc:
         progress(f"  widget style skipped: {exc}")
         return None
 
 
 def prepare_install_assets(progress=print, on_bytes=None) -> None:
-    """One setup pass; failures propagate to the wizard's Details and Retry."""
+    """One setup pass; failures propagate to the caller's Details and Retry."""
     for download in INSTALL_DOWNLOADS:
         host.check_cancelled()
         if not download_pack(download, progress, on_bytes):
             raise AssetError(f"Setup of {download.label} did not complete. Please retry.")
     progress("Preparing the XP widget style ...")
-    widget_style.install_kvantum(progress)
+    install_widget_style(progress)
     host.check_cancelled()
     import xp_icons
     xp_icons.setup(progress, activate=False)
@@ -717,7 +717,7 @@ def run(media: str | None = None, packs: bool = True, include_optional: bool = F
             download_pack(download, progress)
     if widget:
         if install_widget_style(progress):
-            progress("Widget style built and installed.")
+            progress("Widget style installed.")
     paths.save_config(setup_done=True)
     progress("Setup finished.")
     return 0

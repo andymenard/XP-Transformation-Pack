@@ -8,6 +8,7 @@ from unittest.mock import patch, Mock
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import fixtures  # noqa: E402
 from PIL import Image
 from PySide6.QtWidgets import QApplication
 import appearance_editor as ae
@@ -15,10 +16,10 @@ import classic_gen as cg
 import theme_file as tf
 import theme_index as tx
 import theme_presets as presets
-import xp2plasma as xp
+import xplasma as xp
 
 app = QApplication.instance() or QApplication([])
-STYLE = Path(__file__).resolve().parents[1] / "iso/cache/luna.msstyles"
+STYLE = fixtures.LUNA
 
 
 class ThemeSplitTests(unittest.TestCase):

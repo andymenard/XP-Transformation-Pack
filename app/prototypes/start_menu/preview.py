@@ -12,6 +12,7 @@ import tempfile
 os.environ.setdefault("QT_QUICK_BACKEND", "software")
 
 from assets import MsStyle, export
+import paths  # noqa: E402  (on sys.path via assets)
 from PySide6.QtCore import QTimer, QUrl, Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQuick import QQuickView
@@ -87,7 +88,7 @@ def main():
     args = parser.parse_args()
     state_path = Path.home() / ".local/share/xp2plasma/applied.json"
     state = json.loads(state_path.read_text()) if state_path.exists() else {}
-    style = args.style or state.get("msstyles") or str(REPO / "iso/cache/luna.msstyles")
+    style = args.style or state.get("msstyles") or os.path.join(paths.THEMES, "Luna", "luna.msstyles")
     ini = args.ini if args.style else args.ini or state.get("ini")
     app = QGuiApplication(sys.argv[:1])
     with tempfile.TemporaryDirectory(prefix="xp-start-preview-") as folder:

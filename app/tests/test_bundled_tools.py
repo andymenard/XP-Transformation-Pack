@@ -18,9 +18,8 @@ import zipfile
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import bundled_tools as bundle
 import hostexec as host
-import install
+import paths
 import setup_assets
-import system_qt
 
 
 class LookupTests(unittest.TestCase):
@@ -128,16 +127,6 @@ class RealToolTests(unittest.TestCase):
             self.run_tool("bsdtar", "--zstd", "-cf", archive, "-C", root, "hello.txt")
             self.assertEqual(self.run_tool("bsdtar", "-xOf", archive, "hello.txt").stdout, payload)
 
-    def test_native_install_keeps_tools_sources_and_notices(self):
-        with tempfile.TemporaryDirectory() as out:
-            install._copy_app(out)
-            copied = Path(out) / "bundled-tools"
-            with patch.object(bundle, "root", return_value=copied):
-                for name in bundle.TOOLS:
-                    self.assertEqual(Path(bundle.executable(name)).read_bytes(), Path(self.tools[name]).read_bytes())
-            self.assertTrue((copied / "sources/cabextract-1.11.tar.gz").is_file())
-            self.assertTrue((copied / platform.machine() / "licenses/cabextract/COPYING").is_file())
-
     def test_rar5_from_upstream_fixture(self):
         archive = bundle.root() / "sources/libarchive-3.8.9.tar.xz"
         fixture = "libarchive-3.8.9/libarchive/test/test_read_format_rar5_compressed.rar.uu"
@@ -162,18 +151,10 @@ class RealToolTests(unittest.TestCase):
             cd.close()
             self.assertEqual(self.run_tool("bsdtar", "-xOf", iso, "HELLO.TXT").stdout, b"ISO contents")
 
-    def test_system_qt_uses_bsdtar_for_zstd_packages(self):
-        with tempfile.TemporaryDirectory() as out, \
-                patch.object(system_qt, "_mirror_base", return_value="https://example.invalid"), \
-                patch.object(system_qt, "_package_version", return_value="1"), \
-                patch.object(system_qt.paths, "CACHE", out), \
-                patch.object(system_qt.host, "run", return_value=subprocess.CompletedProcess([], 0, "", "")) as run:
-            system_qt._download_and_extract("test", out, lambda _: None)
-            self.assertEqual(run.call_args.args[0][0], "bsdtar")
-
     def test_real_xp_cab_member(self):
-        source = Path(__file__).resolve().parents[1] / "iso/extracted/I386/CLASSIC.TH_"
-        if not source.is_file():
+        i386 = paths.iso_i386()
+        source = Path(i386 or "") / "CLASSIC.TH_"
+        if not i386 or not source.is_file():
             self.skipTest("Local XP media unavailable")
         with tempfile.TemporaryDirectory() as out:
             self.run_tool("cabextract", "-q", "-d", out, source)

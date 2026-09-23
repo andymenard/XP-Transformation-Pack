@@ -1,15 +1,15 @@
 """Put the desktop back to Plasma's default look: Breeze, the default panel
 layout and the default wallpaper.
 
-Used by uninstall (and `xp2plasma reset`), so leaving is as clean as arriving.
+Used by `xplasma reset`, so leaving is as clean as arriving.
 Plasma's own tool does the heavy lifting -- `plasma-apply-lookandfeel` applies
 the global theme (decoration, colours, plasma theme, widget style, icons,
 cursor) and `--resetLayout` rebuilds the default panel -- and the rest is
-undoing what xp2plasma added on top: the Kvantum plugin and its environment
+undoing what XPLasma added on top: the style plugin and its environment
 hook, the XP font overrides, and the generated theme packages.
 
-Everything goes through hostexec, so this behaves the same run from the
-AppImage installer, from a source checkout, or from an installed copy.
+Everything goes through hostexec, so this behaves the same from a source
+checkout or an installed copy.
 The wallpaper is set explicitly from the global theme's own `defaults` file
 rather than trusting the layout reset to do it: it usually does, but "usually"
 is not what you want from an uninstaller.
@@ -110,7 +110,7 @@ def remove_generated_packages(progress=print) -> int:
                 os.remove(path)
                 removed += 1
     applet = os.path.join(USER_PLASMOIDS, APPLET_ID)
-    for path in (applet, applet + ".new", widget_style.KVANTUM_CONFIG):
+    for path in (applet, applet + ".new"):
         if os.path.isdir(path):
             shutil.rmtree(path, ignore_errors=True)
             removed += 1
@@ -123,8 +123,8 @@ def reset_desktop(progress=print, remove_packages: bool = True,
                   look_and_feel: str = LOOK_AND_FEEL) -> None:
     """Restore Breeze, the default panel layout and wallpaper, and undo
     xp2plasma's additions. Raises HostCommandError if Plasma's tool fails."""
-    progress("Removing the Kvantum widget style and its environment hook ...")
-    widget_style.remove_kvantum()
+    progress("Removing the XPLasma widget style and its environment hook ...")
+    widget_style.remove()
     import title_shadow
     title_shadow.remove()
     import panel_widgets

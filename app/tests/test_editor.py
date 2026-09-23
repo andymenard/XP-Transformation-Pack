@@ -17,7 +17,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication, QComboBox  # noqa: E402
 from PySide6.QtGui import QFont
 
-app = QApplication.instance() or QApplication(["xp2plasma-edit"])
+app = QApplication.instance() or QApplication(["xplasma-edit"])
 app.setStyle("Fusion")
 # Fixed XP geometry is measured with the reference font, not whichever font
 # the host happens to use after an installer reset to Breeze.
@@ -31,11 +31,11 @@ import hostexec                     # noqa: E402
 import preview_gen                  # noqa: E402
 import theme_file as tf             # noqa: E402
 import theme_index as tx            # noqa: E402
-import xp2plasma                    # noqa: E402
+import xplasma                      # noqa: E402
 
 # Saved schemes are user data, not a fixture. Keep every test write isolated
 # from the real profile so this suite has no desktop-state prerequisite.
-TEST_USER_SCHEMES = tempfile.TemporaryDirectory(prefix="xp2plasma-test-schemes-")
+TEST_USER_SCHEMES = tempfile.TemporaryDirectory(prefix="xplasma-test-schemes-")
 cg.USER_SCHEMES_DIR = TEST_USER_SCHEMES.name
 
 PASS, FAIL = [], []
@@ -50,20 +50,20 @@ def section(title):
     print(f"\n== {title}")
 
 
-_orig = (cg.save_applied, xp2plasma.apply_scheme_live, xp2plasma.apply_msstyles_live)
+_orig = (cg.save_applied, xplasma.apply_scheme_live, xplasma.apply_msstyles_live)
 CALLS = []
 
 
 def _install_stubs():
     cg.save_applied = lambda s: "/dev/null"
-    xp2plasma.apply_scheme_live = lambda scheme, name, **kw: (
+    xplasma.apply_scheme_live = lambda scheme, name, **kw: (
         CALLS.append(("classic", name, kw.get("theme_file"), scheme)), 0)[1]
-    xp2plasma.apply_msstyles_live = lambda path, name, **kw: (
+    xplasma.apply_msstyles_live = lambda path, name, **kw: (
         CALLS.append(("style", name, kw.get("ini_resource_name"), path)), 0)[1]
 
 
 def _restore():
-    cg.save_applied, xp2plasma.apply_scheme_live, xp2plasma.apply_msstyles_live = _orig
+    cg.save_applied, xplasma.apply_scheme_live, xplasma.apply_msstyles_live = _orig
 
 
 def run_job(win):
@@ -99,7 +99,7 @@ check("Themes sample outer box includes the 3px border",
 # XP's other two tabs, Screen Saver and Settings, are not part of xp2plasma and
 # are gone rather than shown disabled -- a tab that can never do anything is
 # worse than a tab that isn't there.
-check("tab titles are the three xp2plasma implements",
+check("tab titles are the three XPLasma implements",
       [win.tabs.tabText(i) for i in range(win.tabs.count())]
       == ["Themes", "Desktop", "Appearance"])
 check("every tab is enabled",
@@ -107,8 +107,12 @@ check("every tab is enabled",
 check("every tab starts with a rendered preview",
       all(pane.label.pixmap() is not None and not pane.label.pixmap().isNull()
           for pane in (win.themes_pane, win.desktop_pane, win.appearance_pane)))
+# One row per imported wallpaper. (xp2plasma's old in-tree dump held ~200
+# images, most of them installer bitmaps; setup's pruned import holds ~29.)
 check("the Background list leads with (None) and lists the wallpapers",
-      win.wallpaper_list.item(0).text() == "(None)" and win.wallpaper_list.count() > 50)
+      win.wallpaper_list.item(0).text() == "(None)"
+      and win.wallpaper_list.count() == 1 + len(ae._wallpaper_library()) > 20,
+      win.wallpaper_list.count())
 # (None) is the one row with no icon, as in XP -- it is the absence of a
 # wallpaper, not a file.
 check("(None) carries no icon",
@@ -393,7 +397,7 @@ dlg.deleteLater()
 
 section("Save As / Delete round-trip")
 NAME = "xp2plasma self-test scheme"
-with tempfile.TemporaryDirectory(prefix="xp2plasma-test-schemes-") as schemes_dir:
+with tempfile.TemporaryDirectory(prefix="xplasma-test-schemes-") as schemes_dir:
     saved_schemes_dir = cg.USER_SCHEMES_DIR
     cg.USER_SCHEMES_DIR = schemes_dir
     try:
@@ -466,34 +470,32 @@ if unreadable is not None:   # Vista-format styles live in the parked collection
     check("and Apply refuses it", win._job_for_themes() is None)
 
 section("widget style")
-import kvantum_gen as kg          # noqa: E402
 import widget_style as ws         # noqa: E402
-from msstyles_parse import MsStyle  # noqa: E402
-luna = next(st for st in win._styles if st.path and st.path.endswith("Royale Noir.msstyles"))
-svg, kv, rep, frame_sizes = kg.build_kvantum_theme(MsStyle.load(luna.path, "NORMALROYALE_INI"))
-check("every widget comes from real art",
-      all(v in ("art", "borderfill") for v in rep.values()), rep)
-for element in ("button-normal-topleft", "button-focused", "button-default-topleft", "button-default", "checkbox-checked-normal", "radio-normal",
-                "xparrow-up-normal", "scrollbarslider-normal", "tab-toggled-top", "progress-pattern-normal",
-                "slidercursor-normal", "header-normal", "xpcombobtn-normal"):
-    check(f"theme has {element}", f'id="{element}"' in svg)
-_bl, _br, _bt, _bb = tx.parse_margins(
-    MsStyle.load(luna.path, "NORMALROYALE_INI").effective("button", "pushbutton")["sizingmargins"])
-button_margins = (_bl, _br, _bt, _bb)
-check("kvconfig frame sizes preserve the style's exact SizingMargins",
-      f"frame.left={button_margins[0]}" in kv.split("[PanelButtonCommand]")[1].split("[")[0],
-      kv.split("[PanelButtonCommand]")[1].split("[")[0])
-check("frame_sizes sidecar matches the same margins",
-      frame_sizes.get("button") == button_margins, frame_sizes.get("button"))
-blue = kg.build_kvantum_theme(MsStyle.load(luna.path, "NORMALROYALE_INI"))[0]
-olive = kg.build_kvantum_theme(MsStyle.load(luna.path, "NORMALDARKROYALE_INI"))[0]
-check("colour variants give different widget art", blue != olive)
-check("theme ids are folder-safe", ws.kvantum_theme_name("Windows XP style (Luna)") == "xp2plasma-Windows-XP-style-Luna")
+royale = next(st for st in win._styles if st.path and st.path.endswith("Royale Noir.msstyles"))
+real_ws = (ws.ACTIVE_DIR, ws.CONFIG)
+with tempfile.TemporaryDirectory(prefix="xplasma-test-style-") as scratch:
+    ws.ACTIVE_DIR, ws.CONFIG = os.path.join(scratch, "active"), os.path.join(scratch, "xplasmarc")
+    try:
+        frozen = ws.freeze(royale.path)
+        check("the applied style is frozen under its content hash",
+              os.path.basename(frozen) == hashlib.sha256(open(royale.path, "rb").read()).hexdigest() + ".msstyles")
+        check("freezing again reuses the same copy", ws.freeze(royale.path) == frozen)
+        ws.write_config(frozen, "NORMALDARKROYALE_INI", royale.path)
+        text = open(ws.CONFIG, encoding="utf-8").read()
+        check("xplasmarc names the frozen copy and its variant",
+              f"Path={frozen}" in text and "Variant=NORMALDARKROYALE_INI" in text, text)
+        stale = os.path.join(ws.ACTIVE_DIR, "0" * 64 + ".msstyles")
+        open(stale, "wb").close()
+        ws.prune_frozen(keep=frozen)
+        check("older frozen copies are pruned, the live one kept",
+              not os.path.exists(stale) and os.path.exists(frozen))
+    finally:
+        ws.ACTIVE_DIR, ws.CONFIG = real_ws
 win.tabs.setCurrentIndex(3)
 win.style_combo.setCurrentIndex(0)
 win._on_style_changed(0)
 seen = {}
-xp2plasma.apply_scheme_live = lambda scheme, name, **kw: seen.update(kw) or 0
+xplasma.apply_scheme_live = lambda scheme, name, **kw: seen.update(kw) or 0
 win._job_for_appearance().run(lambda _m: None)
 check("Apply defaults to building widgets (checkbox commented out for now)",
       seen.get("widgets") is True, seen)

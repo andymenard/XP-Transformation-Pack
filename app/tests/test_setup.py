@@ -10,7 +10,7 @@ from unittest.mock import patch, Mock
 from urllib.error import URLError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import install
+import fixtures  # noqa: E402
 import setup_assets as assets
 import xp_icons
 import theme_file
@@ -116,7 +116,7 @@ class AssetTests(unittest.TestCase):
 
     def test_only_official_packs_icons_and_widgets_in_one_pass(self):
         with patch.object(assets, "download_pack", return_value=True) as download, \
-                patch.object(assets.widget_style, "install_kvantum") as widget, \
+                patch.object(assets.widget_style, "install_plugins") as widget, \
                 patch.object(xp_icons, "setup") as icons:
             progress = Mock()
             assets.prepare_install_assets(progress)
@@ -128,28 +128,16 @@ class AssetTests(unittest.TestCase):
 
     def test_failed_pack_stops_before_widgets_and_icons(self):
         with patch.object(assets, "download_pack", side_effect=[True, False]), \
-                patch.object(assets.widget_style, "install_kvantum") as widget, \
+                patch.object(assets.widget_style, "install_plugins") as widget, \
                 patch.object(xp_icons, "setup") as icons:
             with self.assertRaises(assets.AssetError):
                 assets.prepare_install_assets(lambda _: None)
             widget.assert_not_called()
             icons.assert_not_called()
 
-    def test_failed_media_does_not_modify_native_app(self):
-        with patch.object(assets, "missing_for_install", return_value=[]), \
-                patch.object(assets, "prepare_install_assets", side_effect=assets.AssetError("offline")), \
-                patch.object(install, "_copy_app") as copy, \
-                patch.object(install, "_write_launchers") as launchers, \
-                patch.object(install, "is_installed") as state:
-            with self.assertRaisesRegex(install.InstallError, "application has not been changed"):
-                install.install(progress=lambda _: None)
-            copy.assert_not_called()
-            launchers.assert_not_called()
-            state.assert_not_called()
-
     def test_real_iso_extracts_and_can_be_reimported(self):
-        iso = Path(__file__).resolve().parents[1] / "iso/WinXPProSP3x86.iso"
-        if not iso.exists():
+        iso = fixtures.xp_iso()
+        if iso is None:
             self.skipTest("Local XP ISO unavailable")
         with tempfile.TemporaryDirectory() as out, ExitStack() as stack:
             for attr, rel in (("CACHE", "cache"), ("FONTS_XP", "fonts"),

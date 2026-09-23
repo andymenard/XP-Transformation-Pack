@@ -14,7 +14,12 @@ from __future__ import annotations
 import json
 import os
 
-STATE_PATH = os.path.expanduser("~/.local/share/xp2plasma/applied.json")
+import paths
+
+STATE_PATH = os.path.join(paths.DATA, "applied.json")
+# Read (never written) until XPLasma has applied something itself, so the
+# editor still opens on what xp2plasma last put on the desktop.
+LEGACY_STATE_PATH = os.path.join(paths.LEGACY_DATA, "applied.json")
 
 
 def save(**fields) -> None:
@@ -31,8 +36,9 @@ def save(**fields) -> None:
 
 
 def load() -> dict:
+    path = STATE_PATH if os.path.exists(STATE_PATH) else LEGACY_STATE_PATH
     try:
-        with open(STATE_PATH, encoding="utf-8") as fh:
+        with open(path, encoding="utf-8") as fh:
             state = json.load(fh)
         return state if isinstance(state, dict) else {}
     except (OSError, ValueError):

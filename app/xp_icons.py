@@ -256,7 +256,7 @@ def extract_binaries(destination: str | Path, media: str | None = None) -> dict[
             candidates.append(Path(folder))
     folders = [p / "I386" if (p / "I386").is_dir() else p for p in candidates if p.is_dir()]
     isos = [p for p in candidates if p.is_file() and p.suffix.lower() == ".iso"]
-    isos += sorted((Path(paths.CACHE) / "downloads").glob("*.iso"))
+    isos += sorted(Path(paths.DOWNLOADS).glob("*.iso"))
     isos += sorted((Path(paths.HERE) / "iso").glob("*.iso"))
     found = {}
     for name, packed in zip(BINARY_NAMES, PACKED_MEMBERS):

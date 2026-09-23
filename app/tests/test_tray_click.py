@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import fixtures  # noqa: E402
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import QAbstractListModel, QModelIndex, QPoint, QUrl, Qt
 from PySide6.QtGui import QGuiApplication
@@ -40,9 +41,9 @@ class TrayModel(QAbstractListModel):
 class TrayClickTests(unittest.TestCase):
     def test_generated_svg_exposes_xp_content_margin_to_ksvg(self):
         repo = Path(__file__).resolve().parents[1]
-        svg = subprocess.check_output([str(repo / ".venv/bin/python3"), "-c",
+        svg = subprocess.check_output([sys.executable, "-c",
             "from msstyles_parse import MsStyle; from plasmatheme_gen import build_tray_svg; "
-            "print(build_tray_svg(MsStyle.load('iso/cache/luna.msstyles', 'NORMALBLUE_INI')))"], cwd=repo)
+            f"print(build_tray_svg(MsStyle.load({str(fixtures.LUNA)!r}, 'NORMALBLUE_INI')))"], cwd=repo)
         with tempfile.TemporaryDirectory() as out:
             image = Path(out) / "xp-tray.svg"
             image.write_bytes(svg)

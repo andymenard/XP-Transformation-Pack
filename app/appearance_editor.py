@@ -10,7 +10,7 @@ Two live tabs, matching XP's:
                       **Advanced...** opens the Windows 2000 item grid, which
                       is exactly what Advanced... does in XP.
 
-Applying goes through the same `xp2plasma.py` pipelines the CLI uses, so the
+Applying goes through the same `xplasma.py` pipelines the CLI uses, so the
 editor and the command line produce byte-identical output. Nothing here is
 live except the preview: the editor's own colours change when you press Apply.
 
@@ -48,7 +48,6 @@ import setup_ui
 import theme_file as tf
 import theme_index as tx
 import theme_presets
-import widget_style
 import xp_icons
 
 LIVE_NAME = "Windows Classic"
@@ -727,7 +726,7 @@ class SetupDialog(QDialog):
         self.iso_dl_btn.setToolTip("From archive.org; only the fonts, the Luna style, the "
                                    "wallpapers, icon resources and the Start flag are kept.")
         self.iso_dl_btn.clicked.connect(self._download_iso)
-        self.widgets_check = QCheckBox("Also build the widget style")
+        self.widgets_check = QCheckBox("Also install the widget style")
         self.widgets_check.setChecked(True)
         for widget in (self.download_btn, self.iso_dl_btn, self.widgets_check):
             pack_row.addWidget(widget)
@@ -809,7 +808,7 @@ class SetupDialog(QDialog):
             setup_assets.download_pack(pack, progress, on_bytes)
             if build_widgets:
                 host.check_cancelled()
-                widget_style.install_kvantum(progress)
+                setup_assets.install_widget_style(progress)
 
         self._start(work, byte_progress=True, dialog_title=f"Downloading {pack.label}")
 
@@ -1693,7 +1692,7 @@ class AppearanceEditor(QDialog):
         widgets = True
 
         def run(progress):
-            from xp2plasma import apply_scheme_live
+            from xplasma import apply_scheme_live
             apply_scheme_live(snap, LIVE_NAME, panel=panel, layout=panel,
                               theme_file=theme_file, widgets=widgets, progress=progress,
                               preserve_wallpaper=preserve_wallpaper, apply_icons=not preserve_wallpaper)
@@ -1708,7 +1707,7 @@ class AppearanceEditor(QDialog):
         widgets = True
 
         def run(progress):
-            from xp2plasma import apply_msstyles_live
+            from xplasma import apply_msstyles_live
             apply_msstyles_live(path, name, theme_file=theme_file, ini_resource_name=ini,
                                 panel=panel, layout=panel, widgets=widgets, progress=progress,
                                 apply_icons=theme_file is not None)

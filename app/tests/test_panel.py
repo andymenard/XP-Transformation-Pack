@@ -8,6 +8,7 @@ from unittest.mock import patch
 import xml.etree.ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import fixtures  # noqa: E402
 from msstyles_parse import MsStyle
 import panel_layout
 import panel_widgets as widgets
@@ -18,7 +19,9 @@ from PIL import Image
 class PanelTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.path = str(Path(__file__).resolve().parents[1] / "iso/cache/luna.msstyles")
+        cls.path = str(fixtures.LUNA)
+        if not fixtures.LUNA.exists():
+            raise unittest.SkipTest("Luna is not in the corpus")
         cls.theme = MsStyle.load(cls.path, "NORMALBLUE_INI")
 
     def test_panel_height_is_not_bitmap_height(self):

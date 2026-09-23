@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import fixtures  # noqa: E402
 import aurorae_gen as ag
 import apply as apply_mod
 import preview_gen
@@ -19,7 +20,9 @@ from msstyles_parse import MsStyle
 class TitleShadowTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.path = str(Path(__file__).resolve().parents[1] / "iso/cache/luna.msstyles")
+        cls.path = str(fixtures.LUNA)
+        if not fixtures.LUNA.exists():
+            raise unittest.SkipTest("Luna is not in the corpus")
         cls.theme = MsStyle.load(cls.path, "NORMALBLUE_INI")
 
     def test_luna_values(self):

@@ -8,6 +8,7 @@ import unittest
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "prototypes/start_menu"))
+import fixtures  # noqa: E402
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 os.environ.setdefault("QT_QUICK_BACKEND", "software")
 os.environ.setdefault("QT_QPA_PLATFORMTHEME", "generic")
@@ -23,7 +24,7 @@ app = QGuiApplication.instance() or QGuiApplication([])
 
 class StartMenuTests(unittest.TestCase):
     def test_eight_slots_fit_with_every_pinned_recent_split(self):
-        theme = MsStyle.load(str(REPO / "iso/cache/luna.msstyles"), "NORMALBLUE_INI")
+        theme = MsStyle.load(str(fixtures.LUNA), "NORMALBLUE_INI")
         with tempfile.TemporaryDirectory() as out:
             view = create_view(export(theme, out))
             root = view.rootObject()
@@ -39,7 +40,7 @@ class StartMenuTests(unittest.TestCase):
             view.close()
 
     def test_all_programs_hover_delay_click_and_open_highlight(self):
-        theme = MsStyle.load(str(REPO / "iso/cache/luna.msstyles"), "NORMALBLUE_INI")
+        theme = MsStyle.load(str(fixtures.LUNA), "NORMALBLUE_INI")
         with tempfile.TemporaryDirectory() as out:
             view = create_view(export(theme, out))
             root = view.rootObject()
@@ -73,7 +74,7 @@ class StartMenuTests(unittest.TestCase):
             view.close()
 
     def test_all_programs_closes_independently(self):
-        theme = MsStyle.load(str(REPO / "iso/cache/luna.msstyles"), "NORMALBLUE_INI")
+        theme = MsStyle.load(str(fixtures.LUNA), "NORMALBLUE_INI")
         with tempfile.TemporaryDirectory() as out:
             view = create_view(export(theme, out))
             root = view.rootObject()
@@ -109,7 +110,7 @@ class StartMenuTests(unittest.TestCase):
             view.close()
 
     def test_recent_files_hover_click_and_highlight(self):
-        theme = MsStyle.load(str(REPO / "iso/cache/luna.msstyles"), "NORMALBLUE_INI")
+        theme = MsStyle.load(str(fixtures.LUNA), "NORMALBLUE_INI")
         with tempfile.TemporaryDirectory() as out:
             view = create_view(export(theme, out))
             root = view.rootObject()
@@ -149,7 +150,7 @@ class StartMenuTests(unittest.TestCase):
             view.close()
 
     def test_all_favorites_remain_reachable_in_fixed_size_menu(self):
-        theme = MsStyle.load(str(REPO / "iso/cache/luna.msstyles"), "NORMALBLUE_INI")
+        theme = MsStyle.load(str(fixtures.LUNA), "NORMALBLUE_INI")
         with tempfile.TemporaryDirectory() as out:
             view = create_view(export(theme, out))
             root = view.rootObject()
@@ -180,7 +181,7 @@ class StartMenuTests(unittest.TestCase):
         self.assertEqual(numbers("6, 4, 9, 5"), [6, 4, 9, 5])
 
     def test_export_retains_original_art_and_provenance(self):
-        theme = MsStyle.load(str(REPO / "iso/cache/luna.msstyles"), "NORMALBLUE_INI")
+        theme = MsStyle.load(str(fixtures.LUNA), "NORMALBLUE_INI")
         with tempfile.TemporaryDirectory() as out:
             data = export(theme, out)
             self.assertEqual(data["layout"], {"width": 380, "height": 478, "headerHeight": 64,
@@ -206,7 +207,7 @@ class StartMenuTests(unittest.TestCase):
     def test_qml_renders_all_luna_variants_and_keeps_actions_inert(self):
         for ini in ("NORMALBLUE_INI", "NORMALMETALLIC_INI", "NORMALHOMESTEAD_INI"):
             with self.subTest(ini=ini), tempfile.TemporaryDirectory() as out:
-                theme = MsStyle.load(str(REPO / "iso/cache/luna.msstyles"), ini)
+                theme = MsStyle.load(str(fixtures.LUNA), ini)
                 data = export(theme, out)
                 view = create_view(data, username="Layout test")
                 view.show()
@@ -234,7 +235,7 @@ class StartMenuTests(unittest.TestCase):
                 view.close()
 
     def test_other_installed_official_themes(self):
-        library = Path.home() / ".local/share/xp2plasma/assets/themes"
+        library = fixtures.CORPUS
         checked = 0
         for relative in ("Royale/Royale.msstyles", "Royale Noir/Royale Noir.msstyles",
                          "Zune/Zune.msstyles", "Embedded/Embedded.msstyles"):

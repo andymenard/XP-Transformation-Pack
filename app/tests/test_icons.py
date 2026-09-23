@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import fixtures  # noqa: E402
 import xp_icons as icons
 from PIL import Image
 
@@ -52,8 +53,8 @@ class ResourceTests(unittest.TestCase):
 class IconThemeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        media = Path(icons.paths.HERE) / "iso/extracted/I386"
-        if not (media / "SHELL32.DL_").exists():
+        media = fixtures.xp_i386()
+        if media is None or not (media / "SHELL32.DL_").exists():
             raise unittest.SkipTest("User's XP media is not available")
         cls.tmp = tempfile.TemporaryDirectory()
         cls.catalog = Path(cls.tmp.name) / "catalog"
@@ -142,8 +143,8 @@ class IconThemeTests(unittest.TestCase):
                 self.assertNotEqual(charged.tobytes(), base.tobytes())
 
     def test_entire_theme_rebuilds_directly_from_iso(self):
-        iso = Path(icons.paths.HERE) / "iso/WinXPProSP3x86.iso"
-        if not iso.exists():
+        iso = fixtures.xp_iso()
+        if iso is None:
             self.skipTest("User's XP ISO is not available")
         with tempfile.TemporaryDirectory() as out, \
                 patch.object(icons.paths, "iso_i386", return_value=None), \
