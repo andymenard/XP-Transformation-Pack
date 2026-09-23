@@ -84,8 +84,11 @@ void applyDecoration(Session &session, const QString &id)
     if (session.readConfig(QStringLiteral("kwinrc"), group, QStringLiteral("theme")).startsWith(QLatin1String("__aurorae__svg__"))) {
         session.writeConfig(QStringLiteral("kwinrc"), group, QStringLiteral("library"), QStringLiteral("org.kde.breeze"));
         session.writeConfig(QStringLiteral("kwinrc"), group, QStringLiteral("theme"), QStringLiteral("Breeze"));
+        // Long enough for KWin to drop every Aurorae border: only then does
+        // it let go of its QML engine, and so of the aurorae.qml it compiled
+        // (a new title-shadow override isn't read otherwise). 500 ms wasn't.
         session.reconfigureKWin();
-        QThread::msleep(500);
+        QThread::msleep(2000);
     }
     session.writeConfig(QStringLiteral("kwinrc"), group, QStringLiteral("library"), QStringLiteral("org.kde.kwin.aurorae"));
     session.writeConfig(QStringLiteral("kwinrc"), group, QStringLiteral("theme"), QStringLiteral("__aurorae__svg__") + id);

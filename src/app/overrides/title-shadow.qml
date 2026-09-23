@@ -1,6 +1,6 @@
     Text {
         // A second native-rendered glyph mask, exactly offset, with no blur.
-        property var spec: root.xpTitleShadows[auroraeTheme.themeName] || {}
+        property var spec: (root.xpTitleShadows || {})[auroraeTheme.themeName] || {}
         visible: color.a > 0
         x: caption.x + (spec.x || 0)
         y: caption.y + (spec.y || 0)

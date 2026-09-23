@@ -201,18 +201,19 @@ bool installTitleShadows(const QString &themes, const QString &target, QString *
         QSettings rc(rcPath, QSettings::IniFormat);
         if (!rc.contains(QLatin1String(kGeneratedKey) + QLatin1String("/Look")) && !readText(pkg.filePath() + QLatin1String("/metadata.desktop")).contains(QLatin1String("XPLasma")))
             continue;
-        if (rc.value(QStringLiteral("General/UseTextShadow")).toString() != QLatin1String("true"))
+        // (QSettings reads an INI file's [General] keys as top-level ones.)
+        if (rc.value(QStringLiteral("UseTextShadow")).toString() != QLatin1String("true"))
             continue;
         auto colour = [&](const char *key) {
-            const QStringList v = rc.value(QStringLiteral("General/") + QLatin1String(key)).toStringList().join(QLatin1Char(',')).split(QLatin1Char(','));
+            const QStringList v = rc.value(QLatin1String(key)).toStringList().join(QLatin1Char(',')).split(QLatin1Char(','));
             if (v.size() < 3)
                 return QStringLiteral("#00000000");
             return QColor(v.at(0).toInt(), v.at(1).toInt(), v.at(2).toInt(), v.value(3, QStringLiteral("255")).toInt()).name(QColor::HexArgb);
         };
         shadows.insert(pkg.fileName(), QJsonObject{{QStringLiteral("active"), colour("ActiveTextShadowColor")},
                                                    {QStringLiteral("inactive"), colour("InactiveTextShadowColor")},
-                                                   {QStringLiteral("x"), rc.value(QStringLiteral("General/TextShadowOffsetX"), 1).toInt()},
-                                                   {QStringLiteral("y"), rc.value(QStringLiteral("General/TextShadowOffsetY"), 1).toInt()}});
+                                                   {QStringLiteral("x"), rc.value(QStringLiteral("TextShadowOffsetX"), 1).toInt()},
+                                                   {QStringLiteral("y"), rc.value(QStringLiteral("TextShadowOffsetY"), 1).toInt()}});
     }
 
     // KDE's renderer, importing its own components from where they are, with
@@ -226,8 +227,8 @@ bool installTitleShadows(const QString &themes, const QString &target, QString *
         source.replace(at, int(qstrlen("\nDecoration {")), QStringLiteral("\nUpstream.Decoration {"));
     source.replace(QLatin1String("    AuroraeButtonGroup {"), QLatin1String("    Upstream.AuroraeButtonGroup {"));
     source.replace(source.indexOf(QLatin1String("    id: root")), int(qstrlen("    id: root")),
-                   QStringLiteral("    id: root\n    property var xpTitleShadows: ")
-                       + QString::fromUtf8(QJsonDocument(shadows).toJson(QJsonDocument::Compact)));
+                   QStringLiteral("    id: root\n    property var xpTitleShadows: (")   // (bare braces would be a JS block)
+                       + QString::fromUtf8(QJsonDocument(shadows).toJson(QJsonDocument::Compact)) + QLatin1Char(')'));
     source.replace(anchor, resource(QStringLiteral("title-shadow.qml")) + anchor);
     if (!writeText(target, QLatin1String(kShadowMarker) + QLatin1Char('\n') + source))
         return fail(error, QStringLiteral("can't write %1").arg(target));

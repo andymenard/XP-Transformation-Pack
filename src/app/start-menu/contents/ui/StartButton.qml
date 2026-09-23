@@ -7,28 +7,66 @@
 */
 import QtQuick
 import QtQuick.Layouts
+import org.kde.plasma.plasmoid
+import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
 
-MouseArea {
+Item {
     id: button
     required property var launcher
     readonly property var art: launcher.themeData.button || null
+    readonly property alias pressed: mouse.pressed
+    readonly property alias containsMouse: mouse.containsMouse
 
-    hoverEnabled: true
+    // XP's button sits in the screen's corner, and the corner clicks it.
+    // Plasma's panel keeps a few pixels before its first applet: when that's
+    // all there is between this button and the panel's edge, the button
+    // takes them over (drawn and clickable) instead of leaving a gap.
+    property real edgeGap: 0
+    function measureEdge() {
+        if (Plasmoid.formFactor !== PlasmaCore.Types.Horizontal || !button.Window.window) {
+            edgeGap = 0;
+            return;
+        }
+        const x = Math.round(button.mapToItem(null, 0, 0).x);
+        edgeGap = x > 0 && x <= Kirigami.Units.smallSpacing * 2 ? x : 0;
+    }
+    Component.onCompleted: Qt.callLater(measureEdge)
+    Connections {
+        target: button.launcher
+        function onXChanged() { Qt.callLater(button.measureEdge) }
+    }
+    Connections {
+        target: button.launcher.parent
+        function onXChanged() { Qt.callLater(button.measureEdge) }
+    }
+    Connections {
+        target: button.Window.window
+        function onWidthChanged() { Qt.callLater(button.measureEdge) }
+    }
+    onXChanged: Qt.callLater(measureEdge)
+
     Accessible.name: "Start"
     Accessible.role: Accessible.Button
 
-    Layout.preferredWidth: art ? art.width : Kirigami.Units.iconSizes.medium
+    Layout.preferredWidth: art ? Math.max(1, art.width - edgeGap) : Kirigami.Units.iconSizes.medium
     Layout.minimumWidth: Layout.preferredWidth
     Layout.maximumWidth: Layout.preferredWidth
     Layout.fillHeight: true
 
-    property bool wasExpanded
-    onPressed: wasExpanded = launcher.expanded
-    onClicked: launcher.expanded = !wasExpanded
+    MouseArea {
+        id: mouse
+        anchors.fill: parent
+        anchors.leftMargin: -button.edgeGap
+        hoverEnabled: true
+        property bool wasExpanded
+        onPressed: wasExpanded = button.launcher.expanded
+        onClicked: button.launcher.expanded = !wasExpanded
+    }
 
     Image {
         visible: button.art !== null
+        x: -button.edgeGap
         anchors.verticalCenter: parent.verticalCenter
         source: !button.art ? ""
               : (button.launcher.expanded || button.pressed) ? button.art.pressed

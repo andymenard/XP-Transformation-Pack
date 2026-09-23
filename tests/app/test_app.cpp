@@ -884,6 +884,32 @@ private Q_SLOTS:
         QVERIFY(!overrides::patched(QStringLiteral("systemtray/main.qml"), QStringLiteral("not KDE's QML")));
     }
 
+    void titleShadowsFromRc()
+    {
+        if (!QFileInfo::exists(QStringLiteral("/usr/share/kwin/aurorae/aurorae.qml")))
+            QSKIP("no KWin Aurorae here");
+        const QString themes = m_home.filePath(QStringLiteral("aurorae/themes"));
+        const QString target = m_home.filePath(QStringLiteral("kwin/aurorae/aurorae.qml"));
+        auto read = [&] {
+            QFile f(target);
+            return f.open(QIODevice::ReadOnly) ? QString::fromUtf8(f.readAll()) : QString();
+        };
+        QString error;
+        // None wanted: still an object (bare braces in QML are an empty block, i.e. undefined).
+        QVERIFY2(overrides::installTitleShadows(themes, target, &error), qPrintable(error));
+        QVERIFY(read().contains(QLatin1String("property var xpTitleShadows: ({})")));
+        // As decoration.cpp writes it: the shadow keys are in [General].
+        writeFile(themes + QLatin1String("/xp-blue/xp-bluerc"),
+                  "[General]\nUseTextShadow=true\nActiveTextShadowColor=10,24,131,255\nInactiveTextShadowColor=10,24,131,255\n"
+                  "TextShadowOffsetX=1\nTextShadowOffsetY=1\n\n[X-XPLasma-Generated]\nLook=Windows XP style (Default (blue))\n");
+        writeFile(themes + QLatin1String("/plain/plainrc"),
+                  "[General]\nUseTextShadow=false\n\n[X-XPLasma-Generated]\nLook=Windows Standard\n");
+        QVERIFY2(overrides::installTitleShadows(themes, target, &error), qPrintable(error));
+        QVERIFY2(read().contains(QLatin1String(
+                     R"(property var xpTitleShadows: ({"xp-blue":{"active":"#ff0a1883","inactive":"#ff0a1883","x":1,"y":1}}))")),
+                 qPrintable(read().section(QLatin1String("xpTitleShadows"), 1, 1).left(200)));
+    }
+
     void applyAndReset()
     {
         if (m_realThemes.isEmpty() || m_realIso.isEmpty())
