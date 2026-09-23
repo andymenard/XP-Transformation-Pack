@@ -24,7 +24,7 @@ import applied_state
 import fonts_gen
 import hostexec as host
 import paths
-import widget_style
+import targets
 from apply import AURORAE_THEMES_DIR, COLOR_SCHEMES_DIR, DESKTOP_THEMES_DIR
 from start_applet import APPLET_ID, USER_PLASMOIDS
 
@@ -124,7 +124,7 @@ def reset_desktop(progress=print, remove_packages: bool = True,
     """Restore Breeze, the default panel layout and wallpaper, and undo
     xp2plasma's additions. Raises HostCommandError if Plasma's tool fails."""
     progress("Removing the XPLasma widget style and its environment hook ...")
-    widget_style.remove()
+    targets.revert(progress)
     import title_shadow
     title_shadow.remove()
     import panel_widgets

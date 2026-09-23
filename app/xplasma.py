@@ -23,6 +23,7 @@ from theme_file import (
 import applied_state
 import classic_gen
 import setup_assets
+import targets
 import widget_style
 
 STOCK_CLASSIC_THEME = None   # replaced by paths.stock_classic_theme(); see run_classic
@@ -73,7 +74,7 @@ def apply_scheme_live(scheme, name: str, *, out_dir: str | None = None, theme_fi
     apply_font_specs(scheme.caption_font, scheme.ui_font)
     if widgets:
         progress("Applying widget style ...")
-        widget_style.apply_classic_style(scheme, progress)
+        targets.apply_classic_style(scheme, progress)
     if panel_pkg:
         apply_mod.apply_desktoptheme(panel_id)
         apply_mod.apply_panel_settings(panel_height or bar_height)
@@ -163,10 +164,7 @@ def apply_msstyles_live(msstyles: str, name: str, *, theme_file: str | None = No
         # plugin (a checkout whose native/ build hasn't run) everything else in
         # the theme still applies rather than aborting half-way.
         progress("Applying widget style ...")
-        try:
-            widget_style.apply_visual_style(msstyles, ini_resource_name, progress)
-        except RuntimeError as exc:
-            progress(f"  widget style skipped: {exc}")
+        targets.apply_visual_style(msstyles, ini_resource_name, progress)
     if panel_pkg:
         apply_mod.apply_desktoptheme(panel_id)
         previous = apply_mod.apply_panel_settings(panel_height or panel_h)

@@ -654,3 +654,14 @@ show a Qt 5 tooltip offscreen).
 - *Classic's own metrics:* the plugin reads a scheme's NonclientMetrics
   (scroll bars, captions, menus, fonts); XP's thumb length rounds (MulDiv)
   where Qt's truncates; Marlett's arrows sit in the button's square.
+
+**Phase 7 — GTK machinery (done, 2026-09-23).** `xplasma-render --export
+THEME VARIANT OUTDIR` writes the resolved theme: every class, `Sub::Class`,
+part and state as a PNG at its true size (the 9-slice source), with 120/144
+DPI variants where the art differs, resolved sizing and content margins,
+the properties a CSS generator needs, and [SysMetrics], in
+`manifest.json` (Luna: 529 part states, 566 images, 2.7 MB);
+`native/tests/export_check.py` validates it for all six styles.
+`app/targets.py` is the toolkit registry: Apply and Reset walk Qt (real)
+and GTK 3 / GTK 4 (stubs that report "not yet"); one target's failure is
+reported and the rest still run.
