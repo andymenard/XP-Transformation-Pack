@@ -498,8 +498,23 @@ xp2plasma's asset library, schemes and 647 MB of downloads in place.
 | **Editor's pip PySide6** | **6.11.2** | ✔ created and drawn: this is what `xp_style.py` and `system_qt.py` existed to work around, and it's gone |
 
 The plugin needs only `Qt_6` symbols plus the `Qt_6.9` build-floor tag, and
-exports nothing but Qt's two plugin entry points. *Still open:* the portable
-build against Qt 6.6.3 / 5.15.2 official binaries (release container).
+exports nothing but Qt's two plugin entry points.
+
+**The portable build works.** Built in `containers/release.Containerfile`
+(Debian 12 plus the Qt Company's own 6.6.3 and 5.15.2):
+
+| Build | Runs on | Result |
+| --- | --- | --- |
+| Qt 6.6.3 | host 6.9.1, PySide6 6.11.2 | ✔ loads, draws, tears down cleanly |
+| Qt 5.15.2 | host 5.15.17 | ✔ after one fix (below) |
+
+The fix: official Qt 5.15 binaries export sized `operator delete`
+(`_ZdlPvm@Qt_5`), and linking Qt before libstdc++ bound the plugin to it, so
+distro Qt 5 couldn't resolve it. libstdc++ is now linked first, and
+`native/check-abi.sh` gates every release build against the whole class:
+private API, non-Qt symbols bound to Qt, extra exports, glibc > 2.34. Both
+plugins pass with a glibc floor of 2.2.5, which in practice means no floor
+at all. `native/build.sh release` is the one command.
 
 **0.5 — KDE re-creates the style on every StyleChanged, even when the name is
 unchanged.** Measured with a probe on its own `XDG_CONFIG_HOME`: unchanged

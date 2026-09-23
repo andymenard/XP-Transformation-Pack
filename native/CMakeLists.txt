@@ -35,7 +35,12 @@ add_library(xplasma MODULE
   style/plugin.cpp
   style/xplasmastyle.cpp
 )
-target_link_libraries(xplasma PRIVATE ${QT}::Widgets)
+# libstdc++ first. Link order decides which library a symbol is bound to, and
+# the Qt Company's official Qt 5.15 binaries export sized operator delete
+# (_ZdlPvm@Qt_5): linked after Qt, the plugin binds it there and then fails
+# to resolve it on every distribution's Qt 5, which doesn't. check-abi.sh
+# guards against this whole class.
+target_link_libraries(xplasma PRIVATE stdc++ ${QT}::Widgets)
 set_target_properties(xplasma PROPERTIES PREFIX "lib" OUTPUT_NAME xplasma)
 # Installs where app/widget_style.py looks for the prebuilt plugin:
 #   <prefix>/qt<N>/styles/libxplasma.so   (prefix: app/plugins in a checkout)
