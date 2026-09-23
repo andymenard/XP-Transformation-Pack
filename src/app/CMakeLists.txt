@@ -16,6 +16,10 @@ add_library(xplasma-app STATIC
   package.cpp
   colors.cpp
   decoration.cpp
+  panel.cpp
+  media.cpp
+  startbutton.cpp
+  gdifont.cpp
 )
 target_include_directories(xplasma-app PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_compile_definitions(xplasma-app PUBLIC XPLASMA_VERSION="${XPLASMA_VERSION}")

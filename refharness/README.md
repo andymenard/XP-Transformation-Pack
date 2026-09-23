@@ -29,8 +29,19 @@ part Button 1 2 75 23
 ```
 
 Outputs are prefixed `s<N>_` by style section (`s1` = the first `style` line).
+A class may be `Sub::Class` (`part Start::Button 1 1 99 32`): uxdump applies it
+the way applications do -- `SetWindowTheme(hwnd, Sub, NULL)`, then the plain
+class -- and names the files `Sub--Class`.
 
 ## What we've learned from it
+
+- A `Sub::Class` is complete before its class: XP draws `Start::Button`'s push
+  button (part 1) from `[Start::Button]`, a class-level section, rather than
+  from `[Button.PushButton]` -- not Wine's order.
+- The taskbar (Luna, 800 x 600): 30px; task buttons are `TaskBand::Toolbar`
+  buttons the full height of it (the checked frame for the active window); the
+  Start button is 99 x 32 from the bar's top (2px off the screen), the flag
+  (explorer.exe bitmap 143) at its content's left, centred.
 
 - Transport: QEMU's read-write `vvfat` crashes on the guest's first write
   ("cluster 0 used more than once"), so jobs go in on an ISO and results come

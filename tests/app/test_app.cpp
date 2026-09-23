@@ -6,6 +6,9 @@
 #include "app/adopt.h"
 #include "app/decoration.h"
 #include "app/look.h"
+#include "app/media.h"
+#include "app/panel.h"
+#include "app/startbutton.h"
 #include "app/archive.h"
 #include "app/hivedef.h"
 #include "app/host.h"
@@ -16,6 +19,8 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFontDatabase>
+#include <QGuiApplication>
 #include <QJsonDocument>
 #include <QPainter>
 #include <QTemporaryDir>
@@ -118,26 +123,37 @@ struct IsoBuilder
 // What KSvg's FrameSvg paints for `prefix` at `size`: corners at their own
 // size (the side elements' widths, the top and bottom elements' heights),
 // edges stretched (with hint-stretch-borders) or tiled, the centre too.
-QImage frameSvg(const DecorationArt &art, const QString &prefix, QSize size)
+QImage frameSvg(const QList<std::pair<QString, QImage>> &elements, const QString &prefix, QSize size)
 {
-    const QImage tl = art.element(prefix + QLatin1String("-topleft")), t = art.element(prefix + QLatin1String("-top")),
-                 tr = art.element(prefix + QLatin1String("-topright")), l = art.element(prefix + QLatin1String("-left")),
-                 r = art.element(prefix + QLatin1String("-right")), bl = art.element(prefix + QLatin1String("-bottomleft")),
-                 b = art.element(prefix + QLatin1String("-bottom")), br = art.element(prefix + QLatin1String("-bottomright"));
+    auto element = [&](const char *name) {
+        for (const auto &[id, image] : elements)
+            if (id == prefix + QLatin1String(name))
+                return image;
+        return QImage();
+    };
+    const QImage tl = element("topleft"), t = element("top"), tr = element("topright"), l = element("left"),
+                 r = element("right"), bl = element("bottomleft"), b = element("bottom"), br = element("bottomright"),
+                 c = element("center");
     bool stretch = false;
-    for (const auto &[id, image] : art.frame)
-        stretch |= id == prefix + QLatin1String("-hint-stretch-borders");
-    const int lw = l.width(), rw = r.width(), th = t.height(), bh = b.height();
+    for (const auto &e : elements)
+        stretch |= e.first == prefix + QLatin1String("hint-stretch-borders");
+    const int lw = qMax(l.width(), qMax(tl.width(), bl.width())), rw = qMax(r.width(), qMax(tr.width(), br.width()));
+    const int th = qMax(t.height(), qMax(tl.height(), tr.height())), bh = qMax(b.height(), qMax(bl.height(), br.height()));
     QImage out(size, QImage::Format_ARGB32_Premultiplied);
     out.fill(Qt::transparent);
     QPainter p(&out);
     auto edge = [&](const QImage &img, const QRect &to) {
         if (to.isEmpty())
             return;
-        if (stretch)
+        if (img.isNull())
+            return;
+        if (stretch) {
             p.drawImage(to, img.scaled(to.size(), Qt::IgnoreAspectRatio, Qt::FastTransformation));
-        else
-            p.drawTiledPixmap(to, QPixmap::fromImage(img));
+            return;
+        }
+        for (int y = to.top(); y <= to.bottom(); y += img.height())
+            for (int x = to.left(); x <= to.right(); x += img.width())
+                p.drawImage(QPoint(x, y), img, QRect(0, 0, qMin(img.width(), to.right() + 1 - x), qMin(img.height(), to.bottom() + 1 - y)));
     };
     p.drawImage(QRect(0, 0, lw, th), tl);
     p.drawImage(QRect(size.width() - rw, 0, rw, th), tr);
@@ -147,6 +163,8 @@ QImage frameSvg(const DecorationArt &art, const QString &prefix, QSize size)
     edge(b, QRect(lw, size.height() - bh, size.width() - lw - rw, bh));
     edge(l, QRect(0, th, lw, size.height() - th - bh));
     edge(r, QRect(size.width() - rw, th, rw, size.height() - th - bh));
+    if (!c.isNull())
+        edge(c, QRect(lw, th, size.width() - lw - rw, size.height() - th - bh));
     return out;
 }
 
@@ -574,7 +592,7 @@ private Q_SLOTS:
                     p.drawImage(size.width() - F, H, r.background({QStringLiteral("window"), 8, state, {}}, QSize(F, size.height() - H - F)));
                     p.drawImage(0, size.height() - F, r.background({QStringLiteral("window"), 9, state, {}}, QSize(size.width(), F)));
                 }
-                const QImage ours = frameSvg(art, active ? QStringLiteral("decoration") : QStringLiteral("decoration-inactive"), size);
+                const QImage ours = frameSvg(art.frame, active ? QStringLiteral("decoration-") : QStringLiteral("decoration-inactive-"), size);
                 const bool reference = size == QSize(800, 600);
                 int fixedDiffer = 0, worst = 0;
                 for (int y = 0; y < size.height(); ++y)
@@ -603,6 +621,109 @@ private Q_SLOTS:
             for (const auto &[state, image] : states)
                 QCOMPARE(image.size(), l.button);
         }
+    }
+
+    void panel_data()
+    {
+        QTest::addColumn<QString>("style");
+        QTest::addColumn<QString>("variant");
+        for (const char *v : {"NORMALBLUE_INI", "NORMALMETALLIC_INI", "NORMALHOMESTEAD_INI"})
+            QTest::newRow(v) << QStringLiteral("Luna/luna.msstyles") << QString::fromLatin1(v);
+        QTest::newRow("royale") << QStringLiteral("Royale/Royale.msstyles") << QString();
+        QTest::newRow("zune") << QStringLiteral("Zune/Zune.msstyles") << QString();
+        QTest::newRow("embedded") << QStringLiteral("Embedded/Embedded.msstyles") << QString();
+    }
+
+    void panel()
+    {
+        // The taskbar, laid out as KSvg does, is XP's at any width; a task
+        // button is too wherever XP doesn't stretch it.
+        if (m_realThemes.isEmpty())
+            QSKIP("no asset library on this machine");
+        QFETCH(QString, style);
+        QFETCH(QString, variant);
+        QString error;
+        const auto look = Look::fromStyle(m_realThemes + QLatin1Char('/') + style, variant, &error);
+        QVERIFY2(look, qPrintable(error));
+        const PanelArt art = panelArt(*look);
+        const Renderer &r = *look->renderer;
+        QCOMPARE(art.height, 30);
+        for (const int width : {640, 800, 1280, 1366, 1920}) {
+            const QImage xp = r.background({QStringLiteral("taskbar"), 1, 0, {}}, QSize(width, 30));
+            const QImage ours = frameSvg(art.panel, QString(), QSize(width, 30));
+            int differ = 0;
+            for (int y = 0; y < 30; ++y)
+                for (int x = 0; x < width; ++x)
+                    differ += xp.pixel(x, y) != ours.pixel(x, y);
+            QVERIFY2(differ == 0, qPrintable(QStringLiteral("bar: %1 px differ at %2").arg(differ).arg(width)));
+        }
+        const PartRef button{QStringLiteral("toolbar"), 1, 5, QStringLiteral("taskband")};
+        const QMargins m = r.margins(button, u"sizingmargins");
+        for (const int width : {60, 160, 200}) {
+            if (width <= m.left() + m.right())
+                continue;   // (narrower than its ends, XP squeezes them; FrameSvg can't)
+            const QImage xp = r.background(button, QSize(width, 30));
+            const QImage ours = frameSvg(art.tasks, QStringLiteral("focus-"), QSize(width, 30));
+            int differ = 0;
+            for (int y = 0; y < 30; ++y)
+                for (int x = 0; x < width; ++x)
+                    if (width == 160 || x < m.left() || x >= width - m.right())
+                        differ += xp.pixel(x, y) != ours.pixel(x, y);
+            QVERIFY2(differ == 0, qPrintable(QStringLiteral("task button: %1 px differ at %2").arg(differ).arg(width)));
+        }
+    }
+
+    void startFlag()
+    {
+        // The flag comes out of explorer.exe on the XP media, once.
+        QString error;
+        QVERIFY(!media::startFlag(&error));   // no media recorded yet
+        QVERIFY(error.contains(QLatin1String("media")));
+        if (m_realIso.isEmpty())
+            QSKIP("no XP ISO on this machine");
+        State state;
+        state.media = m_realIso;
+        QVERIFY(state.save());
+        const auto flag = media::startFlag(&error);
+        QVERIFY2(flag, qPrintable(error));
+        QCOMPARE(flag->size(), QSize(25, 20));
+        QVERIFY(flag->hasAlphaChannel());
+        QVERIFY(QFileInfo::exists(paths::extracted() + QLatin1String("/explorer.exe")));
+        state.media = QStringLiteral("/nowhere.iso");
+        QVERIFY(state.save());
+        QVERIFY(media::startFlag());   // cached now
+    }
+
+    void startButton()
+    {
+        if (m_realThemes.isEmpty())
+            QSKIP("no asset library on this machine");
+        const auto look = Look::fromStyle(m_realThemes + QLatin1String("/Luna/luna.msstyles"), QStringLiteral("NORMALMETALLIC_INI"));
+        QVERIFY(look);
+        QString error;
+        QVERIFY(!xpl::startButton(*look, QImage(), QStringLiteral("start"), &error));   // never without its flag
+        QVERIFY(error.contains(QLatin1String("flag")));
+
+        QImage flag(25, 20, QImage::Format_ARGB32);
+        flag.fill(qRgba(255, 0, 0, 255));
+        const auto art = xpl::startButton(*look, flag, QStringLiteral("start"), &error);
+        QVERIFY2(art, qPrintable(error));
+        // Measured on XP (Luna Silver, English): 99 x 30, the flag at (10, 5);
+        // right of the label (and its shadow), XP's own button.
+        QCOMPARE(art->normal.size(), QSize(99, 30));
+        QCOMPARE(art->normal.pixel(10, 5), qRgb(255, 0, 0));
+        QCOMPARE(art->normal.pixel(34, 24), qRgb(255, 0, 0));
+        QVERIFY(art->normal.pixel(9, 5) != qRgb(255, 0, 0));
+        const QImage xp = look->renderer->background({QStringLiteral("button"), 1, 2, QStringLiteral("start")}, QSize(99, 32));
+        for (int y = 0; y < 30; ++y)
+            for (int x = 80; x < 99; ++x)
+                QCOMPARE(art->hover.pixel(x, y), xp.pixel(x, y));
+        QVERIFY(art->pressed != art->normal);
+
+        const Look classic = Look::fromScheme(ClassicScheme());
+        const auto classicArt = xpl::startButton(classic, flag, QStringLiteral("start"), &error);
+        QVERIFY2(classicArt, qPrintable(error));
+        QCOMPARE(classicArt->normal.height(), 28);
     }
 
     // --- host programs --------------------------------------------------------
@@ -727,5 +848,14 @@ private Q_SLOTS:
     }
 };
 
-QTEST_GUILESS_MAIN(TestApp)
+int main(int argc, char **argv)
+{
+    // (Fonts need a GUI application; an offscreen one shows nothing.)
+    qputenv("QT_QPA_PLATFORM", "offscreen");
+    QGuiApplication app(argc, argv);
+    // (Loaded now, while HOME is the real one: the XP fonts live there.)
+    QFontDatabase::families();
+    TestApp test;
+    return QTest::qExec(&test, argc, argv);
+}
 #include "test_app.moc"

@@ -13,13 +13,16 @@
 #include "app/adopt.h"
 #include "app/colors.h"
 #include "app/decoration.h"
+#include "app/media.h"
+#include "app/panel.h"
+#include "app/startbutton.h"
 #include "app/library.h"
 #include "app/paths.h"
 #include "app/state.h"
 #include "core/themefile.h"
 
 #include <QCommandLineParser>
-#include <QCoreApplication>
+#include <QGuiApplication>
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
@@ -156,6 +159,24 @@ int build(const QString &spec, QString dir)
         return 1;
     }
     out() << "  decoration  " << decoration << '\n';
+    const QString panel = writePanelTheme(*look, dir + QLatin1String("/desktoptheme"), &error);
+    if (panel.isEmpty()) {
+        err() << "xplasma: " << error << Qt::endl;
+        return 1;
+    }
+    out() << "  taskbar     " << panel << '\n';
+    const auto flag = media::startFlag(&error);
+    const auto start = flag ? startButton(*look, *flag, QStringLiteral("start"), &error) : std::nullopt;
+    if (!start) {
+        err() << "xplasma: the Start button: " << error << Qt::endl;
+        return 1;
+    }
+    const QString startDir = dir + QLatin1String("/start/");
+    QDir().mkpath(startDir);
+    start->normal.save(startDir + look->id + QLatin1String("-normal.png"));
+    start->hover.save(startDir + look->id + QLatin1String("-hover.png"));
+    start->pressed.save(startDir + look->id + QLatin1String("-pressed.png"));
+    out() << "  start       " << startDir + look->id + QLatin1String("-{normal,hover,pressed}.png") << '\n';
     for (const ConfigValue &v : fontSettings(look->system))
         out() << "  font        " << v.file << " [" << v.group << "] " << v.key << '=' << v.value << '\n';
     out().flush();
@@ -166,7 +187,10 @@ int build(const QString &spec, QString dir)
 
 int main(int argc, char **argv)
 {
-    QCoreApplication app(argc, argv);
+    // (A GUI application for fonts and painting; it never shows anything.)
+    if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM"))
+        qputenv("QT_QPA_PLATFORM", "offscreen");
+    QGuiApplication app(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("xplasma"));
     QCoreApplication::setApplicationVersion(QStringLiteral(XPLASMA_VERSION));
 
