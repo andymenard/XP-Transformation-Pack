@@ -368,6 +368,19 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                 }
             }
             break;
+        case CE_ComboBoxLabel:
+            if (const auto *combo = qstyleoption_cast<const QStyleOptionComboBox *>(option)) {
+                if (!combo->editable && hasPart({QStringLiteral("combobox"), 1, 1, {}})) {
+                    // QCommonStyle insets the label 1px into the field; XP
+                    // draws it at the field's edge.
+                    painter->save();
+                    painter->translate(-1, 0);
+                    QProxyStyle::drawControl(element, option, painter, widget);
+                    painter->restore();
+                    return;
+                }
+            }
+            break;
         case CE_TabBarTabLabel:
             if (const auto *tab = qstyleoption_cast<const QStyleOptionTab *>(option)) {
                 if (hasPart({QStringLiteral("tab"), 1, 1, {}})
@@ -1025,9 +1038,13 @@ QRect XPLasmaStyle::subControlRect(ComplexControl control, const QStyleOptionCom
             const QRect arrow(r.right() - w, r.top() + 1, w, r.height() - 2);
             if (sub == SC_ComboBoxArrow)
                 return visualRect(combo->direction, r, arrow);
-            if (sub == SC_ComboBoxEditField)
+            if (sub == SC_ComboBoxEditField) {
+                // An editable combo's line edit sits 1px further in and up,
+                // so its text lands where XP's does.
+                const int dx = combo->editable ? 4 : 3, dy = combo->editable ? 2 : 3;
                 return visualRect(combo->direction, r,
-                                  QRect(r.left() + 3, r.top() + 3, arrow.left() - 2 - (r.left() + 3), r.height() - 6));
+                                  QRect(r.left() + dx, r.top() + dy, arrow.left() - 2 - (r.left() + dx), r.height() - 6));
+            }
         }
     }
     return QProxyStyle::subControlRect(control, option, sub, widget);
