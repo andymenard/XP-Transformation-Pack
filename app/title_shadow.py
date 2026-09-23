@@ -51,7 +51,7 @@ def theme_shadows(themes_dir: str) -> dict:
     shadows = {}
     for package in Path(themes_dir).iterdir():
         metadata = package / "metadata.desktop"
-        if not metadata.is_file() or "xp2plasma" not in metadata.read_text():
+        if not metadata.is_file() or not any(m in metadata.read_text() for m in ("XPLasma", "xp2plasma")):
             continue
         cp = configparser.ConfigParser(interpolation=None)
         cp.read(package / f"{package.name}rc")

@@ -451,7 +451,7 @@ class JobRunner:
         if self.cancelling:
             return True
         if ask and QMessageBox.question(
-                self._parent, "xp2plasma Setup", question,
+                self._parent, "XPLasma Setup", question,
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No) != QMessageBox.Yes:
             return False
         self._cancel.set()

@@ -52,7 +52,7 @@ def executable(name: str) -> str | None:
         raise RuntimeError(f"Invalid bundled {name} checksum")
     source = directory / name
     if not _verified(source, digest) or not os.access(source, os.X_OK):
-        raise RuntimeError(f"Bundled {name} is missing or damaged; reinstall xp2plasma")
+        raise RuntimeError(f"Bundled {name} is missing or damaged; reinstall XPLasma")
     return str(source)
 
 

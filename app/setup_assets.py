@@ -508,7 +508,7 @@ INSTALL_DOWNLOADS = (ISO_DOWNLOAD, *(pack for pack in DOWNLOADS
 
 _METADATA = "https://archive.org/metadata/{item}"
 _DOWNLOAD = "https://archive.org/download/{item}/{file}"
-_UA = {"User-Agent": "xp2plasma (KDE theme converter)"}
+_UA = {"User-Agent": "XPLasma (KDE theme converter)"}
 
 
 def _http_json(url: str):

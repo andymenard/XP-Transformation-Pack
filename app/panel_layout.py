@@ -141,10 +141,10 @@ def set_start_icon(start_icon: str, start_applet: str = "org.kde.plasma.kickoff"
 var n = 0;
 panels().forEach(function (p) {{
   p.widgets().forEach(function (w) {{
-    if (w.type === {json.dumps(start_applet)} || w.type === 'org.kde.plasma.kickoff') {{
+    if (w.type === {json.dumps(start_applet)} || w.type === 'org.kde.plasma.kickoff' || w.type === 'org.xp2plasma.start') {{
       w.currentConfigGroup = ['General'];
-      var cur = w.readConfig('icon', '');
-      if (String(cur).indexOf('/xp2plasma/start-') !== -1 || w.type === {json.dumps(start_applet)}) {{
+      var cur = String(w.readConfig('icon', ''));
+      if (cur.indexOf('/xplasma/start-') !== -1 || cur.indexOf('/xp2plasma/start-') !== -1 || w.type !== 'org.kde.plasma.kickoff') {{
         w.writeConfig('icon', {icon_js}); n++;
       }}
     }}
@@ -168,6 +168,7 @@ def apply_xp_layout(start_icon: str | None, start_applet: str = "org.kde.plasma.
 var log = [];
 var result = [];
 var START = {json.dumps(start_applet)};
+var LEGACY = 'org.xp2plasma.start';
 var KICKOFF_KEYS = ['favorites', 'systemFavorites', 'primaryActions', 'favoritesPortedToKAstats',
                     'systemApplications', 'paneSwap', 'favoritesDisplay', 'applicationsDisplay',
                     'alphaSort', 'pin', 'showActionButtonCaptions', 'compactMode'];
@@ -180,11 +181,13 @@ for (var i = 0; i < ps.length; i++) {{
   for (var j = 0; j < ws.length; j++) {{ (byType[ws[j].type] = byType[ws[j].type] || []).push(ws[j]); }}
 
   // 1. Start button: the launcher applet (stock Kickoff, or our forked
-  //    org.xp2plasma.start with hover/pressed pill states) with the XP pill
-  //    as its icon. When switching to the fork, carry Kickoff's favorites
-  //    and settings over and drop the stock one.
+  //    fyi.hotsocket.xplasma.start with hover/pressed pill states) with the
+  //    XP pill as its icon. When switching to the fork, carry the old
+  //    launcher's favorites and settings over and drop it -- stock Kickoff,
+  //    or xp2plasma's fork (org.xp2plasma.start), whose settings win.
   var kickoff = (byType[START] || [])[0];
-  var stock = (byType['org.kde.plasma.kickoff'] || [])[0];
+  var legacy = (START !== LEGACY) ? (byType[LEGACY] || [])[0] : null;
+  var stock = legacy || (byType['org.kde.plasma.kickoff'] || [])[0];
   if (!kickoff) {{
     kickoff = p.addWidget(START);
     if (!kickoff) {{ log.push('could not add ' + START + ' (package not discovered yet?)'); continue; }}
@@ -202,7 +205,9 @@ for (var i = 0; i < ps.length; i++) {{
   [icontasks, (START !== 'org.kde.plasma.kickoff') ? stock : null]
     .concat(byType['org.kde.plasma.pager'] || [], byType['org.kde.plasma.showdesktop'] || [])
     .forEach(function (w) {{ if (w) removed[w.id] = true; }});
-  if (stock && START !== 'org.kde.plasma.kickoff') {{ stock.remove(); log.push('stock Kickoff removed'); }}
+  if (stock && START !== 'org.kde.plasma.kickoff') {{ stock.remove(); log.push(stock === legacy ? 'xp2plasma Start removed' : 'stock Kickoff removed'); }}
+  var extra = (START !== 'org.kde.plasma.kickoff' && legacy) ? (byType['org.kde.plasma.kickoff'] || [])[0] : null;
+  if (extra) {{ removed[extra.id] = true; extra.remove(); log.push('stock Kickoff removed'); }}
   kickoff.currentConfigGroup = ['General'];
   if ({icon_js} !== null) {{ kickoff.writeConfig('icon', {icon_js}); kickoff.writeConfig('menuLabel', ''); log.push('start icon set'); }}
 

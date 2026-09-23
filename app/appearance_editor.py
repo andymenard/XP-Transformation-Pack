@@ -680,7 +680,7 @@ class ThemeRow:
 class SetupDialog(QDialog):
     """Fetch the assets a fresh machine needs.
 
-    Nothing Microsoft-copyrighted ships with xp2plasma, so a new install can
+    Nothing Microsoft-copyrighted ships with XPLasma, so a new install can
     only theme anything once it has the user's XP media or a downloaded theme
     pack. Both routes are offered here, each a job run through a
     setup_ui.JobRunner: a step-by-step check-mark list with the raw output
@@ -696,7 +696,7 @@ class SetupDialog(QDialog):
 
         layout = QVBoxLayout(self)
         intro = QLabel(
-            "xp2plasma doesn't include the Windows XP artwork, styles or fonts -- they're "
+            "XPLasma doesn't include the Windows XP artwork, styles or fonts -- they're "
             "Microsoft's. Point it at install media you already have, or fetch the theme "
             "packs from archive.org.")
         intro.setWordWrap(True)
@@ -1036,7 +1036,7 @@ class AppearanceEditor(QDialog):
         self.customize_btn.setEnabled(False)
         self.customize_btn.setToolTip(
             "Desktop Items (My Documents, My Computer, My Network Places) are not "
-            "part of xp2plasma.")
+            "part of XPLasma.")
         content.addWidget(self.customize_btn, alignment=Qt.AlignLeft)
         content.addStretch(1)
         return page
@@ -1167,7 +1167,7 @@ class AppearanceEditor(QDialog):
         grid.addWidget(self.colour_combo, 3, 0)
         self.effects_btn = QPushButton("Effects...")
         self.effects_btn.setEnabled(False)
-        self.effects_btn.setToolTip("Visual effects are not part of xp2plasma.")
+        self.effects_btn.setToolTip("Visual effects are not part of XPLasma.")
         grid.addWidget(self.effects_btn, 3, 2)
 
         self.fontsize_combo = QComboBox()
@@ -1729,7 +1729,7 @@ class AppearanceEditor(QDialog):
             self._set_status(f"{row.label}: the preset's visual style could not be found.")
             return None
         if not entry.supported:
-            self._set_status(f"{row.label} is a Vista-format .msstyles; xp2plasma "
+            self._set_status(f"{row.label} is a Vista-format .msstyles; XPLasma "
                                 "can't read it.")
             return None
         style = entry.style_path
@@ -1873,7 +1873,9 @@ def main(argv: list[str] | None = None) -> int:
     shot = opt("--screenshot")
 
     # Never hand our own flags to Qt: it would read them as its arguments.
-    app = QApplication.instance() or QApplication(["xp2plasma-edit"])
+    app = QApplication.instance() or QApplication(["xplasma-edit"])
+    # (The launcher's name: Plasma matches the window to its entry and icon.)
+    app.setDesktopFileName("fyi.hotsocket.xplasma")
     setup_ui.apply_system_theme(app)
     win = AppearanceEditor()
 

@@ -31,7 +31,9 @@ from start_applet import APPLET_ID, USER_PLASMOIDS
 LOOK_AND_FEEL = "org.kde.breeze.desktop"
 _LNF_DIRS = ("/usr/share/plasma/look-and-feel", "/usr/local/share/plasma/look-and-feel")
 _WALLPAPER_DIRS = ("/usr/share/wallpapers", "/usr/local/share/wallpapers")
-MARKER = "xp2plasma"          # what every generated package carries in its metadata
+# What every generated package carries in its metadata: XPLasma's, and
+# xp2plasma's for packages its predecessor generated.
+MARKERS = ("XPLasma", "xp2plasma")
 
 
 def _lnf_defaults(package: str) -> dict[str, str]:
@@ -83,14 +85,15 @@ def _set_wallpaper_all_desktops(path: str) -> None:
 def _ours(metadata_path: str) -> bool:
     try:
         with open(metadata_path, encoding="utf-8", errors="replace") as fh:
-            return MARKER in fh.read()
+            text = fh.read()
+        return any(marker in text for marker in MARKERS)
     except OSError:
         return False
 
 
 def remove_generated_packages(progress=print) -> int:
-    """Delete the theme packages xp2plasma generated -- and only those: each
-    one carries the marker in its metadata, a user's own packages do not."""
+    """Delete the theme packages XPLasma (or xp2plasma) generated -- and only
+    those: each carries a marker in its metadata, a user's own packages do not."""
     removed = 0
     import xp_icons
     removed += int(xp_icons.remove_theme())

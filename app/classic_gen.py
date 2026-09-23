@@ -525,8 +525,8 @@ def build_panel_theme(s: Scheme, out_dir: str, name: str) -> tuple[str, int]:
     with open(os.path.join(pkg, "colors"), "w", encoding="utf-8") as f:
         f.write("\n".join(colors))
 
-    meta = {"KPlugin": {"Id": plugin_id, "Name": f"{name} (taskbar)", "Description": "Windows Classic taskbar by xp2plasma",
-                        "Authors": [{"Name": "xp2plasma"}], "Version": "1.0", "License": "Unknown"},
+    meta = {"KPlugin": {"Id": plugin_id, "Name": f"{name} (taskbar)", "Description": "Windows Classic taskbar by XPLasma",
+                        "Authors": [{"Name": "XPLasma"}], "Version": "1.0", "License": "Unknown"},
             "X-Plasma-API": "5.0"}
     with open(os.path.join(pkg, "metadata.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, indent=2)

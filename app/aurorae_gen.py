@@ -547,9 +547,9 @@ def build_button_svg(theme: MsStyle, part: str) -> str | None:
 
 METADATA_DESKTOP = """[Desktop Entry]
 Name={name}
-Comment=Ported from the Windows XP visual style "{name}" by xp2plasma
+Comment=Ported from the Windows XP visual style "{name}" by XPLasma
 X-KDE-PluginInfo-Name={plugin_id}
-X-KDE-PluginInfo-Author=xp2plasma
+X-KDE-PluginInfo-Author=XPLasma
 X-KDE-PluginInfo-Version=1.0
 X-KDE-PluginInfo-License=Unknown
 """
@@ -557,7 +557,7 @@ X-KDE-PluginInfo-License=Unknown
 METADATA_JSON = {
     "KPackageStructure": "Aurorae",
     "KPlugin": {
-        "Authors": [{"Name": "xp2plasma"}],
+        "Authors": [{"Name": "XPLasma"}],
         "Id": "",
         "Name": "",
         "Version": "1.0",
