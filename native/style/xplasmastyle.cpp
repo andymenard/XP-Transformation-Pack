@@ -229,8 +229,18 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
                     return;
                 }
             }
-            if (drawPart(painter, {QStringLiteral("edit"), 1, state, {}}, option->rect))
+            if (drawPart(painter, {QStringLiteral("edit"), 1, state, {}}, option->rect)) {
+                // The theme draws the border; the control fills its inside,
+                // in the button face when disabled or read-only (as XP's
+                // WM_CTLCOLORSTATIC does), in the window colour otherwise.
+                if (element == PE_PanelLineEdit) {
+                    const QRect inside = m_renderer->contentRect({QStringLiteral("edit"), 1, state, {}}, option->rect);
+                    const bool face = state == Disabled || state == 6;
+                    painter->fillRect(inside, option->palette.brush(face ? QPalette::Disabled : QPalette::Active,
+                                                                     face ? QPalette::Window : QPalette::Base));
+                }
                 return;
+            }
             break;
         }
         case PE_PanelButtonTool: {
@@ -546,6 +556,9 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
                 return metric == PM_SliderLength ? s.width() : s.height() + 4;
             break;
         }
+        case PM_CheckBoxLabelSpacing:
+        case PM_RadioButtonLabelSpacing:
+            return 3;   // XP: a 13px box, then the label at x = 16
         case PM_ButtonShiftHorizontal:
         case PM_ButtonShiftVertical:
             return 0;   // XP's pressed buttons keep their label still

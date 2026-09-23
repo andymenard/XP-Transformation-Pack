@@ -11,6 +11,14 @@
  *   style  -   -- use whatever style is applied to the session
  *   part   <Class> <partId> <stateId> <width> <height>
  *          -- draw it and record uxtheme's metrics for it
+ *   control <kind> <w> <h> <state> [label ...]
+ *          -- a real common control (comctl32 v6, so themed by the *applied*
+ *             style), at w x h on a button-face background, captured with
+ *             WM_PRINT: control_<kind>_<state>_<w>x<h>.bmp. Kinds: push,
+ *             default, check, check-on, check-mixed, radio, radio-on, group,
+ *             edit, combo, combo-edit, progress:<0-100>, trackbar:<0-100>,
+ *             tabs, hscroll, vscroll. States: normal, disabled, focused,
+ *             pressed (BM_SETSTATE). Font: the theme's message font.
  *   bitmap C:\path\file.bmp
  *          -- GDI as the oracle for DIB decoding: load the file, blit it into
  *             a 32bpp DIB as-is (bitmap_<name>_plain), then through
@@ -43,6 +51,7 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <uxtheme.h>
+#include <commctrl.h>
 
 WINGDIAPI BOOL WINAPI GdiTransparentBlt(HDC, int, int, int, int, HDC, int, int, int, int, UINT);
 
@@ -269,6 +278,140 @@ static void do_bitmap(const wchar_t *file, const wchar_t *outdir)
     DeleteObject(src);
 }
 
+static LRESULT CALLBACK host_proc(HWND w, UINT m, WPARAM wp, LPARAM lp)
+{
+    return DefWindowProcW(w, m, wp, lp);
+}
+
+static int to_int(const wchar_t *s);
+static int wcsncmp_(const wchar_t *s, const wchar_t *prefix);
+
+/* A control, captured the way it paints itself into a parent: parent
+ * background (button face) first, then the control via WM_PRINT. */
+static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
+{
+    static int registered;
+    const wchar_t *kind = tok[1];
+    const int w = to_int(tok[2]), h = to_int(tok[3]);
+    const wchar_t *state = tok[4];
+    wchar_t label[256], path[MAX_PATH];
+    const wchar_t *cls = L"BUTTON";
+    DWORD style = WS_CHILD | WS_VISIBLE;
+    int value = -1, i;
+    const wchar_t *colon;
+    HWND host, ctl;
+    NONCLIENTMETRICSW ncm;
+    HFONT font;
+    void *bits;
+    HBITMAP bmp;
+    HDC dc;
+    RECT rc;
+
+    label[0] = 0;
+    for (i = 5; i < n; i++) {
+        if (i > 5) lstrcatW(label, L" ");
+        lstrcatW(label, tok[i]);
+    }
+    colon = kind;
+    while (*colon && *colon != L':') colon++;
+    if (*colon) value = to_int(colon + 1);
+
+    if (!registered) {
+        WNDCLASSW wc;
+        INITCOMMONCONTROLSEX icc;
+        ZeroMemory(&wc, sizeof wc);
+        wc.lpfnWndProc = host_proc;
+        wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
+        wc.lpszClassName = L"UxdumpHost";
+        RegisterClassW(&wc);
+        icc.dwSize = sizeof icc;
+        icc.dwICC = ICC_WIN95_CLASSES | ICC_STANDARD_CLASSES;
+        InitCommonControlsEx(&icc);
+        registered = 1;
+    }
+    if (!wcsncmp_(kind, L"push")) style |= BS_PUSHBUTTON;
+    else if (!wcsncmp_(kind, L"default")) style |= BS_DEFPUSHBUTTON;
+    else if (!wcsncmp_(kind, L"check")) style |= BS_AUTO3STATE;
+    else if (!wcsncmp_(kind, L"radio")) style |= BS_AUTORADIOBUTTON;
+    else if (!wcsncmp_(kind, L"group")) style |= BS_GROUPBOX;
+    else if (!wcsncmp_(kind, L"edit")) { cls = L"EDIT"; style |= ES_AUTOHSCROLL; }
+    else if (!wcsncmp_(kind, L"combo-edit")) { cls = L"COMBOBOX"; style |= CBS_DROPDOWN; }
+    else if (!wcsncmp_(kind, L"combo")) { cls = L"COMBOBOX"; style |= CBS_DROPDOWNLIST; }
+    else if (!wcsncmp_(kind, L"progress")) { cls = PROGRESS_CLASSW; }
+    else if (!wcsncmp_(kind, L"trackbar")) { cls = TRACKBAR_CLASSW; style |= TBS_AUTOTICKS | TBS_BOTTOM; }
+    else if (!wcsncmp_(kind, L"tabs")) { cls = WC_TABCONTROLW; }
+    else if (!wcsncmp_(kind, L"hscroll")) { cls = L"SCROLLBAR"; style |= SBS_HORZ; }
+    else if (!wcsncmp_(kind, L"vscroll")) { cls = L"SCROLLBAR"; style |= SBS_VERT; }
+    else { out(L"control %s error=unknown-kind\r\n", kind); return; }
+
+    host = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, L"UxdumpHost", L"", WS_POPUP | WS_VISIBLE, 40, 40, w, h,
+                           NULL, NULL, NULL, NULL);
+    ctl = CreateWindowExW(!lstrcmpW(cls, L"EDIT") ? WS_EX_CLIENTEDGE : 0, cls,
+                          lstrcmpW(cls, L"COMBOBOX") ? label : L"", style, 0, 0, w,
+                          !lstrcmpW(cls, L"COMBOBOX") ? h + 100 : h, host, (HMENU)1, NULL, NULL);
+    ncm.cbSize = sizeof ncm;
+    SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof ncm, &ncm, 0);
+    font = CreateFontIndirectW(&ncm.lfMessageFont);
+    SendMessageW(ctl, WM_SETFONT, (WPARAM)font, TRUE);
+    if (!lstrcmpW(cls, L"COMBOBOX")) {
+        SendMessageW(ctl, CB_ADDSTRING, 0, (LPARAM)label);
+        SendMessageW(ctl, CB_SETCURSEL, 0, 0);
+    }
+    if (!wcsncmp_(kind, L"check-on") || !wcsncmp_(kind, L"radio-on")) SendMessageW(ctl, BM_SETCHECK, BST_CHECKED, 0);
+    if (!wcsncmp_(kind, L"check-mixed")) SendMessageW(ctl, BM_SETCHECK, BST_INDETERMINATE, 0);
+    if (!wcsncmp_(kind, L"progress")) { SendMessageW(ctl, PBM_SETRANGE32, 0, 100); SendMessageW(ctl, PBM_SETPOS, value, 0); }
+    if (!wcsncmp_(kind, L"trackbar")) { SendMessageW(ctl, TBM_SETRANGE, TRUE, MAKELONG(0, 100)); SendMessageW(ctl, TBM_SETTICFREQ, 10, 0); SendMessageW(ctl, TBM_SETPOS, TRUE, value); }
+    if (!wcsncmp_(kind, L"tabs")) {
+        TCITEMW item;
+        const wchar_t *names[] = {L"General", L"Appearance", L"Advanced"};
+        for (i = 0; i < 3; i++) {
+            item.mask = TCIF_TEXT;
+            item.pszText = (wchar_t *)names[i];
+            SendMessageW(ctl, TCM_INSERTITEMW, i, (LPARAM)&item);
+        }
+    }
+    if (!wcsncmp_(kind, L"hscroll") || !wcsncmp_(kind, L"vscroll")) {
+        SCROLLINFO si;
+        si.cbSize = sizeof si; si.fMask = SIF_ALL; si.nMin = 0; si.nMax = 100; si.nPage = 10; si.nPos = 30; si.nTrackPos = 0;
+        SetScrollInfo(ctl, SB_CTL, &si, TRUE);
+    }
+    if (!lstrcmpW(state, L"disabled")) EnableWindow(ctl, FALSE);
+    if (!lstrcmpW(state, L"focused")) SetFocus(ctl);
+    if (!lstrcmpW(state, L"pressed")) SendMessageW(ctl, BM_SETSTATE, TRUE, 0);
+    /* Keep the pointer well away: a hot control isn't a normal one. */
+    SetCursorPos(700, 560);
+    UpdateWindow(host);
+    {
+        /* Let it finish painting (and any animation), pumping messages. */
+        DWORD until = GetTickCount() + 250;
+        MSG msg;
+        while (GetTickCount() < until) {
+            while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) { TranslateMessage(&msg); DispatchMessageW(&msg); }
+            Sleep(10);
+        }
+    }
+
+    /* Grab the screen, not WM_PRINT: WM_PRINT's non-client pass is the
+     * classic one (an Edit's border came back 3D), while the screen shows
+     * what uxtheme actually painted. */
+    dc = canvas(w, h, GetSysColor(COLOR_BTNFACE), &bits, &bmp);
+    SetRect(&rc, 0, 0, w, h);
+    {
+        HDC screen = GetDC(NULL);
+        BitBlt(dc, 0, 0, w, h, screen, 40, 40, SRCCOPY);
+        ReleaseDC(NULL, screen);
+    }
+    GdiFlush();
+    wsprintfW(path, L"%s\\control_%s_%s_%dx%d.bmp", outdir, kind, state, w, h);
+    for (i = 0; path[i]; i++) if (path[i] == L':' && i > 2) path[i] = L'-';
+    write_bmp(path, (const DWORD *)bits, w, h);
+    out(L"control %s %s %d %d face=%lu\r\n", kind, state, w, h, (unsigned long)GetSysColor(COLOR_BTNFACE));
+    DeleteDC(dc);
+    DeleteObject(bmp);
+    DestroyWindow(host);
+    DeleteObject(font);
+}
+
 static int do_style(const wchar_t *file, const wchar_t *colour, const wchar_t *size)
 {
     HRESULT hr;
@@ -297,6 +440,13 @@ static int do_style(const wchar_t *file, const wchar_t *colour, const wchar_t *s
 }
 
 /* --- job parsing: whitespace-separated tokens, one directive per line ---- */
+
+static int wcsncmp_(const wchar_t *s, const wchar_t *prefix)
+{
+    while (*prefix)
+        if (*s++ != *prefix++) return 1;
+    return 0;
+}
 
 static int is_space(wchar_t c) { return c == L' ' || c == L'\t' || c == L'\r'; }
 
@@ -368,6 +518,8 @@ static int run(int argc, wchar_t **argv)
             continue;
         if (lstrcmpW(tok[0], L"part") == 0 && n == 6) {
             do_part(tok[1], to_int(tok[2]), to_int(tok[3]), to_int(tok[4]), to_int(tok[5]), argv[2]);
+        } else if (lstrcmpW(tok[0], L"control") == 0 && n >= 5) {
+            do_control(tok, n, argv[2]);
         } else if (lstrcmpW(tok[0], L"bitmap") == 0 && n >= 2) {
             int i;
             for (i = 2; i < n; i++)

@@ -1,11 +1,19 @@
 // xplasma-gallery: every control XPLasma themes, in its interesting states.
 //
 //   xplasma-gallery [--style NAME] [--out FILE.png]
+//   xplasma-gallery --controls JOB OUTDIR [--style NAME]
+//
+// --controls reads uxdump's `control` lines and grabs the same Qt widget at
+// the same size into OUTDIR/control_<kind>_<state>_<w>x<h>.png, for
+// native/tests/controls_compare.py to hold against XP's own.
 //
 // The same layout as refharness's refdialog.exe (the Win32 twin, drawn by
 // real XP), so the two can be compared side by side. With --out it renders
 // once, offscreen-friendly, and exits.
 #include <QApplication>
+#include <QDir>
+#include <QFile>
+#include <QTextStream>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QGridLayout>
@@ -16,6 +24,7 @@
 #include <QProgressBar>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QAbstractButton>
 #include <QScrollBar>
 #include <QSlider>
 #include <QSpinBox>
@@ -26,21 +35,130 @@
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
+static QWidget *controlFor(const QString &kind, const QString &label)
+{
+    const QString base = kind.section(QLatin1Char(':'), 0, 0);
+    const int value = kind.section(QLatin1Char(':'), 1).toInt();
+    if (base == QLatin1String("push") || base == QLatin1String("default")) {
+        auto *b = new QPushButton(label);
+        b->setDefault(base == QLatin1String("default"));
+        return b;
+    }
+    if (base.startsWith(QLatin1String("check"))) {
+        auto *c = new QCheckBox(label);
+        c->setTristate(true);
+        c->setCheckState(base == QLatin1String("check-on") ? Qt::Checked
+                         : base == QLatin1String("check-mixed") ? Qt::PartiallyChecked : Qt::Unchecked);
+        return c;
+    }
+    if (base.startsWith(QLatin1String("radio"))) {
+        auto *r = new QRadioButton(label);
+        r->setChecked(base == QLatin1String("radio-on"));
+        return r;
+    }
+    if (base == QLatin1String("group"))
+        return new QGroupBox(label);
+    if (base == QLatin1String("edit"))
+        return new QLineEdit(label);
+    if (base == QLatin1String("combo") || base == QLatin1String("combo-edit")) {
+        auto *c = new QComboBox;
+        c->setEditable(base == QLatin1String("combo-edit"));
+        c->addItem(label);
+        return c;
+    }
+    if (base == QLatin1String("progress")) {
+        auto *p = new QProgressBar;
+        p->setValue(value);
+        p->setTextVisible(false);   // XP's progress control has no label
+        return p;
+    }
+    if (base == QLatin1String("trackbar")) {
+        auto *t = new QSlider(Qt::Horizontal);
+        t->setRange(0, 100);
+        t->setTickInterval(10);
+        t->setTickPosition(QSlider::TicksBelow);
+        t->setValue(value);
+        return t;
+    }
+    if (base == QLatin1String("tabs")) {
+        auto *t = new QTabWidget;
+        for (const char *name : {"General", "Appearance", "Advanced"})
+            t->addTab(new QWidget, QString::fromLatin1(name));
+        return t;
+    }
+    if (base == QLatin1String("hscroll") || base == QLatin1String("vscroll")) {
+        auto *s = new QScrollBar(base == QLatin1String("hscroll") ? Qt::Horizontal : Qt::Vertical);
+        s->setRange(0, 91);   // XP: nMin 0, nMax 100, nPage 10
+        s->setPageStep(10);
+        s->setValue(30);
+        return s;
+    }
+    return nullptr;
+}
+
+static int controls(const QString &jobPath, const QString &outdir)
+{
+    QFile job(jobPath);
+    if (!job.open(QIODevice::ReadOnly | QIODevice::Text))
+        return 2;
+    QDir().mkpath(outdir);
+    while (!job.atEnd()) {
+        const QStringList t = QString::fromUtf8(job.readLine()).trimmed().split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (t.size() < 5 || t.first() != QLatin1String("control"))
+            continue;
+        const QString kind = t.at(1), state = t.at(4), label = t.mid(5).join(QLatin1Char(' '));
+        const QSize size(t.at(2).toInt(), t.at(3).toInt());
+        QWidget host;
+        host.setAutoFillBackground(true);
+        host.setFixedSize(size);
+        QWidget *w = controlFor(kind, label);
+        if (!w)
+            continue;
+        w->setParent(&host);
+        w->setGeometry(QRect(QPoint(0, 0), size));
+        w->setEnabled(state != QLatin1String("disabled"));
+        // Offscreen, the pointer sits over the widget: no hover unless asked,
+        // and no focus unless asked (the first widget would otherwise take it).
+        w->setAttribute(Qt::WA_Hover, false);
+        if (state != QLatin1String("focused"))
+            w->setFocusPolicy(Qt::NoFocus);
+        host.move(400, 400);      // away from the offscreen pointer at (0, 0)
+        host.show();
+        if (state == QLatin1String("focused"))
+            w->setFocus();
+        if (state == QLatin1String("pressed"))
+            if (auto *b = qobject_cast<QAbstractButton *>(w))
+                b->setDown(true);
+        QApplication::processEvents();
+        QString name = QStringLiteral("%1/control_%2_%3_%4x%5.png").arg(outdir, kind, state).arg(size.width()).arg(size.height());
+        name.replace(QLatin1Char(':'), QLatin1Char('-'));
+        name.replace(QStringLiteral("/control_"), QStringLiteral("/control_"));
+        host.grab().save(name);
+    }
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
-    QString styleName = QStringLiteral("XPLasma"), out;
+    QString styleName = QStringLiteral("XPLasma"), out, controlsJob, controlsOut;
     const QStringList args = app.arguments();
     for (int i = 1; i + 1 < args.size(); ++i) {
         if (args[i] == QLatin1String("--style"))
             styleName = args[++i];
         else if (args[i] == QLatin1String("--out"))
             out = args[++i];
+        else if (args[i] == QLatin1String("--controls") && i + 2 < args.size()) {
+            controlsJob = args[++i];
+            controlsOut = args[++i];
+        }
     }
     if (QStyle *style = QStyleFactory::create(styleName))
         app.setStyle(style);
     app.setPalette(app.style()->standardPalette());
     app.setFont(QFont(QStringLiteral("Tahoma"), 8));
+    if (!controlsJob.isEmpty())
+        return controls(controlsJob, controlsOut);
 
     QWidget window;
     window.setWindowTitle(QStringLiteral("XPLasma gallery"));

@@ -50,3 +50,9 @@ Each says where it came from, so it can be picked up without re-deriving it.
 - **`test_native_buttons`, `test_native_combos` and `test_native_startmenu`
   still target kvantum-xp.** They are the first parity gates for the XPLasma
   style and are re-pointed at it in Phase 3; until then they are not run.
+- **Screenshots of the live desktop failed while the user was away**
+  (2026-09-23): `spectacle -b -n -f -o FILE` exits 0 and writes nothing,
+  although the session isn't locked and the panel output is enabled. It
+  worked at 01:44 the same day. Live-app checks (Dolphin with the XPLasma
+  style) wait for the user, or for a headless nested KWin; the gallery and
+  the control oracle cover the style meanwhile.
