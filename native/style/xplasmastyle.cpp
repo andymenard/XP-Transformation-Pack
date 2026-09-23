@@ -368,6 +368,20 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                 }
             }
             break;
+        case CE_HeaderLabel:
+            if (const auto *header = qstyleoption_cast<const QStyleOptionHeader *>(option)) {
+                if (hasPart({QStringLiteral("header"), 1, Normal, {}})) {
+                    // QCommonStyle insets the label by PM_HeaderMargin on every
+                    // side through a non-proxied call, which clips a 20px
+                    // header's text to 2px. XP's margin is horizontal only.
+                    const int m = proxy()->pixelMetric(PM_HeaderMargin, option, widget);
+                    QStyleOptionHeader copy(*header);
+                    copy.rect = header->rect.adjusted(0, -m, 0, m);
+                    QProxyStyle::drawControl(element, &copy, painter, widget);
+                    return;
+                }
+            }
+            break;
         case CE_ComboBoxLabel:
             if (const auto *combo = qstyleoption_cast<const QStyleOptionComboBox *>(option)) {
                 if (!combo->editable && hasPart({QStringLiteral("combobox"), 1, 1, {}})) {
@@ -794,6 +808,12 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
             return QRect(r.left() + 4, r.top() + 3, qMax(0, r.width() - 8), qMin(line, qMax(0, r.height() - 3)));
         }
     }
+    if (m_renderer && element == SE_HeaderLabel && hasPart({QStringLiteral("header"), 1, Normal, {}})) {
+        // The header margin is horizontal only (QCommonStyle would take it
+        // off the height too, clipping the label).
+        const int m = proxy()->pixelMetric(PM_HeaderMargin, option, widget);
+        return option->rect.adjusted(m, 0, -m, 0);
+    }
     if (m_renderer && element == SE_ItemViewItemText && itemRowExtra(widget) == 0) {
         // XP's list box draws its labels 1px lower within their row.
         return QProxyStyle::subElementRect(element, option, widget).translated(0, 1);
@@ -832,11 +852,16 @@ QString XPLasmaStyle::frameClass(const QWidget *widget) const
 {
     if (!widget || !m_renderer)
         return QString();
+    // The same reading as itemRowExtra(): a tree with a decorated root is a
+    // TreeView, an undecorated tree or a table is a report-style ListView,
+    // a plain list a ListBox.
     QString cls;
     if (widget->inherits("QTreeView"))
-        cls = QStringLiteral("treeview");
-    else if (widget->inherits("QListView") || widget->inherits("QTableView") || widget->inherits("QColumnView"))
+        cls = widget->property("rootIsDecorated").toBool() ? QStringLiteral("treeview") : QStringLiteral("listview");
+    else if (widget->inherits("QTableView") || widget->inherits("QColumnView"))
         cls = QStringLiteral("listview");
+    else if (widget->inherits("QListView"))
+        cls = QStringLiteral("listbox");
     else if (widget->inherits("QTextEdit") || widget->inherits("QPlainTextEdit"))
         cls = QStringLiteral("edit");
     if (cls.isEmpty() || !hasPart({cls, cls == QLatin1String("edit") ? 1 : 0, Normal, {}}))
