@@ -3,6 +3,7 @@
 #include "core/schema.h"
 
 #include <QAbstractButton>
+#include <QAbstractItemView>
 #include <QApplication>
 #include <QComboBox>
 #include <QDir>
@@ -204,20 +205,9 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             break;
         }
         case PE_IndicatorBranch:
-            // Lines from the classic base (XP draws them the same dotted way),
-            // then the themed expand box: TVP_GLYPH, closed or opened.
-            if (option->state & State_Children) {
-                const PartRef glyph{QStringLiteral("treeview"), 2, (option->state & State_Open) ? 2 : 1, {}};
-                const QSize size = trueSize(glyph);
-                if (size.isValid() && hasPart(glyph)) {
-                    QStyleOption lines(*option);
-                    lines.state &= ~State_Children;   // the base draws the lines, not its own box
-                    QProxyStyle::drawPrimitive(element, &lines, painter, widget);
-                    const QRect r(option->rect.center().x() - size.width() / 2, option->rect.center().y() - size.height() / 2,
-                                  size.width(), size.height());
-                    drawPart(painter, glyph, r);
-                    return;
-                }
+            if (hasPart({QStringLiteral("treeview"), 2, 1, {}})) {
+                drawTreeBranch(option, painter, widget);
+                return;
             }
             break;
         case PE_FrameGroupBox:
@@ -649,10 +639,10 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
             }
             break;
         case PM_FocusFrameHMargin:
-            // Item text in XP's report and tree views sits 4px further in
-            // than Qt's (text margin = this + 1): 7px, from the controls.
+            // Item text insets (Qt's text margin is this + 1), from XP's
+            // controls: 7px in a report view, 6px after a tree's branches.
             if (const int extra = itemRowExtra(widget); extra > 0 && hasPart({QStringLiteral("listview"), 0, Normal, {}}))
-                return 6;
+                return extra == 3 ? 5 : 6;
             break;
         case PM_HeaderMargin:
             // XP's header labels sit the item's content margin (Luna: 3) plus
@@ -839,6 +829,52 @@ QString XPLasmaStyle::frameClass(const QWidget *widget) const
     if (cls.isEmpty() || !hasPart({cls, cls == QLatin1String("edit") ? 1 : 0, Normal, {}}))
         return QString();
     return cls;
+}
+
+// XP's tree branches (TVS_HASLINES | TVS_HASBUTTONS | TVS_LINESATROOT),
+// measured against the real control (Luna Silver, 16px rows, indent 19):
+// each level's branch centre is its column's left + 13, the row's middle
+// + 1; lines are GrayText dots where x + y is odd; the row's line runs 8px
+// right of the centre; the vertical runs down to a next sibling and up to a
+// previous item -- never above the first root. The expand box is TVP_GLYPH,
+// centred on the branch.
+void XPLasmaStyle::drawTreeBranch(const QStyleOption *option, QPainter *painter, const QWidget *widget) const
+{
+    const QRect r = option->rect;
+    const int cx = r.width() >= 19 ? r.left() + 13 : r.center().x();
+    const int cy = r.top() + r.height() / 2 + 1;
+    const QColor colour = sysColour(u"graytext", option->palette.color(QPalette::Disabled, QPalette::Text));
+    auto dotsH = [&](int x0, int x1, int y) {
+        for (int x = x0; x <= x1; ++x)
+            if ((x + y) & 1)
+                painter->fillRect(x, y, 1, 1, colour);
+    };
+    auto dotsV = [&](int x, int y0, int y1) {
+        for (int y = y0; y <= y1; ++y)
+            if ((x + y) & 1)
+                painter->fillRect(x, y, 1, 1, colour);
+    };
+    if (option->state & State_Item) {
+        dotsH(cx, cx + 8, cy);
+        // Up to the previous item: a sibling above, or the parent. The
+        // option doesn't say, so ask the view about this row's index.
+        bool above = true;
+        if (const auto *view = qobject_cast<const QAbstractItemView *>(widget)) {
+            const QModelIndex index = view->indexAt(QPoint(r.right() + 2, cy));
+            above = !index.isValid() || index.row() > 0 || index.parent().isValid();
+        }
+        if (above)
+            dotsV(cx, r.top(), cy);
+        if (option->state & State_Sibling)
+            dotsV(cx, cy, r.bottom());
+    } else if (option->state & State_Sibling) {
+        dotsV(cx, r.top(), r.bottom());   // an ancestor's line passing through
+    }
+    if (option->state & State_Children) {
+        const PartRef glyph{QStringLiteral("treeview"), 2, (option->state & State_Open) ? 2 : 1, {}};
+        const QSize size = trueSize(glyph).isValid() ? trueSize(glyph) : QSize(9, 9);
+        drawPart(painter, glyph, QRect(cx - size.width() / 2, cy - size.height() / 2, size.width(), size.height()));
+    }
 }
 
 // GDI's tmHeight for a font, computed as GDI does: the OS/2 table's

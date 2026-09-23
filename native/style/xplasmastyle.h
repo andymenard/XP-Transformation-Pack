@@ -69,6 +69,7 @@ private:
     int xpTextHeight(const QFont &font) const;
     QString frameClass(const QWidget *widget) const;
     int itemRowExtra(const QWidget *widget) const;
+    void drawTreeBranch(const QStyleOption *option, QPainter *painter, const QWidget *widget) const;
     QSize sliderThumbSize(const QStyleOptionSlider *slider) const;
 
     std::unique_ptr<xpl::Renderer> m_renderer;
