@@ -292,6 +292,8 @@ void Renderer::drawImageBackground(QImage &canvas, const PartRef &ref, int dpi) 
             // across its fixed thickness, are always sampled -- the identity
             // at full size, and a proportional squeeze below it (a Tile
             // trackbar thumb squeezed to 5 wide resamples its margin columns).
+            // Open: Royale's maximised caption (Tile) stretches its edges
+            // along their length instead; see NOTES.md.
             blit(canvas, to, img, from, col == 1 ? sizing : Sizing::Stretch, row == 1 ? sizing : Sizing::Stretch);
         }
     }
@@ -351,10 +353,13 @@ void Renderer::drawBorderFill(QImage &canvas, const PartRef &ref) const
     parseColour(property(ref, u"fillcolor").value_or(QString()), &fill);
     const int size = qMax(0, property(ref, u"bordersize").value_or(QStringLiteral("1")).toInt());
     const bool borderOnly = parseBool(property(ref, u"borderonly").value_or(QString()));
+    // No room inside the border, no border: a 1x1 Edit (BorderSize 1) is
+    // drawn in its fill colour.
+    const bool framed = canvas.width() > 2 * size && canvas.height() > 2 * size;
     for (int y = 0; y < canvas.height(); ++y) {
         auto *row = reinterpret_cast<QRgb *>(canvas.scanLine(y));
         for (int x = 0; x < canvas.width(); ++x) {
-            const bool edge = x < size || y < size || x >= canvas.width() - size || y >= canvas.height() - size;
+            const bool edge = framed && (x < size || y < size || x >= canvas.width() - size || y >= canvas.height() - size);
             if (edge)
                 row[x] = border | 0xff000000u;
             else if (!borderOnly)

@@ -549,3 +549,29 @@ RLE stream never sets uninitialised, so the core decodes RLE itself (35/35
 corpus RLE bitmaps now match GDI). The oracle also showed that XP refuses
 unsigned fan styles (uxtheme's signature check), so uxtheme-level answers come
 from Microsoft's five styles. *Remaining for Phase 1:* fuzzing.
+
+**Phase 2 — renderer, first pass (2026-09-23).** `native/core/render` plus
+`xplasma-render`, and `native/tests/oracle_compare.py`, which puts every part
+of a style, in every state, at natural, stretched and squeezed sizes, next to
+real uxtheme with **no tolerance**, composited over black and over white.
+Every rule came from XP's answers, each recorded in the code where it lives
+(truncating premultiply, bottom-up vertical sampling, the ImageFile/glyph
+selection model, TrueSize scaling, MulDiv content-margin squeeze, frame-layout
+default, BorderFill minimums, TS_MIN = content margins). The oracle also found
+a parser bug that both parsers shared (comments after a section header).
+Results on Microsoft's five styles, none tuned for except Royale:
+
+| Style | Pixel-exact |
+| --- | --- |
+| Royale | 1014 / 1023 |
+| Luna | 1053 / 1062 |
+| Royale Noir | 1053 / 1062 |
+| Embedded | 1042 / 1062 |
+| Zune | 1033 / 1062 |
+| **All** | **5195 / 5271 (98.6%)** |
+
+Metrics (min, true and draw sizes, content rects, margins) are exact for
+every part. The remainder is a handful of families (Tile-mode edges on
+`Window.MaxCaption`, a squeezed split-button glyph, small window buttons in
+Zune/Embedded); see NOTES.md. Font glyphs (`GlyphType=FontGlyph`) and
+gradient `BorderFill`s aren't exercised by these styles yet.

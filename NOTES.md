@@ -5,6 +5,16 @@ Each says where it came from, so it can be picked up without re-deriving it.
 
 ## Open
 
+- **Tile-mode edges: tile or stretch?** (renderer, 2026-09-23). Tiling the
+  edges along their length makes 1014/1023 Royale renders exact, including
+  every progress bar and spin button, but Royale's `Window.MaxCaption`
+  (SizingType Tile, a 3-row middle band) is *stretched* along its left edge
+  by XP (each row repeated 14-15 times at 69 px high). Stretching all edges
+  instead drops the total to 987. Something separates the two -- the window
+  class, the band length, a property -- and more oracle data (Luna, Zune,
+  Embedded, Royale Noir) should show what. Low stakes: window-frame parts
+  are Aurorae's, not the Qt style's.
+
 - **xp2plasma's parser (Pillow) mis-decodes three DIB formats** (found by the
   conformance test, settled by XP's GDI through the oracle, 2026-09-23): RLE4/
   RLE8 (undecodable; 35 corpus bitmaps, used by 10 fan styles' grippers and
