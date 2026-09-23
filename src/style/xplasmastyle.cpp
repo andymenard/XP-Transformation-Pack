@@ -2297,7 +2297,9 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
     }
     if (classic() || (m_renderer && hasPart({QStringLiteral("tab"), 9, 1, {}}))) {
         if (const auto *tw = qstyleoption_cast<const QStyleOptionTabWidgetFrame *>(option)) {
-            if (tw->shape == QTabBar::RoundedNorth || tw->shape == QTabBar::TriangularNorth) {
+            // (A document-mode tab widget -- Konsole's, an editor's -- has no
+            // pane: lineWidth 0. Its pages fill it, as Qt lays them out.)
+            if ((tw->shape == QTabBar::RoundedNorth || tw->shape == QTabBar::TriangularNorth) && tw->lineWidth > 0) {
                 // XP: the pane starts where the tabs end (y = 20), and the
                 // page sits 4px in at the sides and bottom, 2px from the top
                 // (TCM_ADJUSTRECT: 4,22 - 296,116 in a 300 x 120 control).
