@@ -1,0 +1,22 @@
+# Windows XP media and Microsoft-copyrighted assets never enter this repo.
+# They are user-supplied or fetched at setup time; tests find the corpus
+# through a configured path (see app/paths.py).
+*.msstyles
+*.theme
+*.iso
+iso/
+samples/
+
+# Build output
+native/build*/
+out/
+refharness/build/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Local state
+app/schemes/user/

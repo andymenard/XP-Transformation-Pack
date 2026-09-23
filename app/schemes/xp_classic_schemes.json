@@ -1,0 +1,7418 @@
+{
+ "Brick": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    13,
+    13
+   ],
+   "caption": [
+    18,
+    18
+   ],
+   "smcaption": [
+    15,
+    15
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Tahoma",
+    "pt": 9,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    225,
+    224,
+    210
+   ],
+   "background": [
+    66,
+    0,
+    0
+   ],
+   "activetitle": [
+    128,
+    0,
+    0
+   ],
+   "inactivetitle": [
+    141,
+    137,
+    97
+   ],
+   "menu": [
+    194,
+    191,
+    165
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    225,
+    224,
+    210
+   ],
+   "activeborder": [
+    194,
+    191,
+    165
+   ],
+   "inactiveborder": [
+    194,
+    191,
+    165
+   ],
+   "appworkspace": [
+    225,
+    224,
+    210
+   ],
+   "hilight": [
+    141,
+    137,
+    97
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    194,
+    191,
+    165
+   ],
+   "buttonshadow": [
+    141,
+    137,
+    97
+   ],
+   "graytext": [
+    141,
+    137,
+    97
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    225,
+    224,
+    210
+   ],
+   "buttonhilight": [
+    225,
+    224,
+    210
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    194,
+    191,
+    165
+   ],
+   "infotext": [
+    128,
+    0,
+    0
+   ],
+   "infowindow": [
+    225,
+    224,
+    210
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    128,
+    0,
+    0
+   ],
+   "gradientactivetitle": [
+    176,
+    116,
+    64
+   ],
+   "gradientinactivetitle": [
+    200,
+    184,
+    112
+   ]
+  }
+ },
+ "Desert": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    13,
+    13
+   ],
+   "caption": [
+    18,
+    18
+   ],
+   "smcaption": [
+    15,
+    15
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    234,
+    230,
+    221
+   ],
+   "background": [
+    162,
+    141,
+    104
+   ],
+   "activetitle": [
+    0,
+    128,
+    128
+   ],
+   "inactivetitle": [
+    162,
+    141,
+    104
+   ],
+   "menu": [
+    213,
+    204,
+    187
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    213,
+    204,
+    187
+   ],
+   "inactiveborder": [
+    213,
+    204,
+    187
+   ],
+   "appworkspace": [
+    162,
+    141,
+    104
+   ],
+   "hilight": [
+    0,
+    128,
+    128
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    213,
+    204,
+    187
+   ],
+   "buttonshadow": [
+    162,
+    141,
+    104
+   ],
+   "graytext": [
+    162,
+    141,
+    104
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    255,
+    255,
+    255
+   ],
+   "buttonhilight": [
+    234,
+    230,
+    221
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    213,
+    204,
+    187
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    0,
+    128,
+    128
+   ],
+   "gradientactivetitle": [
+    132,
+    189,
+    170
+   ],
+   "gradientinactivetitle": [
+    232,
+    208,
+    128
+   ]
+  }
+ },
+ "Eggplant": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    16,
+    16
+   ],
+   "caption": [
+    19,
+    19
+   ],
+   "smcaption": [
+    17,
+    17
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Times New Roman",
+    "pt": 11,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Times New Roman",
+    "pt": 10,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Times New Roman",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Times New Roman",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Times New Roman",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    144,
+    176,
+    168
+   ],
+   "background": [
+    64,
+    0,
+    64
+   ],
+   "activetitle": [
+    88,
+    128,
+    120
+   ],
+   "inactivetitle": [
+    144,
+    176,
+    168
+   ],
+   "menu": [
+    144,
+    176,
+    168
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    144,
+    176,
+    168
+   ],
+   "inactiveborder": [
+    144,
+    176,
+    168
+   ],
+   "appworkspace": [
+    128,
+    128,
+    128
+   ],
+   "hilight": [
+    88,
+    128,
+    120
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    144,
+    176,
+    168
+   ],
+   "buttonshadow": [
+    88,
+    128,
+    120
+   ],
+   "graytext": [
+    88,
+    128,
+    120
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    88,
+    128,
+    120
+   ],
+   "buttonhilight": [
+    200,
+    216,
+    216
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    144,
+    176,
+    168
+   ],
+   "infotext": [
+    128,
+    0,
+    128
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    88,
+    128,
+    120
+   ],
+   "gradientactivetitle": [
+    131,
+    75,
+    131
+   ],
+   "gradientinactivetitle": [
+    203,
+    189,
+    210
+   ]
+  }
+ },
+ "High Contrast #1": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    17,
+    17
+   ],
+   "caption": [
+    20,
+    20
+   ],
+   "smcaption": [
+    15,
+    15
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    0,
+    0,
+    0
+   ],
+   "background": [
+    0,
+    0,
+    0
+   ],
+   "activetitle": [
+    0,
+    0,
+    255
+   ],
+   "inactivetitle": [
+    0,
+    255,
+    255
+   ],
+   "menu": [
+    0,
+    0,
+    0
+   ],
+   "window": [
+    0,
+    0,
+    0
+   ],
+   "windowframe": [
+    255,
+    255,
+    255
+   ],
+   "menutext": [
+    255,
+    255,
+    255
+   ],
+   "windowtext": [
+    255,
+    255,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    0,
+    0,
+    255
+   ],
+   "inactiveborder": [
+    0,
+    255,
+    255
+   ],
+   "appworkspace": [
+    0,
+    0,
+    0
+   ],
+   "hilight": [
+    0,
+    128,
+    0
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    0,
+    0,
+    0
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    0,
+    255,
+    0
+   ],
+   "buttontext": [
+    255,
+    255,
+    255
+   ],
+   "inactivetitletext": [
+    0,
+    0,
+    0
+   ],
+   "buttonhilight": [
+    192,
+    192,
+    192
+   ],
+   "buttondkshadow": [
+    255,
+    255,
+    255
+   ],
+   "buttonlight": [
+    255,
+    255,
+    255
+   ],
+   "infotext": [
+    255,
+    255,
+    0
+   ],
+   "infowindow": [
+    0,
+    0,
+    0
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    128,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    0,
+    0,
+    255
+   ],
+   "gradientinactivetitle": [
+    0,
+    255,
+    255
+   ]
+  }
+ },
+ "High Contrast #1 (extra large)": {
+  "metrics": {
+   "border": 6,
+   "scroll": [
+    32,
+    32
+   ],
+   "caption": [
+    38,
+    38
+   ],
+   "smcaption": [
+    29,
+    29
+   ],
+   "menu": [
+    38,
+    38
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Tahoma",
+    "pt": 23,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Tahoma",
+    "pt": 17,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Tahoma",
+    "pt": 23,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Tahoma",
+    "pt": 17,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Tahoma",
+    "pt": 23,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Tahoma",
+    "pt": 17,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    0,
+    0,
+    0
+   ],
+   "background": [
+    0,
+    0,
+    0
+   ],
+   "activetitle": [
+    0,
+    0,
+    255
+   ],
+   "inactivetitle": [
+    0,
+    255,
+    255
+   ],
+   "menu": [
+    0,
+    0,
+    0
+   ],
+   "window": [
+    0,
+    0,
+    0
+   ],
+   "windowframe": [
+    255,
+    255,
+    255
+   ],
+   "menutext": [
+    255,
+    255,
+    255
+   ],
+   "windowtext": [
+    255,
+    255,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    0,
+    0,
+    255
+   ],
+   "inactiveborder": [
+    0,
+    255,
+    255
+   ],
+   "appworkspace": [
+    0,
+    0,
+    0
+   ],
+   "hilight": [
+    0,
+    128,
+    0
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    0,
+    0,
+    0
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    0,
+    255,
+    0
+   ],
+   "buttontext": [
+    255,
+    255,
+    255
+   ],
+   "inactivetitletext": [
+    0,
+    0,
+    0
+   ],
+   "buttonhilight": [
+    192,
+    192,
+    192
+   ],
+   "buttondkshadow": [
+    255,
+    255,
+    255
+   ],
+   "buttonlight": [
+    255,
+    255,
+    255
+   ],
+   "infotext": [
+    255,
+    255,
+    0
+   ],
+   "infowindow": [
+    0,
+    0,
+    0
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    128,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    0,
+    0,
+    255
+   ],
+   "gradientinactivetitle": [
+    0,
+    255,
+    255
+   ]
+  }
+ },
+ "High Contrast #1 (large)": {
+  "metrics": {
+   "border": 6,
+   "scroll": [
+    28,
+    28
+   ],
+   "caption": [
+    31,
+    31
+   ],
+   "smcaption": [
+    26,
+    26
+   ],
+   "menu": [
+    30,
+    30
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Tahoma",
+    "pt": 18,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Tahoma",
+    "pt": 15,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Tahoma",
+    "pt": 18,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Tahoma",
+    "pt": 15,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Tahoma",
+    "pt": 18,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Tahoma",
+    "pt": 15,
+    "bold": true,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    0,
+    0,
+    0
+   ],
+   "background": [
+    0,
+    0,
+    0
+   ],
+   "activetitle": [
+    0,
+    0,
+    255
+   ],
+   "inactivetitle": [
+    0,
+    255,
+    255
+   ],
+   "menu": [
+    0,
+    0,
+    0
+   ],
+   "window": [
+    0,
+    0,
+    0
+   ],
+   "windowframe": [
+    255,
+    255,
+    255
+   ],
+   "menutext": [
+    255,
+    255,
+    255
+   ],
+   "windowtext": [
+    255,
+    255,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    0,
+    0,
+    255
+   ],
+   "inactiveborder": [
+    0,
+    255,
+    255
+   ],
+   "appworkspace": [
+    0,
+    0,
+    0
+   ],
+   "hilight": [
+    0,
+    128,
+    0
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    0,
+    0,
+    0
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    0,
+    255,
+    0
+   ],
+   "buttontext": [
+    255,
+    255,
+    255
+   ],
+   "inactivetitletext": [
+    0,
+    0,
+    0
+   ],
+   "buttonhilight": [
+    192,
+    192,
+    192
+   ],
+   "buttondkshadow": [
+    255,
+    255,
+    255
+   ],
+   "buttonlight": [
+    255,
+    255,
+    255
+   ],
+   "infotext": [
+    255,
+    255,
+    0
+   ],
+   "infowindow": [
+    0,
+    0,
+    0
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    128,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    0,
+    0,
+    255
+   ],
+   "gradientinactivetitle": [
+    0,
+    255,
+    255
+   ]
+  }
+ },
+ "High Contrast #2": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    17,
+    17
+   ],
+   "caption": [
+    20,
+    20
+   ],
+   "smcaption": [
+    15,
+    15
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    0,
+    0,
+    0
+   ],
+   "background": [
+    0,
+    0,
+    0
+   ],
+   "activetitle": [
+    0,
+    255,
+    255
+   ],
+   "inactivetitle": [
+    0,
+    0,
+    255
+   ],
+   "menu": [
+    0,
+    0,
+    0
+   ],
+   "window": [
+    0,
+    0,
+    0
+   ],
+   "windowframe": [
+    255,
+    255,
+    255
+   ],
+   "menutext": [
+    0,
+    255,
+    0
+   ],
+   "windowtext": [
+    0,
+    255,
+    0
+   ],
+   "titletext": [
+    0,
+    0,
+    0
+   ],
+   "activeborder": [
+    0,
+    255,
+    255
+   ],
+   "inactiveborder": [
+    0,
+    0,
+    255
+   ],
+   "appworkspace": [
+    255,
+    255,
+    255
+   ],
+   "hilight": [
+    0,
+    0,
+    255
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    0,
+    0,
+    0
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    0,
+    255,
+    0
+   ],
+   "buttontext": [
+    0,
+    255,
+    0
+   ],
+   "inactivetitletext": [
+    255,
+    255,
+    255
+   ],
+   "buttonhilight": [
+    192,
+    192,
+    192
+   ],
+   "buttondkshadow": [
+    255,
+    255,
+    255
+   ],
+   "buttonlight": [
+    255,
+    255,
+    255
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    0
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    128,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    0,
+    255,
+    255
+   ],
+   "gradientinactivetitle": [
+    0,
+    0,
+    255
+   ]
+  }
+ },
+ "High Contrast #2 (extra large)": {
+  "metrics": {
+   "border": 6,
+   "scroll": [
+    32,
+    32
+   ],
+   "caption": [
+    38,
+    38
+   ],
+   "smcaption": [
+    28,
+    28
+   ],
+   "menu": [
+    38,
+    38
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Tahoma",
+    "pt": 23,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Tahoma",
+    "pt": 17,
+    "bold": false,
+    "italic": false
+   },
+   "menu": {
+    "face": "Tahoma",
+    "pt": 23,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Tahoma",
+    "pt": 17,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Tahoma",
+    "pt": 23,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Tahoma",
+    "pt": 17,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    0,
+    0,
+    0
+   ],
+   "background": [
+    0,
+    0,
+    0
+   ],
+   "activetitle": [
+    0,
+    255,
+    255
+   ],
+   "inactivetitle": [
+    0,
+    0,
+    255
+   ],
+   "menu": [
+    0,
+    0,
+    0
+   ],
+   "window": [
+    0,
+    0,
+    0
+   ],
+   "windowframe": [
+    255,
+    255,
+    255
+   ],
+   "menutext": [
+    0,
+    255,
+    0
+   ],
+   "windowtext": [
+    0,
+    255,
+    0
+   ],
+   "titletext": [
+    0,
+    0,
+    0
+   ],
+   "activeborder": [
+    0,
+    255,
+    255
+   ],
+   "inactiveborder": [
+    0,
+    0,
+    255
+   ],
+   "appworkspace": [
+    255,
+    255,
+    255
+   ],
+   "hilight": [
+    0,
+    0,
+    255
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    0,
+    0,
+    0
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    0,
+    255,
+    0
+   ],
+   "buttontext": [
+    0,
+    255,
+    0
+   ],
+   "inactivetitletext": [
+    255,
+    255,
+    255
+   ],
+   "buttonhilight": [
+    192,
+    192,
+    192
+   ],
+   "buttondkshadow": [
+    255,
+    255,
+    255
+   ],
+   "buttonlight": [
+    255,
+    255,
+    255
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    0
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    128,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    0,
+    255,
+    255
+   ],
+   "gradientinactivetitle": [
+    0,
+    0,
+    255
+   ]
+  }
+ },
+ "High Contrast #2 (large)": {
+  "metrics": {
+   "border": 6,
+   "scroll": [
+    28,
+    28
+   ],
+   "caption": [
+    31,
+    31
+   ],
+   "smcaption": [
+    26,
+    26
+   ],
+   "menu": [
+    30,
+    30
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Tahoma",
+    "pt": 18,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Tahoma",
+    "pt": 15,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Tahoma",
+    "pt": 18,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Tahoma",
+    "pt": 15,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Tahoma",
+    "pt": 18,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Tahoma",
+    "pt": 15,
+    "bold": true,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    0,
+    0,
+    0
+   ],
+   "background": [
+    0,
+    0,
+    0
+   ],
+   "activetitle": [
+    0,
+    255,
+    255
+   ],
+   "inactivetitle": [
+    0,
+    0,
+    255
+   ],
+   "menu": [
+    0,
+    0,
+    0
+   ],
+   "window": [
+    0,
+    0,
+    0
+   ],
+   "windowframe": [
+    255,
+    255,
+    255
+   ],
+   "menutext": [
+    0,
+    255,
+    0
+   ],
+   "windowtext": [
+    0,
+    255,
+    0
+   ],
+   "titletext": [
+    0,
+    0,
+    0
+   ],
+   "activeborder": [
+    0,
+    255,
+    255
+   ],
+   "inactiveborder": [
+    0,
+    0,
+    255
+   ],
+   "appworkspace": [
+    255,
+    255,
+    255
+   ],
+   "hilight": [
+    0,
+    0,
+    255
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    0,
+    0,
+    0
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    0,
+    255,
+    0
+   ],
+   "buttontext": [
+    0,
+    255,
+    0
+   ],
+   "inactivetitletext": [
+    255,
+    255,
+    255
+   ],
+   "buttonhilight": [
+    192,
+    192,
+    192
+   ],
+   "buttondkshadow": [
+    255,
+    255,
+    255
+   ],
+   "buttonlight": [
+    255,
+    255,
+    255
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    0
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    128,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    0,
+    255,
+    255
+   ],
+   "gradientinactivetitle": [
+    0,
+    0,
+    255
+   ]
+  }
+ },
+ "High Contrast Black": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    17,
+    17
+   ],
+   "caption": [
+    20,
+    20
+   ],
+   "smcaption": [
+    15,
+    15
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    0,
+    0,
+    0
+   ],
+   "background": [
+    0,
+    0,
+    0
+   ],
+   "activetitle": [
+    128,
+    0,
+    128
+   ],
+   "inactivetitle": [
+    0,
+    128,
+    0
+   ],
+   "menu": [
+    0,
+    0,
+    0
+   ],
+   "window": [
+    0,
+    0,
+    0
+   ],
+   "windowframe": [
+    255,
+    255,
+    255
+   ],
+   "menutext": [
+    255,
+    255,
+    255
+   ],
+   "windowtext": [
+    255,
+    255,
+    255
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    255,
+    255,
+    0
+   ],
+   "inactiveborder": [
+    0,
+    128,
+    0
+   ],
+   "appworkspace": [
+    0,
+    0,
+    0
+   ],
+   "hilight": [
+    128,
+    0,
+    128
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    0,
+    0,
+    0
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    0,
+    255,
+    0
+   ],
+   "buttontext": [
+    255,
+    255,
+    255
+   ],
+   "inactivetitletext": [
+    255,
+    255,
+    255
+   ],
+   "buttonhilight": [
+    192,
+    192,
+    192
+   ],
+   "buttondkshadow": [
+    255,
+    255,
+    255
+   ],
+   "buttonlight": [
+    255,
+    255,
+    255
+   ],
+   "infotext": [
+    255,
+    255,
+    255
+   ],
+   "infowindow": [
+    0,
+    0,
+    0
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    128,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    128,
+    0,
+    128
+   ],
+   "gradientinactivetitle": [
+    0,
+    128,
+    0
+   ]
+  }
+ },
+ "High Contrast Black (extra large)": {
+  "metrics": {
+   "border": 6,
+   "scroll": [
+    32,
+    32
+   ],
+   "caption": [
+    37,
+    37
+   ],
+   "smcaption": [
+    28,
+    28
+   ],
+   "menu": [
+    38,
+    38
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Tahoma",
+    "pt": 23,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Tahoma",
+    "pt": 17,
+    "bold": false,
+    "italic": false
+   },
+   "menu": {
+    "face": "Tahoma",
+    "pt": 23,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Tahoma",
+    "pt": 17,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Tahoma",
+    "pt": 23,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Tahoma",
+    "pt": 17,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    0,
+    0,
+    0
+   ],
+   "background": [
+    0,
+    0,
+    0
+   ],
+   "activetitle": [
+    128,
+    0,
+    128
+   ],
+   "inactivetitle": [
+    0,
+    128,
+    0
+   ],
+   "menu": [
+    0,
+    0,
+    0
+   ],
+   "window": [
+    0,
+    0,
+    0
+   ],
+   "windowframe": [
+    255,
+    255,
+    255
+   ],
+   "menutext": [
+    255,
+    255,
+    255
+   ],
+   "windowtext": [
+    255,
+    255,
+    255
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    255,
+    255,
+    0
+   ],
+   "inactiveborder": [
+    0,
+    128,
+    0
+   ],
+   "appworkspace": [
+    0,
+    0,
+    0
+   ],
+   "hilight": [
+    128,
+    0,
+    128
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    0,
+    0,
+    0
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    0,
+    255,
+    0
+   ],
+   "buttontext": [
+    255,
+    255,
+    255
+   ],
+   "inactivetitletext": [
+    255,
+    255,
+    255
+   ],
+   "buttonhilight": [
+    192,
+    192,
+    192
+   ],
+   "buttondkshadow": [
+    255,
+    255,
+    255
+   ],
+   "buttonlight": [
+    255,
+    255,
+    255
+   ],
+   "infotext": [
+    255,
+    255,
+    255
+   ],
+   "infowindow": [
+    0,
+    0,
+    0
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    128,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    128,
+    0,
+    128
+   ],
+   "gradientinactivetitle": [
+    0,
+    128,
+    0
+   ]
+  }
+ },
+ "High Contrast Black (large)": {
+  "metrics": {
+   "border": 6,
+   "scroll": [
+    28,
+    28
+   ],
+   "caption": [
+    31,
+    31
+   ],
+   "smcaption": [
+    26,
+    26
+   ],
+   "menu": [
+    30,
+    30
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Tahoma",
+    "pt": 18,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Tahoma",
+    "pt": 15,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Tahoma",
+    "pt": 18,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Tahoma",
+    "pt": 15,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Tahoma",
+    "pt": 18,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Tahoma",
+    "pt": 15,
+    "bold": true,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    0,
+    0,
+    0
+   ],
+   "background": [
+    0,
+    0,
+    0
+   ],
+   "activetitle": [
+    128,
+    0,
+    128
+   ],
+   "inactivetitle": [
+    0,
+    128,
+    0
+   ],
+   "menu": [
+    0,
+    0,
+    0
+   ],
+   "window": [
+    0,
+    0,
+    0
+   ],
+   "windowframe": [
+    255,
+    255,
+    255
+   ],
+   "menutext": [
+    255,
+    255,
+    255
+   ],
+   "windowtext": [
+    255,
+    255,
+    255
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    255,
+    255,
+    0
+   ],
+   "inactiveborder": [
+    0,
+    128,
+    0
+   ],
+   "appworkspace": [
+    0,
+    0,
+    0
+   ],
+   "hilight": [
+    128,
+    0,
+    128
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    0,
+    0,
+    0
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    0,
+    255,
+    0
+   ],
+   "buttontext": [
+    255,
+    255,
+    255
+   ],
+   "inactivetitletext": [
+    255,
+    255,
+    255
+   ],
+   "buttonhilight": [
+    192,
+    192,
+    192
+   ],
+   "buttondkshadow": [
+    255,
+    255,
+    255
+   ],
+   "buttonlight": [
+    255,
+    255,
+    255
+   ],
+   "infotext": [
+    255,
+    255,
+    255
+   ],
+   "infowindow": [
+    0,
+    0,
+    0
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    128,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    128,
+    0,
+    128
+   ],
+   "gradientinactivetitle": [
+    0,
+    128,
+    0
+   ]
+  }
+ },
+ "High Contrast White": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    17,
+    17
+   ],
+   "caption": [
+    20,
+    20
+   ],
+   "smcaption": [
+    15,
+    15
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    255,
+    255,
+    255
+   ],
+   "background": [
+    255,
+    255,
+    255
+   ],
+   "activetitle": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitle": [
+    255,
+    255,
+    255
+   ],
+   "menu": [
+    255,
+    255,
+    255
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    128,
+    128,
+    128
+   ],
+   "inactiveborder": [
+    192,
+    192,
+    192
+   ],
+   "appworkspace": [
+    128,
+    128,
+    128
+   ],
+   "hilight": [
+    0,
+    0,
+    0
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    255,
+    255,
+    255
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    0,
+    255,
+    0
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    0,
+    0,
+    0
+   ],
+   "buttonhilight": [
+    192,
+    192,
+    192
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    192,
+    192,
+    192
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    0,
+    0,
+    0
+   ],
+   "gradientactivetitle": [
+    0,
+    0,
+    0
+   ],
+   "gradientinactivetitle": [
+    255,
+    255,
+    255
+   ]
+  }
+ },
+ "High Contrast White (extra large)": {
+  "metrics": {
+   "border": 6,
+   "scroll": [
+    30,
+    30
+   ],
+   "caption": [
+    38,
+    38
+   ],
+   "smcaption": [
+    28,
+    28
+   ],
+   "menu": [
+    38,
+    38
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Tahoma",
+    "pt": 23,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Tahoma",
+    "pt": 17,
+    "bold": false,
+    "italic": false
+   },
+   "menu": {
+    "face": "Tahoma",
+    "pt": 23,
+    "bold": true,
+    "italic": false
+   },
+   "status": {
+    "face": "Tahoma",
+    "pt": 17,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Tahoma",
+    "pt": 16,
+    "bold": true,
+    "italic": false
+   },
+   "icon": {
+    "face": "Tahoma",
+    "pt": 17,
+    "bold": true,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    255,
+    255,
+    255
+   ],
+   "background": [
+    255,
+    255,
+    255
+   ],
+   "activetitle": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitle": [
+    255,
+    255,
+    255
+   ],
+   "menu": [
+    255,
+    255,
+    255
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    128,
+    128,
+    128
+   ],
+   "inactiveborder": [
+    192,
+    192,
+    192
+   ],
+   "appworkspace": [
+    128,
+    128,
+    128
+   ],
+   "hilight": [
+    0,
+    0,
+    0
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    255,
+    255,
+    255
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    0,
+    255,
+    0
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    0,
+    0,
+    0
+   ],
+   "buttonhilight": [
+    192,
+    192,
+    192
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    192,
+    192,
+    192
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    0,
+    0,
+    0
+   ],
+   "gradientactivetitle": [
+    0,
+    0,
+    0
+   ],
+   "gradientinactivetitle": [
+    255,
+    255,
+    255
+   ]
+  }
+ },
+ "High Contrast White (large)": {
+  "metrics": {
+   "border": 7,
+   "scroll": [
+    26,
+    26
+   ],
+   "caption": [
+    31,
+    31
+   ],
+   "smcaption": [
+    24,
+    24
+   ],
+   "menu": [
+    27,
+    27
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Tahoma",
+    "pt": 18,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Tahoma",
+    "pt": 14,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Tahoma",
+    "pt": 16,
+    "bold": true,
+    "italic": false
+   },
+   "status": {
+    "face": "Tahoma",
+    "pt": 14,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Tahoma",
+    "pt": 16,
+    "bold": true,
+    "italic": false
+   },
+   "icon": {
+    "face": "Tahoma",
+    "pt": 15,
+    "bold": true,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    255,
+    255,
+    255
+   ],
+   "background": [
+    255,
+    255,
+    255
+   ],
+   "activetitle": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitle": [
+    255,
+    255,
+    255
+   ],
+   "menu": [
+    255,
+    255,
+    255
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    128,
+    128,
+    128
+   ],
+   "inactiveborder": [
+    192,
+    192,
+    192
+   ],
+   "appworkspace": [
+    128,
+    128,
+    128
+   ],
+   "hilight": [
+    0,
+    0,
+    0
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    255,
+    255,
+    255
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    0,
+    255,
+    0
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    0,
+    0,
+    0
+   ],
+   "buttonhilight": [
+    192,
+    192,
+    192
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    192,
+    192,
+    192
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    0,
+    0,
+    0
+   ],
+   "gradientactivetitle": [
+    0,
+    0,
+    0
+   ],
+   "gradientinactivetitle": [
+    255,
+    255,
+    255
+   ]
+  }
+ },
+ "Lilac": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    15,
+    15
+   ],
+   "caption": [
+    22,
+    22
+   ],
+   "smcaption": [
+    16,
+    16
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Tahoma",
+    "pt": 12,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Tahoma",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Tahoma",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Tahoma",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Tahoma",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Tahoma",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    174,
+    168,
+    217
+   ],
+   "background": [
+    0,
+    0,
+    0
+   ],
+   "activetitle": [
+    90,
+    78,
+    177
+   ],
+   "inactivetitle": [
+    128,
+    128,
+    128
+   ],
+   "menu": [
+    174,
+    168,
+    217
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    174,
+    168,
+    217
+   ],
+   "inactiveborder": [
+    174,
+    168,
+    217
+   ],
+   "appworkspace": [
+    90,
+    78,
+    177
+   ],
+   "hilight": [
+    90,
+    78,
+    177
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    174,
+    168,
+    217
+   ],
+   "buttonshadow": [
+    90,
+    78,
+    177
+   ],
+   "graytext": [
+    90,
+    78,
+    177
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    255,
+    255,
+    255
+   ],
+   "buttonhilight": [
+    216,
+    213,
+    236
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    174,
+    168,
+    217
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    90,
+    78,
+    177
+   ],
+   "gradientactivetitle": [
+    182,
+    143,
+    203
+   ],
+   "gradientinactivetitle": [
+    184,
+    180,
+    208
+   ]
+  }
+ },
+ "Lilac (large)": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    15,
+    15
+   ],
+   "caption": [
+    29,
+    29
+   ],
+   "smcaption": [
+    21,
+    21
+   ],
+   "menu": [
+    21,
+    21
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Tahoma",
+    "pt": 17,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Tahoma",
+    "pt": 12,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Tahoma",
+    "pt": 12,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Tahoma",
+    "pt": 12,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Tahoma",
+    "pt": 13,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Tahoma",
+    "pt": 12,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    174,
+    168,
+    217
+   ],
+   "background": [
+    0,
+    0,
+    0
+   ],
+   "activetitle": [
+    90,
+    78,
+    177
+   ],
+   "inactivetitle": [
+    128,
+    128,
+    128
+   ],
+   "menu": [
+    174,
+    168,
+    217
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    174,
+    168,
+    217
+   ],
+   "inactiveborder": [
+    174,
+    168,
+    217
+   ],
+   "appworkspace": [
+    90,
+    78,
+    177
+   ],
+   "hilight": [
+    90,
+    78,
+    177
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    174,
+    168,
+    217
+   ],
+   "buttonshadow": [
+    90,
+    78,
+    177
+   ],
+   "graytext": [
+    90,
+    78,
+    177
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    255,
+    255,
+    255
+   ],
+   "buttonhilight": [
+    216,
+    213,
+    236
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    174,
+    168,
+    217
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    90,
+    78,
+    177
+   ],
+   "gradientactivetitle": [
+    182,
+    143,
+    203
+   ],
+   "gradientinactivetitle": [
+    184,
+    180,
+    208
+   ]
+  }
+ },
+ "Maple": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    13,
+    13
+   ],
+   "caption": [
+    18,
+    18
+   ],
+   "smcaption": [
+    15,
+    15
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    242,
+    236,
+    215
+   ],
+   "background": [
+    0,
+    0,
+    0
+   ],
+   "activetitle": [
+    128,
+    0,
+    0
+   ],
+   "inactivetitle": [
+    198,
+    166,
+    70
+   ],
+   "menu": [
+    230,
+    216,
+    174
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    230,
+    216,
+    174
+   ],
+   "inactiveborder": [
+    230,
+    216,
+    174
+   ],
+   "appworkspace": [
+    198,
+    166,
+    70
+   ],
+   "hilight": [
+    198,
+    166,
+    70
+   ],
+   "hilighttext": [
+    0,
+    0,
+    0
+   ],
+   "buttonface": [
+    230,
+    216,
+    174
+   ],
+   "buttonshadow": [
+    198,
+    166,
+    70
+   ],
+   "graytext": [
+    198,
+    166,
+    70
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    242,
+    236,
+    215
+   ],
+   "buttonhilight": [
+    242,
+    236,
+    215
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    230,
+    216,
+    174
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    198,
+    166,
+    70
+   ],
+   "gradientactivetitle": [
+    192,
+    156,
+    56
+   ],
+   "gradientinactivetitle": [
+    224,
+    200,
+    136
+   ]
+  }
+ },
+ "Marine (high color)": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    13,
+    13
+   ],
+   "caption": [
+    18,
+    18
+   ],
+   "smcaption": [
+    13,
+    13
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Small Fonts",
+    "pt": 7,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    200,
+    224,
+    216
+   ],
+   "background": [
+    44,
+    78,
+    71
+   ],
+   "activetitle": [
+    0,
+    0,
+    128
+   ],
+   "inactivetitle": [
+    72,
+    144,
+    136
+   ],
+   "menu": [
+    136,
+    192,
+    184
+   ],
+   "window": [
+    200,
+    224,
+    216
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    136,
+    192,
+    184
+   ],
+   "inactiveborder": [
+    136,
+    192,
+    184
+   ],
+   "appworkspace": [
+    75,
+    141,
+    132
+   ],
+   "hilight": [
+    0,
+    0,
+    128
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    136,
+    192,
+    184
+   ],
+   "buttonshadow": [
+    72,
+    144,
+    136
+   ],
+   "graytext": [
+    72,
+    144,
+    136
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    192,
+    192,
+    192
+   ],
+   "buttonhilight": [
+    200,
+    224,
+    216
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    136,
+    192,
+    184
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    200,
+    224,
+    216
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    0,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    24,
+    180,
+    192
+   ],
+   "gradientinactivetitle": [
+    120,
+    204,
+    216
+   ]
+  }
+ },
+ "Plum (high color)": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    13,
+    13
+   ],
+   "caption": [
+    18,
+    18
+   ],
+   "smcaption": [
+    15,
+    15
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    216,
+    208,
+    200
+   ],
+   "background": [
+    64,
+    40,
+    64
+   ],
+   "activetitle": [
+    72,
+    64,
+    96
+   ],
+   "inactivetitle": [
+    120,
+    96,
+    88
+   ],
+   "menu": [
+    168,
+    152,
+    144
+   ],
+   "window": [
+    216,
+    208,
+    200
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    168,
+    152,
+    144
+   ],
+   "inactiveborder": [
+    168,
+    152,
+    144
+   ],
+   "appworkspace": [
+    116,
+    99,
+    90
+   ],
+   "hilight": [
+    0,
+    128,
+    128
+   ],
+   "hilighttext": [
+    216,
+    208,
+    200
+   ],
+   "buttonface": [
+    168,
+    152,
+    144
+   ],
+   "buttonshadow": [
+    120,
+    96,
+    88
+   ],
+   "graytext": [
+    120,
+    96,
+    88
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    168,
+    152,
+    144
+   ],
+   "buttonhilight": [
+    216,
+    208,
+    200
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    168,
+    152,
+    144
+   ],
+   "infotext": [
+    48,
+    0,
+    88
+   ],
+   "infowindow": [
+    213,
+    204,
+    200
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    72,
+    64,
+    96
+   ],
+   "gradientactivetitle": [
+    160,
+    132,
+    184
+   ],
+   "gradientinactivetitle": [
+    168,
+    152,
+    120
+   ]
+  }
+ },
+ "Pumpkin (large)": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    21,
+    21
+   ],
+   "caption": [
+    26,
+    26
+   ],
+   "smcaption": [
+    22,
+    22
+   ],
+   "menu": [
+    22,
+    22
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 14,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 12,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 12,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 12,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 12,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    245,
+    234,
+    207
+   ],
+   "background": [
+    66,
+    0,
+    66
+   ],
+   "activetitle": [
+    215,
+    165,
+    47
+   ],
+   "inactivetitle": [
+    160,
+    160,
+    164
+   ],
+   "menu": [
+    236,
+    213,
+    157
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    236,
+    213,
+    157
+   ],
+   "inactiveborder": [
+    236,
+    213,
+    157
+   ],
+   "appworkspace": [
+    245,
+    234,
+    207
+   ],
+   "hilight": [
+    128,
+    0,
+    128
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    236,
+    213,
+    157
+   ],
+   "buttonshadow": [
+    215,
+    165,
+    47
+   ],
+   "graytext": [
+    215,
+    165,
+    47
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    245,
+    234,
+    207
+   ],
+   "buttonhilight": [
+    245,
+    234,
+    207
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    236,
+    213,
+    157
+   ],
+   "infotext": [
+    128,
+    0,
+    128
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    215,
+    165,
+    47
+   ],
+   "gradientactivetitle": [
+    224,
+    204,
+    136
+   ],
+   "gradientinactivetitle": [
+    208,
+    204,
+    144
+   ]
+  }
+ },
+ "Rainy Day": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    13,
+    13
+   ],
+   "caption": [
+    18,
+    18
+   ],
+   "smcaption": [
+    15,
+    15
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    193,
+    204,
+    217
+   ],
+   "background": [
+    0,
+    0,
+    0
+   ],
+   "activetitle": [
+    79,
+    101,
+    125
+   ],
+   "inactivetitle": [
+    128,
+    128,
+    128
+   ],
+   "menu": [
+    131,
+    153,
+    177
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    131,
+    153,
+    177
+   ],
+   "inactiveborder": [
+    131,
+    153,
+    177
+   ],
+   "appworkspace": [
+    128,
+    128,
+    128
+   ],
+   "hilight": [
+    79,
+    101,
+    125
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    131,
+    153,
+    177
+   ],
+   "buttonshadow": [
+    79,
+    101,
+    125
+   ],
+   "graytext": [
+    79,
+    101,
+    125
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    193,
+    204,
+    217
+   ],
+   "buttonhilight": [
+    193,
+    204,
+    217
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    131,
+    153,
+    177
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    79,
+    101,
+    125
+   ],
+   "gradientactivetitle": [
+    128,
+    180,
+    208
+   ],
+   "gradientinactivetitle": [
+    176,
+    188,
+    208
+   ]
+  }
+ },
+ "Red, White, and Blue (VGA)": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    13,
+    13
+   ],
+   "caption": [
+    19,
+    19
+   ],
+   "smcaption": [
+    17,
+    17
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Times New Roman",
+    "pt": 11,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Times New Roman",
+    "pt": 10,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Times New Roman",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Times New Roman",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Times New Roman",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    192,
+    192,
+    192
+   ],
+   "background": [
+    0,
+    0,
+    66
+   ],
+   "activetitle": [
+    128,
+    0,
+    0
+   ],
+   "inactivetitle": [
+    128,
+    128,
+    128
+   ],
+   "menu": [
+    192,
+    192,
+    192
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    192,
+    192,
+    192
+   ],
+   "inactiveborder": [
+    192,
+    192,
+    192
+   ],
+   "appworkspace": [
+    255,
+    255,
+    255
+   ],
+   "hilight": [
+    128,
+    0,
+    0
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    192,
+    192,
+    192
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    128,
+    128,
+    128
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    192,
+    192,
+    192
+   ],
+   "buttonhilight": [
+    255,
+    255,
+    255
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    192,
+    192,
+    192
+   ],
+   "infotext": [
+    0,
+    0,
+    128
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    128,
+    0,
+    0
+   ],
+   "gradientactivetitle": [
+    0,
+    16,
+    168
+   ],
+   "gradientinactivetitle": [
+    186,
+    190,
+    201
+   ]
+  }
+ },
+ "Rose": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    15,
+    15
+   ],
+   "caption": [
+    23,
+    23
+   ],
+   "smcaption": [
+    17,
+    17
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Times New Roman",
+    "pt": 14,
+    "bold": false,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Times New Roman",
+    "pt": 10,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    207,
+    175,
+    183
+   ],
+   "background": [
+    128,
+    128,
+    128
+   ],
+   "activetitle": [
+    159,
+    96,
+    112
+   ],
+   "inactivetitle": [
+    160,
+    160,
+    164
+   ],
+   "menu": [
+    207,
+    175,
+    183
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    207,
+    175,
+    183
+   ],
+   "inactiveborder": [
+    207,
+    175,
+    183
+   ],
+   "appworkspace": [
+    159,
+    96,
+    112
+   ],
+   "hilight": [
+    159,
+    96,
+    112
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    207,
+    175,
+    183
+   ],
+   "buttonshadow": [
+    159,
+    96,
+    112
+   ],
+   "graytext": [
+    159,
+    96,
+    112
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    125,
+    125,
+    125
+   ],
+   "buttonhilight": [
+    231,
+    216,
+    220
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    207,
+    175,
+    183
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    159,
+    96,
+    112
+   ],
+   "gradientactivetitle": [
+    216,
+    204,
+    208
+   ],
+   "gradientinactivetitle": [
+    208,
+    212,
+    208
+   ]
+  }
+ },
+ "Rose (large)": {
+  "metrics": {
+   "border": 2,
+   "scroll": [
+    17,
+    17
+   ],
+   "caption": [
+    28,
+    28
+   ],
+   "smcaption": [
+    21,
+    21
+   ],
+   "menu": [
+    22,
+    22
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Times New Roman",
+    "pt": 17,
+    "bold": false,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Times New Roman",
+    "pt": 12,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 13,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 12,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 13,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 13,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    192,
+    192,
+    192
+   ],
+   "background": [
+    128,
+    128,
+    128
+   ],
+   "activetitle": [
+    160,
+    96,
+    112
+   ],
+   "inactivetitle": [
+    160,
+    160,
+    164
+   ],
+   "menu": [
+    208,
+    176,
+    184
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    208,
+    176,
+    184
+   ],
+   "inactiveborder": [
+    208,
+    176,
+    184
+   ],
+   "appworkspace": [
+    232,
+    216,
+    224
+   ],
+   "hilight": [
+    160,
+    96,
+    112
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    208,
+    176,
+    184
+   ],
+   "buttonshadow": [
+    160,
+    96,
+    112
+   ],
+   "graytext": [
+    160,
+    96,
+    112
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    125,
+    125,
+    125
+   ],
+   "buttonhilight": [
+    232,
+    216,
+    224
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    208,
+    176,
+    184
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    160,
+    96,
+    112
+   ],
+   "gradientactivetitle": [
+    216,
+    204,
+    208
+   ],
+   "gradientinactivetitle": [
+    208,
+    212,
+    208
+   ]
+  }
+ },
+ "Slate": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    13,
+    13
+   ],
+   "caption": [
+    18,
+    18
+   ],
+   "smcaption": [
+    15,
+    15
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    206,
+    220,
+    227
+   ],
+   "background": [
+    65,
+    65,
+    65
+   ],
+   "activetitle": [
+    85,
+    128,
+    151
+   ],
+   "inactivetitle": [
+    128,
+    128,
+    128
+   ],
+   "menu": [
+    157,
+    185,
+    200
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    157,
+    185,
+    200
+   ],
+   "inactiveborder": [
+    157,
+    185,
+    200
+   ],
+   "appworkspace": [
+    66,
+    66,
+    66
+   ],
+   "hilight": [
+    85,
+    128,
+    151
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    157,
+    185,
+    200
+   ],
+   "buttonshadow": [
+    85,
+    128,
+    151
+   ],
+   "graytext": [
+    85,
+    128,
+    151
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    192,
+    192,
+    192
+   ],
+   "buttonhilight": [
+    206,
+    220,
+    227
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    157,
+    185,
+    200
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    85,
+    128,
+    151
+   ],
+   "gradientactivetitle": [
+    136,
+    184,
+    216
+   ],
+   "gradientinactivetitle": [
+    160,
+    188,
+    200
+   ]
+  }
+ },
+ "Spruce": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    15,
+    15
+   ],
+   "caption": [
+    18,
+    18
+   ],
+   "smcaption": [
+    15,
+    15
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 9,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    208,
+    227,
+    211
+   ],
+   "background": [
+    33,
+    63,
+    33
+   ],
+   "activetitle": [
+    89,
+    151,
+    100
+   ],
+   "inactivetitle": [
+    128,
+    128,
+    128
+   ],
+   "menu": [
+    162,
+    200,
+    169
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    162,
+    200,
+    169
+   ],
+   "inactiveborder": [
+    162,
+    200,
+    169
+   ],
+   "appworkspace": [
+    208,
+    227,
+    211
+   ],
+   "hilight": [
+    89,
+    151,
+    100
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    162,
+    200,
+    169
+   ],
+   "buttonshadow": [
+    89,
+    151,
+    100
+   ],
+   "graytext": [
+    89,
+    151,
+    100
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    208,
+    227,
+    211
+   ],
+   "buttonhilight": [
+    208,
+    227,
+    211
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    162,
+    200,
+    169
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    89,
+    151,
+    100
+   ],
+   "gradientactivetitle": [
+    152,
+    200,
+    232
+   ],
+   "gradientinactivetitle": [
+    168,
+    204,
+    176
+   ]
+  }
+ },
+ "Storm (VGA)": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    13,
+    13
+   ],
+   "caption": [
+    18,
+    18
+   ],
+   "smcaption": [
+    15,
+    15
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Tahoma",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "menu": {
+    "face": "Tahoma",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Tahoma",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Tahoma",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Tahoma",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    192,
+    192,
+    192
+   ],
+   "background": [
+    0,
+    0,
+    0
+   ],
+   "activetitle": [
+    128,
+    0,
+    128
+   ],
+   "inactivetitle": [
+    128,
+    128,
+    128
+   ],
+   "menu": [
+    192,
+    192,
+    192
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    192,
+    192,
+    192
+   ],
+   "inactiveborder": [
+    192,
+    192,
+    192
+   ],
+   "appworkspace": [
+    128,
+    128,
+    128
+   ],
+   "hilight": [
+    128,
+    0,
+    128
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    192,
+    192,
+    192
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    128,
+    128,
+    128
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    192,
+    192,
+    192
+   ],
+   "buttonhilight": [
+    255,
+    255,
+    255
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    192,
+    192,
+    192
+   ],
+   "infotext": [
+    128,
+    0,
+    128
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    128,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    56,
+    140,
+    176
+   ],
+   "gradientinactivetitle": [
+    168,
+    172,
+    168
+   ]
+  }
+ },
+ "Teal (VGA)": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    13,
+    13
+   ],
+   "caption": [
+    18,
+    18
+   ],
+   "smcaption": [
+    15,
+    15
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    192,
+    192,
+    192
+   ],
+   "background": [
+    0,
+    64,
+    64
+   ],
+   "activetitle": [
+    0,
+    128,
+    128
+   ],
+   "inactivetitle": [
+    128,
+    128,
+    128
+   ],
+   "menu": [
+    192,
+    192,
+    192
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    192,
+    192,
+    192
+   ],
+   "inactiveborder": [
+    192,
+    192,
+    192
+   ],
+   "appworkspace": [
+    128,
+    128,
+    128
+   ],
+   "hilight": [
+    0,
+    128,
+    128
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    192,
+    192,
+    192
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    128,
+    128,
+    128
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    255,
+    251,
+    240
+   ],
+   "buttonhilight": [
+    255,
+    255,
+    255
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    192,
+    192,
+    192
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    0,
+    128,
+    128
+   ],
+   "gradientactivetitle": [
+    0,
+    204,
+    216
+   ],
+   "gradientinactivetitle": [
+    152,
+    200,
+    184
+   ]
+  }
+ },
+ "Wheat": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    13,
+    13
+   ],
+   "caption": [
+    18,
+    18
+   ],
+   "smcaption": [
+    15,
+    15
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    238,
+    238,
+    208
+   ],
+   "background": [
+    0,
+    64,
+    29
+   ],
+   "activetitle": [
+    128,
+    128,
+    0
+   ],
+   "inactivetitle": [
+    188,
+    188,
+    65
+   ],
+   "menu": [
+    222,
+    222,
+    160
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    222,
+    222,
+    160
+   ],
+   "inactiveborder": [
+    222,
+    222,
+    160
+   ],
+   "appworkspace": [
+    188,
+    188,
+    65
+   ],
+   "hilight": [
+    128,
+    128,
+    0
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    222,
+    222,
+    160
+   ],
+   "buttonshadow": [
+    188,
+    188,
+    65
+   ],
+   "graytext": [
+    188,
+    188,
+    65
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    255,
+    255,
+    255
+   ],
+   "buttonhilight": [
+    238,
+    238,
+    208
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    222,
+    222,
+    160
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    255
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    128,
+    128,
+    0
+   ],
+   "gradientactivetitle": [
+    200,
+    176,
+    72
+   ],
+   "gradientinactivetitle": [
+    184,
+    184,
+    128
+   ]
+  }
+ },
+ "Windows Classic": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    16,
+    16
+   ],
+   "caption": [
+    18,
+    18
+   ],
+   "smcaption": [
+    15,
+    15
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    192,
+    192,
+    192
+   ],
+   "background": [
+    58,
+    110,
+    165
+   ],
+   "activetitle": [
+    0,
+    0,
+    128
+   ],
+   "inactivetitle": [
+    128,
+    128,
+    128
+   ],
+   "menu": [
+    192,
+    192,
+    192
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    192,
+    192,
+    192
+   ],
+   "inactiveborder": [
+    192,
+    192,
+    192
+   ],
+   "appworkspace": [
+    128,
+    128,
+    128
+   ],
+   "hilight": [
+    0,
+    0,
+    128
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    192,
+    192,
+    192
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    128,
+    128,
+    128
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    192,
+    192,
+    192
+   ],
+   "buttonhilight": [
+    255,
+    255,
+    255
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    192,
+    192,
+    192
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    225
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    0,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    16,
+    132,
+    208
+   ],
+   "gradientinactivetitle": [
+    181,
+    181,
+    181
+   ]
+  }
+ },
+ "Windows Classic (extra large)": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    21,
+    21
+   ],
+   "caption": [
+    24,
+    24
+   ],
+   "smcaption": [
+    18,
+    18
+   ],
+   "menu": [
+    21,
+    21
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Tahoma",
+    "pt": 14,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Tahoma",
+    "pt": 10,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Tahoma",
+    "pt": 12,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Tahoma",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Tahoma",
+    "pt": 12,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Tahoma",
+    "pt": 12,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    192,
+    192,
+    192
+   ],
+   "background": [
+    58,
+    110,
+    165
+   ],
+   "activetitle": [
+    0,
+    0,
+    128
+   ],
+   "inactivetitle": [
+    128,
+    128,
+    128
+   ],
+   "menu": [
+    192,
+    192,
+    192
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    192,
+    192,
+    192
+   ],
+   "inactiveborder": [
+    192,
+    192,
+    192
+   ],
+   "appworkspace": [
+    128,
+    128,
+    128
+   ],
+   "hilight": [
+    0,
+    0,
+    128
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    192,
+    192,
+    192
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    128,
+    128,
+    128
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    192,
+    192,
+    192
+   ],
+   "buttonhilight": [
+    255,
+    255,
+    255
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    223,
+    223,
+    223
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    225
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    0,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    16,
+    132,
+    208
+   ],
+   "gradientinactivetitle": [
+    181,
+    181,
+    181
+   ]
+  }
+ },
+ "Windows Classic (large)": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    18,
+    18
+   ],
+   "caption": [
+    22,
+    22
+   ],
+   "smcaption": [
+    18,
+    18
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 12,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Microsoft Sans Serif",
+    "pt": 10,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Microsoft Sans Serif",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Microsoft Sans Serif",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Microsoft Sans Serif",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Microsoft Sans Serif",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    192,
+    192,
+    192
+   ],
+   "background": [
+    58,
+    110,
+    165
+   ],
+   "activetitle": [
+    0,
+    0,
+    128
+   ],
+   "inactivetitle": [
+    128,
+    128,
+    128
+   ],
+   "menu": [
+    192,
+    192,
+    192
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    192,
+    192,
+    192
+   ],
+   "inactiveborder": [
+    192,
+    192,
+    192
+   ],
+   "appworkspace": [
+    128,
+    128,
+    128
+   ],
+   "hilight": [
+    0,
+    0,
+    128
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    192,
+    192,
+    192
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    128,
+    128,
+    128
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    192,
+    192,
+    192
+   ],
+   "buttonhilight": [
+    255,
+    255,
+    255
+   ],
+   "buttondkshadow": [
+    0,
+    0,
+    0
+   ],
+   "buttonlight": [
+    223,
+    223,
+    223
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    225
+   ],
+   "menuhilight_or_unused": [
+    192,
+    192,
+    192
+   ],
+   "hotlight": [
+    0,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    16,
+    132,
+    208
+   ],
+   "gradientinactivetitle": [
+    181,
+    181,
+    181
+   ]
+  }
+ },
+ "Windows Standard": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    16,
+    16
+   ],
+   "caption": [
+    18,
+    18
+   ],
+   "smcaption": [
+    12,
+    12
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Tahoma",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Tahoma",
+    "pt": 8,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Tahoma",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Tahoma",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Tahoma",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Tahoma",
+    "pt": 8,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    212,
+    208,
+    200
+   ],
+   "background": [
+    58,
+    110,
+    165
+   ],
+   "activetitle": [
+    10,
+    36,
+    106
+   ],
+   "inactivetitle": [
+    128,
+    128,
+    128
+   ],
+   "menu": [
+    212,
+    208,
+    200
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    212,
+    208,
+    200
+   ],
+   "inactiveborder": [
+    212,
+    208,
+    200
+   ],
+   "appworkspace": [
+    128,
+    128,
+    128
+   ],
+   "hilight": [
+    10,
+    36,
+    106
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    212,
+    208,
+    200
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    128,
+    128,
+    128
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    212,
+    208,
+    200
+   ],
+   "buttonhilight": [
+    255,
+    255,
+    255
+   ],
+   "buttondkshadow": [
+    64,
+    64,
+    64
+   ],
+   "buttonlight": [
+    212,
+    208,
+    200
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    225
+   ],
+   "menuhilight_or_unused": [
+    181,
+    181,
+    181
+   ],
+   "hotlight": [
+    0,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    166,
+    202,
+    240
+   ],
+   "gradientinactivetitle": [
+    192,
+    192,
+    192
+   ]
+  }
+ },
+ "Windows Standard (extra large)": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    21,
+    21
+   ],
+   "caption": [
+    24,
+    24
+   ],
+   "smcaption": [
+    18,
+    18
+   ],
+   "menu": [
+    21,
+    21
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Tahoma",
+    "pt": 14,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Tahoma",
+    "pt": 10,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Tahoma",
+    "pt": 12,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Tahoma",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Tahoma",
+    "pt": 12,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Tahoma",
+    "pt": 12,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    212,
+    208,
+    200
+   ],
+   "background": [
+    58,
+    110,
+    165
+   ],
+   "activetitle": [
+    10,
+    36,
+    106
+   ],
+   "inactivetitle": [
+    128,
+    128,
+    128
+   ],
+   "menu": [
+    212,
+    208,
+    200
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    212,
+    208,
+    200
+   ],
+   "inactiveborder": [
+    212,
+    208,
+    200
+   ],
+   "appworkspace": [
+    128,
+    128,
+    128
+   ],
+   "hilight": [
+    10,
+    36,
+    106
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    212,
+    208,
+    200
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    128,
+    128,
+    128
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    212,
+    208,
+    200
+   ],
+   "buttonhilight": [
+    255,
+    255,
+    255
+   ],
+   "buttondkshadow": [
+    64,
+    64,
+    64
+   ],
+   "buttonlight": [
+    212,
+    208,
+    200
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    225
+   ],
+   "menuhilight_or_unused": [
+    181,
+    181,
+    181
+   ],
+   "hotlight": [
+    0,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    166,
+    202,
+    240
+   ],
+   "gradientinactivetitle": [
+    192,
+    192,
+    192
+   ]
+  }
+ },
+ "Windows Standard (large)": {
+  "metrics": {
+   "border": 1,
+   "scroll": [
+    18,
+    18
+   ],
+   "caption": [
+    21,
+    21
+   ],
+   "smcaption": [
+    18,
+    18
+   ],
+   "menu": [
+    18,
+    18
+   ]
+  },
+  "fonts": {
+   "caption": {
+    "face": "Tahoma",
+    "pt": 12,
+    "bold": true,
+    "italic": false
+   },
+   "smcaption": {
+    "face": "Tahoma",
+    "pt": 10,
+    "bold": true,
+    "italic": false
+   },
+   "menu": {
+    "face": "Tahoma",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "status": {
+    "face": "Tahoma",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "message": {
+    "face": "Tahoma",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   },
+   "icon": {
+    "face": "Tahoma",
+    "pt": 10,
+    "bold": false,
+    "italic": false
+   }
+  },
+  "colors": {
+   "scrollbar": [
+    212,
+    208,
+    200
+   ],
+   "background": [
+    58,
+    110,
+    165
+   ],
+   "activetitle": [
+    10,
+    36,
+    106
+   ],
+   "inactivetitle": [
+    128,
+    128,
+    128
+   ],
+   "menu": [
+    212,
+    208,
+    200
+   ],
+   "window": [
+    255,
+    255,
+    255
+   ],
+   "windowframe": [
+    0,
+    0,
+    0
+   ],
+   "menutext": [
+    0,
+    0,
+    0
+   ],
+   "windowtext": [
+    0,
+    0,
+    0
+   ],
+   "titletext": [
+    255,
+    255,
+    255
+   ],
+   "activeborder": [
+    212,
+    208,
+    200
+   ],
+   "inactiveborder": [
+    212,
+    208,
+    200
+   ],
+   "appworkspace": [
+    128,
+    128,
+    128
+   ],
+   "hilight": [
+    10,
+    36,
+    106
+   ],
+   "hilighttext": [
+    255,
+    255,
+    255
+   ],
+   "buttonface": [
+    212,
+    208,
+    200
+   ],
+   "buttonshadow": [
+    128,
+    128,
+    128
+   ],
+   "graytext": [
+    128,
+    128,
+    128
+   ],
+   "buttontext": [
+    0,
+    0,
+    0
+   ],
+   "inactivetitletext": [
+    212,
+    208,
+    200
+   ],
+   "buttonhilight": [
+    255,
+    255,
+    255
+   ],
+   "buttondkshadow": [
+    64,
+    64,
+    64
+   ],
+   "buttonlight": [
+    212,
+    208,
+    200
+   ],
+   "infotext": [
+    0,
+    0,
+    0
+   ],
+   "infowindow": [
+    255,
+    255,
+    225
+   ],
+   "menuhilight_or_unused": [
+    181,
+    181,
+    181
+   ],
+   "hotlight": [
+    0,
+    0,
+    128
+   ],
+   "gradientactivetitle": [
+    166,
+    202,
+    240
+   ],
+   "gradientinactivetitle": [
+    192,
+    192,
+    192
+   ]
+  }
+ }
+}
