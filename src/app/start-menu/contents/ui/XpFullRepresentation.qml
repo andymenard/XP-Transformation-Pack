@@ -77,6 +77,8 @@ Item {
         onCloseProgramsRequested: submenu.back(false)
         onRequested: action => backend.activate(action)
         onContextRequested: (action, item, x, y) => root.showActions(action, item, x, y)
+        onMoveRequested: (from, to) => backend.movePinned(from, to)
+        onPinRequested: (action, at) => backend.pinAt(action, at)
     }
     ActionMenu {
         id: actionMenu

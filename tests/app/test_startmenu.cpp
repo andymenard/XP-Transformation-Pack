@@ -15,6 +15,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QTemporaryDir>
+#include <QSignalSpy>
 #include <QTest>
 
 #include <memory>
@@ -152,6 +153,55 @@ private Q_SLOTS:
         }
         qInstallMessageHandler(previous);
         QVERIFY2(warnings.filter(QLatin1String("ActionMenu")).isEmpty(), qPrintable(warnings.join(QLatin1Char('\n'))));
+    }
+
+    void dragToRearrange()
+    {
+        // XP's program list: drag a pinned program to another place, or a
+        // recent one up among the pinned to pin it there.
+        if (m_themes.isEmpty())
+            QSKIP("no asset library on this machine");
+        const auto look = Look::fromStyle(m_themes + QLatin1String("/Luna/luna.msstyles"));
+        QVERIFY(look);
+        QString error;
+        const QJsonObject theme = writeStartPanel(*look, m_scratch.filePath(QStringLiteral("luna-drag")), &error);
+        QVERIFY2(!theme.isEmpty(), qPrintable(error));
+        auto items = [](const char *name, int n) {
+            QVariantList list;
+            for (int i = 0; i < n; ++i)
+                list << QVariantMap{{QStringLiteral("label"), QStringLiteral("%1 %2").arg(QLatin1String(name)).arg(i)},
+                                    {QStringLiteral("action"), QStringLiteral("%1-%2").arg(QLatin1String(name)).arg(i)}};
+            return list;
+        };
+        QObject *menu = nullptr;
+        render(theme, &menu, {{QStringLiteral("pinnedItems"), items("pinned", 3)}, {QStringLiteral("recentItems"), items("recent", 2)}});
+        auto *list = menu->findChild<QQuickItem *>(QStringLiteral("programEntries"));
+        QVERIFY(list);
+        QQuickWindow *window = list->window();
+        const QJsonObject provisional = theme.value(QStringLiteral("provisional")).toObject();
+        const qreal pinnedRow = provisional.value(QStringLiteral("pinnedRowHeight")).toDouble();
+        const qreal recentRow = provisional.value(QStringLiteral("recentRowHeight")).toDouble();
+        const qreal separator = menu->property("separatorHeight").toReal();
+        auto at = [&](qreal y) { return list->mapToScene(QPointF(40, y)).toPoint(); };
+        auto drag = [&](QPoint from, QPoint to) {
+            QTest::mousePress(window, Qt::LeftButton, {}, from);
+            for (int i = 1; i <= 8; ++i)
+                QTest::mouseMove(window, from + (to - from) * i / 8);
+            QTest::mouseRelease(window, Qt::LeftButton, {}, to);
+        };
+        QSignalSpy moved(menu, SIGNAL(moveRequested(int,int)));
+        QSignalSpy pinned(menu, SIGNAL(pinRequested(QVariant,int)));
+        drag(at(pinnedRow / 2), at(pinnedRow * 2.9));   // the first, below the last
+        QCOMPARE(moved.size(), 1);
+        QCOMPARE(moved.at(0).at(0).toInt(), 0);
+        QCOMPARE(moved.at(0).at(1).toInt(), 2);
+        drag(at(pinnedRow * 3 + separator + recentRow / 2), at(pinnedRow * 0.2));   // the first recent, to the top
+        QCOMPARE(pinned.size(), 1);
+        QCOMPARE(pinned.at(0).at(0).toString(), QStringLiteral("recent-0"));
+        QCOMPARE(pinned.at(0).at(1).toInt(), 0);
+        drag(at(pinnedRow * 3 + separator + recentRow / 2), at(pinnedRow * 3 + separator + recentRow * 1.5));   // among the recent: nothing
+        QCOMPARE(pinned.size(), 1);
+        QCOMPARE(moved.size(), 1);
     }
 
     void grows()

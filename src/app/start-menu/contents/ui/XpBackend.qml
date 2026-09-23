@@ -145,6 +145,26 @@ Item {
         }
     }
 
+    // Dragged in the program list: pinned[from] to pinned[to]'s place, or
+    // a program pinned before pinned[at] (at the end past the last).
+    function movePinned(from, to) {
+        if (dryRun) { actionDispatched({move: [from, to]}); return; }
+        const a = pinned[from], b = pinned[to];
+        if (!a || !b) return;
+        launcher.rootModel.favoritesModel.moveRow(a.action.row, b.action.row);
+        Qt.callLater(refresh);
+    }
+    function pinAt(action, at) {
+        if (dryRun) { actionDispatched({pin: action, at: at}); return; }
+        const current = typeof action === "object" && action && action.model ? resolve(action) : null;
+        if (!current) return;
+        const id = role(action.model, current.action.row, "favoriteId");
+        const favorites = launcher.rootModel.favoritesModel;
+        if (!id || favorites.isFavorite(String(id))) return;
+        favorites.addFavorite(String(id), at < pinned.length ? pinned[at].action.row : favorites.count);
+        Qt.callLater(refresh);
+    }
+
     function activate(action) {
         if (dryRun) { actionDispatched(action); return; }
         if (action === "all-programs") {

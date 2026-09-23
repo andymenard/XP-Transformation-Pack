@@ -22,6 +22,31 @@ FocusScope {
     signal requested(var action)
     // A right-click (or the Menu key) on an entry, at (x, y) in `item`.
     signal contextRequested(var action, Item item, real x, real y)
+    // XP's drag and drop in the program list: a pinned program moved
+    // (pinned indices), or a recent one pinned at a place.
+    signal moveRequested(int from, int to)
+    signal pinRequested(var action, int at)
+    property Item dragEntry: null
+    property int dropSlot: -1   // before which pinned item it would land; -1: nowhere
+    function dragMove(entry, y) {
+        dragEntry = entry;
+        const n = pinnedItems.length;
+        // A recent program dropped among the recent ones stays where it is.
+        dropSlot = entry.pinnedIndex < 0 && y > n * provisional.pinnedRowHeight + separatorHeight / 2
+            ? -1 : Math.max(0, Math.min(n, Math.round(y / provisional.pinnedRowHeight)));
+    }
+    function dragEnd() {
+        const entry = dragEntry, slot = dropSlot;
+        dragEntry = null;
+        dropSlot = -1;
+        if (!entry || slot < 0) return;
+        if (entry.pinnedIndex >= 0) {
+            const to = slot > entry.pinnedIndex ? slot - 1 : slot;
+            if (to !== entry.pinnedIndex) moveRequested(entry.pinnedIndex, to);
+        } else {
+            pinRequested(entry.entryData.action, slot);
+        }
+    }
     signal closeProgramsRequested()
     readonly property var parts: themeData.parts
     readonly property var metrics: themeData.layout
@@ -90,6 +115,9 @@ FocusScope {
         property int iconSize: 24
         property color textColor: menu.xpColors.programText
         property bool bold: false
+        property int pinnedIndex: -1       // its place among the pinned, if it's one
+        property bool draggable: false
+        opacity: menu.dragEntry === entry ? 0.5 : 1
         readonly property bool hovered: hover.containsMouse
         readonly property bool isRecentFiles: entryData.action === "recent-documents"
         readonly property bool highlighted: hovered || activeFocus || (isRecentFiles && menu.recentFilesOpen)
@@ -159,7 +187,24 @@ FocusScope {
             }
             onExited: { closeProgramsTimer.stop(); recentOpenTimer.stop(); }
             acceptedButtons: Qt.LeftButton | Qt.RightButton
+            // Dragging: past the system's drag distance, the list's own.
+            preventStealing: entry.draggable
+            property point pressedAt
+            property bool moved: false
+            onPressed: mouse => { pressedAt = Qt.point(mouse.x, mouse.y); moved = false; }
+            onPositionChanged: mouse => {
+                if (!entry.draggable || !(pressedButtons & Qt.LeftButton)) return;
+                if (!moved && Math.abs(mouse.x - pressedAt.x) + Math.abs(mouse.y - pressedAt.y) < Qt.styleHints.startDragDistance) return;
+                moved = true;
+                menu.dragMove(entry, entry.mapToItem(programEntries, mouse.x, mouse.y).y);
+            }
+            onReleased: if (moved) menu.dragEnd()
+            onCanceled: {
+                if (moved) { menu.dragEntry = null; menu.dropSlot = -1; }
+                moved = false;
+            }
             onClicked: mouse => {
+                if (moved) return;
                 if (mouse.button === Qt.RightButton)
                     menu.contextRequested(entry.entryData.action, entry, mouse.x, mouse.y);
                 else
@@ -256,11 +301,15 @@ FocusScope {
             }
             Column {
                 id: programEntries
+                objectName: "programEntries"
                 width: parent.width
                 Repeater {
                     model: menu.pinnedItems
                     delegate: Entry {
                         required property var modelData
+                        required property int index
+                        pinnedIndex: index
+                        draggable: true
                         width: programEntries.width
                         height: menu.provisional.pinnedRowHeight
                         iconSize: 32
@@ -287,6 +336,7 @@ FocusScope {
                     model: menu.shownRecent
                     delegate: Entry {
                         required property var modelData
+                        draggable: true
                         width: programEntries.width
                         height: menu.provisional.recentRowHeight
                         iconSize: 32
@@ -296,6 +346,17 @@ FocusScope {
                     }
                 }
             }
+        }
+        Rectangle {
+            // Where a dragged program would land: XP's insertion mark.
+            objectName: "dropMark"
+            visible: menu.dropSlot >= 0
+            parent: programEntries.parent
+            x: 4
+            y: menu.dropSlot * menu.provisional.pinnedRowHeight - 1
+            width: programEntries.width - 8
+            height: 2
+            color: menu.xpColors.programText
         }
         Rectangle {
             // Only appears when favorites/recent apps exceed the fixed pane.
