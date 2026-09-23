@@ -82,6 +82,7 @@ private:
     bool drawXpViewItem(const QStyleOptionViewItem *item, QPainter *painter, const QWidget *widget) const;
     QSize sliderThumbSize(const QStyleOptionSlider *slider) const;
     bool flatMenus() const;
+    QSize xpMenuItemSize(const QStyleOptionMenuItem *item, const QSize &size, const QWidget *widget) const;
     void drawMenuItem(const QStyleOptionMenuItem *item, QPainter *painter, const QWidget *widget) const;
     void drawMenuBarItem(const QStyleOptionMenuItem *item, QPainter *painter, const QWidget *widget) const;
 

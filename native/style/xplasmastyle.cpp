@@ -326,6 +326,23 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             break;
         case PE_FrameDefaultButton:
             return;   // drawn with the bevel (CE_PushButtonBevel)
+        case PE_PanelMenu:
+        case PE_FrameMenu: {
+            // A Classic menu: the menu colour in a raised edge (Light3D and
+            // DkShadow outside, Highlight and Shadow inside).
+            const QRect r = option->rect;
+            if (element == PE_PanelMenu)
+                painter->fillRect(r, sysColour(u"menu", option->palette.color(QPalette::Button)));
+            auto frame = [&](const QRect &q, const QColor &tl, const QColor &br) {
+                painter->fillRect(QRect(q.left(), q.top(), q.width() - 1, 1), tl);
+                painter->fillRect(QRect(q.left(), q.top(), 1, q.height() - 1), tl);
+                painter->fillRect(QRect(q.left(), q.bottom(), q.width(), 1), br);
+                painter->fillRect(QRect(q.right(), q.top(), 1, q.height()), br);
+            };
+            frame(r, option->palette.color(QPalette::Midlight), option->palette.color(QPalette::Shadow));
+            frame(r.adjusted(1, 1, -1, -1), option->palette.color(QPalette::Light), option->palette.color(QPalette::Dark));
+            return;
+        }
         case PE_PanelLineEdit:
             // A disabled or read-only edit is filled with the button face
             // (WM_CTLCOLORSTATIC), as the themed ones are.
@@ -1101,6 +1118,11 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
             return QProxyStyle::pixelMetric(metric, option, widget) - 1;   // the label stays where XP has it
         case PM_ScrollBarExtent:
             return sysMetric(u"scrollbarwidth", 17);   // SM_CXVSCROLL / SM_CYHSCROLL
+        case PM_MenuPanelWidth:
+            return 2;   // the raised edge
+        case PM_MenuHMargin:
+        case PM_MenuVMargin:
+            return 1;
         default:
             break;
         }
@@ -1223,11 +1245,31 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
     return QProxyStyle::pixelMetric(metric, option, widget);
 }
 
+// XP's menu items (Luna and Classic alike, Tahoma 8): text + 4 tall (17),
+// separators 9; the label 17px in, 19px of room on the right (the submenu
+// arrow's), and 8px before the accelerator column when the menu has one
+// (QMenu adds the column itself).
+QSize XPLasmaStyle::xpMenuItemSize(const QStyleOptionMenuItem *item, const QSize &size, const QWidget *widget) const
+{
+    if (item->menuItemType == QStyleOptionMenuItem::Separator)
+        return QSize(1, 9);
+    bool accelerators = false;
+    if (const auto *menu = qobject_cast<const QMenu *>(widget))
+        for (const QAction *a : menu->actions())
+            accelerators = accelerators || a->text().contains(QLatin1Char('\t')) || !a->shortcut().isEmpty();
+    const int h = qMax(xpTextHeight(item->font) + 4, qMin(item->maxIconWidth, 16) + 1);
+    return QSize(17 + size.width() + 19 + (accelerators ? 8 : 0), h);
+}
+
 QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *option, const QSize &size,
                                      const QWidget *widget) const
 {
     if (classic()) {
         switch (type) {
+        case CT_MenuItem:
+            if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option))
+                return xpMenuItemSize(item, size, widget);
+            break;
         case CT_MenuBarItem:
             if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option))
                 return QSize(size.width() + 12, xpTextHeight(item->font) + 6);   // SM_CYMENU: 19 for Tahoma 8
@@ -1276,20 +1318,8 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
             }
             break;
         case CT_MenuItem:
-            if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option); item && flatMenus()) {
-                // XP (Luna, Tahoma 8): items text + 4 tall (17), separators
-                // 9; the label 17px in, 19px of room on the right (the
-                // submenu arrow's), and 8px before the accelerator column
-                // when the menu has one (QMenu adds the column itself).
-                if (item->menuItemType == QStyleOptionMenuItem::Separator)
-                    return QSize(1, 9);
-                bool accelerators = false;
-                if (const auto *menu = qobject_cast<const QMenu *>(widget))
-                    for (const QAction *a : menu->actions())
-                        accelerators = accelerators || a->text().contains(QLatin1Char('\t')) || !a->shortcut().isEmpty();
-                const int h = qMax(xpTextHeight(item->font) + 4, qMin(item->maxIconWidth, 16) + 1);
-                return QSize(17 + size.width() + 19 + (accelerators ? 8 : 0), h);
-            }
+            if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option); item && flatMenus())
+                return xpMenuItemSize(item, size, widget);
             break;
         case CT_MenuBarItem:
             if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option); item && flatMenus())
@@ -1594,19 +1624,28 @@ bool XPLasmaStyle::flatMenus() const
 void XPLasmaStyle::drawMenuItem(const QStyleOptionMenuItem *item, QPainter *painter, const QWidget *widget) const
 {
     const QRect r = item->rect;
+    const bool flat = !classic();
     painter->fillRect(r, sysColour(u"menu", Qt::white));
     if (item->menuItemType == QStyleOptionMenuItem::Separator) {
+        // Flat: one shadow line; Classic: etched (the highlight below it).
         painter->fillRect(QRect(r.left() + 1, r.top() + 3, r.width() - 2, 1), sysColour(u"btnshadow", QColor(172, 168, 153)));
+        if (!flat)
+            painter->fillRect(QRect(r.left() + 1, r.top() + 4, r.width() - 2, 1), sysColour(u"btnhighlight", Qt::white));
         return;
     }
     const bool selected = item->state & State_Selected;
-    if (selected) {
+    if (selected && flat) {
         painter->fillRect(r, sysColour(u"menuhilight", QColor(49, 106, 197)));
         painter->save();
         painter->setPen(sysColour(u"highlight", QColor(49, 106, 197)));
         painter->drawRect(r.adjusted(0, 0, -1, -1));
         painter->restore();
+    } else if (selected) {
+        painter->fillRect(r, sysColour(u"highlight", QColor(10, 36, 106)));   // Classic: a plain highlight
     }
+    // Classic's disabled text is etched (the highlight 1px down-right),
+    // unless it's selected.
+    const bool etched = !flat && !enabled(item) && !selected;
     const QColor fg = !enabled(item) ? sysColour(u"graytext", QColor(172, 168, 153))
                       : selected     ? sysColour(u"highlighttext", Qt::white)
                                      : sysColour(u"menutext", Qt::black);
@@ -1639,19 +1678,25 @@ void XPLasmaStyle::drawMenuItem(const QStyleOptionMenuItem *item, QPainter *pain
                       | (proxy()->styleHint(SH_UnderlineShortcut, item, widget) ? Qt::TextShowMnemonic : Qt::TextHideMnemonic);
     painter->save();
     painter->setFont(item->font);
-    painter->setPen(fg);
     // GDI's centring puts the odd pixel below: 17px items put the text 1 down.
     const int top = r.top() + (r.height() - th - 1) / 2;
-    painter->drawText(QRect(r.left() + 17, top, r.width() - 17, th), flags, text);
-    if (!accel.isEmpty()) {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        const int column = item->reservedShortcutWidth;
+    const int column = item->reservedShortcutWidth;
 #else
-        const int column = item->tabWidth;
+    const int column = item->tabWidth;
 #endif
-        // Left-aligned in a column that ends 19px from the right.
-        painter->drawText(QRect(r.right() + 1 - 19 - column, top, column + 19, th), flags, accel);
+    auto texts = [&](QPoint o) {
+        painter->drawText(QRect(r.left() + 17, top, r.width() - 17, th).translated(o), flags, text);
+        // The accelerator left-aligned in a column that ends 19px from the right.
+        if (!accel.isEmpty())
+            painter->drawText(QRect(r.right() + 1 - 19 - column, top, column + 19, th).translated(o), flags, accel);
+    };
+    if (etched) {
+        painter->setPen(sysColour(u"btnhighlight", Qt::white));
+        texts(QPoint(1, 1));
     }
+    painter->setPen(fg);
+    texts(QPoint());
     painter->restore();
     if (item->menuItemType == QStyleOptionMenuItem::SubMenu)
         drawGlyph(painter, kMenuArrow, QPoint(r.right() - 9, r.top() + (r.height() - 8) / 2), fg);
@@ -1749,6 +1794,15 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
             return true;
         }
         return false;
+    case CE_MenuItem:
+        if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option)) {
+            drawMenuItem(item, painter, widget);
+            return true;
+        }
+        return false;
+    case CE_MenuEmptyArea:
+        painter->fillRect(option->rect, sysColour(u"menu", option->palette.color(QPalette::Button)));
+        return true;
     case CE_MenuBarItem:
         if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option)) {
             // Hot: a raised 1px edge; open: sunken, the title pushed 1px.
