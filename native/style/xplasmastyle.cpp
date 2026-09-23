@@ -384,6 +384,18 @@ bool XPLasmaStyle::eventFilter(QObject *watched, QEvent *event)
             }
         }
     }
+    // A disabled list view or tree view: the button face behind its items,
+    // as comctl32 fills them (a list box keeps the window colour).
+    if (event->type() == QEvent::Paint && (m_renderer || classic()) && watched->isWidgetType()) {
+        auto *viewport = static_cast<QWidget *>(watched);
+        if (auto *view = qobject_cast<QAbstractItemView *>(viewport->parentWidget());
+            view && view->viewport() == viewport && !view->isEnabled()) {
+            if (const int extra = itemRowExtra(view); extra == 1 || extra == 3) {
+                QPainter p(viewport);
+                p.fillRect(static_cast<QPaintEvent *>(event)->rect(), sysColour(u"btnface", view->palette().color(QPalette::Button)));
+            }
+        }
+    }
     if (auto *bar = qobject_cast<QStatusBar *>(watched);
         bar && m_renderer && (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Show)) {
         const int want = xpTextHeight(bar->font()) + 10;
@@ -749,8 +761,17 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             // Edit border. Anything else keeps the classic edge.
             if (const QString cls = frameClass(widget); !cls.isEmpty()) {
                 if (drawPart(painter, {cls, cls == QLatin1String("edit") ? 1 : 0, enabled(option) ? Normal : Disabled, {}},
-                             option->rect))
+                             option->rect)) {
+                    // A disabled list view's ring inside the border is the
+                    // face its items sit on.
+                    if (cls == QLatin1String("listview") && !enabled(option)) {
+                        painter->save();
+                        painter->setPen(sysColour(u"btnface", option->palette.color(QPalette::Button)));
+                        painter->drawRect(option->rect.adjusted(1, 1, -2, -2));
+                        painter->restore();
+                    }
                     return;
+                }
             }
             break;
         case PE_IndicatorTabTearLeft:
@@ -814,9 +835,50 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
 
 // --- controls ------------------------------------------------------------------------
 
+// A tab bar, and a header in an item view: XP draws them enabled even when
+// their control is disabled.
+static bool drawnEnabled(const QWidget *widget)
+{
+    if (qobject_cast<const QTabBar *>(widget))
+        return true;
+    return widget->inherits("QHeaderView") && widget->parentWidget() && widget->parentWidget()->inherits("QAbstractItemView");
+}
+
 void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *option, QPainter *painter,
                                const QWidget *widget) const
 {
+    // comctl32's tab control paints its tabs the same enabled or not, and a
+    // list view's header is a child window of its own that stays enabled:
+    // XP draws both as enabled whatever the control's state.
+    if ((m_renderer || classic()) && !enabled(option) && widget && drawnEnabled(widget)) {
+        auto enable = [](QStyleOption &copy) {
+            copy.state |= State_Enabled;
+            copy.palette.setCurrentColorGroup(QPalette::Active);
+        };
+        if (const auto *tab = qstyleoption_cast<const QStyleOptionTab *>(option)) {
+            QStyleOptionTab copy(*tab);
+            enable(copy);
+            return drawControl(element, &copy, painter, widget);
+        }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        if (const auto *header = qstyleoption_cast<const QStyleOptionHeaderV2 *>(option)) {
+            QStyleOptionHeaderV2 copy(*header);
+            enable(copy);
+            return drawControl(element, &copy, painter, widget);
+        }
+#endif
+        if (const auto *header = qstyleoption_cast<const QStyleOptionHeader *>(option);
+            header && header->version == QStyleOptionHeader::Version) {
+            QStyleOptionHeader copy(*header);
+            enable(copy);
+            return drawControl(element, &copy, painter, widget);
+        }
+        if (option->type == QStyleOption::SO_Default) {
+            QStyleOption copy(*option);
+            enable(copy);
+            return drawControl(element, &copy, painter, widget);
+        }
+    }
     if (classic() && drawClassicControl(element, option, painter, widget))
         return;
     if (m_renderer) {
@@ -1296,7 +1358,13 @@ void XPLasmaStyle::drawScrollBar(const QStyleOptionSlider *bar, QPainter *painte
              proxy()->subControlRect(CC_ScrollBar, bar, SC_ScrollBarSubLine, widget));
     drawPart(painter, {QStringLiteral("scrollbar"), 1, addBase + stateOf(SC_ScrollBarAddLine), {}},
              proxy()->subControlRect(CC_ScrollBar, bar, SC_ScrollBarAddLine, widget));
-    // SBP_LOWERTRACK* is the side before the thumb, UPPERTRACK* after it.
+    // SBP_LOWERTRACK* is the side before the thumb, UPPERTRACK* after it;
+    // with no thumb, one track runs the whole length.
+    if (!on) {
+        drawPart(painter, {QStringLiteral("scrollbar"), horizontal ? 4 : 6, Disabled, {}},
+                 proxy()->subControlRect(CC_ScrollBar, bar, SC_ScrollBarGroove, widget));
+        return;
+    }
     drawPart(painter, {QStringLiteral("scrollbar"), horizontal ? 4 : 6, stateOf(SC_ScrollBarSubPage), {}},
              proxy()->subControlRect(CC_ScrollBar, bar, SC_ScrollBarSubPage, widget));
     drawPart(painter, {QStringLiteral("scrollbar"), horizontal ? 5 : 7, stateOf(SC_ScrollBarAddPage), {}},
@@ -1813,7 +1881,7 @@ void XPLasmaStyle::drawTreeBranch(const QStyleOption *option, QPainter *painter,
         // Classic: a 9px square, the button shadow round the window colour,
         // a 5px minus (or plus) in the text colour.
         const QRect box(cx - 4, cy - 4, 9, 9);
-        painter->fillRect(box, sysColour(u"window", Qt::white));
+        painter->fillRect(box, enabled(option) ? sysColour(u"window", Qt::white) : sysColour(u"btnface", Qt::lightGray));
         painter->save();
         painter->setPen(sysColour(u"graytext", Qt::gray));
         painter->setBrush(Qt::NoBrush);
@@ -2188,7 +2256,17 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
         }
         return false;
     case CE_ScrollBarSlider:
-        // The thumb: the raised scroll edge (it never looks pressed).
+        // The thumb: the raised scroll edge (it never looks pressed). A
+        // disabled scroll bar has none, only the track.
+        if (!enabled(option)) {
+            if (const auto *bar = qstyleoption_cast<const QStyleOptionSlider *>(option)) {
+                QStyleOptionSlider copy(*bar);
+                copy.state &= ~State_Sunken;
+                copy.activeSubControls = SC_None;
+                proxy()->drawControl(CE_ScrollBarAddPage, &copy, painter, widget);
+            }
+            return true;
+        }
         classicScrollButton(painter, option->rect, option->palette, false);
         return true;
     case CE_ScrollBarAddLine:
@@ -2582,11 +2660,25 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
                         continue;
                     const QPoint at = horizontal ? QPoint(handle.left() + i, handle.top() + j)
                                                  : QPoint(handle.left() + j, handle.top() + i);
+                    // Disabled, the face is dithered with the highlight --
+                    // all but the point's first row (so XP has it).
+                    const bool plainRow = pointed && qBound(0, flip ? across - 1 - j : j, 21) == 17;
+                    if (c == 'F' && !enabled(slider) && !plainRow && ((at.x() + at.y()) & 1))
+                        c = 'W';
                     painter->fillRect(at.x(), at.y(), 1, 1, colourOf(c));
                 }
             }
             if ((slider->state & State_HasFocus) && (slider->state & State_KeyboardFocusChange))
                 drawFocusDots(painter, slider->rect, focusColours(widget).first, focusColours(widget).second);
+            return true;
+        }
+        return false;
+    case CC_GroupBox:
+        // Disabled, the caption is etched in the shadow (DSS_DISABLED).
+        if (const auto *box = qstyleoption_cast<const QStyleOptionGroupBox *>(option); box && !enabled(box)) {
+            QStyleOptionGroupBox copy(*box);
+            copy.textColor = box->palette.color(QPalette::Dark);
+            QProxyStyle::drawComplexControl(control, &copy, painter, widget);
             return true;
         }
         return false;
@@ -2729,6 +2821,9 @@ bool XPLasmaStyle::drawXpViewItem(const QStyleOptionViewItem *item, QPainter *pa
 
     QStyleOptionViewItem plain(*item);
     plain.state &= ~(State_Selected | State_HasFocus);
+    // A disabled list view keeps its items' text colour (a tree greys them).
+    if (!tree && !enabled(item))
+        plain.palette.setBrush(QPalette::Disabled, QPalette::Text, item->palette.brush(QPalette::Active, QPalette::Text));
     if (selected && focused)
         plain.palette.setBrush(QPalette::Text, item->palette.brush(QPalette::Active, QPalette::HighlightedText));
     else if (selected)   // the unfocused selection: button text on the button face
@@ -2816,7 +2911,7 @@ void XPLasmaStyle::drawSliderTicks(const QStyleOptionSlider *slider, const QRect
     // centre for that value.
     const bool horizontal = slider->orientation == Qt::Horizontal;
     const QColor colour = themeColour({QStringLiteral("trackbar"), horizontal ? 9 : 10, 1, {}}, u"color",
-                                      slider->palette.color(QPalette::ButtonText));
+                                      slider->palette.color(QPalette::Active, QPalette::ButtonText));   // (disabled too)
     const qint64 range = qint64(slider->maximum) - slider->minimum;
     if (range <= 0)
         return;
