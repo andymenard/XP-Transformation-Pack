@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QPainter>
+#include <QRawFont>
 #include <QPushButton>
 #include <QScrollBar>
 #include <QSettings>
@@ -651,6 +652,9 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
                     QSize s = size;
                     if (tab->position == QStyleOptionTab::Beginning || tab->position == QStyleOptionTab::OnlyOneTab)
                         s.rwidth() += 2;
+                    // 2px headroom, the 18px tab (text + 5), one row shared
+                    // with the pane -- from XP's text height (tmHeight).
+                    s.setHeight(xpTextHeight(widget ? widget->font() : QApplication::font()) + 8);
                     return s;
                 }
             }
@@ -703,6 +707,26 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
         return QProxyStyle::subElementRect(SE_ProgressBarGroove, option, widget);
     }
     return QProxyStyle::subElementRect(element, option, widget);
+}
+
+// GDI's tmHeight for a font, computed as GDI does: the OS/2 table's
+// usWinAscent and usWinDescent scaled to the pixel size, each rounded
+// (Tahoma 8 at 96 DPI: 11 + 2 = 13). Neither Qt's metrics will do: Qt 5
+// rounds the descent up (14) even for an unhinted QRawFont, while Qt 6
+// happens to agree (13).
+int XPLasmaStyle::xpTextHeight(const QFont &font) const
+{
+    const QRawFont raw = QRawFont::fromFont(font);
+    const QByteArray os2 = raw.isValid() ? raw.fontTable("OS/2") : QByteArray();
+    if (os2.size() >= 78 && raw.unitsPerEm() > 0) {
+        const auto *p = reinterpret_cast<const uchar *>(os2.constData());
+        const int winAscent = p[74] << 8 | p[75];
+        const int winDescent = p[76] << 8 | p[77];
+        const qreal scale = raw.pixelSize() / raw.unitsPerEm();
+        return qRound(winAscent * scale) + qRound(winDescent * scale);
+    }
+    const QFontMetrics fm(font);
+    return fm.ascent() + fm.descent();
 }
 
 // A north tab's rect as XP lays it out, inside Qt's: 2px down (the tab bar

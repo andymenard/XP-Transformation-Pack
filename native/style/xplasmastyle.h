@@ -66,6 +66,7 @@ private:
     void drawSliderTicks(const QStyleOptionSlider *slider, const QRect &channel, const QRect &handle, QPainter *painter) const;
     int sliderThumbPart(const QStyleOptionSlider *slider) const;
     QRect xpTabRect(const QStyleOptionTab *tab) const;
+    int xpTextHeight(const QFont &font) const;
     QSize sliderThumbSize(const QStyleOptionSlider *slider) const;
 
     std::unique_ptr<xpl::Renderer> m_renderer;
