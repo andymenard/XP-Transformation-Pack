@@ -635,9 +635,14 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
             if (hasPart({QStringLiteral("treeview"), 0, Normal, {}}))
                 return 19;   // TVM_GETINDENT
             break;
+        // XP puts both labels at x = 16 (a 13px box and 3px). QCommonStyle
+        // places a check box's label at indicator.right() + spacing -- the
+        // inclusive right edge, 12 -- but a radio button's at left + width +
+        // spacing, 13; so the check box needs one more.
         case PM_CheckBoxLabelSpacing:
+            return 4;
         case PM_RadioButtonLabelSpacing:
-            return 3;   // XP: a 13px box, then the label at x = 16
+            return 3;
         case PM_ButtonShiftHorizontal:
         case PM_ButtonShiftVertical:
             return 0;   // XP's pressed buttons keep their label still

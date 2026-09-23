@@ -95,6 +95,7 @@ Dib decodeDib(const QByteArray &data)
             QImage img(width, h, QImage::Format_ARGB32);
             const uchar *src = p + headerSize;
             uchar maxAlpha = 0;
+            bool partial = false;
             for (int y = 0; y < h; ++y) {
                 // Bottom-up unless the height is negative.
                 const uchar *row = src + qint64(height < 0 ? y : h - 1 - y) * width * 4;
@@ -102,6 +103,7 @@ Dib decodeDib(const QByteArray &data)
                 for (int x = 0; x < width; ++x) {
                     const uchar b = row[x * 4], g = row[x * 4 + 1], r = row[x * 4 + 2], a = row[x * 4 + 3];
                     maxAlpha = qMax(maxAlpha, a);
+                    partial = partial || (a != 0 && a != 255);
                     dst[x] = qRgba(r, g, b, a);
                 }
             }
@@ -114,6 +116,7 @@ Dib decodeDib(const QByteArray &data)
                 }
             } else {
                 out.hasAlpha = true;
+                out.partialAlpha = partial;
             }
             out.image = img;
             return out;

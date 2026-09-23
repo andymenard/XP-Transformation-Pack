@@ -10,7 +10,12 @@ namespace xpl {
 struct Dib
 {
     QImage image;           // Format_ARGB32; null if undecodable
-    bool hasAlpha = false;  // a 32bpp bitmap whose alpha channel is actually used
+    bool hasAlpha = false;  // a 32bpp bitmap whose alpha channel isn't all zero
+    // ...and has partial transparency (some 0 < a < 255). uxtheme only uses
+    // a bitmap's alpha when it does: Luna Silver's CheckBox13.bmp (alpha 0
+    // and 255 only) is drawn opaque by XP, RadioButton13.bmp (464 partial
+    // pixels) is blended. See Renderer::frame().
+    bool partialAlpha = false;
 };
 
 // 32bpp BI_RGB bitmaps are decoded here, keeping the alpha channel -- unless

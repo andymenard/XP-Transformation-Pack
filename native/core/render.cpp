@@ -227,7 +227,9 @@ Renderer::Frame Renderer::frame(const PartRef &ref, const QString &imageProperty
     const int index = (ref.state >= 1 && ref.state <= count) ? ref.state - 1 : 0;
     QImage crop = dib.image.copy(horizontal ? QRect(index * w, 0, w, h) : QRect(0, index * h, w, h));
 
-    // Transparency: real per-pixel alpha wins; otherwise an optional colour key.
+    // Transparency: real per-pixel alpha wins -- only when the bitmap has
+    // partial alpha, as uxtheme decides; a 0/255-only alpha channel is
+    // ignored -- otherwise an optional colour key.
     const bool keyed = parseBool(property(ref, glyph ? u"glyphtransparent" : u"transparent").value_or(QString()));
     QRgb key = qRgb(255, 0, 255);
     parseColour(property(ref, glyph ? u"glyphtransparentcolor" : u"transparentcolor").value_or(QString()), &key);
@@ -237,7 +239,7 @@ Renderer::Frame Renderer::frame(const PartRef &ref, const QString &imageProperty
         auto *dst = reinterpret_cast<QRgb *>(frame.scanLine(y));
         for (int x = 0; x < crop.width(); ++x) {
             const QRgb c = src[x];
-            if (dib.hasAlpha) {
+            if (dib.hasAlpha && dib.partialAlpha) {
                 const int a = qAlpha(c);
                 dst[x] = qRgba(premul(qRed(c), a), premul(qGreen(c), a), premul(qBlue(c), a), a);
             } else if (keyed && (c & 0x00ffffffu) == (key & 0x00ffffffu)) {
