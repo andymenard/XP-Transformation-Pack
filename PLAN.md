@@ -575,3 +575,19 @@ every part. The remainder is a handful of families (Tile-mode edges on
 `Window.MaxCaption`, a squeezed split-button glyph, small window buttons in
 Zune/Embedded); see NOTES.md. Font glyphs (`GlyphType=FontGlyph`) and
 gradient `BorderFill`s aren't exercised by these styles yet.
+
+**Phase 1 — done (2026-09-23).** The hour-long fuzz run finished clean:
+8.6 M theme/PE, 1.8 M DIB and 5.1 M INI inputs under AddressSanitizer and
+UBSan, no crash, leak or UB (the one denial of service it found in its first
+minute, a 217-byte RLE header claiming a gigantic image, was fixed and kept as
+a test vector).
+
+**Phase 3 — in progress.** The control oracle (`refharness` `control`
+directive + `xplasma-gallery --controls`) compares Qt widgets with XP's real
+comctl32 v6 controls. So far **pixel-exact**: progress bars (14/14, all
+values and widths), trackbars (15/15), scroll bars (9/9, gripper rule
+included). Combo frames and buttons exact, tabs laid out as TCM_GETITEMRECT
+says, labels placed within about 1px (glyph shapes differ; XP-style text
+rendering is recorded as a font setting). Qt 5 and Qt 6 draw identically
+apart from glyphs, once the tab height is computed from the font's OS/2
+metrics as GDI does.

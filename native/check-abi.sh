@@ -7,7 +7,7 @@
 # floor, on any distribution with at least `max-glibc` (default 2.34, the same
 # floor xp2plasma's AppImage measured). Checks:
 #   1. Qt symbols use only the public Qt_N / Qt_N.M versions (no *_PRIVATE_API).
-#   2. No C++-runtime or other non-Qt symbol is bound to a Qt version.
+#   2. No C++-runtime symbol (operator new/delete, std::, __cxa...) is bound to Qt.
 #   3. Only Qt's two plugin entry points are exported.
 #   4. No glibc symbol newer than max-glibc.
 set -eu
@@ -19,7 +19,11 @@ dyn="$(objdump -T "$lib")"
 private="$(printf '%s\n' "$dyn" | grep -o '(Qt_[^)]*PRIVATE[^)]*)' | sort -u || true)"
 [ -z "$private" ] || { say "FAIL private Qt API: $private"; fail=1; }
 
-stray="$(printf '%s\n' "$dyn" | awk '/\(Qt_/ {print $NF}' | c++filt | grep -v '^\(typeinfo for \|vtable for \)\?[Qq]' || true)"
+# The C++ runtime is what must never bind to Qt: operator new/delete, std::,
+# the ABI helpers. (Qt's own free functions -- operator==(QString, QString) --
+# legitimately carry its version.)
+stray="$(printf '%s\n' "$dyn" | awk '/\(Qt_/ {print $NF}' | c++filt \
+         | grep -E '^(operator (new|delete)|std::|__cxa|__gxx|__cxx|__dynamic_cast)' || true)"
 [ -z "$stray" ] || { say "FAIL non-Qt symbols bound to Qt:"; say "$stray"; fail=1; }
 
 # (__bss_start, _edata and _end are the linker's own section markers.)
