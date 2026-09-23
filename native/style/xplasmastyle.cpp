@@ -1226,6 +1226,16 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
 QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *option, const QSize &size,
                                      const QWidget *widget) const
 {
+    if (classic()) {
+        switch (type) {
+        case CT_MenuBarItem:
+            if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option))
+                return QSize(size.width() + 12, xpTextHeight(item->font) + 6);   // SM_CYMENU: 19 for Tahoma 8
+            break;
+        default:
+            break;
+        }
+    }
     if (m_renderer) {
         switch (type) {
         case CT_ItemViewItem:
@@ -1736,6 +1746,36 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
             const bool pressed = sunken(bar) && (bar->activeSubControls & (add ? SC_ScrollBarAddLine : SC_ScrollBarSubLine));
             classicScrollButton(painter, bar->rect, bar->palette, pressed);
             classicArrow(painter, bar->rect, dir, bar->palette, enabled(bar), pressed);
+            return true;
+        }
+        return false;
+    case CE_MenuBarItem:
+        if (const auto *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option)) {
+            // Hot: a raised 1px edge; open: sunken, the title pushed 1px.
+            const QRect r = item->rect;
+            painter->fillRect(r, sysColour(u"menu", item->palette.color(QPalette::Button)));
+            const bool open = item->state & State_Sunken;
+            const bool hot = enabled(item) && (item->state & (State_Selected | State_Sunken));
+            if (hot) {
+                const QColor tl = open ? item->palette.color(QPalette::Dark) : item->palette.color(QPalette::Light);
+                const QColor br = open ? item->palette.color(QPalette::Light) : item->palette.color(QPalette::Dark);
+                painter->fillRect(QRect(r.left(), r.top(), r.width() - 1, 1), tl);
+                painter->fillRect(QRect(r.left(), r.top(), 1, r.height() - 1), tl);
+                painter->fillRect(QRect(r.left(), r.bottom(), r.width(), 1), br);
+                painter->fillRect(QRect(r.right(), r.top(), 1, r.height()), br);
+            }
+            const int th = xpTextHeight(item->font);
+            QRect text(r.left() + 6, r.top() + (r.height() - th) / 2 - 1, r.width() - 6, th);
+            if (open)
+                text.translate(1, 1);
+            painter->save();
+            painter->setFont(item->font);
+            proxy()->drawItemText(painter, text,
+                                  Qt::AlignLeft | Qt::AlignTop | Qt::TextSingleLine
+                                      | (proxy()->styleHint(SH_UnderlineShortcut, item, widget) ? Qt::TextShowMnemonic
+                                                                                               : Qt::TextHideMnemonic),
+                                  item->palette, enabled(item), item->text, QPalette::ButtonText);
+            painter->restore();
             return true;
         }
         return false;

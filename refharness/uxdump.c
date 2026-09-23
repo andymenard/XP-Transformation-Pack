@@ -384,12 +384,19 @@ static void do_menu(const wchar_t *kind, const wchar_t *state, int w, int h, con
     SetCursorPos(700, 560);
     if (menubar) {
         RECT item;
-        if (!lstrcmpW(state, L"hot"))
-            HiliteMenuItem(host, bar, 0, MF_BYPOSITION | MF_HILITE);
         DrawMenuBar(host);
+        GetMenuItemRect(host, bar, 0, &item);
+        if (!lstrcmpW(state, L"hot")) {
+            /* The pointer over the first title: hot tracking (raised in
+             * Classic). HiliteMenuItem would show it open (sunken). */
+            SetForegroundWindow(host);
+            settle(100);
+            SetCursorPos((item.left + item.right) / 2, (item.top + item.bottom) / 2);
+            settle(50);
+            SetCursorPos((item.left + item.right) / 2 + 1, (item.top + item.bottom) / 2);
+        }
         settle(250);
         grab(kind, state, w, h, outdir);
-        GetMenuItemRect(host, bar, 0, &item);
         out(L"geometry %s item0=%d,%d,%d,%d\r\n", kind, item.left - 40, item.top - 40, item.right - 40, item.bottom - 40);
     } else {
         menu = build_menu();
