@@ -32,6 +32,7 @@
 #include <QTabWidget>
 #include <QToolBar>
 #include <QToolButton>
+#include <QListWidget>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
@@ -85,6 +86,31 @@ static QWidget *controlFor(const QString &kind, const QString &label)
         for (const char *name : {"General", "Appearance", "Advanced"})
             t->addTab(new QWidget, QString::fromLatin1(name));
         return t;
+    }
+    if (base == QLatin1String("listview")) {
+        auto *t = new QTreeWidget;       // report-mode: a header and rows
+        t->setRootIsDecorated(false);
+        t->setHeaderLabels({QStringLiteral("Name"), QStringLiteral("Size"), QStringLiteral("Type")});
+        t->setColumnWidth(0, 100);
+        t->setColumnWidth(1, 70);
+        t->setColumnWidth(2, 80);
+        for (int i = 0; i < 4; ++i)
+            new QTreeWidgetItem(t, {QStringLiteral("File %1").arg(i)});
+        return t;
+    }
+    if (base == QLatin1String("treeview")) {
+        auto *t = new QTreeWidget;
+        t->setHeaderHidden(true);
+        auto *root = new QTreeWidgetItem(t, {QStringLiteral("Desktop")});
+        new QTreeWidgetItem(root, {QStringLiteral("My Documents")});
+        new QTreeWidgetItem(root, {QStringLiteral("My Computer")});
+        root->setExpanded(true);
+        return t;
+    }
+    if (base == QLatin1String("listbox")) {
+        auto *l = new QListWidget;
+        l->addItems({QStringLiteral("Ascent"), QStringLiteral("Autumn"), QStringLiteral("Azul")});
+        return l;
     }
     if (base == QLatin1String("hscroll") || base == QLatin1String("vscroll")) {
         auto *s = new QScrollBar(base == QLatin1String("hscroll") ? Qt::Horizontal : Qt::Vertical);

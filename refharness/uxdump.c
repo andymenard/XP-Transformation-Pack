@@ -340,13 +340,17 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
     else if (!wcsncmp_(kind, L"progress")) { cls = PROGRESS_CLASSW; }
     else if (!wcsncmp_(kind, L"trackbar")) { cls = TRACKBAR_CLASSW; style |= TBS_AUTOTICKS | TBS_BOTTOM; }
     else if (!wcsncmp_(kind, L"tabs")) { cls = WC_TABCONTROLW; }
+    else if (!wcsncmp_(kind, L"listview")) { cls = WC_LISTVIEWW; style |= LVS_REPORT; }
+    else if (!wcsncmp_(kind, L"treeview")) { cls = WC_TREEVIEWW; style |= TVS_HASLINES | TVS_HASBUTTONS | TVS_LINESATROOT; }
+    else if (!wcsncmp_(kind, L"listbox")) { cls = L"LISTBOX"; style |= LBS_NOINTEGRALHEIGHT; }
     else if (!wcsncmp_(kind, L"hscroll")) { cls = L"SCROLLBAR"; style |= SBS_HORZ; }
     else if (!wcsncmp_(kind, L"vscroll")) { cls = L"SCROLLBAR"; style |= SBS_VERT; }
     else { out(L"control %s error=unknown-kind\r\n", kind); return; }
 
     host = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_TOPMOST, L"UxdumpHost", L"", WS_POPUP | WS_VISIBLE, 40, 40, w, h,
                            NULL, NULL, NULL, NULL);
-    ctl = CreateWindowExW(!lstrcmpW(cls, L"EDIT") ? WS_EX_CLIENTEDGE : 0, cls,
+    ctl = CreateWindowExW((!lstrcmpW(cls, L"EDIT") || !lstrcmpW(cls, WC_LISTVIEWW) || !lstrcmpW(cls, WC_TREEVIEWW)
+                           || !lstrcmpW(cls, L"LISTBOX")) ? WS_EX_CLIENTEDGE : 0, cls,
                           lstrcmpW(cls, L"COMBOBOX") ? label : L"", style, 0, 0, w,
                           !lstrcmpW(cls, L"COMBOBOX") ? h + 100 : h, host, (HMENU)1, NULL, NULL);
     ncm.cbSize = sizeof ncm;
@@ -369,6 +373,42 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
             item.pszText = (wchar_t *)names[i];
             SendMessageW(ctl, TCM_INSERTITEMW, i, (LPARAM)&item);
         }
+    }
+    if (!wcsncmp_(kind, L"listview")) {
+        LVCOLUMNW col;
+        LVITEMW item;
+        const wchar_t *heads[] = {L"Name", L"Size", L"Type"};
+        const int widths[] = {100, 70, 80};
+        wchar_t text[32];
+        for (i = 0; i < 3; i++) {
+            col.mask = LVCF_TEXT | LVCF_WIDTH;
+            col.pszText = (wchar_t *)heads[i];
+            col.cx = widths[i];
+            SendMessageW(ctl, LVM_INSERTCOLUMNW, i, (LPARAM)&col);
+        }
+        for (i = 0; i < 4; i++) {
+            wsprintfW(text, L"File %d", i);
+            item.mask = LVIF_TEXT; item.iItem = i; item.iSubItem = 0; item.pszText = text;
+            SendMessageW(ctl, LVM_INSERTITEMW, 0, (LPARAM)&item);
+        }
+    }
+    if (!wcsncmp_(kind, L"treeview")) {
+        TVINSERTSTRUCTW ins;
+        HTREEITEM root;
+        ZeroMemory(&ins, sizeof ins);
+        ins.hParent = TVI_ROOT; ins.hInsertAfter = TVI_LAST; ins.item.mask = TVIF_TEXT;
+        ins.item.pszText = L"Desktop";
+        root = (HTREEITEM)SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
+        ins.hParent = root; ins.item.pszText = L"My Documents";
+        SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
+        ins.item.pszText = L"My Computer";
+        SendMessageW(ctl, TVM_INSERTITEMW, 0, (LPARAM)&ins);
+        SendMessageW(ctl, TVM_EXPAND, TVE_EXPAND, (LPARAM)root);
+    }
+    if (!wcsncmp_(kind, L"listbox")) {
+        SendMessageW(ctl, LB_ADDSTRING, 0, (LPARAM)L"Ascent");
+        SendMessageW(ctl, LB_ADDSTRING, 0, (LPARAM)L"Autumn");
+        SendMessageW(ctl, LB_ADDSTRING, 0, (LPARAM)L"Azul");
     }
     if (!wcsncmp_(kind, L"hscroll") || !wcsncmp_(kind, L"vscroll")) {
         SCROLLINFO si;

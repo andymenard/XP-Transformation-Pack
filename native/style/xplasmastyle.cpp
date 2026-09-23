@@ -244,6 +244,18 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             }
             break;
         }
+        case PE_Frame:
+            // Widget context: a frame is drawn by what the widget is, as XP
+            // themes a control's client edge with its own class -- list
+            // views, list boxes and tree views get a flat 1px border in the
+            // class colour (Luna Silver 127,157,185), multi-line text the
+            // Edit border. Anything else keeps the classic edge.
+            if (const QString cls = frameClass(widget); !cls.isEmpty()) {
+                if (drawPart(painter, {cls, cls == QLatin1String("edit") ? 1 : 0, enabled(option) ? Normal : Disabled, {}},
+                             option->rect))
+                    return;
+            }
+            break;
         case PE_PanelButtonTool: {
             // TS_*: normal, hot, pressed, disabled, checked, hot-checked.
             int state = fourState(option);
@@ -610,6 +622,15 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
                 return metric == PM_SliderLength ? s.width() : s.height() + 4;
             break;
         }
+        case PM_DefaultFrameWidth:
+            // A themed client edge is the class's BorderSize wide (1px), not
+            // the classic 2px sunken edge.
+            if (const QString cls = frameClass(widget); !cls.isEmpty()) {
+                bool ok = false;
+                const int border = m_renderer->theme().property(cls, u"", u"", u"bordersize").value_or(QString()).toInt(&ok);
+                return ok ? border : 1;
+            }
+            break;
         case PM_CheckBoxLabelSpacing:
         case PM_RadioButtonLabelSpacing:
             return 3;   // XP: a 13px box, then the label at x = 16
@@ -707,6 +728,24 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
         return QProxyStyle::subElementRect(SE_ProgressBarGroove, option, widget);
     }
     return QProxyStyle::subElementRect(element, option, widget);
+}
+
+// The theme class that frames `widget`'s client edge, or empty for the
+// classic edge. (Phase 4 grows this into the full context resolver.)
+QString XPLasmaStyle::frameClass(const QWidget *widget) const
+{
+    if (!widget || !m_renderer)
+        return QString();
+    QString cls;
+    if (widget->inherits("QTreeView"))
+        cls = QStringLiteral("treeview");
+    else if (widget->inherits("QListView") || widget->inherits("QTableView") || widget->inherits("QColumnView"))
+        cls = QStringLiteral("listview");
+    else if (widget->inherits("QTextEdit") || widget->inherits("QPlainTextEdit"))
+        cls = QStringLiteral("edit");
+    if (cls.isEmpty() || !hasPart({cls, cls == QLatin1String("edit") ? 1 : 0, Normal, {}}))
+        return QString();
+    return cls;
 }
 
 // GDI's tmHeight for a font, computed as GDI does: the OS/2 table's
