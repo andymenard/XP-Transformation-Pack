@@ -289,6 +289,10 @@ void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
             if (element == PE_PanelLineEdit) {
                 const auto *frame = qstyleoption_cast<const QStyleOptionFrame *>(option);
                 if (frame && frame->lineWidth <= 0) {
+                    // A disabled combo box paints its own field (see
+                    // CC_ComboBox), where XP's edit child sits.
+                    if (!enabled(option) && widget && qobject_cast<const QComboBox *>(widget->parentWidget()))
+                        return;
                     // A frameless edit (a spin box's, a combo box's): the
                     // window colour, or the face when disabled.
                     painter->fillRect(option->rect, enabled(option) ? option->palette.brush(QPalette::Base)
@@ -734,10 +738,20 @@ void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOption
                     // The frame is the ComboBox class's own background (part 0:
                     // Luna Silver's border is 127,157,185, not Edit's
                     // 165,172,178), falling back to Edit's; then the button.
-                    const int frameState = enabled(combo) ? Normal : Disabled;
+                    // (Royale and Embedded also give the frame a hot colour.)
+                    const int frameState = !enabled(combo) ? Disabled : hovered(combo) ? Hot : Normal;
                     if (!drawPart(painter, {QStringLiteral("combobox"), 0, frameState, {}}, combo->rect))
                         drawPart(painter, {QStringLiteral("edit"), 1, enabled(combo) ? Normal : Disabled, {}}, combo->rect);
                     const QRect arrow = proxy()->subControlRect(CC_ComboBox, combo, SC_ComboBoxArrow, widget);
+                    if (!enabled(combo)) {
+                        // Disabled, the field is the button face (XP's
+                        // WM_CTLCOLORSTATIC): inside the ring for a drop-down
+                        // list, the edit child's client for an editable one.
+                        const QRect r = combo->rect;
+                        const int in = combo->editable ? 3 : 2;
+                        painter->fillRect(QRect(r.left() + in, r.top() + in, arrow.left() - r.left() - (combo->editable ? 2 : 1) - in, r.height() - 2 * in),
+                                          combo->palette.brush(QPalette::Disabled, QPalette::Window));
+                    }
                     int state = Normal;
                     if (!enabled(combo))
                         state = Disabled;
@@ -1102,6 +1116,12 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
 
 QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *option, const QWidget *widget) const
 {
+    if (m_renderer && (element == SE_CheckBoxClickRect || element == SE_RadioButtonClickRect)
+        && hasPart({QStringLiteral("button"), element == SE_CheckBoxClickRect ? 3 : 2, 1, {}})) {
+        // An XP check box or radio button is hot, and takes clicks,
+        // anywhere in its window -- not just over its box and label.
+        return option->rect;
+    }
     if (m_renderer && hasPart({QStringLiteral("spin"), 3, 1, {}}) && option->rect.width() >= option->rect.height()) {
         // XP scrolls a tab row that doesn't fit with an up-down in its
         // top-right corner: two SM_CXVSCROLL-wide halves, 1px down, 17px

@@ -672,6 +672,22 @@ static void do_control(wchar_t **tok, int n, const wchar_t *outdir)
     /* Keep the pointer well away: a hot control isn't a normal one. */
     SetCursorPos(700, 560);
     UpdateWindow(host);
+    if (!wcsncmp_(state, L"hot")) {
+        /* hot: the pointer over the control's middle; hot-X-Y over X,Y. */
+        int hx = w / 2, hy = h / 2;
+        if (state[3] == L'-') {
+            const wchar_t *p = state + 4;
+            hx = to_int(p);
+            while (*p && *p != L'-') p++;
+            if (*p) hy = to_int(p + 1);
+        }
+        settle(100);
+        SetCursorPos(40 + hx, 40 + hy);
+        settle(50);
+        SetCursorPos(40 + hx + 1, 40 + hy);
+        settle(50);
+        SetCursorPos(40 + hx, 40 + hy);
+    }
     {
         /* Let it finish painting (and any animation), pumping messages. */
         DWORD until = GetTickCount() + 250;

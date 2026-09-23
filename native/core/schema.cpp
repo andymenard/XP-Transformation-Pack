@@ -16,6 +16,9 @@ struct Class
 {
     const char *name;
     std::initializer_list<Part> parts;
+    // The states tmschema.h names after the class itself (CBXS_, TS_, MS_,
+    // SCRBS_, TKS_): they also name a class-level [Class(State)] section.
+    const char *const *states = nullptr;
 };
 
 // State lists, named as tmschema.h does (lower-case, without the prefix).
@@ -54,10 +57,10 @@ const Class kClasses[] = {
     {"rebar", {{"gripper", 1, nullptr}, {"grippervert", 2, nullptr}, {"band", 3, nullptr},
                {"chevron", 4, kThree}, {"chevronvert", 5, kThree}}},
     {"toolbar", {{"button", 1, kToolbar}, {"dropdownbutton", 2, kToolbar}, {"splitbutton", 3, kToolbar},
-                 {"splitbuttondropdown", 4, kToolbar}, {"separator", 5, kToolbar}, {"separatorvert", 6, kToolbar}}},
+                 {"splitbuttondropdown", 4, kToolbar}, {"separator", 5, kToolbar}, {"separatorvert", 6, kToolbar}}, kToolbar},
     {"status", {{"pane", 1, nullptr}, {"gripperpane", 2, nullptr}, {"gripper", 3, nullptr}}},
     {"menu", {{"menuitem", 1, kMenu}, {"menudropdown", 2, kMenu}, {"menubaritem", 3, kMenu},
-              {"menubardropdown", 4, kMenu}, {"chevron", 5, kMenu}, {"separator", 6, kMenu}}},
+              {"menubardropdown", 4, kMenu}, {"chevron", 5, kMenu}, {"separator", 6, kMenu}}, kMenu},
     {"listview", {{"listitem", 1, kListItem}, {"listgroup", 2, nullptr}, {"listdetail", 3, nullptr},
                   {"listsorteddetail", 4, nullptr}, {"emptytext", 5, nullptr}}},
     {"header", {{"headeritem", 1, kThree}, {"headeritemleft", 2, kThree}, {"headeritemright", 3, kThree},
@@ -70,7 +73,7 @@ const Class kClasses[] = {
     {"trackbar", {{"track", 1, kNormal}, {"trackvert", 2, kNormal}, {"thumb", 3, kThumb},
                   {"thumbbottom", 4, kThumb}, {"thumbtop", 5, kThumb}, {"thumbvert", 6, kThumb},
                   {"thumbleft", 7, kThumb}, {"thumbright", 8, kThumb}, {"tics", 9, kNormal},
-                  {"ticsvert", 10, kNormal}}},
+                  {"ticsvert", 10, kNormal}}, kNormal},
     {"tooltip", {{"standard", 1, kTooltip}, {"standardtitle", 2, kTooltip}, {"balloon", 3, kTooltip},
                  {"balloontitle", 4, kTooltip}, {"close", 5, kThree}}},
     {"treeview", {{"treeitem", 1, kListItem}, {"glyph", 2, kGlyph}, {"branch", 3, nullptr}}},
@@ -79,9 +82,9 @@ const Class kClasses[] = {
     {"scrollbar", {{"arrowbtn", 1, kArrow}, {"thumbbtnhorz", 2, kFour}, {"thumbbtnvert", 3, kFour},
                    {"lowertrackhorz", 4, kFour}, {"uppertrackhorz", 5, kFour}, {"lowertrackvert", 6, kFour},
                    {"uppertrackvert", 7, kFour}, {"gripperhorz", 8, kFour}, {"grippervert", 9, kFour},
-                   {"sizebox", 10, kSizeBox}}},
+                   {"sizebox", 10, kSizeBox}}, kFour},
     {"edit", {{"edittext", 1, kEdit}, {"caret", 2, nullptr}}},
-    {"combobox", {{"dropdownbutton", 1, kFour}}},
+    {"combobox", {{"dropdownbutton", 1, kFour}}, kFour},
     {"clock", {{"time", 1, kNormal}}},
     {"traynotify", {{"background", 1, nullptr}, {"animbackground", 2, nullptr}}},
     {"taskbar", {{"backgroundbottom", 1, nullptr}, {"backgroundright", 2, nullptr}, {"backgroundtop", 3, nullptr},
@@ -149,6 +152,13 @@ int partId(QStringView cls, QStringView part)
 
 int stateId(QStringView cls, QStringView part, QStringView state)
 {
+    if (part.isEmpty()) {
+        if (const Class *c = findClass(cls); c && c->states)
+            for (int i = 0; c->states[i]; ++i)
+                if (same(state, c->states[i]))
+                    return i + 1;
+        return 0;
+    }
     const Part *p = findPart(cls, part);
     if (!p || !p->states)
         return 0;
@@ -169,6 +179,14 @@ QString partName(QStringView cls, int part)
 
 QString stateName(QStringView cls, QStringView part, int state)
 {
+    if (part.isEmpty() && state >= 1) {
+        // A class-level state: the class's own state table, if it has one.
+        if (const Class *c = findClass(cls); c && c->states)
+            for (int i = 0; c->states[i]; ++i)
+                if (i + 1 == state)
+                    return QLatin1String(c->states[i]);
+        return QString();
+    }
     const Part *p = findPart(cls, part);
     if (!p || !p->states || state < 1)
         return QString();

@@ -1,0 +1,23 @@
+style -
+control push 75 23 hot OK
+control default 75 23 hot OK
+control check 160 17 hot Use drop shadows
+control check-on 160 17 hot Show window contents
+control radio 160 17 hot Tile
+control radio-on 160 17 hot Center
+control combo 150 21 hot Windows XP style
+control combo 150 21 hot-140-10 Windows XP style
+control combo-edit 150 21 hot-140-10 Tahoma
+control edit 150 21 hot Text
+control trackbar:40 150 30 hot-62-13
+control tabs 300 120 hot-86-10
+control hscroll 150 17 hot-8-8
+control hscroll 150 17 hot-56-8
+control hscroll 150 17 hot-100-8
+control vscroll 17 150 hot-8-141
+control listview 260 100 hot-140-10
+control toolbar 240 30 hot-16-9
+control spin 80 21 hot-70-5
+control spin 80 21 hot-70-15
+control combo 150 21 disabled Windows XP style
+control combo-edit 150 21 disabled Tahoma

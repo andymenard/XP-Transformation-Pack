@@ -36,6 +36,8 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMouseEvent>
+#include <QEnterEvent>
+#include <QHoverEvent>
 #include <QPainter>
 #include <QStatusBar>
 #include <QToolTip>
@@ -103,6 +105,7 @@ static QWidget *controlFor(const QString &kind, const QString &label)
         t->setColumnWidth(1, 70);
         t->setColumnWidth(2, 80);
         t->header()->setStretchLastSection(false);   // XP's columns keep their widths
+        t->header()->setSectionsClickable(true);     // HDS_BUTTONS, as XP's list view has
         for (int i = 0; i < 4; ++i) {
             auto *item = new QTreeWidgetItem(t, {QStringLiteral("File %1").arg(i)});
             if (value == 1)   // listview:1 -- checkboxes, File 0 and 2 ticked
@@ -227,6 +230,37 @@ static QImage overHost(QWidget &host, QWidget *popup)
     return image;
 }
 
+// Deliver what the pointer arriving at `at` (in `top`'s coordinates) would:
+// under-mouse on the widget there and its parents, then hover and move.
+static void hoverAt(QWidget *top, QPoint at)
+{
+    QWidget *target = top->childAt(at);
+    if (!target)
+        target = top;
+    const QPoint local = target->mapFrom(top, at);
+    for (QWidget *p = target; p; p = p->parentWidget()) {
+        p->setAttribute(Qt::WA_UnderMouse, true);
+        if (p == top)
+            break;
+    }
+    target->setAttribute(Qt::WA_Hover, true);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    QEnterEvent enter(local, local, target->mapToGlobal(local));
+    QHoverEvent hoverEnter(QEvent::HoverEnter, local, target->mapToGlobal(local), QPointF(-1, -1));
+    QHoverEvent hoverMove(QEvent::HoverMove, local, target->mapToGlobal(local), local);
+#else
+    QEnterEvent enter(local, local, target->mapToGlobal(local));
+    QHoverEvent hoverEnter(QEvent::HoverEnter, local, QPointF(-1, -1));
+    QHoverEvent hoverMove(QEvent::HoverMove, local, local);
+#endif
+    QMouseEvent move(QEvent::MouseMove, local, target->mapToGlobal(local), Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+    QApplication::sendEvent(target, &enter);
+    QApplication::sendEvent(target, &hoverEnter);
+    QApplication::sendEvent(target, &hoverMove);
+    QApplication::sendEvent(target, &move);
+    QApplication::processEvents();
+}
+
 static int controls(const QString &jobPath, const QString &outdir)
 {
     QFile job(jobPath);
@@ -287,14 +321,23 @@ static int controls(const QString &jobPath, const QString &outdir)
             if (auto *b = qobject_cast<QAbstractButton *>(w))
                 b->setDown(true);
         QApplication::processEvents();
-        if (state == QLatin1String("hot"))
+        if (state.startsWith(QLatin1String("hot"))) {
             if (auto *bar = w->findChild<QMenuBar *>()) {
                 // The pointer over the first title, as XP's HiliteMenuItem.
                 const QPoint at = bar->actionGeometry(bar->actions().first()).center();
                 QMouseEvent move(QEvent::MouseMove, at, bar->mapToGlobal(at), Qt::NoButton, Qt::NoButton, Qt::NoModifier);
                 QApplication::sendEvent(bar, &move);
                 QApplication::processEvents();
+            } else {
+                // hot: the pointer over the middle; hot-X-Y over X,Y -- as
+                // uxdump parks the real pointer.
+                QPoint at(size.width() / 2, size.height() / 2);
+                const QStringList xy = state.split(QLatin1Char('-'));
+                if (xy.size() == 3)
+                    at = QPoint(xy[1].toInt(), xy[2].toInt());
+                hoverAt(w, at);
             }
+        }
         host.grab().save(name);
     }
     return 0;
