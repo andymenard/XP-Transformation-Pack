@@ -54,6 +54,9 @@ public:
     // Windows Classic: no visual style, a colour scheme's colours.
     bool classic() const { return !m_renderer && !m_scheme.isEmpty(); }
 
+private Q_SLOTS:
+    void reloadIfChanged();
+
 private:
     void loadTheme();
     // Draw `ref` into `rect`; false (and nothing drawn) when the theme has
@@ -97,4 +100,8 @@ private:
     QHash<QString, QColor> m_scheme;       // Classic: the colour scheme's [Control Panel\Colors], keys lower-case
     QHash<QString, int> m_schemeMetrics;   // Classic: [XPLasma] metrics (scrollwidth)
     mutable QCache<QString, QImage> m_cache; // rendered parts, keyed by part + size + dpi
+    QString m_configPath;                  // ~/.config/xplasmarc, when live
+    std::pair<QString, QString> m_loaded;  // (Path, Variant) in use
+    class QFileSystemWatcher *m_watcher = nullptr;
+    class QTimer *m_reloadTimer = nullptr;
 };

@@ -13,6 +13,8 @@
 #include <QFile>
 #include <QHeaderView>
 #include <QFileInfo>
+#include <QTimer>
+#include <QFileSystemWatcher>
 #include <QMenu>
 #include <QPainter>
 #include <qdrawutil.h>
@@ -128,8 +130,62 @@ XPLasmaStyle::XPLasmaStyle()
     setObjectName(QStringLiteral("XPLasma"));
     m_safe = qEnvironmentVariableIntValue("XPLASMA_SAFE") != 0;
     m_cache.setMaxCost(16 * 1024 * 1024);   // bytes of rendered parts
-    if (!m_safe)
-        loadTheme();
+    if (m_safe)
+        return;
+    loadTheme();
+    // Live: follow xplasmarc (unless the environment pins a theme). The app
+    // replaces the file atomically, so the watch is on the file and re-armed
+    // after each change; a short delay folds bursts together.
+    if (qEnvironmentVariableIsEmpty("XPLASMA_THEME")) {
+        m_configPath = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QLatin1String("/xplasmarc");
+        m_loaded = configuredTheme();
+        m_watcher = new QFileSystemWatcher(this);
+        m_watcher->addPath(QFileInfo(m_configPath).absolutePath());
+        if (QFileInfo::exists(m_configPath))
+            m_watcher->addPath(m_configPath);
+        m_reloadTimer = new QTimer(this);
+        m_reloadTimer->setSingleShot(true);
+        m_reloadTimer->setInterval(150);
+        connect(m_watcher, &QFileSystemWatcher::fileChanged, m_reloadTimer, qOverload<>(&QTimer::start));
+        connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, [this] {
+            if (QFileInfo::exists(m_configPath) && !m_watcher->files().contains(m_configPath))
+                m_watcher->addPath(m_configPath);
+            m_reloadTimer->start();
+        });
+        connect(m_reloadTimer, &QTimer::timeout, this, &XPLasmaStyle::reloadIfChanged);
+    }
+}
+
+// xplasmarc changed: when it names another theme, load it, drop what was
+// rendered from the old one, and repolish every widget so metrics, palettes
+// and pixels all follow -- no app restart.
+void XPLasmaStyle::reloadIfChanged()
+{
+    if (QFileInfo::exists(m_configPath) && !m_watcher->files().contains(m_configPath))
+        m_watcher->addPath(m_configPath);
+    const auto now = configuredTheme();
+    if (now == m_loaded)
+        return;
+    m_loaded = now;
+    m_renderer.reset();
+    m_scheme.clear();
+    m_schemeMetrics.clear();
+    loadTheme();
+    m_cache.clear();
+    if (!qApp)
+        return;
+    const QList<QWidget *> widgets = QApplication::allWidgets();
+    for (QWidget *w : widgets)
+        if (w->style() == this || w->style() == qApp->style()) {
+            unpolish(w);
+            polish(w);
+        }
+    for (QWidget *w : widgets) {
+        QEvent change(QEvent::StyleChange);
+        QCoreApplication::sendEvent(w, &change);
+        w->updateGeometry();
+        w->update();
+    }
 }
 
 void XPLasmaStyle::loadTheme()
