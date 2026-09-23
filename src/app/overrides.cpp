@@ -114,22 +114,29 @@ std::optional<QString> patched(const QString &file, const QString &source, QStri
     return text;
 }
 
-bool installPanelWidgets(const QString &plasmoids, QString *error)
+namespace {
+
+struct Widget
 {
-    struct Widget
-    {
-        QString id, key;   // plugin id, patches.json prefix
-        QStringList files; // what's patched, under contents/ui
-    };
-    const QList<Widget> widgets{
-        {QStringLiteral("org.kde.plasma.systemtray"), QStringLiteral("systemtray"),
-         {QStringLiteral("main.qml"), QStringLiteral("items/AbstractItem.qml")}},
-        {QStringLiteral("org.kde.plasma.digitalclock"), QStringLiteral("digitalclock"),
-         {QStringLiteral("main.qml"), QStringLiteral("DigitalClock.qml")}},
-        {QStringLiteral("org.kde.plasma.taskmanager"), QStringLiteral("taskmanager"),
-         {QStringLiteral("main.qml"), QStringLiteral("Task.qml"), QStringLiteral("code/layoutmetrics.js")}},
-    };
-    // Everything is checked before anything is replaced.
+    QString id, key;                 // plugin id, patches.json prefix
+    QStringList files;               // what's patched, under contents/ui
+    QHash<QString, QString> values;  // @KEY@ in the patched text -> value
+};
+
+const QList<Widget> kPanelWidgets{
+    {QStringLiteral("org.kde.plasma.systemtray"), QStringLiteral("systemtray"),
+     {QStringLiteral("main.qml"), QStringLiteral("items/AbstractItem.qml")}, {}},
+    {QStringLiteral("org.kde.plasma.digitalclock"), QStringLiteral("digitalclock"),
+     {QStringLiteral("main.qml"), QStringLiteral("DigitalClock.qml")}, {}},
+    {QStringLiteral("org.kde.plasma.taskmanager"), QStringLiteral("taskmanager"),
+     {QStringLiteral("main.qml"), QStringLiteral("Task.qml"), QStringLiteral("code/layoutmetrics.js")}, {}},
+};
+// (org.kde.plasma.folder, the desktop, is this package under another name.)
+const QString kDesktopId = QStringLiteral("org.kde.desktopcontainment");
+
+// Everything is checked before anything is replaced.
+bool installWidgets(const QString &plasmoids, const QList<Widget> &widgets, QString *error)
+{
     QList<QList<std::pair<QString, QString>>> prepared;
     for (const Widget &w : widgets) {
         const QString dest = plasmoids + QLatin1Char('/') + w.id;
@@ -140,9 +147,11 @@ bool installPanelWidgets(const QString &plasmoids, QString *error)
             return fail(error, QStringLiteral("Plasma's %1 isn't installed").arg(w.id));
         QList<std::pair<QString, QString>> files;
         for (const QString &f : w.files) {
-            const auto text = patched(w.key + QLatin1Char('/') + f, readText(system + QLatin1String("/contents/ui/") + f), error);
+            auto text = patched(w.key + QLatin1Char('/') + f, readText(system + QLatin1String("/contents/ui/") + f), error);
             if (!text)
                 return false;
+            for (auto it = w.values.cbegin(); it != w.values.cend(); ++it)
+                text->replace(QLatin1Char('@') + it.key() + QLatin1Char('@'), it.value());
             files.append({f, *text});
         }
         prepared.append(files);
@@ -176,15 +185,53 @@ bool installPanelWidgets(const QString &plasmoids, QString *error)
     return true;
 }
 
-void removePanelWidgets(const QString &plasmoids)
+void removeWidgets(const QString &plasmoids, const QStringList &ids)
 {
-    for (const QString &id : {QStringLiteral("org.kde.plasma.systemtray"), QStringLiteral("org.kde.plasma.digitalclock"),
-                              QStringLiteral("org.kde.plasma.taskmanager")})
+    for (const QString &id : ids)
         for (const QString &suffix : {QString(), QStringLiteral(".xplasma-new"), QStringLiteral(".xp2plasma-new")}) {
             const QString dir = plasmoids + QLatin1Char('/') + id + suffix;
             if (ownedWidget(dir))
                 QDir(dir).removeRecursively();
         }
+}
+
+// A shell command as a QML string literal: `editor` started as its own
+// transient systemd unit, or (without systemd) directly.
+QString launchLiteral(const QString &editor)
+{
+    QString quoted = editor;
+    quoted.replace(QLatin1Char('\''), QLatin1String("'\\''"));
+    quoted = QLatin1Char('\'') + quoted + QLatin1Char('\'');
+    const QString command = QStringLiteral("systemd-run --user --collect --quiet -- %1 || %1").arg(quoted);
+    return QString::fromUtf8(QJsonDocument(QJsonArray{command}).toJson(QJsonDocument::Compact)).mid(1).chopped(1);
+}
+
+} // namespace
+
+bool installPanelWidgets(const QString &plasmoids, QString *error)
+{
+    return installWidgets(plasmoids, kPanelWidgets, error);
+}
+
+void removePanelWidgets(const QString &plasmoids)
+{
+    QStringList ids;
+    for (const Widget &w : kPanelWidgets)
+        ids << w.id;
+    removeWidgets(plasmoids, ids);
+}
+
+bool installDesktopMenu(const QString &plasmoids, const QString &editor, QString *error)
+{
+    return installWidgets(plasmoids,
+                          {{kDesktopId, QStringLiteral("desktopcontainment"), {QStringLiteral("FolderViewLayer.qml")},
+                            {{QStringLiteral("LAUNCH"), launchLiteral(editor)}}}},
+                          error);
+}
+
+void removeDesktopMenu(const QString &plasmoids)
+{
+    removeWidgets(plasmoids, {kDesktopId});
 }
 
 bool installTitleShadows(const QString &themes, const QString &target, QString *error)

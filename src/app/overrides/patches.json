@@ -114,5 +114,20 @@
    "find": "            bottomMargin: taskFrame.margins.bottom\n        }\n\n        wrapMode",
    "replace": "            bottomMargin: taskFrame.margins.bottom + (tasksRoot.xpTaskband && !inPopup ? 1 : 0)\n        }\n\n        wrapMode"
   }
+ ],
+ "desktopcontainment/FolderViewLayer.qml": [
+  {
+   "find": "import org.kde.plasma.core as PlasmaCore\n",
+   "replace": "import org.kde.plasma.core as PlasmaCore\nimport org.kde.plasma.plasma5support as P5Support\n",
+   "unlessContains": "import org.kde.plasma.plasma5support as P5Support"
+  },
+  {
+   "find": "    PlasmaCore.Action {\n        id: actionSeparator\n",
+   "replace": "{{desktop-properties}}    PlasmaCore.Action {\n        id: actionSeparator\n"
+  },
+  {
+   "find": "        Plasmoid.contextualActions.push(actionSeparator);\n",
+   "replace": "        Plasmoid.contextualActions.push(actionSeparator);\n        if (isContainment)\n            Plasmoid.contextualActions.push(xpPropertiesAction);   // XPLasma\n"
+  }
  ]
 }

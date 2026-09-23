@@ -880,6 +880,17 @@ private Q_SLOTS:
         QVERIFY(QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/contents/ui/DigitalClock.qml")));
         QFile metrics(plasmoids + QLatin1String("/org.kde.plasma.taskmanager/contents/ui/code/layoutmetrics.js"));
         QVERIFY(metrics.open(QIODevice::ReadOnly) && metrics.readAll().contains("tasks.xpTaskband"));
+        // The desktop's menu: XP Properties, starting the editor outside the shell.
+        QVERIFY2(overrides::installDesktopMenu(plasmoids, QStringLiteral("/opt/it's here/xplasma-edit"), &error), qPrintable(error));
+        QFile layer(plasmoids + QLatin1String("/org.kde.desktopcontainment/contents/ui/FolderViewLayer.qml"));
+        QVERIFY(layer.open(QIODevice::ReadOnly));
+        const QByteArray desktop = layer.readAll();
+        QVERIFY(desktop.contains("text: \"XP Properties\""));
+        QVERIFY2(desktop.contains(R"(connectSource("systemd-run --user --collect --quiet -- '/opt/it'\\''s here/xplasma-edit' || '/opt/it'\\''s here/xplasma-edit'"))"),
+                 desktop.mid(desktop.indexOf("connectSource"), 160).constData());
+        QVERIFY(desktop.contains("Plasmoid.contextualActions.push(xpPropertiesAction)") && !desktop.contains("@LAUNCH@") && !desktop.contains("{{"));
+        overrides::removeDesktopMenu(plasmoids);
+        QVERIFY(!QFileInfo::exists(plasmoids + QLatin1String("/org.kde.desktopcontainment")));
         // Again (it's ours now), then gone.
         QVERIFY2(overrides::installPanelWidgets(plasmoids, &error), qPrintable(error));
         overrides::removePanelWidgets(plasmoids);

@@ -10,6 +10,8 @@
 //     layout when the panel theme marks its buttons as XP's TaskBand
 //     (hint-xplasma-taskband): one every 160px at most, 2px apart, a 16px
 //     icon 10px in and the label 3px after it.
+//   * The desktop (org.kde.desktopcontainment), whose right-click menu gets
+//     XP's Properties, as "XP Properties": Display Properties.
 //   * KWin's Aurorae renderer (kwin/aurorae/aurorae.qml), for the caption
 //     text shadows XP styles give and its QML renderer leaves out.
 //
@@ -24,6 +26,11 @@ namespace xpl::overrides {
 
 bool installPanelWidgets(const QString &plasmoids, QString *error = nullptr);
 void removePanelWidgets(const QString &plasmoids);
+
+// The desktop's right-click menu (org.kde.desktopcontainment, which the
+// desktop, org.kde.plasma.folder, is): "XP Properties", starting `editor`.
+bool installDesktopMenu(const QString &plasmoids, const QString &editor, QString *error = nullptr);
+void removeDesktopMenu(const QString &plasmoids);
 
 // `themes` is where the Aurorae themes are (their rc files say which want a
 // shadow); `target` the override's path (~/.local/share/kwin/aurorae/aurorae.qml).

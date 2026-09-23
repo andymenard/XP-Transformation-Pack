@@ -12,6 +12,7 @@
 #include "app/xptext.h"
 #include "core/schema.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
@@ -290,6 +291,12 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
     if (!iconTheme.isEmpty() && !install(iconTheme, iconsDest, error))
         return false;
     QString why;
+    // XP's Properties on the desktop's menu: this XPLasma's editor.
+    const QString editor = QCoreApplication::applicationDirPath() + QLatin1String("/xplasma-edit");
+    if (!QFileInfo(editor).isExecutable())
+        report(o, QStringLiteral("  no XP Properties on the desktop: %1 isn't there").arg(editor));
+    else if (!overrides::installDesktopMenu(share(QStringLiteral("plasma/plasmoids")), editor, &why))
+        report(o, QStringLiteral("  no XP Properties on the desktop: %1").arg(why));
     if (!overrides::installTitleShadows(share(QStringLiteral("aurorae/themes")), share(QStringLiteral("kwin/aurorae/aurorae.qml")), &why))
         report(o, QStringLiteral("  no title shadows: %1").arg(why));
     // Other looks' packages go: one of each at a time.
@@ -422,6 +429,7 @@ bool resetDesktop(Session &session, const std::function<void(const QString &)> &
         say(QStringLiteral("  ") + line);
     overrides::removeTitleShadows(share(QStringLiteral("kwin/aurorae/aurorae.qml")));
     overrides::removePanelWidgets(share(QStringLiteral("plasma/plasmoids")));
+    overrides::removeDesktopMenu(share(QStringLiteral("plasma/plasmoids")));
 
     say(QStringLiteral("Clearing the XP fonts ..."));
     xptext::revert(session, state);
