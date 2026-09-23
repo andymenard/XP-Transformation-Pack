@@ -156,7 +156,13 @@ int main(int argc, char **argv)
     if (QStyle *style = QStyleFactory::create(styleName))
         app.setStyle(style);
     app.setPalette(app.style()->standardPalette());
-    app.setFont(QFont(QStringLiteral("Tahoma"), 8));
+    QFont font(QStringLiteral("Tahoma"), 8);
+    if (qEnvironmentVariableIntValue("XPLASMA_XP_TEXT")) {
+        // XP's "Standard" font smoothing: full hinting, no antialiasing.
+        font.setHintingPreference(QFont::PreferFullHinting);
+        font.setStyleStrategy(QFont::NoAntialias);
+    }
+    app.setFont(font);
     if (!controlsJob.isEmpty())
         return controls(controlsJob, controlsOut);
 

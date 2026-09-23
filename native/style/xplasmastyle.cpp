@@ -321,13 +321,28 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
                     int state = selected ? 3 : hovered(tab) ? Hot : Normal;
                     if (!enabled(tab))
                         state = Disabled;
-                    QRect r = tab->rect;
-                    if (!selected)
-                        r.adjust(0, 2, 0, 0);   // unselected tabs sit 2px lower, as in XP
-                    else
-                        r.adjust(-2, 0, 2, 1);  // the selected tab widens over its neighbours and meets the pane
+                    // XP's geometry (TCM_GETITEMRECT, Luna): tabs start 2px in
+                    // and 2px down, 18px tall; the selected one is drawn 2px
+                    // wider each side, 2px taller, and 1px into the pane.
+                    QRect r = xpTabRect(tab);
+                    if (selected)
+                        r.adjust(-2, -2, 2, 1);
                     if (drawPart(painter, {QStringLiteral("tab"), part, state, {}}, r))
                         return;
+                }
+            }
+            break;
+        case CE_TabBarTabLabel:
+            if (const auto *tab = qstyleoption_cast<const QStyleOptionTab *>(option)) {
+                if (hasPart({QStringLiteral("tab"), 1, 1, {}})
+                    && (tab->shape == QTabBar::RoundedNorth || tab->shape == QTabBar::TriangularNorth)) {
+                    QStyleOptionTab copy(*tab);
+                    copy.rect = xpTabRect(tab);
+                    // The selected tab's label rides up with it.
+                    if (tab->state & State_Selected)
+                        copy.rect.translate(0, -1);
+                    QProxyStyle::drawControl(element, &copy, painter, widget);
+                    return;
                 }
             }
             break;
@@ -588,7 +603,15 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
         case PM_TabBarTabShiftHorizontal:
             return 0;
         case PM_TabBarBaseOverlap:
-            return 1;
+            return 0;
+        case PM_TabBarTabHSpace:
+            if (hasPart({QStringLiteral("tab"), 1, 1, {}}))
+                return 10;   // 5px either side of the label
+            break;
+        case PM_TabBarTabVSpace:
+            if (hasPart({QStringLiteral("tab"), 1, 1, {}}))
+                return 8;    // font height 13 + 8 = 21: 2px headroom, 18px tab, 1 row over the pane
+            break;
         default:
             break;
         }
@@ -601,6 +624,21 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
 {
     if (m_renderer) {
         switch (type) {
+        case CT_TabBarTab:
+            if (const auto *tab = qstyleoption_cast<const QStyleOptionTab *>(option)) {
+                if (hasPart({QStringLiteral("tab"), 1, 1, {}})
+                    && (tab->shape == QTabBar::RoundedNorth || tab->shape == QTabBar::TriangularNorth)) {
+                    // Label + 10 wide (TCM_GETITEMRECT: 49/70/60 for General/
+                    // Appearance/Advanced in Tahoma 8), 18 tall plus the 2px
+                    // headroom the selected tab rises into; the first tab 2px
+                    // wider for XP's left inset.
+                    QSize s = size;
+                    if (tab->position == QStyleOptionTab::Beginning || tab->position == QStyleOptionTab::OnlyOneTab)
+                        s.rwidth() += 2;
+                    return s;
+                }
+            }
+            break;
         case CT_PushButton: {
             // Label plus the part's ContentMargins -- not its SizingMargins,
             // which are only how the bitmap is sliced -- and room for the
@@ -622,6 +660,25 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
 
 QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *option, const QWidget *widget) const
 {
+    if (m_renderer && hasPart({QStringLiteral("tab"), 9, 1, {}})) {
+        if (const auto *tw = qstyleoption_cast<const QStyleOptionTabWidgetFrame *>(option)) {
+            if (tw->shape == QTabBar::RoundedNorth || tw->shape == QTabBar::TriangularNorth) {
+                // XP: the pane starts where the tabs end (y = 20), and the
+                // page sits 4px in at the sides and bottom, 2px from the top
+                // (TCM_ADJUSTRECT: 4,22 - 296,116 in a 300 x 120 control).
+                // The pane's top edge shares the bar's last row, under the tabs.
+                const int top = qMax(0, tw->tabBarSize.height() - 1);
+                const QRect pane(tw->rect.left(), tw->rect.top() + top, tw->rect.width(), tw->rect.height() - top);
+                if (element == SE_TabWidgetTabBar)
+                    return QRect(tw->rect.left(), tw->rect.top(), qMin(tw->tabBarSize.width(), tw->rect.width()),
+                                 tw->tabBarSize.height());
+                if (element == SE_TabWidgetTabPane)
+                    return pane;
+                if (element == SE_TabWidgetTabContents)
+                    return pane.adjusted(4, 2, -4, -4);
+            }
+        }
+    }
     if (m_renderer && (element == SE_ProgressBarContents || element == SE_ProgressBarGroove)
         && hasPart({QStringLiteral("progress"), 1, 1, {}})) {
         // The chunks are laid out over the groove's own content rect, so
@@ -630,6 +687,19 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
         return QProxyStyle::subElementRect(SE_ProgressBarGroove, option, widget);
     }
     return QProxyStyle::subElementRect(element, option, widget);
+}
+
+// A north tab's rect as XP lays it out, inside Qt's: 2px down (the tab bar
+// is 20px tall), and for the first tab 2px in from the left (Qt's first tab
+// is 2px wider to make room, so every later tab lands where XP puts it).
+QRect XPLasmaStyle::xpTabRect(const QStyleOptionTab *tab) const
+{
+    // The bar is 21px: 2px headroom, the 18px tab, and one row shared with
+    // the pane's top edge, which only the selected tab covers.
+    QRect r(tab->rect.left(), tab->rect.top() + 2, tab->rect.width(), qMax(0, tab->rect.height() - 3));
+    if (tab->position == QStyleOptionTab::Beginning || tab->position == QStyleOptionTab::OnlyOneTab)
+        r.setLeft(r.left() + 2);
+    return r;
 }
 
 // TKP_THUMB*: the pointed thumb faces its tick marks; TKP_THUMB(VERT) when

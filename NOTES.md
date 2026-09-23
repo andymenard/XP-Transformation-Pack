@@ -56,3 +56,11 @@ Each says where it came from, so it can be picked up without re-deriving it.
   worked at 01:44 the same day. Live-app checks (Dolphin with the XPLasma
   style) wait for the user, or for a headless nested KWin; the gallery and
   the control oracle cover the style meanwhile.
+- **XP-style text rendering: a session font setting worth adding**
+  (measured 2026-09-23 with the control oracle). Rendering Tahoma 8 with
+  full hinting and no antialiasing, as XP's "Standard" smoothing did,
+  brings the 20 compared controls from 6333 to 4691 differing pixels; the
+  push-button label's box becomes identical to XP's and check-box labels
+  match in size (87x11). It isn't the style's job: `fonts_gen` should
+  offer it on Apply, through the same fontconfig rule KDE's Fonts module
+  writes for "exclude range from anti-aliasing" (0-8 pt).
