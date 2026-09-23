@@ -105,8 +105,12 @@ def _parse_ini_text(text: str) -> dict[tuple[str, str, str], dict[str, str]]:
     sections: dict[tuple[str, str, str], dict[str, str]] = {}
     current: dict[str, str] | None = None
     for raw_line in text.splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith(";"):
+        # Comments first, as uxtheme does: a section header can carry one too
+        # ("[ExplorerBar.HeaderBackground]; Not used in IE 6"), and read as a
+        # key line its section's keys would land in the previous section.
+        # Values themselves never contain ';'. (Found by XPLasma's XP oracle.)
+        line = raw_line.split(";", 1)[0].strip()
+        if not line:
             continue
         m = _SECTION_RE.match(line)
         if m:
@@ -122,9 +126,7 @@ def _parse_ini_text(text: str) -> dict[tuple[str, str, str], dict[str, str]]:
         if current is None or "=" not in line:
             continue
         key_part, _, value = line.partition("=")
-        # Strip inline ';' comments (values themselves never legitimately contain ';').
-        value = value.split(";", 1)[0].strip()
-        current[key_part.strip().lower()] = value
+        current[key_part.strip().lower()] = value.strip()
     return sections
 
 

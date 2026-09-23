@@ -45,6 +45,7 @@ public:
     QSize partSize(const PartRef &ref, PartSize kind, QSize draw = QSize(), int dpi = 96) const;
     QRect contentRect(const PartRef &ref, const QRect &bounds) const;
     QMargins margins(const PartRef &ref, QStringView property) const;   // "sizingmargins", ...
+    QMargins contentMargins(const PartRef &ref) const;   // ContentMargins, or what stands in for them
 
     // Is there anything themed to draw for this part at all? (L0/L1 of the
     // degradation ladder; false sends the caller down to L2..L4.)
@@ -67,6 +68,7 @@ private:
     Frame frame(const PartRef &ref, const QString &imageProperty, int dpi, QSize destination) const;
     QString chooseImage(const PartRef &ref, int dpi, QSize destination, bool glyph) const;
     QSize trueSizeDraw(const PartRef &ref, QSize source, QSize destination) const;
+    QPoint aligned(const PartRef &ref, QSize size, const QRect &room) const;
     void drawImageBackground(QImage &canvas, const PartRef &ref, int dpi) const;
     void drawBorderFill(QImage &canvas, const PartRef &ref) const;
     void drawGlyph(QImage &canvas, const PartRef &ref, int dpi) const;

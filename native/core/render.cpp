@@ -7,6 +7,16 @@
 namespace xpl {
 namespace {
 
+// Frames run vertically unless ImageLayout says otherwise -- or unless the
+// count only divides the width: Royale's ResizeGrip2.bmp is 32x17 with
+// ImageCount 2 and no ImageLayout, and XP reports its frames as 16x17.
+bool horizontalFrames(const std::optional<QString> &layout, QSize image, int count)
+{
+    if (layout)
+        return layout->compare(QLatin1String("horizontal"), Qt::CaseInsensitive) == 0;
+    return count > 1 && image.height() % count != 0 && image.width() % count == 0;
+}
+
 QList<int> numbers(const QString &value)
 {
     QList<int> out;
@@ -65,22 +75,22 @@ Sizing sizingOf(const std::optional<QString> &value)
 }
 
 // Copy `src` (a premultiplied frame) region `from` into `dst` region `to`,
-// stretching with nearest-neighbour sampling or tiling. uxtheme never
-// filters: every destination pixel is exactly one source pixel.
-void blit(QImage &dst, const QRect &to, const QImage &src, const QRect &from, Sizing sizing)
+// stretching with nearest-neighbour sampling or tiling, per axis. uxtheme
+// never filters: every destination pixel is exactly one source pixel.
+void blit(QImage &dst, const QRect &to, const QImage &src, const QRect &from, Sizing sizingX, Sizing sizingY)
 {
     if (to.isEmpty() || from.isEmpty())
         return;
     const QRect clipped = to.intersected(dst.rect());
     for (int y = clipped.top(); y <= clipped.bottom(); ++y) {
         const int dy = y - to.top();
-        const int sy = from.top() + (sizing == Sizing::Tile ? dy % from.height()
+        const int sy = from.top() + (sizingY == Sizing::Tile ? dy % from.height()
                                                            : sampleFromBottom(dy, from.height(), to.height()));
         const auto *srow = reinterpret_cast<const QRgb *>(src.constScanLine(sy));
         auto *drow = reinterpret_cast<QRgb *>(dst.scanLine(y));
         for (int x = clipped.left(); x <= clipped.right(); ++x) {
             const int dx = x - to.left();
-            const int sx = from.left() + (sizing == Sizing::Tile ? dx % from.width()
+            const int sx = from.left() + (sizingX == Sizing::Tile ? dx % from.width()
                                                                : sample(dx, from.width(), to.width()));
             const QRgb s = srow[sx];
             const int a = qAlpha(s);
@@ -179,8 +189,6 @@ QString Renderer::chooseImage(const PartRef &ref, int dpi, QSize destination, bo
         // The highest-numbered image that fits: its MinSize, or failing that
         // its own frame size, within the destination.
         const int count = qMax(1, property(ref, u"imagecount").value_or(QStringLiteral("1")).toInt());
-        const bool horizontal = property(ref, u"imagelayout").value_or(QString()).compare(
-                                    QLatin1String("horizontal"), Qt::CaseInsensitive) == 0;
         for (int i = 5; i >= 1; --i) {
             const auto file = property(ref, QStringLiteral("imagefile%1").arg(i));
             if (!file)
@@ -188,6 +196,7 @@ QString Renderer::chooseImage(const PartRef &ref, int dpi, QSize destination, bo
             QSize need;
             if (!parseSize(property(ref, QStringLiteral("minsize%1").arg(i)).value_or(QString()), &need)) {
                 const QImage img = m_theme->bitmap(*file).image;
+                const bool horizontal = horizontalFrames(property(ref, u"imagelayout"), img.size(), count);
                 need = horizontal ? QSize(img.width() / count, img.height()) : QSize(img.width(), img.height() / count);
             }
             if (need.width() <= destination.width() && need.height() <= destination.height())
@@ -210,8 +219,7 @@ Renderer::Frame Renderer::frame(const PartRef &ref, const QString &imageProperty
     if (dib.image.isNull())
         return out;
     const int count = qMax(1, property(ref, u"imagecount").value_or(QStringLiteral("1")).toInt());
-    const bool horizontal = property(ref, u"imagelayout").value_or(QString()).compare(
-                                QLatin1String("horizontal"), Qt::CaseInsensitive) == 0;
+    const bool horizontal = horizontalFrames(property(ref, u"imagelayout"), dib.image.size(), count);
     const int w = horizontal ? dib.image.width() / count : dib.image.width();
     const int h = horizontal ? dib.image.height() : dib.image.height() / count;
     if (w <= 0 || h <= 0)
@@ -255,16 +263,7 @@ void Renderer::drawImageBackground(QImage &canvas, const PartRef &ref, int dpi) 
 
     if (sizing == Sizing::TrueSize) {
         const QSize drawn = trueSizeDraw(ref, img.size(), dest.size());
-        // At its own size (or shrunk to fit), aligned in the destination.
-        const QString h = property(ref, u"halign").value_or(QStringLiteral("centre")).toLower();
-        const QString v = property(ref, u"valign").value_or(QStringLiteral("center")).toLower();
-        const int x = h == QLatin1String("left") ? 0
-                    : h == QLatin1String("right") ? dest.width() - drawn.width()
-                                                  : (dest.width() - drawn.width()) / 2;
-        const int y = v == QLatin1String("top") ? 0
-                    : v == QLatin1String("bottom") ? dest.height() - drawn.height()
-                                                   : (dest.height() - drawn.height()) / 2;
-        blit(canvas, QRect(x, y, drawn.width(), drawn.height()), img, img.rect(), Sizing::Stretch);
+        blit(canvas, QRect(aligned(ref, drawn, dest), drawn), img, img.rect(), Sizing::Stretch, Sizing::Stretch);
         return;
     }
 
@@ -289,24 +288,60 @@ void Renderer::drawImageBackground(QImage &canvas, const PartRef &ref, int dpi) 
                 continue;
             const QRect from(sx[col], sy[row], sx[col + 1] - sx[col], sy[row + 1] - sy[row]);
             const QRect to(dx[col], dy[row], dx[col + 1] - dx[col], dy[row + 1] - dy[row]);
-            blit(canvas, to, img, from, sizing);
+            // Only the stretchable middle tiles. Corners, and each edge
+            // across its fixed thickness, are always sampled -- the identity
+            // at full size, and a proportional squeeze below it (a Tile
+            // trackbar thumb squeezed to 5 wide resamples its margin columns).
+            blit(canvas, to, img, from, col == 1 ? sizing : Sizing::Stretch, row == 1 ? sizing : Sizing::Stretch);
         }
     }
 }
 
 QSize Renderer::trueSizeDraw(const PartRef &ref, QSize source, QSize destination) const
 {
-    if (destination.width() >= source.width() && destination.height() >= source.height())
+    if (source.isEmpty())
         return source;
-    QSize out = destination.boundedTo(source);
-    if (parseBool(property(ref, u"uniformsizing").value_or(QString()))) {
-        // Scale both ways by the same factor (MulDiv, as uxtheme does).
-        if (qint64(destination.width()) * source.height() < qint64(destination.height()) * source.width())
-            out = QSize(destination.width(), int(qint64(source.height()) * destination.width() / source.width()));
-        else
-            out = QSize(int(qint64(source.width()) * destination.height() / source.height()), destination.height());
+    const bool uniform = parseBool(property(ref, u"uniformsizing").value_or(QString()));
+    const QString scaling = property(ref, u"truesizescalingtype").value_or(QString()).toLower();
+    auto fit = [&](QSize room) {
+        if (!uniform)
+            return room;
+        if (qint64(room.width()) * source.height() < qint64(room.height()) * source.width())
+            return QSize(room.width(), int(qint64(source.height()) * room.width() / source.width()));
+        return QSize(int(qint64(source.width()) * room.height() / source.height()), room.height());
+    };
+    // Too small a room. A part that scales (UniformSizing, or a
+    // TrueSizeScalingType) shrinks to fit: Royale's 13x13 check box fills a
+    // 6x6 room. One that doesn't is drawn at true size and clipped: the More
+    // Programs arrow at 8x12 reports TS_DRAW 16,24 and is cut off.
+    if (destination.width() < source.width() || destination.height() < source.height()) {
+        const bool scales = uniform || (!scaling.isEmpty() && scaling != QLatin1String("none"));
+        return scales ? fit(destination.boundedTo(QSize(qMax(destination.width(), 1), qMax(destination.height(), 1)))) : source;
     }
-    return out;
+    // TrueSizeScalingType=Size: once the room is StretchMark percent of the
+    // image, it grows to fill it -- uniformly with UniformSizing. Royale's
+    // 9x9 scroll-arrow glyph in a 71x39 content rect is drawn at 39x39.
+    const int mark = property(ref, u"truesizestretchmark").value_or(QStringLiteral("0")).toInt();
+    if (scaling != QLatin1String("size") || mark <= 0)
+        return source;
+    if (qint64(destination.width()) * 100 < qint64(source.width()) * mark
+        || qint64(destination.height()) * 100 < qint64(source.height()) * mark)
+        return source;
+    return fit(destination);
+}
+
+// Where an image of `size` goes in `room` under the part's HAlign/VAlign
+// (centred by default). Offsets never go negative: an image bigger than its
+// room is pinned to the top-left and clipped (Royale's size grip, VAlign
+// Bottom, shows only its empty top rows in a 16x4 room).
+QPoint Renderer::aligned(const PartRef &ref, QSize size, const QRect &room) const
+{
+    const QString h = property(ref, u"halign").value_or(QString()).toLower();
+    const QString v = property(ref, u"valign").value_or(QString()).toLower();
+    const int spareX = room.width() - size.width(), spareY = room.height() - size.height();
+    const int x = h == QLatin1String("left") ? 0 : h == QLatin1String("right") ? spareX : spareX / 2;
+    const int y = v == QLatin1String("top") ? 0 : v == QLatin1String("bottom") ? spareY : spareY / 2;
+    return room.topLeft() + QPoint(qMax(0, x), qMax(0, y));
 }
 
 void Renderer::drawBorderFill(QImage &canvas, const PartRef &ref) const
@@ -332,13 +367,14 @@ void Renderer::drawGlyph(QImage &canvas, const PartRef &ref, int dpi) const
 {
     if (property(ref, u"glyphtype").value_or(QString()).compare(QLatin1String("imageglyph"), Qt::CaseInsensitive) != 0)
         return;
-    const Frame g = frame(ref, QStringLiteral("glyphimagefile"), dpi, canvas.size());
+    // Chosen by the content rect's size, not the whole part's: a squeezed
+    // scroll arrow falls back to its small glyph.
+    const QRect content = contentRect(ref, canvas.rect());
+    const Frame g = frame(ref, QStringLiteral("glyphimagefile"), dpi, content.size());
     if (!g.valid)
         return;
-    const QRect content = contentRect(ref, canvas.rect());
-    const QRect at(content.left() + (content.width() - g.image.width()) / 2,
-                   content.top() + (content.height() - g.image.height()) / 2, g.image.width(), g.image.height());
-    blit(canvas, at, g.image, g.image.rect(), Sizing::Stretch);
+    const QSize drawn = trueSizeDraw(ref, g.image.size(), content.size());
+    blit(canvas, QRect(aligned(ref, drawn, content), drawn), g.image, g.image.rect(), Sizing::Stretch, Sizing::Stretch);
 }
 
 QImage Renderer::background(const PartRef &ref, QSize size, int dpi) const
@@ -364,19 +400,18 @@ QSize Renderer::partSize(const PartRef &ref, PartSize kind, QSize draw, int dpi)
 {
     const bool borderFill = property(ref, u"bgtype").value_or(QString()).compare(
                                 QLatin1String("borderfill"), Qt::CaseInsensitive) == 0;
-    if (borderFill) {
-        // Edit (BorderSize 1): min 2,2 and true 3,3 -- the border on both
-        // sides, plus one pixel of fill for the true size.
-        const int border = qMax(0, property(ref, u"bordersize").value_or(QStringLiteral("1")).toInt());
-        if (kind == PartSize::Draw)
-            return draw;
-        return kind == PartSize::Min ? QSize(2 * border, 2 * border) : QSize(2 * border + 1, 2 * border + 1);
-    }
     if (kind == PartSize::Min) {
-        QSize minimum;
-        if (parseSize(property(ref, u"minsize").value_or(QString()), &minimum))
-            return minimum;
-        return QSize(1, 1);
+        // The content margins (or what stands in for them) on both sides,
+        // never below 1: push button 3+3 -> 6,6; group box (SizingMargins
+        // 4,4,4,4) -> 8,8; check box (all 0) -> 1,1; Edit (border 1) -> 2,2.
+        const QMargins m = contentMargins(ref);
+        return QSize(qMax(1, m.left() + m.right()), qMax(1, m.top() + m.bottom()));
+    }
+    if (borderFill) {
+        // Edit (BorderSize 1): true 3,3 -- the border on both sides plus a
+        // pixel of fill -- and no draw size at all.
+        const int border = qMax(0, property(ref, u"bordersize").value_or(QStringLiteral("1")).toInt());
+        return kind == PartSize::Draw ? QSize(0, 0) : QSize(2 * border + 1, 2 * border + 1);
     }
     const QSize dest = draw.isValid() ? draw : QSize(1 << 16, 1 << 16);
     const Frame f = frame(ref, QStringLiteral("imagefile"), dpi, dest);
@@ -390,21 +425,49 @@ QSize Renderer::partSize(const PartRef &ref, PartSize kind, QSize draw, int dpi)
     return f.image.size();
 }
 
-QRect Renderer::contentRect(const PartRef &ref, const QRect &bounds) const
+QMargins Renderer::contentMargins(const PartRef &ref) const
 {
     // ContentMargins; failing those, SizingMargins for an image background or
     // BorderSize for a BorderFill one (Royale's GroupBox, which has only
     // SizingMargins 4,4,4,4, reports a content rect inset by 4).
     QMargins m;
     if (parseMargins(property(ref, u"contentmargins").value_or(QString()), &m))
-        return bounds.marginsRemoved(m);
+        return m;
     if (property(ref, u"bgtype").value_or(QString()).compare(QLatin1String("borderfill"), Qt::CaseInsensitive) == 0) {
         const int b = qMax(0, property(ref, u"bordersize").value_or(QStringLiteral("1")).toInt());
-        return bounds.adjusted(b, b, -b, -b);
+        return QMargins(b, b, b, b);
     }
-    if (parseMargins(property(ref, u"sizingmargins").value_or(QString()), &m))
-        return bounds.marginsRemoved(m);
-    return bounds;
+    parseMargins(property(ref, u"sizingmargins").value_or(QString()), &m);
+    return m;
+}
+
+QRect Renderer::contentRect(const PartRef &ref, const QRect &bounds) const
+{
+    // Below MinSize nothing is drawn, and the content rect is the whole rect
+    // (Royale's progress bar at 9 wide, MinSize 10).
+    QSize minimum;
+    if (parseSize(property(ref, u"minsize").value_or(QString()), &minimum)
+        && (bounds.width() < minimum.width() || bounds.height() < minimum.height()))
+        return bounds;
+    QMargins m = contentMargins(ref);
+    // Margins are subtracted as they are -- an over-large margin gives an
+    // inverted rect, which XP reports as such (a 4x2 toolbar separator:
+    // left 5, right 2). Only a SourceShrink part scales them down with its
+    // sizing margins, rounding as MulDiv does: a scroll arrow (SizingMargins
+    // 5+5, ContentMargins 3) reports 3 at 9 high, 2 at 8 and 1 at 4.
+    const auto mulDiv = [](int a, int b, int c) { return int((qint64(a) * b + c / 2) / c); };
+    if (parseBool(property(ref, u"sourceshrink").value_or(QString()))) {
+        const QMargins s = margins(ref, u"sizingmargins");
+        if (s.left() + s.right() > bounds.width()) {
+            m.setLeft(mulDiv(m.left(), bounds.width(), s.left() + s.right()));
+            m.setRight(mulDiv(m.right(), bounds.width(), s.left() + s.right()));
+        }
+        if (s.top() + s.bottom() > bounds.height()) {
+            m.setTop(mulDiv(m.top(), bounds.height(), s.top() + s.bottom()));
+            m.setBottom(mulDiv(m.bottom(), bounds.height(), s.top() + s.bottom()));
+        }
+    }
+    return bounds.marginsRemoved(m);
 }
 
 QMargins Renderer::margins(const PartRef &ref, QStringView name) const

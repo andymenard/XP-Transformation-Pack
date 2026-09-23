@@ -89,9 +89,18 @@ Ini Ini::parseText(const QString &text)
         qsizetype end = all.indexOf(QLatin1Char('\n'), start);
         if (end < 0)
             end = all.size();
-        const QStringView line = all.mid(start, end - start).trimmed();
+        QStringView line = all.mid(start, end - start);
         start = end + 1;
-        if (line.isEmpty() || line.startsWith(QLatin1Char(';')))
+        // Comments first, as uxtheme does: a header can carry one too
+        // ("[ExplorerBar.HeaderBackground]; Not used in IE 6" -- 25 such
+        // headers in Royale alone). Read as a key line instead, its section's
+        // keys would all land in the previous section. Values never contain
+        // ';'. Found by the XP oracle; xp2plasma's parser had the same bug.
+        const qsizetype comment = line.indexOf(QLatin1Char(';'));
+        if (comment >= 0)
+            line = line.left(comment);
+        line = line.trimmed();
+        if (line.isEmpty())
             continue;
         if (line.startsWith(QLatin1Char('[')) && line.endsWith(QLatin1Char(']')) && line.size() > 2) {
             current = &ini.m_sections[parseHeader(line.mid(1, line.size() - 2).toString())];
@@ -100,11 +109,7 @@ Ini Ini::parseText(const QString &text)
         const qsizetype eq = line.indexOf(QLatin1Char('='));
         if (!current || eq < 0)
             continue;
-        QStringView value = line.mid(eq + 1);
-        const qsizetype comment = value.indexOf(QLatin1Char(';'));
-        if (comment >= 0)
-            value = value.left(comment);
-        current->insert(line.left(eq).trimmed().toString().toLower(), value.trimmed().toString());
+        current->insert(line.left(eq).trimmed().toString().toLower(), line.mid(eq + 1).trimmed().toString());
     }
     return ini;
 }

@@ -57,7 +57,8 @@ int main(int, char **argv)
         "[Button.PushButton(Disabled)]\nTextColor=3 3 3\n"
         "[Button(Disabled)]\nFillColor=9 9 9\n"
         "[Media::Button.PushButton]\nImageFile=Media\\Button.bmp\n"
-        "[Button.PushButton]\nImageCount=6\n"));    // duplicate section: merges, last key wins
+        "[Button.PushButton]\nImageCount=6\n"    // duplicate section: merges, last key wins
+        "[Rebar.Band]; a header with a comment is still a header\nImageFile=Band.bmp\n"));
 
     CHECK(get(ini, "", "Button", "PushButton", "", "textcolor") == QLatin1String("2 2 2"));
     CHECK(get(ini, "", "Button", "PushButton", "", "imagecount") == QLatin1String("6"));
@@ -76,6 +77,10 @@ int main(int, char **argv)
     CHECK(get(ini, "Media", "Button", "PushButton", "", "imagefile") == QLatin1String("Media\\Button.bmp"));
     CHECK(get(ini, "Media", "Button", "PushButton", "", "imagecount") == QLatin1String("6"));
     CHECK(get(ini, "", "Button", "PushButton", "", "imagefile") == QLatin1String("<none>"));
+    // A commented header still opens its own section.
+    CHECK(get(ini, "", "Rebar", "Band", "", "imagefile") == QLatin1String("Band.bmp"));
+    CHECK(get(ini, "", "Button", "PushButton", "", "imagefile") == QLatin1String("<none>"));
+
     // Lookups are case-insensitive.
     CHECK(get(ini, "MEDIA", "button", "PUSHBUTTON", "", "ImageFile") == QLatin1String("Media\\Button.bmp"));
 
