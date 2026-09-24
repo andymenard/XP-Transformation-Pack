@@ -18,7 +18,9 @@
 //   * The desktop (org.kde.desktopcontainment), whose right-click menu gets
 //     XP's Properties, as "XP Properties": Display Properties.
 //   * KWin's Aurorae renderer (kwin/aurorae/aurorae.qml), for the caption
-//     text shadows XP styles give and its QML renderer leaves out.
+//     text shadows XP styles give and its QML renderer leaves out, and XP's
+//     title bar for dialogs: Close alone, no icon, when a window can neither
+//     minimize nor maximize.
 //
 // Patches are data (overrides/patches.json: text found once, replaced), so a
 // Plasma whose QML has moved on is refused with a message, never

@@ -1039,6 +1039,11 @@ private Q_SLOTS:
         QVERIFY2(read().contains(QLatin1String(
                      R"(property var xpTitleShadows: ({"xp-blue":{"active":"#ff0a1883","inactive":"#ff0a1883","x":1,"y":1}}))")),
                  qPrintable(read().section(QLatin1String("xpTitleShadows"), 1, 1).left(200)));
+        // XP's title buttons, for XPLasma's themes (shadowed or not).
+        QVERIFY(read().contains(QLatin1String(R"(property var xpThemes: ["plain","xp-blue"])")));
+        QVERIFY(read().contains(QLatin1String("buttons: root.xpButtons(options.titleButtonsLeft)"))
+                && read().contains(QLatin1String("buttons: root.xpButtons(options.titleButtonsRight)"))
+                && read().contains(QLatin1String("function xpButtons(list)")));
     }
 
     void applyAndReset()
@@ -1055,6 +1060,7 @@ private Q_SLOTS:
         const auto look = Look::fromStyle(m_realThemes + QLatin1String("/Luna/luna.msstyles"), QStringLiteral("NORMALMETALLIC_INI"));
         QVERIFY(look);
         RecordingSession session;
+        session.config.insert(QStringLiteral("kwinrulesrc|General|rules"), QStringLiteral("someone-elses"));
         session.config.insert(QStringLiteral("kdeglobals|KDE|widgetStyle"), QStringLiteral("Breeze"));
         session.config.insert(QStringLiteral("kdeglobals|Icons|Theme"), QStringLiteral("Papirus"));
         ApplyOptions o;
@@ -1074,6 +1080,10 @@ private Q_SLOTS:
         QVERIFY(QFileInfo::exists(share + QLatin1String("/aurorae/themes/Mine")));
         // Switched to.
         QCOMPARE(session.config.value(QStringLiteral("kwinrc|org.kde.kdecoration2|theme")), QStringLiteral("__aurorae__svg__windows-xp-style-silver"));
+        // The copy dialog's rule, beside the user's own.
+        QCOMPARE(session.config.value(QStringLiteral("kwinrulesrc|General|rules")), QStringLiteral("someone-elses,xplasma-copy-dialog"));
+        QCOMPARE(session.config.value(QStringLiteral("kwinrulesrc|General|count")), QStringLiteral("2"));
+        QCOMPARE(session.config.value(QStringLiteral("kwinrulesrc|xplasma-copy-dialog|minimizerule")), QStringLiteral("2"));
         QCOMPARE(session.config.value(QStringLiteral("kdeglobals|KDE|widgetStyle")), QStringLiteral("XPLasma"));
         QVERIFY(session.config.value(QStringLiteral("kdeglobals|WM|activeFont")).startsWith(QLatin1String("Trebuchet MS,10")));
         QVERIFY(session.ran(QStringLiteral("plasma-apply-colorscheme")));
@@ -1110,6 +1120,8 @@ private Q_SLOTS:
         QVERIFY(!QFileInfo::exists(paths::config() + QLatin1String("/xplasmarc")));
         QVERIFY(QFileInfo::exists(share + QLatin1String("/aurorae/themes/Mine")));
         QCOMPARE(resetSession.config.value(QStringLiteral("kdeglobals|KDE|widgetStyle")), QStringLiteral("Breeze"));
+        QCOMPARE(resetSession.config.value(QStringLiteral("kwinrulesrc|General|rules")), QStringLiteral("someone-elses"));
+        QVERIFY(!resetSession.config.contains(QStringLiteral("kwinrulesrc|xplasma-copy-dialog|minimizerule")));
         QVERIFY(!resetSession.config.contains(QStringLiteral("kdeglobals|WM|activeFont")));
         QVERIFY(std::any_of(resetSession.runs.begin(), resetSession.runs.end(), [](const QStringList &a) {
             return a.value(0) == QLatin1String("plasma-apply-lookandfeel") && a.contains(QStringLiteral("--resetLayout"));

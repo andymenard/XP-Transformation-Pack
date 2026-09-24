@@ -99,6 +99,57 @@ void applyDecoration(Session &session, const QString &id)
     session.reconfigureKWin();
 }
 
+// A KWin rule for XPLasma's own windows that XP gave no minimize box: the
+// copy dialog (plasmashell's, titled "Copying..." and the like). Wayland
+// has no way for the window to say so itself. With neither box, the
+// decoration shows Close alone, as XP does. Other rules are left as they are.
+const QString kRulesFile = QStringLiteral("kwinrulesrc");
+const QString kRuleId = QStringLiteral("xplasma-copy-dialog");
+const QList<std::pair<QString, QString>> kRule{
+    {QStringLiteral("Description"), QStringLiteral("XPLasma: XP's copy dialog (Close only)")},
+    {QStringLiteral("wmclass"), QStringLiteral("org.kde.plasmashell")},
+    {QStringLiteral("wmclassmatch"), QStringLiteral("1")},      // exact
+    {QStringLiteral("title"), QStringLiteral("\\.\\.\\.$")},
+    {QStringLiteral("titlematch"), QStringLiteral("3")},        // regular expression
+    {QStringLiteral("types"), QStringLiteral("33")},            // normal, dialog
+    {QStringLiteral("minimize"), QStringLiteral("false")},
+    {QStringLiteral("minimizerule"), QStringLiteral("2")},      // force
+    {QStringLiteral("maximizehoriz"), QStringLiteral("false")},
+    {QStringLiteral("maximizehorizrule"), QStringLiteral("2")},
+    {QStringLiteral("maximizevert"), QStringLiteral("false")},
+    {QStringLiteral("maximizevertrule"), QStringLiteral("2")},
+};
+
+QStringList ruleIds(Session &session)
+{
+    const QString list = session.readConfig(kRulesFile, {QStringLiteral("General")}, QStringLiteral("rules"));
+    return list.isEmpty() ? QStringList() : list.split(QLatin1Char(','));
+}
+
+void setRuleIds(Session &session, const QStringList &ids)
+{
+    session.writeConfig(kRulesFile, {QStringLiteral("General")}, QStringLiteral("rules"), ids.join(QLatin1Char(',')), false);
+    session.writeConfig(kRulesFile, {QStringLiteral("General")}, QStringLiteral("count"), QString::number(ids.size()), false);
+}
+
+void installWindowRules(Session &session)
+{
+    for (const auto &[key, value] : kRule)
+        session.writeConfig(kRulesFile, {kRuleId}, key, value, false);
+    QStringList ids = ruleIds(session);
+    if (!ids.contains(kRuleId))
+        setRuleIds(session, ids << kRuleId);
+}
+
+void removeWindowRules(Session &session)
+{
+    QStringList ids = ruleIds(session);
+    if (ids.removeAll(kRuleId))
+        setRuleIds(session, ids);
+    for (const auto &[key, value] : kRule)
+        session.deleteConfig(kRulesFile, {kRuleId}, key, false);
+}
+
 // The fonts, and the running session told: the platform theme only re-reads
 // them on refreshFonts, the signal the Fonts settings send.
 void applyFonts(Session &session, const QList<ConfigValue> &fonts)
@@ -313,6 +364,7 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
     // XP's text first: the shell restarts below, and reads fontconfig anew.
     if (!xptext::apply(session, state, &why))
         report(o, QStringLiteral("  text stays as it was: %1").arg(why));
+    installWindowRules(session);
     applyDecoration(session, look.id);
     if (!session.run({QStringLiteral("plasma-apply-colorscheme"), look.id}).ok())
         report(o, QStringLiteral("  plasma-apply-colorscheme failed"));
@@ -429,6 +481,7 @@ bool resetDesktop(Session &session, const std::function<void(const QString &)> &
     for (const QString &line : std::as_const(log))
         say(QStringLiteral("  ") + line);
     overrides::removeTitleShadows(share(QStringLiteral("kwin/aurorae/aurorae.qml")));
+    removeWindowRules(session);
     overrides::removePanelWidgets(share(QStringLiteral("plasma/plasmoids")));
     overrides::removeDesktopMenu(share(QStringLiteral("plasma/plasmoids")));
 

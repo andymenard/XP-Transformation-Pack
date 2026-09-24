@@ -252,13 +252,16 @@ bool installTitleShadows(const QString &themes, const QString &target, QString *
     if (source.isEmpty())
         return fail(error, QStringLiteral("KWin's Aurorae renderer isn't installed"));
 
-    // Which XPLasma themes want a shadow, from their rc files.
+    // Which themes are XPLasma's, and which of those want a shadow, from
+    // their rc files.
     QJsonObject shadows;
+    QJsonArray ours;
     for (const QFileInfo &pkg : QDir(themes).entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot)) {
         const QString rcPath = pkg.filePath() + QLatin1Char('/') + pkg.fileName() + QLatin1String("rc");
         QSettings rc(rcPath, QSettings::IniFormat);
         if (!rc.contains(QLatin1String(kGeneratedKey) + QLatin1String("/Look")) && !readText(pkg.filePath() + QLatin1String("/metadata.desktop")).contains(QLatin1String("XPLasma")))
             continue;
+        ours.append(pkg.fileName());
         // (QSettings reads an INI file's [General] keys as top-level ones.)
         if (rc.value(QStringLiteral("UseTextShadow")).toString() != QLatin1String("true"))
             continue;
@@ -275,9 +278,13 @@ bool installTitleShadows(const QString &themes, const QString &target, QString *
     }
 
     // KDE's renderer, importing its own components from where they are, with
-    // a second, offset caption under the real one.
+    // a second, offset caption under the real one, and XP's rule for the
+    // title buttons: a window with neither a minimize nor a maximize box
+    // shows neither (Aurorae would grey them), nor its icon.
     const QString anchor = QStringLiteral("    Text {\n        id: caption");
-    if (source.count(anchor) != 1 || source.count(QLatin1String("    id: root")) != 1)
+    const QStringList buttonLists{QStringLiteral("buttons: options.titleButtonsLeft"), QStringLiteral("buttons: options.titleButtonsRight")};
+    if (source.count(anchor) != 1 || source.count(QLatin1String("    id: root")) != 1
+        || source.count(buttonLists.at(0)) != 1 || source.count(buttonLists.at(1)) != 1)
         return fail(error, QStringLiteral("this KWin's aurorae.qml isn't laid out as XPLasma expects; no title shadows"));
     source.replace(source.indexOf(QLatin1String("import QtQuick")), int(qstrlen("import QtQuick")),
                    QStringLiteral("import \"%1\" as Upstream\nimport QtQuick").arg(QUrl::fromLocalFile(system).toString()));
@@ -286,7 +293,11 @@ bool installTitleShadows(const QString &themes, const QString &target, QString *
     source.replace(QLatin1String("    AuroraeButtonGroup {"), QLatin1String("    Upstream.AuroraeButtonGroup {"));
     source.replace(source.indexOf(QLatin1String("    id: root")), int(qstrlen("    id: root")),
                    QStringLiteral("    id: root\n    property var xpTitleShadows: (")   // (bare braces would be a JS block)
-                       + QString::fromUtf8(QJsonDocument(shadows).toJson(QJsonDocument::Compact)) + QLatin1Char(')'));
+                       + QString::fromUtf8(QJsonDocument(shadows).toJson(QJsonDocument::Compact)) + QLatin1Char(')')
+                       + QStringLiteral("\n    property var xpThemes: ") + QString::fromUtf8(QJsonDocument(ours).toJson(QJsonDocument::Compact))
+                       + QLatin1Char('\n') + resource(QStringLiteral("title-buttons.qml")));
+    for (const QString &list : buttonLists)
+        source.replace(list, QStringLiteral("buttons: root.xpButtons(%1)").arg(list.mid(int(qstrlen("buttons: ")))));
     source.replace(anchor, resource(QStringLiteral("title-shadow.qml")) + anchor);
     if (!writeText(target, QLatin1String(kShadowMarker) + QLatin1Char('\n') + source))
         return fail(error, QStringLiteral("can't write %1").arg(target));
