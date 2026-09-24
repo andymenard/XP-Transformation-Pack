@@ -1,6 +1,7 @@
 #include "app/overrides.h"
 
 #include "app/package.h"
+#include "app/paths.h"
 
 #include <QColor>
 #include <QDir>
@@ -22,7 +23,6 @@ constexpr const char *kMarker = "X-XPLasma-Panel-Override";
 constexpr const char *kLegacyMarker = "X-Xp2plasma-Panel-Override";   // xp2plasma's, and the Python app's
 constexpr const char *kShadowMarker = "// xplasma: caption text shadow override";
 constexpr const char *kLegacyShadowMarker = "// xp2plasma: caption text shadow override";
-const QStringList kSystemRoots{QStringLiteral("/usr/local/share"), QStringLiteral("/usr/share")};
 
 QString resource(const QString &name)
 {
@@ -45,10 +45,7 @@ bool fail(QString *error, const QString &message)
 
 QString systemDir(const QString &relative)
 {
-    for (const QString &root : kSystemRoots)
-        if (QFileInfo::exists(root + QLatin1Char('/') + relative))
-            return root + QLatin1Char('/') + relative;
-    return QString();
+    return paths::findSystemData(relative);
 }
 
 bool ownedWidget(const QString &dir)
@@ -140,58 +137,6 @@ const QList<Widget> kPanelWidgets{
 // (org.kde.plasma.folder, the desktop, is this package under another name.)
 const QString kDesktopId = QStringLiteral("org.kde.desktopcontainment");
 
-// Everything is checked before anything is replaced.
-bool installWidgets(const QString &plasmoids, const QList<Widget> &widgets, QString *error)
-{
-    QList<QList<std::pair<QString, QString>>> prepared;
-    for (const Widget &w : widgets) {
-        const QString dest = plasmoids + QLatin1Char('/') + w.id;
-        if (QFileInfo::exists(dest) && !ownedWidget(dest))
-            return fail(error, QStringLiteral("%1 is someone else's override; not replacing it").arg(dest));
-        const QString system = systemDir(QLatin1String("plasma/plasmoids/") + w.id);
-        if (system.isEmpty())
-            return fail(error, QStringLiteral("Plasma's %1 isn't installed").arg(w.id));
-        QList<std::pair<QString, QString>> files;
-        for (const QString &f : w.files) {
-            auto text = patched(w.key + QLatin1Char('/') + f, readText(system + QLatin1String("/contents/ui/") + f), error);
-            if (!text)
-                return false;
-            for (auto it = w.values.cbegin(); it != w.values.cend(); ++it)
-                text->replace(QLatin1Char('@') + it.key() + QLatin1Char('@'), it.value());
-            files.append({f, *text});
-        }
-        prepared.append(files);
-    }
-    for (int i = 0; i < widgets.size(); ++i) {
-        const Widget &w = widgets.at(i);
-        const QString system = systemDir(QLatin1String("plasma/plasmoids/") + w.id);
-        const QString dest = plasmoids + QLatin1Char('/') + w.id;
-        const QString staging = dest + QLatin1String(".xplasma-new");
-        QDir(staging).removeRecursively();
-        if (!copyTree(system + QLatin1String("/contents"), staging + QLatin1String("/contents")))
-            return fail(error, QStringLiteral("can't copy %1").arg(system));
-        QFile metaFile(system + QLatin1String("/metadata.json"));
-        metaFile.open(QIODevice::ReadOnly);
-        QJsonObject meta = QJsonDocument::fromJson(metaFile.readAll()).object();
-        meta.insert(QLatin1String(kMarker), true);
-        writeText(staging + QLatin1String("/metadata.json"), QString::fromUtf8(QJsonDocument(meta).toJson()));
-        const QString ui = staging + QLatin1String("/contents/ui/");
-        for (const auto &[f, text] : prepared.at(i))
-            writeText(ui + f, text);
-        for (const QString &f : w.extras)
-            writeText(ui + f, resource(f));
-        if (w.key == QLatin1String("systemtray")) {
-            // XP's show-hidden-icons button in place of KDE's arrow, which
-            // stays as the fallback.
-            QFile::rename(ui + QLatin1String("ExpanderArrow.qml"), ui + QLatin1String("PlasmaExpanderArrow.qml"));
-            writeText(ui + QLatin1String("ExpanderArrow.qml"), resource(QStringLiteral("ExpanderArrow.qml")));
-        }
-        QDir(dest).removeRecursively();   // (ours: checked above)
-        if (!QDir().rename(staging, dest))
-            return fail(error, QStringLiteral("can't install %1").arg(dest));
-    }
-    return true;
-}
 
 void removeWidgets(const QString &plasmoids, const QStringList &ids)
 {
@@ -201,6 +146,94 @@ void removeWidgets(const QString &plasmoids, const QStringList &ids)
             if (ownedWidget(dir))
                 QDir(dir).removeRecursively();
         }
+}
+
+// One widget, patched from this Plasma's own copy, ready to put in place:
+// its files' texts, or why it can't be.
+std::optional<QList<std::pair<QString, QString>>> prepareWidget(const QString &plasmoids, const Widget &w, QString *error)
+{
+    const QString dest = plasmoids + QLatin1Char('/') + w.id;
+    if (QFileInfo::exists(dest) && !ownedWidget(dest)) {
+        fail(error, QStringLiteral("%1 is someone else's override; not replacing it").arg(dest));
+        return std::nullopt;
+    }
+    const QString system = systemDir(QLatin1String("plasma/plasmoids/") + w.id);
+    if (system.isEmpty()) {
+        fail(error, QStringLiteral("this Plasma has no %1 package to patch (from Plasma 6.5 on, some widgets are built into "
+                                   "their plugins)").arg(w.id));
+        return std::nullopt;
+    }
+    QList<std::pair<QString, QString>> files;
+    for (const QString &f : w.files) {
+        auto text = patched(w.key + QLatin1Char('/') + f, readText(system + QLatin1String("/contents/ui/") + f), error);
+        if (!text)
+            return std::nullopt;
+        for (auto it = w.values.cbegin(); it != w.values.cend(); ++it)
+            text->replace(QLatin1Char('@') + it.key() + QLatin1Char('@'), it.value());
+        files.append({f, *text});
+    }
+    return files;
+}
+
+// ...put in place of any earlier copy of ours.
+bool placeWidget(const QString &plasmoids, const Widget &w, const QList<std::pair<QString, QString>> &files, QString *error)
+{
+    const QString system = systemDir(QLatin1String("plasma/plasmoids/") + w.id);
+    const QString dest = plasmoids + QLatin1Char('/') + w.id;
+    const QString staging = dest + QLatin1String(".xplasma-new");
+    QDir(staging).removeRecursively();
+    if (!copyTree(system + QLatin1String("/contents"), staging + QLatin1String("/contents")))
+        return fail(error, QStringLiteral("can't copy %1").arg(system));
+    QFile metaFile(system + QLatin1String("/metadata.json"));
+    metaFile.open(QIODevice::ReadOnly);
+    QJsonObject meta = QJsonDocument::fromJson(metaFile.readAll()).object();
+    meta.insert(QLatin1String(kMarker), true);
+    writeText(staging + QLatin1String("/metadata.json"), QString::fromUtf8(QJsonDocument(meta).toJson()));
+    const QString ui = staging + QLatin1String("/contents/ui/");
+    for (const auto &[f, text] : files)
+        writeText(ui + f, text);
+    for (const QString &f : w.extras)
+        writeText(ui + f, resource(f));
+    if (w.key == QLatin1String("systemtray")) {
+        // XP's show-hidden-icons button in place of KDE's arrow, which
+        // stays as the fallback.
+        QFile::rename(ui + QLatin1String("ExpanderArrow.qml"), ui + QLatin1String("PlasmaExpanderArrow.qml"));
+        writeText(ui + QLatin1String("ExpanderArrow.qml"), resource(QStringLiteral("ExpanderArrow.qml")));
+    }
+    QDir(dest).removeRecursively();   // (ours: checked before)
+    if (!QDir().rename(staging, dest))
+        return fail(error, QStringLiteral("can't install %1").arg(dest));
+    return true;
+}
+
+// All or nothing: every widget is checked before any is replaced (*error
+// lists each that can't be, a line each), and one that fails to go in takes
+// the others installed with it back out. With `dryRun`, only the checking.
+bool installWidgets(const QString &plasmoids, const QList<Widget> &widgets, QString *error, bool dryRun = false)
+{
+    QStringList problems;
+    QList<QList<std::pair<QString, QString>>> prepared;
+    for (const Widget &w : widgets) {
+        QString why;
+        if (const auto files = prepareWidget(plasmoids, w, &why))
+            prepared.append(*files);
+        else
+            problems << QStringLiteral("%1: %2").arg(w.id, why);
+    }
+    if (!problems.isEmpty())
+        return fail(error, problems.join(QLatin1Char('\n')));
+    if (dryRun)
+        return true;
+    QStringList placed;
+    for (int i = 0; i < widgets.size(); ++i) {
+        QString why;
+        if (!placeWidget(plasmoids, widgets.at(i), prepared.at(i), &why)) {
+            removeWidgets(plasmoids, placed << widgets.at(i).id);
+            return fail(error, QStringLiteral("%1: %2").arg(widgets.at(i).id, why));
+        }
+        placed << widgets.at(i).id;
+    }
+    return true;
 }
 
 // A shell command as a QML string literal: `editor` started as its own
@@ -221,7 +254,7 @@ QString launchLiteral(const QString &editor, const QStringList &arguments = {})
 
 } // namespace
 
-bool installPanelWidgets(const QString &plasmoids, const QString &editor, QString *error)
+static QList<Widget> panelWidgets(const QString &editor)
 {
     // The clock opens Date and Time Properties: this XPLasma's editor.
     QList<Widget> widgets = kPanelWidgets;
@@ -229,7 +262,17 @@ bool installPanelWidgets(const QString &plasmoids, const QString &editor, QStrin
         if (w.key == QLatin1String("digitalclock"))
             w.values.insert(QStringLiteral("LAUNCH_DATETIME"),
                             launchLiteral(editor.isEmpty() ? QStringLiteral("xplasma-edit") : editor, {QStringLiteral("--date-time")}));
-    return installWidgets(plasmoids, widgets, error);
+    return widgets;
+}
+
+bool installPanelWidgets(const QString &plasmoids, const QString &editor, QString *error)
+{
+    return installWidgets(plasmoids, panelWidgets(editor), error);
+}
+
+bool checkPanelWidgets(const QString &plasmoids, QString *error)
+{
+    return installWidgets(plasmoids, panelWidgets(QString()), error, true);
 }
 
 void removePanelWidgets(const QString &plasmoids)
@@ -248,20 +291,61 @@ bool installDesktopMenu(const QString &plasmoids, const QString &editor, QString
                           error);
 }
 
+bool checkDesktopMenu(const QString &plasmoids, QString *error)
+{
+    return installWidgets(plasmoids,
+                          {{kDesktopId, QStringLiteral("desktopcontainment"), {QStringLiteral("FolderViewLayer.qml"), QStringLiteral("FolderView.qml")},
+                            {{QStringLiteral("LAUNCH"), QStringLiteral("\"\"")}}, {}}},
+                          error, true);
+}
+
 void removeDesktopMenu(const QString &plasmoids)
 {
     removeWidgets(plasmoids, {kDesktopId});
 }
 
-bool installTitleShadows(const QString &themes, const QString &target, QString *error)
+namespace {
+
+const QString kCaptionAnchor = QStringLiteral("    Text {\n        id: caption");
+const QStringList kButtonLists{QStringLiteral("buttons: options.titleButtonsLeft"), QStringLiteral("buttons: options.titleButtonsRight")};
+
+// KWin's own aurorae.qml, if it's there, ours to override and laid out as
+// XPLasma expects.
+std::optional<QString> auroraeSource(const QString &target, QString *error)
 {
     const QString existing = readText(target);
-    if (!existing.isEmpty() && !existing.startsWith(QLatin1String(kShadowMarker)) && !existing.startsWith(QLatin1String(kLegacyShadowMarker)))
-        return fail(error, QStringLiteral("%1 is someone else's Aurorae override; not replacing it").arg(target));
+    if (!existing.isEmpty() && !existing.startsWith(QLatin1String(kShadowMarker)) && !existing.startsWith(QLatin1String(kLegacyShadowMarker))) {
+        fail(error, QStringLiteral("%1 is someone else's Aurorae override; not replacing it").arg(target));
+        return std::nullopt;
+    }
     const QString system = systemDir(QStringLiteral("kwin/aurorae"));
-    QString source = system.isEmpty() ? QString() : readText(system + QLatin1String("/aurorae.qml"));
-    if (source.isEmpty())
-        return fail(error, QStringLiteral("KWin's Aurorae renderer isn't installed"));
+    const QString source = system.isEmpty() ? QString() : readText(system + QLatin1String("/aurorae.qml"));
+    if (source.isEmpty()) {
+        fail(error, QStringLiteral("KWin's Aurorae renderer isn't installed"));
+        return std::nullopt;
+    }
+    if (source.count(kCaptionAnchor) != 1 || source.count(QLatin1String("    id: root")) != 1
+        || source.count(kButtonLists.at(0)) != 1 || source.count(kButtonLists.at(1)) != 1) {
+        fail(error, QStringLiteral("this KWin's aurorae.qml isn't laid out as XPLasma expects"));
+        return std::nullopt;
+    }
+    return source;
+}
+
+} // namespace
+
+bool checkTitleShadows(const QString &target, QString *error)
+{
+    return auroraeSource(target, error).has_value();
+}
+
+bool installTitleShadows(const QString &themes, const QString &target, QString *error)
+{
+    auto checked = auroraeSource(target, error);
+    if (!checked)
+        return false;
+    QString source = *checked;
+    const QString system = systemDir(QStringLiteral("kwin/aurorae"));
 
     // Which themes are XPLasma's, and which of those want a shadow, from
     // their rc files.
@@ -292,11 +376,8 @@ bool installTitleShadows(const QString &themes, const QString &target, QString *
     // a second, offset caption under the real one, and XP's rule for the
     // title buttons: a window with neither a minimize nor a maximize box
     // shows neither (Aurorae would grey them), nor its icon.
-    const QString anchor = QStringLiteral("    Text {\n        id: caption");
-    const QStringList buttonLists{QStringLiteral("buttons: options.titleButtonsLeft"), QStringLiteral("buttons: options.titleButtonsRight")};
-    if (source.count(anchor) != 1 || source.count(QLatin1String("    id: root")) != 1
-        || source.count(buttonLists.at(0)) != 1 || source.count(buttonLists.at(1)) != 1)
-        return fail(error, QStringLiteral("this KWin's aurorae.qml isn't laid out as XPLasma expects; no title shadows"));
+    const QString &anchor = kCaptionAnchor;
+    const QStringList &buttonLists = kButtonLists;
     source.replace(source.indexOf(QLatin1String("import QtQuick")), int(qstrlen("import QtQuick")),
                    QStringLiteral("import \"%1\" as Upstream\nimport QtQuick").arg(QUrl::fromLocalFile(system).toString()));
     if (const int at = int(source.indexOf(QLatin1String("\nDecoration {"))); at >= 0)

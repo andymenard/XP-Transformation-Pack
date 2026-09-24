@@ -27,7 +27,8 @@
 //
 // Patches are data (overrides/patches.json: text found once, replaced), so a
 // Plasma whose QML has moved on is refused with a message, never
-// half-patched.
+// half-patched: every override can be checked first (check*, which write
+// nothing), and applying a look does, taking all of them or none.
 #include <QString>
 
 #include <optional>
@@ -37,16 +38,21 @@ namespace xpl::overrides {
 // `editor`: the xplasma-edit the clock starts Date and Time Properties with
 // (empty: whichever is on the PATH).
 bool installPanelWidgets(const QString &plasmoids, const QString &editor = QString(), QString *error = nullptr);
+// Whether they could all be installed on this Plasma (nothing is written);
+// *error lists each that couldn't, a line each.
+bool checkPanelWidgets(const QString &plasmoids, QString *error = nullptr);
 void removePanelWidgets(const QString &plasmoids);
 
 // The desktop's right-click menu (org.kde.desktopcontainment, which the
 // desktop, org.kde.plasma.folder, is): "XP Properties", starting `editor`.
 bool installDesktopMenu(const QString &plasmoids, const QString &editor, QString *error = nullptr);
+bool checkDesktopMenu(const QString &plasmoids, QString *error = nullptr);
 void removeDesktopMenu(const QString &plasmoids);
 
 // `themes` is where the Aurorae themes are (their rc files say which want a
 // shadow); `target` the override's path (~/.local/share/kwin/aurorae/aurorae.qml).
 bool installTitleShadows(const QString &themes, const QString &target, QString *error = nullptr);
+bool checkTitleShadows(const QString &target, QString *error = nullptr);
 void removeTitleShadows(const QString &target);
 
 // Patch `source` by `file`'s rules in patches.json ("systemtray/main.qml").

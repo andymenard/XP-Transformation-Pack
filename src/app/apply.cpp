@@ -18,6 +18,7 @@
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
+#include <QStandardPaths>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -175,11 +176,25 @@ void applyFonts(Session &session, const QList<ConfigValue> &fonts)
     session.reconfigureKWin();
 }
 
+// Plasma's helper that switches the icon theme: in its libexec, wherever the
+// distribution keeps that -- found beside Plasma's own tools first.
 QString iconHelper()
 {
-    for (const QString &p : {QStringLiteral("/usr/lib/plasma-changeicons"), QStringLiteral("/usr/lib64/plasma-changeicons"),
-                             QStringLiteral("/usr/libexec/plasma-changeicons")})
-        if (QFileInfo::exists(p))
+    QStringList candidates;
+    const QString tool = QStandardPaths::findExecutable(QStringLiteral("plasma-apply-colorscheme"));
+    if (!tool.isEmpty()) {
+        const QDir prefix(QFileInfo(tool).canonicalPath() + QLatin1String("/.."));
+        candidates << prefix.filePath(QStringLiteral("libexec/plasma-changeicons"))
+                   << prefix.filePath(QStringLiteral("lib/libexec/plasma-changeicons"))
+                   << prefix.filePath(QStringLiteral("lib64/libexec/plasma-changeicons"));
+        // (Debian's multiarch: lib/x86_64-linux-gnu/libexec)
+        for (const QString &triplet : QDir(prefix.filePath(QStringLiteral("lib"))).entryList({QStringLiteral("*-linux-*")}, QDir::Dirs))
+            candidates << prefix.filePath(QStringLiteral("lib/%1/libexec/plasma-changeicons").arg(triplet));
+    }
+    candidates << QStringLiteral("/usr/lib/plasma-changeicons") << QStringLiteral("/usr/lib64/plasma-changeicons")
+               << QStringLiteral("/usr/libexec/plasma-changeicons");
+    for (const QString &p : std::as_const(candidates))
+        if (QFileInfo(p).isExecutable())
             return p;
     return QString();
 }
@@ -300,6 +315,21 @@ void settleTaskbars(Session &session, int height)
 
 bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QString *error)
 {
+    // The whole XP look or none of it: what this Plasma can't take is known
+    // before anything changes.
+    {
+        QStringList cannot;
+        QString why;
+        if (o.taskbar && !overrides::checkPanelWidgets(share(QStringLiteral("plasma/plasmoids")), &why))
+            cannot << why.split(QLatin1Char('\n'));
+        if (!overrides::checkDesktopMenu(share(QStringLiteral("plasma/plasmoids")), &why))
+            cannot << why.split(QLatin1Char('\n'));
+        if (!overrides::checkTitleShadows(share(QStringLiteral("kwin/aurorae/aurorae.qml")), &why))
+            cannot << why;
+        if (!cannot.isEmpty())
+            return fail(error, QStringLiteral("this Plasma can't take the whole XP look yet, so nothing was changed:\n  ")
+                                   + cannot.join(QStringLiteral("\n  ")));
+    }
     State state = State::load();
     const QString build = paths::build() + QLatin1Char('/') + look.id;
     QDir(build).removeRecursively();
@@ -355,7 +385,8 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
         QString why;
         const QString editor = QCoreApplication::applicationDirPath() + QLatin1String("/xplasma-edit");
         if (!overrides::installPanelWidgets(share(QStringLiteral("plasma/plasmoids")), QFileInfo(editor).isExecutable() ? editor : QString(), &why))
-            report(o, QStringLiteral("  the tray and clock stay KDE's: %1").arg(why));
+            for (const QString &line : why.split(QLatin1Char('\n')))
+                report(o, QStringLiteral("  left as Plasma's own: %1").arg(line));
     }
     if (!iconTheme.isEmpty() && !install(iconTheme, iconsDest, error))
         return false;
@@ -519,7 +550,7 @@ bool resetDesktop(Session &session, const std::function<void(const QString &)> &
     session.restartPlasmaShell();
 
     // The wallpaper from the global theme's own defaults, set outright.
-    for (const QString &root : {QStringLiteral("/usr/share"), QStringLiteral("/usr/local/share")}) {
+    for (const QString &root : paths::systemData()) {
         QFile defaults(root + QLatin1String("/plasma/look-and-feel/") + lookAndFeel + QLatin1String("/contents/defaults"));
         if (!defaults.open(QIODevice::ReadOnly))
             continue;

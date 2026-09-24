@@ -172,8 +172,8 @@
    "replace": "{{start-menu-drop}}\n    function drop(target, event, pos) {\n"
   },
   {
-   "find": "            dir.drop(target, event, dropItemAt(dropPos), root.isContainment && !Plasmoid.immutable);",
-   "replace": "            dir.drop(target, xpShortcutDrop(event), dropItemAt(dropPos), root.isContainment && !Plasmoid.immutable);"
+   "find": "dir.drop(target, event, dropItemAt(dropPos), ",
+   "replace": "dir.drop(target, xpShortcutDrop(event), dropItemAt(dropPos), "
   }
  ]
 }

@@ -2,6 +2,7 @@
 
 #include "app/media.h"
 #include "app/package.h"
+#include "app/paths.h"
 #include "core/icons.h"
 
 #include <QDir>
@@ -356,7 +357,10 @@ QString writeIconTheme(const QString &directory, const QString &inheritFrom, con
     QStringList themes{inherit};
     for (int t = 0; t < themes.size(); ++t) {
         const QString theme = themes.at(t);
-        for (const QString &base : QStringList{QDir::homePath() + QLatin1String("/.local/share/icons"), QStringLiteral("/usr/share/icons")}) {
+        QStringList bases{QDir::homePath() + QLatin1String("/.local/share/icons")};
+        for (const QString &dir : paths::systemData())
+            bases << dir + QLatin1String("/icons");
+        for (const QString &base : std::as_const(bases)) {
             const QString root = base + QLatin1Char('/') + theme;
             QSettings index(root + QLatin1String("/index.theme"), QSettings::IniFormat);
             for (QString parent : index.value(QStringLiteral("Icon Theme/Inherits")).toStringList())

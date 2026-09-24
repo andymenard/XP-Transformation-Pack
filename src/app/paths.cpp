@@ -21,6 +21,27 @@ QString config()
     return home() + QLatin1String("/.config");
 }
 
+QStringList systemData()
+{
+    QStringList out;
+    const QString dirs = qEnvironmentVariable("XDG_DATA_DIRS");
+    const QString own = QDir::cleanPath(localShare());
+    for (const QString &dir : (dirs.isEmpty() ? QStringLiteral("/usr/local/share:/usr/share") : dirs).split(QLatin1Char(':'), Qt::SkipEmptyParts)) {
+        const QString clean = QDir::cleanPath(dir);
+        if (clean != own && !out.contains(clean))
+            out << clean;
+    }
+    return out;
+}
+
+QString findSystemData(const QString &relative)
+{
+    for (const QString &dir : systemData())
+        if (QFileInfo::exists(dir + QLatin1Char('/') + relative))
+            return dir + QLatin1Char('/') + relative;
+    return QString();
+}
+
 QString data()
 {
     return localShare() + QLatin1String("/xplasma");

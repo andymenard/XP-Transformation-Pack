@@ -259,7 +259,7 @@ bool writeTheme(const Scheme &scheme, bool shadow, const QString &dir, int *size
         for (const QString &alias : names.mid(1))
             QFile::link(names.first(), dir + QLatin1String("/cursors/") + alias);
     }
-    const QString inherits = QFileInfo::exists(QStringLiteral("/usr/share/icons/breeze_cursors")) ? QStringLiteral("breeze_cursors")
+    const QString inherits = !paths::findSystemData(QStringLiteral("icons/breeze_cursors")).isEmpty() ? QStringLiteral("breeze_cursors")
                                                                                                   : QStringLiteral("default");
     const QByteArray index = "[Icon Theme]\nName=" + scheme.name.toUtf8() + " (XP)\nComment=Windows XP's pointers, written by XPLasma\nInherits="
                              + inherits.toUtf8() + "\n" + kGeneratedKey + "=true\n";

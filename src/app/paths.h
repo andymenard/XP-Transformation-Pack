@@ -7,6 +7,7 @@
 // ~/.config), and it doesn't consult the environment XPLasma was started
 // with. Tests move HOME to a scratch directory.
 #include <QString>
+#include <QStringList>
 
 namespace xpl::paths {
 
@@ -30,6 +31,14 @@ QString build();         //   .../build: generated packages before install
 // What the session reads.
 QString config();        // ~/.config
 QString localShare();    // ~/.local/share
+
+// The system's shared data folders, where Plasma's own packages are:
+// XDG_DATA_DIRS (/usr/local/share:/usr/share by default; NixOS's profiles,
+// Flatpak's exports...), in order, without the user's own.
+QStringList systemData();
+// The first of them holding `relative` ("plasma/plasmoids/<id>",
+// "icons/breeze"), as a full path; empty if none does.
+QString findSystemData(const QString &relative);
 
 // The prebuilt XPLasma style plugin for a Qt major, as this copy of XPLasma
 // ships it: <prefix>/lib/xplasma, beside bin/ (in a checkout, build.sh's
