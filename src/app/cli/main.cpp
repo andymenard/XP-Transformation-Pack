@@ -29,6 +29,7 @@
 #include "app/media.h"
 #include "app/forks.h"
 #include "app/panel.h"
+#include "app/qttarget.h"
 #include "app/startbutton.h"
 #include "app/startmenu.h"
 #include "app/startpanel.h"
@@ -400,6 +401,11 @@ int checkForks()
     LiveSession session;
     QString what;
     forks::check(session, state, &what);
+    // (And the Flatpak style, for a runtime installed since.)
+    QString flatpakWhat;
+    qtstyle::refreshFlatpak(session, &flatpakWhat);
+    if (!flatpakWhat.isEmpty())
+        what += (what.isEmpty() ? QString() : QStringLiteral("\n")) + flatpakWhat;
     if (state.settings != before)
         state.save();
     if (!what.isEmpty())

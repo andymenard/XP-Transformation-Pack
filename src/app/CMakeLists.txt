@@ -30,6 +30,7 @@ add_library(xplasma-app STATIC
   pointers.cpp
   timezones.cpp
   forks.cpp
+  flatpak.cpp
   qttarget.cpp
   overrides.cpp
   apply.cpp

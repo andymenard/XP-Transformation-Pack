@@ -63,6 +63,18 @@ int fourState(const QStyleOption *o)
     return hovered(o) ? Hot : Normal;
 }
 
+// xplasmarc: in the config folder -- or, in a Flatpak sandbox, whose config
+// folder is the app's own, the copy XPLasma keeps beside the frozen look
+// (HOST_XDG_DATA_HOME, else ~/.local/share, /xplasma/active), the folder its
+// Flatpak permission shows every app, live.
+QString rcPath()
+{
+    const QString own = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QLatin1String("/xplasmarc");
+    if (QFileInfo::exists(own) || !QFileInfo::exists(QStringLiteral("/.flatpak-info")))
+        return own;
+    return qEnvironmentVariable("HOST_XDG_DATA_HOME", QDir::homePath() + QLatin1String("/.local/share")) + QLatin1String("/xplasma/active/xplasmarc");
+}
+
 // Where XPLasma's configuration says the style to draw is. XPLASMA_THEME
 // ("/path/Luna.msstyles" or "/path/Luna.msstyles:NORMALMETALLIC_INI")
 // overrides it per process, for tests and previews.
@@ -75,9 +87,7 @@ std::pair<QString, QString> configuredTheme()
             return {env.left(colon), env.mid(colon + 1)};
         return {env, QString()};
     }
-    const QString rc = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
-                       + QLatin1String("/xplasmarc");
-    QSettings settings(rc, QSettings::IniFormat);
+    QSettings settings(rcPath(), QSettings::IniFormat);
     settings.beginGroup(QStringLiteral("Theme"));
     return {settings.value(QStringLiteral("Path")).toString(), settings.value(QStringLiteral("Variant")).toString()};
 }
@@ -130,7 +140,7 @@ XPLasmaStyle::XPLasmaStyle()
     // replaces the file atomically, so the watch is on the file and re-armed
     // after each change; a short delay folds bursts together.
     if (qEnvironmentVariableIsEmpty("XPLASMA_THEME")) {
-        m_configPath = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QLatin1String("/xplasmarc");
+        m_configPath = rcPath();
         m_loaded = configuredTheme();
         m_watcher = new QFileSystemWatcher(this);
         m_watcher->addPath(QFileInfo(m_configPath).absolutePath());
@@ -457,8 +467,7 @@ void XPLasmaStyle::polish(QApplication *app)
 // the platform theme hands out new fonts.
 void XPLasmaStyle::unkern(QApplication *app)
 {
-    const QString rc = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QLatin1String("/xplasmarc");
-    if (QSettings(rc, QSettings::IniFormat).value(QStringLiteral("Text/Kerning"), true).toBool())
+    if (QSettings(rcPath(), QSettings::IniFormat).value(QStringLiteral("Text/Kerning"), true).toBool())
         return;
     QFont font = app->font();
     if (!font.kerning())

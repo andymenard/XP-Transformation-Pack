@@ -7,7 +7,8 @@
 // look it draws is a frozen, content-addressed copy under
 // ~/.local/share/xplasma/active -- every running app reads it, so it never
 // changes under them -- named by ~/.config/xplasmarc, which the plugin
-// watches: a new apply reaches running apps.
+// watches: a new apply reaches running apps. Flatpak's Qt 6 apps get the
+// same plugin as a runtime extension (flatpak.h).
 #include "app/look.h"
 #include "app/session.h"
 #include "app/state.h"
@@ -23,6 +24,10 @@ bool apply(Session &session, const Look &look, State &state, QStringList *log, Q
 // plugin roots ahead of the system's: the style's, and where Plasma's
 // widgets as XPLasma builds them go (forks.h).
 bool ensurePluginPath(Session &session, QString *error = nullptr);
+// At login: the Flatpak style extension caught up with the runtimes
+// installed (one added since, or gone), while XPLasma's style is applied.
+// *what says what changed, if anything.
+void refreshFlatpak(Session &session, QString *what);
 // Back to the widget style the user had; the plugins, the frozen looks and
 // the environment hook gone.
 void revert(Session &session, State &state, QStringList *log);

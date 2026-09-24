@@ -14,8 +14,8 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 - **Sounds tab** in Display Properties' sibling, XP's Sounds and Audio
   Devices: XP's sound schemes from the media -- and other schemes beside
   them (the user's idea: a small rock band recording a whole XP sound theme).
-- **A Flatpak extension** (`org.kde.KStyle.XPlasma`) so Flatpak Qt apps get
-  the style too (ghostwriter, qBittorrent, Prism Launcher, Elisa here).
+- **Flatpak's Qt 5 apps** (KDE runtime 5.15): the Qt 5 plugin as the same
+  kind of extension, if its runtime's extension point takes it.
 - **The installer, redesigned** (PLAN.md §10), as a knock-off of XP's Setup.
 - **GTK**: a real GTK3 generator on the machinery that's already there.
 - **A KDecoration plugin** on the same core, in place of Aurorae (optional).
@@ -30,6 +30,9 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Done
 
+- Flatpak's Qt 6 apps in the XP style: an org.kde.KStyle.XPLasma extension
+  per KDE runtime, installed by apply; a new look reaches running apps
+  (qBittorrent, Prism Launcher, Elisa, DeckTuner checked) (2026-09-24).
 - Extras... in Display Properties (the user's idea): the Start button's
   label, and its logo -- XP's flag, characters (an emoji), or a picture.
   Applied alone it only redraws the button (2026-09-24).

@@ -15,6 +15,7 @@
 #include "app/media.h"
 #include "app/inf.h"
 #include "app/panel.h"
+#include "app/flatpak.h"
 #include "app/forks.h"
 #include "app/pointers.h"
 #include "app/timezones.h"
@@ -1011,6 +1012,62 @@ private Q_SLOTS:
         QCOMPARE(picture.size(), QSize(48, 48));
     }
 
+    void flatpakStyle()
+    {
+        // The style as a KDE runtime extension, one per org.kde.Platform 6
+        // branch; the override letting apps read the look, added to the
+        // user's own and taken back out alone.
+        struct FlatpakSession : RecordingSession {
+            QByteArray runtimes;
+            host::Result run(const QStringList &argv) override
+            {
+                host::Result r = RecordingSession::run(argv);
+                if (argv.value(0) == QLatin1String("flatpak") && argv.contains(QStringLiteral("--runtime")))
+                    r.out = runtimes;
+                else if (argv == QStringList{QStringLiteral("flatpak"), QStringLiteral("--default-arch")})
+                    r.out = "x86_64\n";
+                return r;
+            }
+        } session;
+        session.runtimes = "org.kde.Platform\t6.10\norg.kde.Sdk\t6.10\norg.kde.Platform\t6.9\norg.kde.Platform\t6.10\n"
+                           "org.kde.Platform\t5.15-24.08\norg.freedesktop.Platform\t24.08\n";
+        QCOMPARE(flatpak::qtRuntimes(session), (QStringList{QStringLiteral("6.10"), QStringLiteral("6.9")}));
+        const QString plugin = m_home.filePath(QStringLiteral("libxplasma.so"));
+        writeFile(plugin, "not really a plugin");
+        // (With what an earlier XPLasma let apps read, to be taken out.)
+        writeFile(flatpak::overrideFile(), "[Context]\nfilesystems=home;xdg-config/xplasmarc:ro;\n\n[Environment]\nFOO=1\n");
+        QStringList log;
+        QString error;
+        QVERIFY2(flatpak::install(session, plugin, &log, &error), qPrintable(error));
+        for (const char *branch : {"6.10", "6.9"})
+            QVERIFY(QFileInfo::exists(flatpak::extensionRoot() + QLatin1String("/x86_64/") + QLatin1String(branch) + QLatin1String("/styles/libxplasma.so")));
+        auto overrides = [] {
+            QFile f(flatpak::overrideFile());
+            return f.open(QIODevice::ReadOnly) ? QString::fromUtf8(f.readAll()) : QString();
+        };
+        QVERIFY2(overrides().contains(QLatin1String("filesystems=home;xdg-data/xplasma/active:ro;")), qPrintable(overrides()));
+        QVERIFY(overrides().contains(QLatin1String("[Environment]\nFOO=1")));
+        // Again: nothing doubled. A runtime gone: its extension too.
+        session.runtimes = "org.kde.Platform\t6.10\n";
+        QVERIFY(flatpak::install(session, plugin, &log, &error));
+        QCOMPARE(overrides().count(QLatin1String("xplasma/active")), 1);
+        QVERIFY(!QFileInfo::exists(flatpak::extensionRoot() + QLatin1String("/x86_64/6.9")));
+        // Gone: ours only.
+        flatpak::remove(&log);
+        QVERIFY(!QFileInfo::exists(flatpak::extensionRoot()));
+        QVERIFY2(overrides().contains(QLatin1String("filesystems=home;")) && !overrides().contains(QLatin1String("xplasma")), qPrintable(overrides()));
+        QVERIFY(overrides().contains(QLatin1String("FOO=1")));
+        // An override that was only ours goes whole; no Flatpak: nothing done.
+        QFile::remove(flatpak::overrideFile());
+        session.runtimes = "org.kde.Platform\t6.10\n";
+        QVERIFY(flatpak::install(session, plugin, &log, &error));
+        flatpak::remove();
+        QVERIFY(!QFileInfo::exists(flatpak::overrideFile()));
+        session.runtimes.clear();
+        QVERIFY(flatpak::install(session, plugin, &log, &error));
+        QVERIFY(!QFileInfo::exists(flatpak::extensionRoot()) && !QFileInfo::exists(flatpak::overrideFile()));
+    }
+
     void startButtonExtrasApplied()
     {
         // Extras... applied alone: the button redrawn with the user's label
@@ -1478,6 +1535,9 @@ private Q_SLOTS:
         QSettings rc(paths::config() + QLatin1String("/xplasmarc"), QSettings::IniFormat);
         QVERIFY(rc.value(QStringLiteral("Theme/Path")).toString().startsWith(paths::data() + QLatin1String("/active/")));
         QCOMPARE(rc.value(QStringLiteral("Theme/Variant")).toString(), QStringLiteral("NORMALMETALLIC_INI"));
+        // (A copy beside the look, for Flatpak apps' sandboxes.)
+        QCOMPARE(QSettings(paths::data() + QLatin1String("/active/xplasmarc"), QSettings::IniFormat).value(QStringLiteral("Theme/Path")),
+                 rc.value(QStringLiteral("Theme/Path")));
         const State applied = State::load();
         QCOMPARE(applied.appliedKind, QStringLiteral("style"));
         QCOMPARE(applied.variant, QStringLiteral("NORMALMETALLIC_INI"));

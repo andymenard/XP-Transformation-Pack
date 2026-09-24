@@ -1,5 +1,6 @@
 #include "app/qttarget.h"
 
+#include "app/flatpak.h"
 #include "app/paths.h"
 #include "core/themefile.h"
 
@@ -200,9 +201,13 @@ bool apply(Session &session, const Look &look, State &state, QStringList *log, Q
                           + "\n[Text]\nKerning=false\n";
     if (!writeAtomically(configPath(), rc, error))
         return false;
+    // (And beside the look, for Flatpak apps: their sandboxes see that folder
+    // live, where a single file shared with them would stay the old one.)
+    if (!writeAtomically(activeDir() + QLatin1String("/xplasmarc"), rc, error))
+        return false;
     // (Apps that still have an older one open read it into memory already.)
     for (const QFileInfo &f : QDir(activeDir()).entryInfoList(QDir::Files))
-        if (f.absoluteFilePath() != frozen)
+        if (f.absoluteFilePath() != frozen && f.fileName() != QLatin1String("xplasmarc"))
             QFile::remove(f.absoluteFilePath());
 
     // The widget style, remembering what it was.
@@ -211,7 +216,40 @@ bool apply(Session &session, const Look &look, State &state, QStringList *log, Q
         state.settings.insert(QStringLiteral("previousWidgetStyle"), current.isEmpty() ? QStringLiteral("Breeze") : current);
     setWidgetStyle(session, QLatin1String(kStyleKey));
     *log << QStringLiteral("widget style: XPLasma (%1)").arg(look.name);
+    // Flatpak's Qt apps too (a failure there isn't the look's).
+    QString why;
+    if (const QString plugin = paths::shippedStylePlugin(6); !plugin.isEmpty() && !flatpak::install(session, plugin, log, &why))
+        *log << QStringLiteral("Flatpak apps: not styled (%1)").arg(why);
     return true;
+}
+
+// The runtime branches the extension is there for, of every arch.
+static QStringList flatpakBranches()
+{
+    QStringList branches;
+    const QDir root(flatpak::extensionRoot());
+    for (const QString &arch : root.entryList(QDir::Dirs | QDir::NoDotAndDotDot))
+        branches << QDir(root.filePath(arch)).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    branches.sort();
+    return branches;
+}
+
+void refreshFlatpak(Session &session, QString *what)
+{
+    // (The plugin as shipped: the host's is only replaced at an apply.)
+    const QString plugin = paths::shippedStylePlugin(6);
+    if (!QFileInfo::exists(configPath()) || plugin.isEmpty())
+        return;
+    const QStringList before = flatpakBranches();
+    QStringList log;
+    QString why;
+    if (!flatpak::install(session, plugin, &log, &why)) {
+        if (what)
+            *what = QStringLiteral("Flatpak apps: not styled (%1)").arg(why);
+        return;
+    }
+    if (what && flatpakBranches() != before)
+        *what = log.join(QLatin1Char('\n'));
 }
 
 void revert(Session &session, State &state, QStringList *log)
@@ -229,6 +267,7 @@ void revert(Session &session, State &state, QStringList *log)
         QFile::remove(p);
     for (const int major : kMajors)
         QFile::remove(installedPlugin(major));
+    flatpak::remove(log);
     QDir(activeDir()).removeRecursively();
     // Only our roots come out of the path: the rest is someone else's.
     QStringList path = sessionPluginPath(session);
