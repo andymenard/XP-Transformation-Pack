@@ -7,6 +7,7 @@
 // paths::extracted(). Nothing of Microsoft's ships with XPLasma.
 #include <QByteArray>
 #include <QImage>
+#include <QList>
 #include <QString>
 
 #include <optional>
@@ -19,6 +20,13 @@ std::optional<QByteArray> systemFile(const QString &name, QString *error = nullp
 
 // A bitmap resource of such a file, decoded (alpha kept).
 std::optional<QImage> bitmap(const QString &file, int id, QString *error = nullptr);
+
+// An animation resource ("AVI") of such a file -- shell32.dll's file
+// operations (161 copying, 160 moving, 162 deleting): its frames, in
+// order, magenta see-through. They play at 10 a second.
+std::optional<QList<QImage>> animation(const QString &file, int id, QString *error = nullptr);
+// (A Microsoft RLE8 AVI's frames, each drawn over the last.)
+QList<QImage> decodeRleAvi(const QByteArray &avi);
 
 // The Start button's flag: explorer.exe's bitmap 143 (25 x 20, real alpha)
 // with a visual style, 176 (16 x 16) in Windows Classic.

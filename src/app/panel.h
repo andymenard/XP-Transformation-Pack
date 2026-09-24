@@ -23,6 +23,10 @@ struct PanelArt
     QList<std::pair<QString, QImage>> panel;   // panel-background.svg's elements (hints: null images)
     QList<std::pair<QString, QImage>> tasks;   // tasks.svg's
     QList<std::pair<QString, QImage>> tray;    // xp-tray.svg's: the tray and clock backdrops, the expand buttons
+    // xp-notify.svg's: what notification balloons and the copy dialog draw
+    // with -- the balloon's close button, XP's severity icons, push buttons,
+    // a text box, the progress bar, and shell32's file animations.
+    QList<std::pair<QString, QImage>> notify;
     QColor panelColour;                        // the bar's average colour
     QColor textColour;                         // task and clock text
     int height = kTaskbarHeight;

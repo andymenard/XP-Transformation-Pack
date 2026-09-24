@@ -2,6 +2,9 @@
 
 #include "app/media.h"
 #include "app/package.h"
+#include "core/classic.h"
+#include "core/icons.h"
+#include "core/pe.h"
 #include "core/schema.h"
 
 #include <QDir>
@@ -258,6 +261,118 @@ void classicArt(const Look &look, PanelArt &art)
     }
 }
 
+// Notification balloons and the copy dialog. Balloon colours are the
+// tooltip's (the theme's [Colors:Tooltip]: InfoWindow, InfoText); the rest
+// is the look's own button, text box and progress bar -- or Classic's
+// bevels -- and XP's icons and animations from its files, when the media
+// is there.
+void notifyArt(const Look &look, PanelArt &art)
+{
+    auto &out = art.notify;
+    const QPalette pal = look.system.palette();
+    static const char *const states[] = {"normal", "hover", "pressed"};
+
+    // The balloon's close box: the style's ToolTip::Close, or Classic's
+    // caption close button, flat.
+    for (int s = 0; s < 3; ++s) {
+        QImage img;
+        if (!look.classic()) {
+            const PartRef close{QStringLiteral("tooltip"), schema::partId(u"tooltip", u"close"), s + 1, {}};
+            if (look.renderer->hasPart(close))
+                img = look.renderer->stateImage(close);
+        }
+        if (img.isNull()) {
+            img = QImage(16, 14, QImage::Format_ARGB32_Premultiplied);
+            img.fill(Qt::transparent);
+            QPainter p(&img);
+            if (s == 0)
+                classic::captionGlyph(&p, QPoint(0, 0), classic::CaptionGlyph::Close, pal.color(QPalette::ButtonText));
+            else
+                classic::captionButton(&p, img.rect(), classic::CaptionGlyph::Close, pal, s == 2, false);
+        }
+        out.append({QLatin1String("close-") + QLatin1String(states[s]), img});
+    }
+
+    // Push buttons: the style's Button::PushButton (normal, hot, pressed),
+    // or Classic's bevel.
+    for (int s = 0; s < 3; ++s) {
+        const PartRef button{QStringLiteral("button"), schema::partId(u"button", u"pushbutton"), s + 1, {}};
+        if (!look.classic() && look.renderer->hasPart(button)) {
+            frame(out, QLatin1String("button-") + QLatin1String(states[s]) + QLatin1Char('-'), look.renderer->stateImage(button),
+                  look.renderer->margins(button, u"sizingmargins"), 0, QMargins(3, 3, 3, 3));
+        } else {
+            QImage img(24, 23, QImage::Format_ARGB32_Premultiplied);
+            img.fill(pal.color(QPalette::Button));
+            QPainter p(&img);
+            classic::pushEdge(&p, img.rect(), pal, s == 2);
+            p.end();
+            frame(out, QLatin1String("button-") + QLatin1String(states[s]) + QLatin1Char('-'), img, QMargins(3, 3, 3, 3), 0,
+                  QMargins(3, 3, 3, 3));
+        }
+    }
+
+    // A text box: the style's Edit, or Classic's sunken edge; white inside.
+    {
+        QImage img(40, 21, QImage::Format_ARGB32_Premultiplied);
+        const PartRef edit{QStringLiteral("edit"), schema::partId(u"edit", u"edittext"), 1, {}};
+        if (!look.classic() && look.renderer->hasPart(edit)) {
+            img = look.renderer->background(edit, img.size());
+        } else {
+            img.fill(pal.color(QPalette::Base));
+            QPainter p(&img);
+            classic::sunkenEdge(&p, img.rect(), pal);
+        }
+        frame(out, QStringLiteral("edit-"), img, QMargins(2, 2, 2, 2), 0, QMargins(3, 3, 3, 3));
+    }
+
+    // The progress bar: the style's track and one chunk (its chunk and
+    // space sizes as hints), or Classic's sunken box and highlight blocks.
+    {
+        const int h = 18;
+        const PartRef bar{QStringLiteral("progress"), schema::partId(u"progress", u"bar"), 0, {}};
+        const PartRef chunk{QStringLiteral("progress"), schema::partId(u"progress", u"chunk"), 0, {}};
+        const PartRef base{QStringLiteral("progress"), 0, 0, {}};
+        if (!look.classic() && look.renderer->hasPart(bar) && look.renderer->hasPart(chunk)) {
+            const QMargins m = look.renderer->margins(bar, u"sizingmargins");
+            frame(out, QStringLiteral("progress-track-"), look.renderer->background(bar, QSize(100, h)), m, 0, QMargins(3, 3, 3, 3));
+            const int size = look.renderer->property(base, u"progresschunksize").value_or(QStringLiteral("6")).toInt();
+            const int space = look.renderer->property(base, u"progressspacesize").value_or(QStringLiteral("2")).toInt();
+            out.append({QStringLiteral("progress-chunk"), look.renderer->background(chunk, QSize(qMax(1, size), h - 6))});
+            out.append({QStringLiteral("hint-progress-space"), QImage(qMax(1, space), 1, QImage::Format_ARGB32_Premultiplied)});
+        } else {
+            QImage track(40, h, QImage::Format_ARGB32_Premultiplied);
+            track.fill(pal.color(QPalette::Button));
+            QPainter p(&track);
+            classic::frame(&p, track.rect(), pal.color(QPalette::Dark), pal.color(QPalette::Light));
+            p.end();
+            frame(out, QStringLiteral("progress-track-"), track, QMargins(1, 1, 1, 1), 0, QMargins(2, 2, 2, 2));
+            QImage block((h - 4) * 2 / 3, h - 4, QImage::Format_ARGB32_Premultiplied);
+            block.fill(look.system.colour(u"Hilight"));
+            out.append({QStringLiteral("progress-chunk"), block});
+            QImage gap(2, 1, QImage::Format_ARGB32_Premultiplied);
+            gap.fill(Qt::transparent);
+            out.append({QStringLiteral("hint-progress-space"), gap});
+        }
+    }
+
+    // XP's own: the severity icons (user32.dll's information, warning and
+    // error, 16px) and shell32.dll's file animations.
+    if (const auto user32 = media::systemFile(QStringLiteral("user32.dll")))
+        if (const auto pe = PeResources::parse(*user32))
+            for (const auto &[name, group] : {std::pair("icon-info", 104), std::pair("icon-warning", 101), std::pair("icon-error", 103)}) {
+                const auto images = iconGroup(*pe, QString::number(group));
+                if (images.contains(16))
+                    out.append({QLatin1String(name), images.value(16).image});
+            }
+    for (const auto &[name, id] : {std::pair("copy", 161), std::pair("move", 160), std::pair("delete", 162)}) {
+        const auto frames = media::animation(QStringLiteral("shell32.dll"), id);
+        if (!frames)
+            continue;
+        for (int i = 0; i < frames->size(); ++i)
+            out.append({QStringLiteral("anim-%1-%2").arg(QLatin1String(name)).arg(i), frames->at(i)});
+    }
+}
+
 QByteArray colors(const Look &look, const PanelArt &art)
 {
     auto rgb = [](const QColor &c) { return QStringLiteral("%1,%2,%3").arg(c.red()).arg(c.green()).arg(c.blue()); };
@@ -340,6 +455,7 @@ PanelArt panelArt(const Look &look)
         classicArt(look, art);
     else
         styleArt(look, art);
+    notifyArt(look, art);
     return art;
 }
 
@@ -354,6 +470,8 @@ QString writePanelTheme(const Look &look, const QString &directory, QString *err
     pkg.write(QStringLiteral("widgets/tasks.svg"), svg(art.tasks));
     if (!art.tray.isEmpty())
         pkg.write(QStringLiteral("widgets/xp-tray.svg"), svg(art.tray));
+    if (!art.notify.isEmpty())
+        pkg.write(QStringLiteral("widgets/xp-notify.svg"), svg(art.notify));
     pkg.write(QStringLiteral("colors"), colors(look, art));
     QJsonObject meta = pluginMetadata(id, look.name + QLatin1String(" (taskbar)"),
                                       QStringLiteral("The taskbar of the Windows XP look \"%1\", made by XPLasma").arg(look.name));
