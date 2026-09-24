@@ -232,7 +232,7 @@ void removePanelWidgets(const QString &plasmoids)
 bool installDesktopMenu(const QString &plasmoids, const QString &editor, QString *error)
 {
     return installWidgets(plasmoids,
-                          {{kDesktopId, QStringLiteral("desktopcontainment"), {QStringLiteral("FolderViewLayer.qml")},
+                          {{kDesktopId, QStringLiteral("desktopcontainment"), {QStringLiteral("FolderViewLayer.qml"), QStringLiteral("FolderView.qml")},
                             {{QStringLiteral("LAUNCH"), launchLiteral(editor)}}, {}}},
                           error);
 }

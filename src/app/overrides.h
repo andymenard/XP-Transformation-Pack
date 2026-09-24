@@ -16,7 +16,9 @@
 //     which blinks if it went unread -- and file transfers as XP's copy
 //     dialog.
 //   * The desktop (org.kde.desktopcontainment), whose right-click menu gets
-//     XP's Properties, as "XP Properties": Display Properties.
+//     XP's Properties, as "XP Properties": Display Properties; and where
+//     what's dragged from the Start menu lands as a shortcut (a link),
+//     without KIO's Move/Copy/Link menu.
 //   * KWin's Aurorae renderer (kwin/aurorae/aurorae.qml), for the caption
 //     text shadows XP styles give and its QML renderer leaves out, and XP's
 //     title bar for dialogs: Close alone, no icon, when a window can neither

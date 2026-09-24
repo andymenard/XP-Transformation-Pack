@@ -161,5 +161,15 @@
    "find": "    id: root\n",
    "replace": "    id: root\n\n    // XPLasma: the balloons' queue, for the system tray to draw.\n    readonly property var xpQueue: Globals.xpBalloons ? Globals.xpQueue : []\n    readonly property int xpCurrentId: Globals.xpCurrentId\n    function xpRegisterIcon(id, item) { Globals.xpRegisterIcon(id, item); }\n    function xpUnregisterIcon(id, item) { Globals.xpUnregisterIcon(id, item); }\n    function xpIconClicked(id) { Globals.xpRecall(id); }\n"
   }
+ ],
+ "desktopcontainment/FolderView.qml": [
+  {
+   "find": "    function drop(target, event, pos) {\n",
+   "replace": "{{start-menu-drop}}\n    function drop(target, event, pos) {\n"
+  },
+  {
+   "find": "            dir.drop(target, event, dropItemAt(dropPos), root.isContainment && !Plasmoid.immutable);",
+   "replace": "            dir.drop(target, xpShortcutDrop(event), dropItemAt(dropPos), root.isContainment && !Plasmoid.immutable);"
+  }
  ]
 }

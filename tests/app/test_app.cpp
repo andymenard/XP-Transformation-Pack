@@ -927,6 +927,10 @@ private Q_SLOTS:
         QVERIFY2(desktop.contains(R"(connectSource("systemd-run --user --collect --quiet -- '/opt/it'\\''s here/xplasma-edit' || '/opt/it'\\''s here/xplasma-edit'"))"),
                  desktop.mid(desktop.indexOf("connectSource"), 160).constData());
         QVERIFY(desktop.contains("Plasmoid.contextualActions.push(xpPropertiesAction)") && !desktop.contains("@LAUNCH@") && !desktop.contains("{{"));
+        QFile folderView(plasmoids + QLatin1String("/org.kde.desktopcontainment/contents/ui/FolderView.qml"));
+        QVERIFY(folderView.open(QIODevice::ReadOnly));
+        const QByteArray drops = folderView.readAll();
+        QVERIFY(drops.contains("dir.drop(target, xpShortcutDrop(event)") && drops.contains("function xpShortcutDrop(event)"));
         overrides::removeDesktopMenu(plasmoids);
         QVERIFY(!QFileInfo::exists(plasmoids + QLatin1String("/org.kde.desktopcontainment")));
         // Again (it's ours now), then gone.

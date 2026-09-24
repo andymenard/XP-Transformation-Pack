@@ -133,6 +133,7 @@ private Q_SLOTS:
         const QString plasmoids = m_scratch.filePath(QStringLiteral("plasmoids"));
         QString error;
         QVERIFY2(xpl::overrides::installPanelWidgets(plasmoids, &error), qPrintable(error));
+        QVERIFY2(xpl::overrides::installDesktopMenu(plasmoids, QStringLiteral("/bin/true"), &error), qPrintable(error));
         QQmlEngine engine;
         for (const char *file : {"org.kde.plasma.notifications/contents/ui/XpButton.qml",
                                  "org.kde.plasma.notifications/contents/ui/XpBalloon.qml",
@@ -141,7 +142,8 @@ private Q_SLOTS:
                                  "org.kde.plasma.notifications/contents/ui/global/Globals.qml",
                                  "org.kde.plasma.notifications/contents/ui/main.qml",
                                  "org.kde.plasma.systemtray/contents/ui/XpNotificationIcons.qml",
-                                 "org.kde.plasma.systemtray/contents/ui/main.qml"}) {
+                                 "org.kde.plasma.systemtray/contents/ui/main.qml",
+                                 "org.kde.desktopcontainment/contents/ui/FolderView.qml"}) {
             QQmlComponent component(&engine, QUrl::fromLocalFile(plasmoids + QLatin1Char('/') + QLatin1String(file)));
             QStringList wrong;
             for (const QQmlError &e : component.errors())
