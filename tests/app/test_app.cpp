@@ -15,6 +15,7 @@
 #include "app/inf.h"
 #include "app/panel.h"
 #include "app/pointers.h"
+#include "app/timezones.h"
 #include "app/startbutton.h"
 #include "app/startmenu.h"
 #include "app/startpanel.h"
@@ -40,7 +41,9 @@
 #include <QTcpSocket>
 #include <QTemporaryDir>
 #include <QUrl>
+#include <QProcess>
 #include <QTest>
+#include <QTimeZone>
 #include <QtEndian>
 
 #include <archive.h>
@@ -910,7 +913,16 @@ private Q_SLOTS:
             QSKIP("no Plasma here");
         const QString plasmoids = m_home.filePath(QStringLiteral("plasmoids"));
         QString error;
-        QVERIFY2(overrides::installPanelWidgets(plasmoids, &error), qPrintable(error));
+        QVERIFY2(overrides::installPanelWidgets(plasmoids, QStringLiteral("/opt/it's here/xplasma-edit"), &error), qPrintable(error));
+        // The clock: a double-click opens Date and Time Properties.
+        QFile clock(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/contents/ui/main.qml"));
+        QVERIFY(clock.open(QIODevice::ReadOnly));
+        const QByteArray clockText = clock.readAll();
+        const QByteArray run = "\x27/opt/it\x27\\\\\x27\x27s here/xplasma-edit\x27 \x27--date-time\x27";
+        const QByteArray launch = "connectSource(\"systemd-run --user --collect --quiet -- " + run + " || " + run + "\")";
+        QVERIFY2(clockText.contains(launch), clockText.mid(clockText.indexOf("connectSource"), 200).constData());
+        QFile clockMouse(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/contents/ui/DigitalClock.qml"));
+        QVERIFY(clockMouse.open(QIODevice::ReadOnly) && clockMouse.readAll().contains("onDoubleClicked: if (root.xpTrayAvailable) root.xpOpenDateTime()"));
         QFile patchedTray(plasmoids + QLatin1String("/org.kde.plasma.systemtray/contents/ui/main.qml"));
         QVERIFY(patchedTray.open(QIODevice::ReadOnly));
         const QByteArray text = patchedTray.readAll();
@@ -946,12 +958,12 @@ private Q_SLOTS:
         overrides::removeDesktopMenu(plasmoids);
         QVERIFY(!QFileInfo::exists(plasmoids + QLatin1String("/org.kde.desktopcontainment")));
         // Again (it's ours now), then gone.
-        QVERIFY2(overrides::installPanelWidgets(plasmoids, &error), qPrintable(error));
+        QVERIFY2(overrides::installPanelWidgets(plasmoids, QString(), &error), qPrintable(error));
         overrides::removePanelWidgets(plasmoids);
         QVERIFY(!QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.systemtray")));
         // Someone else's is left alone.
         writeFile(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/metadata.json"), "{}");
-        QVERIFY(!overrides::installPanelWidgets(plasmoids, &error));
+        QVERIFY(!overrides::installPanelWidgets(plasmoids, QString(), &error));
         QVERIFY(error.contains(QLatin1String("someone else")));
         QVERIFY(!overrides::patched(QStringLiteral("systemtray/main.qml"), QStringLiteral("not KDE's QML")));
     }
@@ -1173,6 +1185,88 @@ private Q_SLOTS:
     }
 
     // --- setup ----------------------------------------------------------------------
+
+    void xpTimeZones()
+    {
+        // XP's zones from its registry INF, in its order, each with its Linux
+        // zone and its colours on XP's world map.
+        if (m_realIso.isEmpty())
+            QSKIP("no XP ISO on this machine");
+        State state;
+        state.media = m_realIso;
+        QVERIFY(state.save());
+        QString error;
+        const auto zones = timezones::load(&error);
+        QVERIFY2(zones, qPrintable(error));
+        QCOMPARE(zones->size(), 75);
+        QCOMPARE(zones->first().display, QStringLiteral("(GMT-12:00) International Date Line West"));
+        const int central = timezones::find(*zones, "America/Chicago");
+        QVERIFY(central >= 0);
+        const timezones::Zone &z = zones->at(central);
+        QCOMPARE(z.display, QStringLiteral("(GMT-06:00) Central Time (US & Canada)"));
+        QCOMPARE(z.standard, QStringLiteral("Central Standard Time"));
+        QCOMPARE(z.daylight, QStringLiteral("Central Daylight Time"));
+        QCOMPARE(std::pair(z.mapSea, z.mapLand), std::pair(36, 37));
+        // (Another Linux name for a zone XP has.)
+        // Every zone stands for a Linux one (three by names Windows retired).
+        for (const timezones::Zone &each : *zones)
+            QVERIFY2(QTimeZone(each.iana).isValid(), qPrintable(each.key));
+        QCOMPARE(timezones::find(*zones, "US/Central"), central);
+        const auto map = timezones::map(&error);
+        QVERIFY2(map, qPrintable(error));
+        QCOMPARE(map->indices.size(), QSize(356, 184));
+        int highest = 0;
+        for (int y = 0; y < 184; ++y)
+            for (int x = 0; x < 356; ++x)
+                highest = qMax(highest, int(map->indices.constScanLine(y)[x]));
+        QCOMPARE(highest, 89);
+    }
+
+    void dateTimeProperties()
+    {
+        // xplasma-edit --date-time draws its tabs offscreen at a fixed moment
+        // in Central Time; the Time Zone tab's map is XP's, scrolled as XP
+        // scrolls it for Central (249px, measured on XP).
+        if (m_realIso.isEmpty())
+            QSKIP("no XP ISO on this machine");
+        State state;
+        state.media = m_realIso;
+        QVERIFY(state.save());
+        const QString editor = QCoreApplication::applicationDirPath() + QLatin1String("/../../src/app/xplasma-edit");
+        if (!QFileInfo(editor).isExecutable())
+            QSKIP("xplasma-edit isn't built here");
+        const QString out = m_home.filePath(QStringLiteral("datetime"));
+        QProcess run;
+        QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+        env.insert(QStringLiteral("QT_QPA_PLATFORM"), QStringLiteral("offscreen"));
+        run.setProcessEnvironment(env);
+        run.start(editor, {QStringLiteral("--date-time"), QStringLiteral("--screenshots"), out});
+        QVERIFY(run.waitForFinished(60000));
+        QCOMPARE(run.exitCode(), 0);
+        for (const char *tab : {"datetime", "timezone", "internettime"})
+            QVERIFY2(QFileInfo::exists(out + QLatin1Char('/') + QLatin1String(tab) + QLatin1String(".png")), tab);
+        const QImage zone(out + QLatin1String("/timezone.png"));
+        // The map: its top-left pixel is the first navy-or-green one.
+        QPoint origin(-1, -1);
+        for (int y = 0; y < zone.height() && origin.x() < 0; ++y)
+            for (int x = 0; x < zone.width(); ++x)
+                if (const QRgb c = zone.pixel(x, y) & 0xffffff; c == 0x00007f || c == 0x007f00) {
+                    origin = QPoint(x, y);
+                    break;
+                }
+        QVERIFY(origin.x() >= 0);
+        QString error;
+        const auto map = timezones::map(&error);
+        QVERIFY2(map, qPrintable(error));
+        auto isSea = [](int i) { return (i < 48 && i % 2 == 0) || i == 78 || i == 88; };
+        int wrong = 0;
+        for (int y = 0; y < map->indices.height(); ++y)
+            for (int x = 0; x < map->indices.width(); ++x) {
+                const bool sea = isSea(map->indices.constScanLine(y)[(x + 249) % map->indices.width()]);
+                wrong += (zone.pixel(origin.x() + x, origin.y() + y) & 0xffffff) != (sea ? 0x00007fu : 0x007f00u);
+            }
+        QCOMPARE(wrong, 0);
+    }
 
     void importMedia()
     {

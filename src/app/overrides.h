@@ -5,7 +5,8 @@
 //
 //   * The notification area and the clock (org.kde.plasma.systemtray,
 //     org.kde.plasma.digitalclock) over the panel theme's xp-tray art, with
-//     XP's show-hidden-icons button, 16px icons, and the clock at 96 dpi.
+//     XP's show-hidden-icons button, 16px icons, and the clock at 96 dpi,
+//     which opens Date and Time Properties on a double-click.
 //   * The task manager (org.kde.plasma.taskmanager), with XP's task button
 //     layout when the panel theme marks its buttons as XP's TaskBand
 //     (hint-xplasma-taskband): one every 160px at most, 2px apart, a 16px
@@ -33,7 +34,9 @@
 
 namespace xpl::overrides {
 
-bool installPanelWidgets(const QString &plasmoids, QString *error = nullptr);
+// `editor`: the xplasma-edit the clock starts Date and Time Properties with
+// (empty: whichever is on the PATH).
+bool installPanelWidgets(const QString &plasmoids, const QString &editor = QString(), QString *error = nullptr);
 void removePanelWidgets(const QString &plasmoids);
 
 // The desktop's right-click menu (org.kde.desktopcontainment, which the

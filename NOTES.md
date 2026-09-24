@@ -5,6 +5,15 @@ Each says where it came from, so it can be picked up without re-deriving it.
 
 ## Open
 
+- **Date and Time Properties' zones are SP3's original 75.** A patched XP
+  has more (Microsoft's later time zone updates: Caracas at -4:30,
+  Asuncion...); the list comes from the media's HIVESFT.INF, and each entry
+  stands for the Linux zone Qt maps it to, whose rules are today's anyway.
+- **Internet Time shows the server, doesn't set it.** Which server the
+  system's time service uses is its own configuration (timesyncd.conf,
+  chrony.conf), root's to change; the box is disabled. Update Now restarts
+  synchronization; the last sync's date isn't reported by timedated.
+
 - **Royale's clock is white on its light tray** (2026-09-23). Plasma draws
   the clock, like the task buttons, in the panel theme's one text colour
   (the taskbar's: white); the style's clock text is black (Clock TEXTCOLOR,

@@ -132,7 +132,7 @@ private Q_SLOTS:
             QSKIP("no Plasma here");
         const QString plasmoids = m_scratch.filePath(QStringLiteral("plasmoids"));
         QString error;
-        QVERIFY2(xpl::overrides::installPanelWidgets(plasmoids, &error), qPrintable(error));
+        QVERIFY2(xpl::overrides::installPanelWidgets(plasmoids, QStringLiteral("/bin/true"), &error), qPrintable(error));
         QVERIFY2(xpl::overrides::installDesktopMenu(plasmoids, QStringLiteral("/bin/true"), &error), qPrintable(error));
         QQmlEngine engine;
         for (const char *file : {"org.kde.plasma.notifications/contents/ui/XpButton.qml",

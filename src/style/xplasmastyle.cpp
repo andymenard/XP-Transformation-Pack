@@ -1375,10 +1375,16 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
             if (const auto *combo = qstyleoption_cast<const QStyleOptionComboBox *>(option)) {
                 if (!combo->editable && hasPart({QStringLiteral("combobox"), 1, 1, {}})) {
                     // QCommonStyle insets the label 1px into the field; XP
-                    // draws it at the field's edge.
+                    // draws it at the field's edge, and clips it at the
+                    // field's other edge -- 2px further than QCommonStyle's
+                    // clip once shifted (the 'r' of "September" in Date and
+                    // Time Properties' month box): the label is laid out
+                    // 2px wider (only the label is drawn here).
+                    QStyleOptionComboBox copy(*combo);
+                    copy.rect.adjust(0, 0, 2, 0);
                     painter->save();
                     painter->translate(-1, 0);
-                    QProxyStyle::drawControl(element, option, painter, widget);
+                    QProxyStyle::drawControl(element, &copy, painter, widget);
                     painter->restore();
                     return;
                 }
@@ -3223,8 +3229,10 @@ bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption
         if (const auto *combo = qstyleoption_cast<const QStyleOptionComboBox *>(option); combo && !combo->editable) {
             // QCommonStyle insets the label 1px into the field; XP draws it
             // at the field's edge -- and disabled, plain GrayText, unetched.
+            // (And clips it at the field's edge: see the visual style's.)
             QStyleOptionComboBox copy(*combo);
             copy.palette.setColor(QPalette::Disabled, QPalette::Light, copy.palette.color(QPalette::Disabled, QPalette::Button));
+            copy.rect.adjust(0, 0, 2, 0);
             painter->save();
             painter->translate(-1, 0);
             QProxyStyle::drawControl(element, &copy, painter, widget);

@@ -205,20 +205,31 @@ void removeWidgets(const QString &plasmoids, const QStringList &ids)
 
 // A shell command as a QML string literal: `editor` started as its own
 // transient systemd unit, or (without systemd) directly.
-QString launchLiteral(const QString &editor)
+QString launchLiteral(const QString &editor, const QStringList &arguments = {})
 {
-    QString quoted = editor;
-    quoted.replace(QLatin1Char('\''), QLatin1String("'\\''"));
-    quoted = QLatin1Char('\'') + quoted + QLatin1Char('\'');
-    const QString command = QStringLiteral("systemd-run --user --collect --quiet -- %1 || %1").arg(quoted);
+    auto quote = [](QString word) {
+        word.replace(QLatin1Char('\''), QLatin1String("'\\''"));
+        return QLatin1Char('\'') + word + QLatin1Char('\'');
+    };
+    QStringList words{quote(editor)};
+    for (const QString &a : arguments)
+        words << quote(a);
+    const QString run = words.join(QLatin1Char(' '));
+    const QString command = QStringLiteral("systemd-run --user --collect --quiet -- %1 || %1").arg(run);
     return QString::fromUtf8(QJsonDocument(QJsonArray{command}).toJson(QJsonDocument::Compact)).mid(1).chopped(1);
 }
 
 } // namespace
 
-bool installPanelWidgets(const QString &plasmoids, QString *error)
+bool installPanelWidgets(const QString &plasmoids, const QString &editor, QString *error)
 {
-    return installWidgets(plasmoids, kPanelWidgets, error);
+    // The clock opens Date and Time Properties: this XPLasma's editor.
+    QList<Widget> widgets = kPanelWidgets;
+    for (Widget &w : widgets)
+        if (w.key == QLatin1String("digitalclock"))
+            w.values.insert(QStringLiteral("LAUNCH_DATETIME"),
+                            launchLiteral(editor.isEmpty() ? QStringLiteral("xplasma-edit") : editor, {QStringLiteral("--date-time")}));
+    return installWidgets(plasmoids, widgets, error);
 }
 
 void removePanelWidgets(const QString &plasmoids)

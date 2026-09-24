@@ -58,7 +58,7 @@
   },
   {
    "find": "    id: root\n",
-   "replace": "    id: root\n{{backdrop-clock}}"
+   "replace": "    id: root\n{{backdrop-clock}}{{clock-datetime}}"
   }
  ],
  "systemtray/items/AbstractItem.qml": [
@@ -79,6 +79,10 @@
   {
    "find": "const pixelsPerInch = Screen.pixelDensity * 25.4",
    "replace": "const pixelsPerInch = root.xpTrayAvailable ? 96 : Screen.pixelDensity * 25.4"
+  },
+  {
+   "find": "    onClicked: root.expanded = !wasExpanded\n",
+   "replace": "    // XPLasma: XP's clock does nothing on a click; a double-click opens\n    // Date and Time Properties.\n    onClicked: if (!root.xpTrayAvailable) root.expanded = !wasExpanded\n    onDoubleClicked: if (root.xpTrayAvailable) root.xpOpenDateTime()\n"
   }
  ],
  "taskmanager/main.qml": [

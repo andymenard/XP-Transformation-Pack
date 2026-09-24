@@ -700,6 +700,14 @@ oracle tooling (`refharness/`, `tests/oracle/`) stays Python, dev-only
   pair; `SystemPalette` doesn't), not Kirigami's, which are the panel's.
 - **`xplasma`** (CLI) and **`xplasma-edit`** (Display Properties, Qt Widgets
   in the system's own widget style; only the samples are drawn by XPLasma).
+- **Date and Time Properties** (`xplasma-edit --date-time`, the clock's
+  double-click): laid out from timedate.cpl's own templates in dialog units,
+  its zones from HIVESFT.INF (75, each mapped to a Linux zone by Qt's
+  Windows-to-IANA table), its world map timedate.cpl's bitmap 50 scrolled as
+  XP scrolls it (`338 + offset * 356 / 1440`, measured on XP), the calendar
+  and clock drawn as XP draws them. It sets the clock, zone and network time
+  through systemd's timedated (the desktop's polkit agent asks for a
+  password).
 - **Build and install:** `build.sh` installs into `build/<mode>/`
   (`bin/`, `lib/xplasma/qt{6,5}/styles/`, `share/applications/`);
   `install.sh` copies that into a prefix (default `~/.local`). No AppImage or

@@ -73,6 +73,7 @@ xplasma apply ~/.local/share/xplasma/assets/themes/Luna/Luna.theme
 xplasma apply 'classic:Windows Standard'   # LOOK: a .msstyles[:VARIANT_INI], a .theme, or classic:SCHEME
 xplasma reset                          # back to Plasma's own look
 xplasma-edit                           # Display Properties (also in the app menu)
+xplasma-edit --date-time               # Date and Time Properties (double-click the clock)
 ```
 
 XPLasma adopts what xp2plasma already imported on a machine (the asset

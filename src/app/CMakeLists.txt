@@ -27,6 +27,7 @@ add_library(xplasma-app STATIC
   xptext.cpp
   inf.cpp
   pointers.cpp
+  timezones.cpp
   qttarget.cpp
   overrides.cpp
   apply.cpp
@@ -67,6 +68,7 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 add_executable(xplasma-edit
   editor/main.cpp
   editor/displayproperties.cpp
+  editor/datetime.cpp
   editor/preview.cpp
   editor/advanced.cpp
   editor/setupdialog.cpp

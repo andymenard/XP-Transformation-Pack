@@ -353,7 +353,8 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
         if (!install(panel, panelDest, error) || !installStartPlasmoid(share(QStringLiteral("plasma/plasmoids")), error))
             return false;
         QString why;
-        if (!overrides::installPanelWidgets(share(QStringLiteral("plasma/plasmoids")), &why))
+        const QString editor = QCoreApplication::applicationDirPath() + QLatin1String("/xplasma-edit");
+        if (!overrides::installPanelWidgets(share(QStringLiteral("plasma/plasmoids")), QFileInfo(editor).isExecutable() ? editor : QString(), &why))
             report(o, QStringLiteral("  the tray and clock stay KDE's: %1").arg(why));
     }
     if (!iconTheme.isEmpty() && !install(iconTheme, iconsDest, error))
