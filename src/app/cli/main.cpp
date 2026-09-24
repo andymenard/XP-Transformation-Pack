@@ -8,6 +8,9 @@
 //   xplasma reset              Plasma's default look back, XPLasma's gone
 //   xplasma setup [--media PATH | --download-media] [--no-packs] [--all-packs]
 //                              XP's media and the official theme packs
+//   xplasma pointers [SCHEME [--no-shadow] [--out DIR]]
+//                              XP's pointer schemes; one applied (or, --out,
+//                              written as a cursor theme there)
 //   xplasma build LOOK [--out DIR]
 //                              generate the Plasma packages for a look without
 //                              applying them (DIR: ~/.cache/xplasma/build)
@@ -18,6 +21,7 @@
 #include "app/apply.h"
 #include "app/colors.h"
 #include "app/decoration.h"
+#include "app/pointers.h"
 #include "app/icons.h"
 #include "app/media.h"
 #include "app/panel.h"
@@ -195,6 +199,44 @@ int widgets(const QString &spec)
     return 0;
 }
 
+int pointerSchemes(const QString &name, bool shadow, const QString &out)
+{
+    QString error;
+    const QList<pointers::Scheme> all = pointers::schemes(&error);
+    if (all.isEmpty()) {
+        err() << "xplasma: no XP pointer schemes (" << (error.isEmpty() ? QStringLiteral("run setup with XP's media") : error) << ")" << Qt::endl;
+        return 1;
+    }
+    if (name.isEmpty()) {
+        for (const pointers::Scheme &s : all)
+            say(s.name);
+        return 0;
+    }
+    const auto it = std::find_if(all.begin(), all.end(), [&](const pointers::Scheme &s) { return s.name.compare(name, Qt::CaseInsensitive) == 0; });
+    if (it == all.end()) {
+        err() << "xplasma: no pointer scheme " << name << Qt::endl;
+        return 1;
+    }
+    if (!out.isEmpty()) {
+        int size = 0;
+        if (!pointers::writeTheme(*it, shadow, out, &size, &error)) {
+            err() << "xplasma: " << error << Qt::endl;
+            return 1;
+        }
+        say(QStringLiteral("%1: %2 (%3 px)").arg(it->name, out).arg(size));
+        return 0;
+    }
+    LiveSession session;
+    State state = State::load();
+    if (!pointers::apply(session, state, *it, shadow, &error)) {
+        err() << "xplasma: " << error << Qt::endl;
+        return 1;
+    }
+    state.save();
+    say(QStringLiteral("Pointers: %1%2").arg(it->name, shadow ? QStringLiteral(", with shadows") : QString()));
+    return 0;
+}
+
 int reset()
 {
     LiveSession session;
@@ -312,9 +354,9 @@ int main(int argc, char **argv)
     parser.setApplicationDescription(QStringLiteral("Windows XP visual styles for KDE Plasma."));
     parser.addHelpOption();
     parser.addVersionOption();
-    parser.addPositionalArgument(QStringLiteral("command"), QStringLiteral("list | apply LOOK | widgets LOOK | reset | setup | build LOOK"));
+    parser.addPositionalArgument(QStringLiteral("command"), QStringLiteral("list | apply LOOK | widgets LOOK | pointers [SCHEME] | reset | setup | build LOOK"));
     parser.addOption(QCommandLineOption(QStringLiteral("media"), QStringLiteral("XP's install media (an ISO, or a folder with I386)."), QStringLiteral("PATH")));
-    for (const char *name : {"no-widgets", "no-taskbar", "no-icons", "no-wallpaper", "download-media", "no-packs", "all-packs"})
+    for (const char *name : {"no-widgets", "no-taskbar", "no-icons", "no-wallpaper", "download-media", "no-packs", "all-packs", "no-shadow"})
         parser.addOption(QCommandLineOption(QString::fromLatin1(name)));
     const QCommandLineOption jsonOption(QStringLiteral("json"), QStringLiteral("Machine-readable output."));
     parser.addOption(jsonOption);
@@ -334,6 +376,8 @@ int main(int argc, char **argv)
         return runSetup(parser);
     if (command == QLatin1String("reset") && args.size() == 1)
         return reset();
+    if (command == QLatin1String("pointers") && args.size() <= 2)
+        return pointerSchemes(args.value(1), !parser.isSet(QStringLiteral("no-shadow")), parser.value(outOption));
     if (command == QLatin1String("build") && args.size() == 2)
         return build(args.at(1), parser.value(outOption));
     if (command.isEmpty())

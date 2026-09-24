@@ -11,10 +11,13 @@
 #include "app/apply.h"
 #include "app/editor/preview.h"
 #include "app/library.h"
+#include "app/pointers.h"
 
 #include <QDialog>
 
+class QCheckBox;
 class QComboBox;
+class QTimer;
 class QLabel;
 class QListWidget;
 class QPushButton;
@@ -41,6 +44,7 @@ private:
     QWidget *themesTab();
     QWidget *desktopTab();
     QWidget *appearanceTab();
+    QWidget *pointersTab();
 
     void loadLibrary();
     void fillThemes();
@@ -63,6 +67,13 @@ private:
     void renderThemes();
     void renderDesktop();
     void renderAppearance();
+    // Pointers: the scheme's roles listed, the chosen one previewed.
+    void fillPointerSchemes();
+    void showPointers();
+    void previewPointer();
+    void pointersChanged();
+    bool pointersDiffer() const;
+    QList<CursorFrame> pointerFrames(int role);
 
     Library m_library;
     QList<StyleInfo> m_styles;        // readable ones, in the order shown
@@ -74,6 +85,14 @@ private:
     QString m_appliedLook;            // lookKey(); empty: unknown
     Wallpaper m_appliedDesktop;
     QString m_appliedThemeFile;
+    // Pointers: the scheme as edited (nullopt: "(None)", Plasma's own),
+    // and what's applied.
+    QList<pointers::Scheme> m_pointerSchemes;
+    std::optional<pointers::Scheme> m_pointers;
+    bool m_pointerShadow = true;
+    std::optional<std::pair<pointers::Scheme, bool>> m_appliedPointers;
+    QHash<QString, QList<CursorFrame>> m_cursorCache;   // file ("" + role: the default) -> frames
+    int m_previewFrame = 0;
 
     QTabWidget *m_tabs;
     QPushButton *m_apply;
@@ -90,6 +109,13 @@ private:
     QLabel *m_appearanceSample;
     QComboBox *m_style, *m_colour, *m_size;
     QPushButton *m_advanced;
+    // Pointers
+    QComboBox *m_pointerScheme;
+    QListWidget *m_pointerList;
+    QLabel *m_pointerPreview;
+    QCheckBox *m_pointerShadowBox;
+    QPushButton *m_pointerDefault, *m_pointerBrowse;
+    QTimer *m_pointerTimer;
 };
 
 } // namespace xpl::editor

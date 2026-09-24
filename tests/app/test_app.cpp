@@ -12,7 +12,9 @@
 #include "app/look.h"
 #include "app/icons.h"
 #include "app/media.h"
+#include "app/inf.h"
 #include "app/panel.h"
+#include "app/pointers.h"
 #include "app/startbutton.h"
 #include "app/startmenu.h"
 #include "app/startpanel.h"
@@ -1151,6 +1153,65 @@ private Q_SLOTS:
         QFile f(preset);
         QVERIFY(f.open(QIODevice::ReadOnly));
         QVERIFY(f.readAll().contains((dir + QLatin1String("/Stonehenge.jpg")).toUtf8()));
+    }
+
+    void infFields()
+    {
+        // XP's INF quoting: commas split fields outside quotes, "" is a quote
+        // inside them, ; ends the line, %KEY% from [Strings].
+        const Inf inf = Inf::parse("[Strings]\r\nName = \"Hands 1\"\r\nCursors=cursors\r\n");
+        const QStringList f = inf.fields(QStringLiteral("HKLM,%NAME%,,\"\"\"%10%\\%Cursors%\\a.cur,,b.ani\"\"\" ; comment"));
+        QCOMPARE(f.size(), 4);
+        QCOMPARE(f.at(1), QStringLiteral("Hands 1"));
+        QCOMPARE(f.at(3), QStringLiteral("\"%10%\\cursors\\a.cur,,b.ani\""));
+    }
+
+    void pointerSchemesFromTheMedia()
+    {
+        // XP's 19 schemes, each naming a file per role (or Windows Default's),
+        // and a theme written from one with every name apps ask for.
+        if (m_realIso.isEmpty())
+            QSKIP("no XP ISO on this machine");
+        State s = State::load();
+        s.media = m_realIso;
+        QVERIFY(s.save());
+        const QList<pointers::Scheme> all = pointers::schemes();
+        QCOMPARE(all.size(), 19);
+        const auto dino = std::find_if(all.begin(), all.end(), [](const pointers::Scheme &x) { return x.name == QLatin1String("Dinosaur"); });
+        QVERIFY(dino != all.end());
+        QCOMPARE(dino->files.value(pointers::AppStarting), QStringLiteral("dinosaur.ani"));
+        QVERIFY(dino->files.value(pointers::Hand).isEmpty());   // (Windows Default's)
+        QVERIFY(pointers::frames(*dino, pointers::AppStarting).size() > 1);   // animated
+        const QList<CursorFrame> arrow = pointers::frames(pointers::defaultScheme(), pointers::Arrow);
+        QCOMPARE(arrow.size(), 1);
+        QCOMPARE(arrow.first().image.size(), QSize(32, 32));
+        const QString dir = m_home.filePath(QStringLiteral("pointers"));
+        int size = 0;
+        QString error;
+        QVERIFY2(pointers::writeTheme(*dino, true, dir, &size, &error), qPrintable(error));
+        QCOMPARE(size, 32);
+        for (int role = 0; role < pointers::RoleCount; ++role)
+            for (const QString &name : pointers::xcursorNames(role))
+                QVERIFY2(QFileInfo(dir + QLatin1String("/cursors/") + name).isFile(), qPrintable(name));
+        QFile index(dir + QLatin1String("/index.theme"));
+        QVERIFY(index.open(QIODevice::ReadOnly) && index.readAll().contains("Name=Dinosaur (XP)"));
+
+        // Applied: a theme per scheme, at its size, the user's own kept for reset.
+        RecordingSession session;
+        session.config.insert(QStringLiteral("kcminputrc|Mouse|cursorTheme"), QStringLiteral("breeze_cursors"));
+        State state;
+        QVERIFY2(pointers::apply(session, state, *dino, false, &error), qPrintable(error));
+        const QStringList run = session.runs.last();
+        QCOMPARE(run.mid(0, 3), (QStringList{QStringLiteral("plasma-apply-cursortheme"), QStringLiteral("--size"), QStringLiteral("32")}));
+        QVERIFY(run.last().startsWith(QLatin1String("xplasma-pointers-")));
+        QCOMPARE(session.config.value(QStringLiteral("kcminputrc|Mouse|cursorSize")), QStringLiteral("32"));
+        QVERIFY(QFileInfo(paths::localShare() + QLatin1String("/icons/") + run.last() + QLatin1String("/cursors/default")).exists());
+        QCOMPARE(pointers::applied(state)->first.name, QStringLiteral("Dinosaur"));
+        pointers::revert(session, state);
+        QCOMPARE(session.runs.last().last(), QStringLiteral("breeze_cursors"));
+        QVERIFY(!session.config.contains(QStringLiteral("kcminputrc|Mouse|cursorSize")));   // (it had none)
+        QVERIFY(!pointers::applied(state));
+        QVERIFY(QDir(paths::localShare() + QLatin1String("/icons")).entryList({QStringLiteral("xplasma-pointers-*")}, QDir::Dirs).isEmpty());
     }
 
     void wallpaperNamesFromInfs()

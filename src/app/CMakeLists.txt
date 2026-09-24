@@ -25,6 +25,8 @@ add_library(xplasma-app STATIC
   startmenu.cpp
   session.cpp
   xptext.cpp
+  inf.cpp
+  pointers.cpp
   qttarget.cpp
   overrides.cpp
   apply.cpp

@@ -47,6 +47,7 @@ add_library(xplasma-core STATIC
   src/core/themefile.cpp
   src/core/classic.cpp
   src/core/icons.cpp
+  src/core/cursors.cpp
 )
 target_include_directories(xplasma-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(xplasma-core PUBLIC ${QT}::Gui)

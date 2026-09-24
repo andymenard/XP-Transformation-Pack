@@ -19,6 +19,11 @@ quint32 u32(const QByteArray &b, int at)
 
 QImage decodeIconImage(const QByteArray &data)
 {
+    return decodeMaskedImage(data, false);
+}
+
+QImage decodeMaskedImage(const QByteArray &data, bool cursor)
+{
     if (data.startsWith("\x89PNG"))
         return QImage::fromData(data, "PNG").convertToFormat(QImage::Format_ARGB32);
     if (data.size() < 40)
@@ -63,13 +68,20 @@ QImage decodeIconImage(const QByteArray &data)
             out[x] = c;
         }
     }
-    // Without an alpha channel, the AND mask's set bits are transparent.
+    // Without an alpha channel, the AND mask's set bits are transparent --
+    // unless the colour isn't black: that pixel inverts the screen, which a
+    // cursor (only) does, and which comes out black here (its shape).
     if (!alpha)
         for (int y = 0; y < height; ++y) {
             const uchar *row = p + mask + maskStride * (height - 1 - y);
             auto *out = reinterpret_cast<QRgb *>(img.scanLine(y));
-            for (int x = 0; x < width; ++x)
-                out[x] = (row[x / 8] >> (7 - x % 8)) & 1 ? 0u : (out[x] | 0xff000000u);
+            for (int x = 0; x < width; ++x) {
+                const bool masked = (row[x / 8] >> (7 - x % 8)) & 1;
+                if (!masked)
+                    out[x] |= 0xff000000u;
+                else
+                    out[x] = cursor && (out[x] & 0xffffffu) ? 0xff000000u : 0u;
+            }
         }
     return img;
 }

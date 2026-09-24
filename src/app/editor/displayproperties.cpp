@@ -9,12 +9,14 @@
 #include "core/themefile.h"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QGridLayout>
+#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QInputDialog>
 #include <QKeyEvent>
@@ -112,7 +114,10 @@ DisplayProperties::DisplayProperties(QWidget *parent)
     m_tabs->addTab(themesTab(), QStringLiteral("Themes"));
     m_tabs->addTab(desktopTab(), QStringLiteral("Desktop"));
     m_tabs->addTab(appearanceTab(), QStringLiteral("Appearance"));
+    m_tabs->addTab(pointersTab(), QStringLiteral("Pointers"));
     root->addWidget(m_tabs, 1);
+    // A property sheet: its size is its contents', not the user's to change.
+    root->setSizeConstraint(QLayout::SetFixedSize);
 
     auto *row = new QHBoxLayout;
     row->addStretch(1);
@@ -188,6 +193,15 @@ DisplayProperties::DisplayProperties(QWidget *parent)
     m_appliedLook = applied == lookKey(look()) ? applied : QString();
     m_appliedDesktop = wallpaper();
     m_appliedThemeFile = state.themeFile;
+    // Pointers: what XPLasma applied, or "(None)" (Plasma's own).
+    m_pointerSchemes = pointers::schemes();
+    m_appliedPointers = pointers::applied(state);
+    if (m_appliedPointers) {
+        m_pointers = m_appliedPointers->first;
+        m_pointerShadow = m_appliedPointers->second;
+    }
+    fillPointerSchemes();
+    showPointers();
     updateApply();
     if (!m_previewer.styleAvailable())
         m_appearanceSample->setToolTip(QStringLiteral("XPLasma's style plugin isn't installed: the samples can't be drawn"));
@@ -284,14 +298,10 @@ QWidget *DisplayProperties::appearanceTab()
     m_colour = new QComboBox;
     m_size = new QComboBox;
     m_advanced = new QPushButton(QStringLiteral("Advanced"));
-    auto *effects = new QPushButton(QStringLiteral("Effects..."));
-    effects->setEnabled(false);
-    effects->setToolTip(QStringLiteral("Visual effects aren't part of XPLasma."));
     grid->addWidget(new QLabel(QStringLiteral("Windows and buttons:")), 0, 0);
     grid->addWidget(m_style, 1, 0);
     grid->addWidget(new QLabel(QStringLiteral("Color scheme:")), 2, 0);
     grid->addWidget(m_colour, 3, 0);
-    grid->addWidget(effects, 3, 2);
     grid->addWidget(new QLabel(QStringLiteral("Font size:")), 4, 0);
     grid->addWidget(m_size, 5, 0);
     grid->addWidget(m_advanced, 5, 2);
@@ -311,6 +321,171 @@ QWidget *DisplayProperties::appearanceTab()
     connect(m_size, &QComboBox::activated, this, &DisplayProperties::appearanceChanged);
     connect(m_advanced, &QPushButton::clicked, this, &DisplayProperties::openAdvanced);
     return page;
+}
+
+QWidget *DisplayProperties::pointersTab()
+{
+    // XP's Mouse Properties > Pointers, the parts that mean something here.
+    auto *page = new QWidget;
+    auto *layout = new QVBoxLayout(page);
+    auto *top = new QHBoxLayout;
+    auto *schemeBox = new QGroupBox(QStringLiteral("Scheme"));
+    auto *schemeRow = new QVBoxLayout(schemeBox);
+    m_pointerScheme = new QComboBox;
+    schemeRow->addWidget(m_pointerScheme);
+    top->addWidget(schemeBox, 1);
+    m_pointerPreview = new QLabel;
+    m_pointerPreview->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+    m_pointerPreview->setFixedSize(56, 56);
+    m_pointerPreview->setAlignment(Qt::AlignCenter);
+    m_pointerPreview->setAutoFillBackground(true);
+    m_pointerPreview->setBackgroundRole(QPalette::Base);
+    top->addWidget(m_pointerPreview, 0, Qt::AlignBottom);
+    layout->addLayout(top);
+    layout->addWidget(new QLabel(QStringLiteral("Customize:")));
+    m_pointerList = new QListWidget;
+    m_pointerList->setIconSize(QSize(32, 32));
+    layout->addWidget(m_pointerList, 1);
+    auto *row = new QHBoxLayout;
+    m_pointerShadowBox = new QCheckBox(QStringLiteral("Enable pointer shadow"));
+    m_pointerDefault = new QPushButton(QStringLiteral("Use Default"));
+    m_pointerBrowse = new QPushButton(QStringLiteral("Browse..."));
+    row->addWidget(m_pointerShadowBox);
+    row->addStretch(1);
+    row->addWidget(m_pointerDefault);
+    row->addWidget(m_pointerBrowse);
+    layout->addLayout(row);
+    m_pointerTimer = new QTimer(this);
+    m_pointerTimer->setSingleShot(true);
+    connect(m_pointerTimer, &QTimer::timeout, this, [this] {
+        ++m_previewFrame;
+        previewPointer();
+    });
+    connect(m_pointerScheme, &QComboBox::activated, this, [this](int index) {
+        const QString name = m_pointerScheme->itemData(index).toString();
+        m_pointers.reset();
+        for (const pointers::Scheme &s : std::as_const(m_pointerSchemes))
+            if (s.name == name)
+                m_pointers = s;
+        showPointers();
+        pointersChanged();
+    });
+    connect(m_pointerList, &QListWidget::currentRowChanged, this, [this] {
+        m_previewFrame = 0;
+        previewPointer();
+    });
+    connect(m_pointerShadowBox, &QCheckBox::toggled, this, [this](bool on) {
+        m_pointerShadow = on;
+        showPointers();
+        pointersChanged();
+    });
+    connect(m_pointerDefault, &QPushButton::clicked, this, [this] {
+        const int role = m_pointerList->currentRow();
+        if (!m_pointers || role < 0)
+            return;
+        m_pointers->files[role].clear();
+        showPointers();
+        pointersChanged();
+    });
+    connect(m_pointerBrowse, &QPushButton::clicked, this, [this] {
+        const int role = m_pointerList->currentRow();
+        if (!m_pointers || role < 0)
+            return;
+        const QString file = QFileDialog::getOpenFileName(this, QStringLiteral("Browse"), paths::home(),
+                                                          QStringLiteral("Cursors (*.cur *.ani)"));
+        if (file.isEmpty())
+            return;
+        m_pointers->files[role] = file;
+        showPointers();
+        pointersChanged();
+    });
+    return page;
+}
+
+void DisplayProperties::fillPointerSchemes()
+{
+    m_pointerScheme->clear();
+    m_pointerScheme->addItem(QStringLiteral("(None)"), QString());
+    for (const pointers::Scheme &s : std::as_const(m_pointerSchemes))
+        m_pointerScheme->addItem(s.name, s.name);
+    m_pointerScheme->setCurrentIndex(qMax(0, m_pointerScheme->findData(m_pointers ? m_pointers->name : QString())));
+    m_pointerScheme->setEnabled(!m_pointerSchemes.isEmpty());
+    if (m_pointerSchemes.isEmpty())
+        m_pointerScheme->setToolTip(QStringLiteral("XP's pointers come from its install media: set it up under Themes > More themes."));
+}
+
+QList<CursorFrame> DisplayProperties::pointerFrames(int role)
+{
+    const pointers::Scheme scheme = m_pointers.value_or(pointers::defaultScheme());
+    const QString file = scheme.files.value(role);
+    const QString key = (file.isEmpty() ? QStringLiteral("default:%1").arg(role) : file) + (m_pointerShadow ? QStringLiteral("+shadow") : QString());
+    auto it = m_cursorCache.find(key);
+    if (it == m_cursorCache.end()) {
+        QList<CursorFrame> frames = pointers::frames(scheme, role);
+        if (m_pointerShadow)
+            frames = pointers::withShadow(frames);
+        it = m_cursorCache.insert(key, frames);
+    }
+    return *it;
+}
+
+void DisplayProperties::showPointers()
+{
+    // "(None)" shows Windows Default's, unchosen: Plasma's own pointers stay.
+    const int current = qMax(0, m_pointerList->currentRow());
+    m_pointerList->clear();
+    m_pointerShadowBox->setChecked(m_pointerShadow);
+    if (m_pointerSchemes.isEmpty()) {
+        m_pointerList->setEnabled(false);
+        m_pointerShadowBox->setEnabled(false);
+        m_pointerDefault->setEnabled(false);
+        m_pointerBrowse->setEnabled(false);
+        return;
+    }
+    for (int role = 0; role < pointers::RoleCount; ++role) {
+        const QList<CursorFrame> frames = pointerFrames(role);
+        auto *item = new QListWidgetItem(pointers::roleName(role));
+        if (!frames.isEmpty())
+            item->setIcon(QIcon(QPixmap::fromImage(frames.first().image)));
+        m_pointerList->addItem(item);
+    }
+    m_pointerList->setEnabled(m_pointers.has_value());
+    m_pointerShadowBox->setEnabled(m_pointers.has_value());
+    m_pointerDefault->setEnabled(m_pointers.has_value());
+    m_pointerBrowse->setEnabled(m_pointers.has_value());
+    m_pointerList->setCurrentRow(current);
+    m_previewFrame = 0;
+    previewPointer();
+}
+
+void DisplayProperties::previewPointer()
+{
+    // The chosen pointer, animated as it would be.
+    m_pointerTimer->stop();
+    const int role = m_pointerList->currentRow();
+    const QList<CursorFrame> frames = role >= 0 ? pointerFrames(role) : QList<CursorFrame>();
+    if (frames.isEmpty()) {
+        m_pointerPreview->clear();
+        return;
+    }
+    const CursorFrame &f = frames.at(m_previewFrame % frames.size());
+    m_pointerPreview->setPixmap(QPixmap::fromImage(f.image));
+    if (frames.size() > 1)
+        m_pointerTimer->start(qMax(16, f.delayMs));
+}
+
+void DisplayProperties::pointersChanged()
+{
+    if (m_loading)
+        return;
+    updateApply();
+}
+
+bool DisplayProperties::pointersDiffer() const
+{
+    if (!m_pointers)
+        return m_appliedPointers.has_value();
+    return !m_appliedPointers || !(m_appliedPointers->first == *m_pointers) || m_appliedPointers->second != m_pointerShadow;
 }
 
 // --- the library ---------------------------------------------------------------------------
@@ -625,7 +800,8 @@ bool DisplayProperties::apply()
     const bool everything = shiftHeld();
     const bool lookChanged = everything || lookKey(l) != m_appliedLook;
     const bool desktopChanged = everything || !sameDesktop(desktop, m_appliedDesktop);
-    if (!lookChanged && !desktopChanged && m_themeFile == m_appliedThemeFile)
+    const bool pointersChanged = pointersDiffer() || (everything && m_pointers);
+    if (!lookChanged && !desktopChanged && !pointersChanged && m_themeFile == m_appliedThemeFile)
         return true;
 
     QString error;
@@ -641,7 +817,7 @@ bool DisplayProperties::apply()
             LiveSession session;
             return applyLook(session, l, options, e);
         }, &error);
-    } else {
+    } else if (desktopChanged || m_themeFile != m_appliedThemeFile) {
         if (desktopChanged) {
             LiveSession session;
             applyWallpaper(session, desktop);
@@ -651,14 +827,28 @@ bool DisplayProperties::apply()
         state.themeFile = m_themeFile;
         state.save();
     }
-    if (!ok) {
-        QMessageBox::warning(this, QStringLiteral("Apply"), error);
-    } else {
+    if (ok) {
         if (lookChanged)
             m_appliedLook = lookKey(l);
         m_appliedDesktop = desktop;
         m_appliedThemeFile = m_themeFile;
     }
+    if (ok && pointersChanged) {
+        LiveSession session;
+        State state = State::load();
+        if (m_pointers)
+            ok = pointers::apply(session, state, *m_pointers, m_pointerShadow, &error);
+        else
+            pointers::revert(session, state);
+        if (ok) {
+            state.save();
+            m_appliedPointers.reset();
+            if (m_pointers)
+                m_appliedPointers = std::pair(*m_pointers, m_pointerShadow);
+        }
+    }
+    if (!ok)
+        QMessageBox::warning(this, QStringLiteral("Apply"), error);
     updateApply();
     return ok;
 }
@@ -666,7 +856,7 @@ bool DisplayProperties::apply()
 void DisplayProperties::updateApply()
 {
     m_apply->setEnabled(shiftHeld() || lookKey(look()) != m_appliedLook || !sameDesktop(wallpaper(), m_appliedDesktop)
-                        || m_themeFile != m_appliedThemeFile);
+                        || m_themeFile != m_appliedThemeFile || pointersDiffer());
 }
 
 bool DisplayProperties::eventFilter(QObject *watched, QEvent *event)
@@ -708,7 +898,7 @@ bool DisplayProperties::saveScreenshots(const QString &dir)
     setAttribute(Qt::WA_DontShowOnScreen);
     show();
     bool ok = true;
-    const char *const names[] = {"themes", "desktop", "appearance"};
+    const char *const names[] = {"themes", "desktop", "appearance", "pointers"};
     for (int i = 0; i < m_tabs->count(); ++i) {
         m_tabs->setCurrentIndex(i);
         QApplication::processEvents();

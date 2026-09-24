@@ -7,12 +7,16 @@
 #include "core/theme.h"
 #include "core/themefile.h"
 
+#include <limits>   // before QtEndian (Qt 5.15.2)
+
 #include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QTextStream>
+#include <QtEndian>
 
 #include "core/dib.h"
+#include "core/cursors.h"
 #include "core/icons.h"
 
 using namespace xpl;
@@ -236,6 +240,67 @@ int main(int, char **argv)
         QByteArray huge = header(8, 4);
         huge.truncate(40);
         CHECK(decodeIconImage(huge).isNull());   // claims pixels it doesn't have
+
+        // Cursors. A 1bpp 8x8 DIB: black (index 0) everywhere, index 1
+        // (white) in the top row; the mask set in the top-left 2x2 -- over
+        // white that inverts the screen (black, for a cursor; gone, for an
+        // icon), over black it's transparent.
+        auto mono = [&] {
+            QByteArray d = header(8, 1);
+            le32(d, 0); le32(d, 0x00ffffff);
+            for (int y = 0; y < 8; ++y)
+                le32(d, y == 7 ? 0xff : 0);   // bottom-up: the top row is last
+            for (int y = 0; y < 8; ++y)
+                le32(d, y >= 6 ? 0xc0 : 0);
+            return d;
+        }();
+        CHECK(decodeMaskedImage(mono, true).pixel(0, 0) == qRgb(0, 0, 0));
+        CHECK(decodeMaskedImage(mono, false).pixel(0, 0) == 0);
+        CHECK(decodeMaskedImage(mono, true).pixel(0, 1) == 0);
+        CHECK(decodeMaskedImage(mono, true).pixel(5, 0) == qRgb(255, 255, 255));
+        // A .cur holding it, hotspot (3, 4); an .ani of it twice, the second
+        // step at 12 jiffies (200 ms), played in reverse by its "seq ".
+        QByteArray cur;
+        le16(cur, 0); le16(cur, 2); le16(cur, 1);
+        cur.append(char(8)); cur.append(char(8)); cur.append(char(0)); cur.append(char(0));
+        le16(cur, 3); le16(cur, 4); le32(cur, int(mono.size())); le32(cur, 22);
+        cur += mono;
+        const auto f = decodeCursorFile(cur);
+        CHECK(f && f->image.size() == QSize(8, 8) && f->hotspot == QPoint(3, 4));
+        auto chunk = [&](const char *id, const QByteArray &body) {
+            QByteArray c(id, 4);
+            le32(c, int(body.size()));
+            c += body;
+            if (body.size() % 2)
+                c.append('\0');
+            return c;
+        };
+        QByteArray anih;
+        for (int v : {36, 2, 2, 8, 8, 1, 1, 6, 1})
+            le32(anih, v);
+        QByteArray rate, seq;
+        le32(rate, 6); le32(rate, 12);
+        le32(seq, 1); le32(seq, 0);
+        QByteArray second = cur;
+        second[10] = 7;   // hotspot x 7
+        const QByteArray body = "ACON" + chunk("anih", anih) + chunk("rate", rate) + chunk("seq ", seq)
+                                + chunk("LIST", "fram" + chunk("icon", cur) + chunk("icon", second));
+        QByteArray ani = "RIFF";
+        le32(ani, int(body.size()));
+        ani += body;
+        const QList<CursorFrame> frames = decodeCursor(ani);
+        CHECK(frames.size() == 2);
+        CHECK(frames.size() == 2 && frames.at(0).hotspot.x() == 7 && frames.at(0).delayMs == 100);
+        CHECK(frames.size() == 2 && frames.at(1).hotspot.x() == 3 && frames.at(1).delayMs == 200);
+        CHECK(decodeCursor("RIFF\x04\0\0\0ACON").isEmpty());
+        // Xcursor: header, a TOC entry per frame, then each image chunk.
+        const QByteArray xc = xcursor(frames, 32);
+        CHECK(xc.startsWith("Xcur"));
+        CHECK(xc.size() == 16 + 2 * 12 + 2 * (36 + 8 * 8 * 4));
+        CHECK(qFromLittleEndian<quint32>(xc.constData() + 12) == 2);
+        const qsizetype first = qFromLittleEndian<quint32>(xc.constData() + 16 + 8);
+        CHECK(qFromLittleEndian<quint32>(xc.constData() + first + 24) == 7);    // xhot
+        CHECK(qFromLittleEndian<quint32>(xc.constData() + first + 32) == 100);  // delay
     }
 
     QTextStream(stdout) << (failures ? "FAILED " : "ok ") << failures << " failure(s)\n";

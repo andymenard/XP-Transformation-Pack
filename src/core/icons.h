@@ -18,6 +18,9 @@ struct IconImage
 
 // One RT_ICON payload.
 QImage decodeIconImage(const QByteArray &data);
+// Likewise, for an icon or (`cursor`) a cursor, whose masked, non-black
+// pixels invert the screen: those come out opaque black.
+QImage decodeMaskedImage(const QByteArray &data, bool cursor);
 
 // A group's square images by size, the deepest of each size (XP keeps 4-,
 // 8- and 32-bit versions side by side).

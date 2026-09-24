@@ -2,6 +2,7 @@
 
 #include "app/archive.h"
 #include "app/host.h"
+#include "app/inf.h"
 #include "app/paths.h"
 #include "app/state.h"
 #include "app/apply.h"
@@ -401,48 +402,18 @@ QHash<QString, QString> wallpaperNames(const QList<QByteArray> &infs)
     static const QStringList kLists{QStringLiteral("wallpaper.copyfiles"), QStringLiteral("deskpapercopyfilessys")};
     QHash<QString, QString> out;
     for (const QByteArray &bytes : infs) {
-        // INFs are Latin-1 or UTF-16LE (with or without a BOM).
-        const bool wide = bytes.size() > 1 && (bytes.startsWith("\xff\xfe") || (bytes.at(1) == 0 && bytes.at(0) != 0));
-        QString text = wide ? QString::fromUtf16(reinterpret_cast<const char16_t *>(bytes.constData()), bytes.size() / 2)
-                            : QString::fromLatin1(bytes);
-        if (text.startsWith(QChar(0xFEFF)))
-            text.remove(0, 1);
-        QHash<QString, QStringList> sections;
-        QString section;
-        for (QString line : text.split(QLatin1Char('\n'))) {
-            line = line.trimmed();
-            if (line.isEmpty() || line.startsWith(QLatin1Char(';')))
-                continue;
-            if (line.startsWith(QLatin1Char('['))) {
-                section = line.mid(1, line.indexOf(QLatin1Char(']')) - 1).trimmed().toLower();
-                continue;
-            }
-            sections[section].append(line);
-        }
-        QHash<QString, QString> strings;
-        for (const QString &line : sections.value(QStringLiteral("strings"))) {
-            const int eq = int(line.indexOf(QLatin1Char('=')));
-            if (eq > 0)
-                strings.insert(line.left(eq).trimmed().toLower(), line.mid(eq + 1).trimmed().remove(QLatin1Char('"')));
-        }
-        auto expand = [&](QString v) {
-            v = v.section(QLatin1Char(';'), 0, 0).trimmed().remove(QLatin1Char('"'));
-            static const QRegularExpression key(QStringLiteral("%([^%]+)%"));
-            for (auto m = key.match(v); m.hasMatch(); m = key.match(v))
-                v.replace(m.capturedStart(), m.capturedLength(), strings.value(m.captured(1).toLower()));
-            return v.trimmed();
-        };
+        const Inf inf = Inf::parse(bytes);
         for (const QString &list : kLists) {
-            for (const QString &line : sections.value(list)) {
-                const QString dest = expand(line.section(QLatin1Char(','), 0, 0));
-                const QString source = line.contains(QLatin1Char(',')) ? expand(line.section(QLatin1Char(','), 1, 1)) : dest;
+            for (const QString &line : inf.lines(list)) {
+                const QStringList f = inf.fields(line);
+                const QString dest = f.value(0), source = f.size() > 1 ? f.at(1) : dest;
                 if (source.isEmpty() || dest.isEmpty())
                     continue;
                 QString name = dest;
                 // default.jpg is what XP calls its default wallpaper (Bliss)
                 // on disk; its own name is in the strings.
                 if (QFileInfo(dest).completeBaseName().compare(QLatin1String("default"), Qt::CaseInsensitive) == 0)
-                    for (const QString &s : std::as_const(strings))
+                    for (const QString &s : inf.strings())
                         if (s.compare(source, Qt::CaseInsensitive) == 0)
                             name = s;
                 out.insert(source.toLower(), name);
