@@ -5,6 +5,15 @@ Each says where it came from, so it can be picked up without re-deriving it.
 
 ## Open
 
+- **The copy dialog shows Minimize and Maximize** (2026-09-23). XP's has
+  Close only; the dialog asks for that (CustomizeWindowHint, no min/max
+  hints), which X11 honours but Qt's Wayland platform doesn't pass to KWin.
+  A KWin window rule or a decoration hint would be needed.
+- **A failed transfer leaves no balloon**, as with Plasma's own popups: a
+  job terminated with an error (JobViewV3) leaves the popup model at once;
+  the app shows its own error. XpPopup's error-balloon path stays for a job
+  that is still listed when its error arrives.
+
 - **Inactive selections follow SHOWSELALWAYS, deliberately.** Plain XP
   list and tree views hide the selection while unfocused; nearly every real
   XP app (Explorer, regedit, MMC) sets LVS_/TVS_SHOWSELALWAYS, which shows

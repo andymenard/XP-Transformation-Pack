@@ -121,15 +121,21 @@ struct Widget
     QString id, key;                 // plugin id, patches.json prefix
     QStringList files;               // what's patched, under contents/ui
     QHash<QString, QString> values;  // @KEY@ in the patched text -> value
+    QStringList extras;              // whole files from overrides/, added to contents/ui
 };
 
 const QList<Widget> kPanelWidgets{
     {QStringLiteral("org.kde.plasma.systemtray"), QStringLiteral("systemtray"),
-     {QStringLiteral("main.qml"), QStringLiteral("items/AbstractItem.qml")}, {}},
+     {QStringLiteral("main.qml"), QStringLiteral("items/AbstractItem.qml")}, {},
+     {QStringLiteral("XpNotificationIcons.qml")}},
     {QStringLiteral("org.kde.plasma.digitalclock"), QStringLiteral("digitalclock"),
-     {QStringLiteral("main.qml"), QStringLiteral("DigitalClock.qml")}, {}},
+     {QStringLiteral("main.qml"), QStringLiteral("DigitalClock.qml")}, {}, {}},
     {QStringLiteral("org.kde.plasma.taskmanager"), QStringLiteral("taskmanager"),
-     {QStringLiteral("main.qml"), QStringLiteral("Task.qml"), QStringLiteral("code/layoutmetrics.js")}, {}},
+     {QStringLiteral("main.qml"), QStringLiteral("Task.qml"), QStringLiteral("code/layoutmetrics.js")}, {}, {}},
+    // XP's balloons (when the look has their art; Plasma's popups otherwise).
+    {QStringLiteral("org.kde.plasma.notifications"), QStringLiteral("notifications"),
+     {QStringLiteral("main.qml"), QStringLiteral("global/Globals.qml")}, {},
+     {QStringLiteral("XpPopup.qml"), QStringLiteral("XpBalloon.qml"), QStringLiteral("XpCopyDialog.qml"), QStringLiteral("XpButton.qml")}},
 };
 // (org.kde.plasma.folder, the desktop, is this package under another name.)
 const QString kDesktopId = QStringLiteral("org.kde.desktopcontainment");
@@ -172,6 +178,8 @@ bool installWidgets(const QString &plasmoids, const QList<Widget> &widgets, QStr
         const QString ui = staging + QLatin1String("/contents/ui/");
         for (const auto &[f, text] : prepared.at(i))
             writeText(ui + f, text);
+        for (const QString &f : w.extras)
+            writeText(ui + f, resource(f));
         if (w.key == QLatin1String("systemtray")) {
             // XP's show-hidden-icons button in place of KDE's arrow, which
             // stays as the fallback.
@@ -225,7 +233,7 @@ bool installDesktopMenu(const QString &plasmoids, const QString &editor, QString
 {
     return installWidgets(plasmoids,
                           {{kDesktopId, QStringLiteral("desktopcontainment"), {QStringLiteral("FolderViewLayer.qml")},
-                            {{QStringLiteral("LAUNCH"), launchLiteral(editor)}}}},
+                            {{QStringLiteral("LAUNCH"), launchLiteral(editor)}}, {}}},
                           error);
 }
 

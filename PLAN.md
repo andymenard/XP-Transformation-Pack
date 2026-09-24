@@ -690,6 +690,14 @@ oracle tooling (`refharness/`, `tests/oracle/`) stays Python, dev-only
   its data (`theme.json`, the images) changes per look. The Start flag comes
   from `explorer.exe` (bitmap 143; 176 for Classic), and a pill built without
   it is an error.
+- **Notifications as XP's balloons** (a patched `org.kde.plasma.notifications`,
+  active when the panel theme has `widgets/xp-notify`): one balloon at a
+  time, oldest first, from the sender's own tray icon or a temporary one;
+  the rest wait as icons, and one that timed out unread stays, blinking to
+  a beat of its own, until clicked (it shows again). File transfers are
+  XP's copy dialog (shell32's animations, Cancel kills the job). Colours
+  come from the application palette (`Window.palette` has the tooltip
+  pair; `SystemPalette` doesn't), not Kirigami's, which are the panel's.
 - **`xplasma`** (CLI) and **`xplasma-edit`** (Display Properties, Qt Widgets
   in the system's own widget style; only the samples are drawn by XPLasma).
 - **Build and install:** `build.sh` installs into `build/<mode>/`

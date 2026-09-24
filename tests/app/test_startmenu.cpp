@@ -4,6 +4,7 @@
 //
 //   test-startmenu [OUTDIR]   OUTDIR (or $XPLASMA_SHEETS) keeps the renders
 #include "app/look.h"
+#include "app/overrides.h"
 #include "app/paths.h"
 #include "app/startpanel.h"
 #include "app/state.h"
@@ -115,6 +116,33 @@ private Q_SLOTS:
         QVERIFY(files.size() >= 7);
         for (const QString &file : files) {
             QQmlComponent component(&engine, QUrl::fromLocalFile(ui.absoluteFilePath(file)));
+            QStringList wrong;
+            for (const QQmlError &e : component.errors())
+                if (!e.description().contains(QLatin1String("is not installed")) && !e.description().endsWith(QLatin1String("unavailable")))
+                    wrong << e.toString();
+            QVERIFY2(wrong.isEmpty(), qPrintable(wrong.join(QLatin1Char('\n'))));
+        }
+    }
+
+    void balloonsCompile()
+    {
+        // XPLasma's QML inside KDE's notifications and tray, installed as
+        // Plasma would load it, compiles (as far as the imports here reach).
+        if (!QFileInfo::exists(QStringLiteral("/usr/share/plasma/plasmoids/org.kde.plasma.notifications")))
+            QSKIP("no Plasma here");
+        const QString plasmoids = m_scratch.filePath(QStringLiteral("plasmoids"));
+        QString error;
+        QVERIFY2(xpl::overrides::installPanelWidgets(plasmoids, &error), qPrintable(error));
+        QQmlEngine engine;
+        for (const char *file : {"org.kde.plasma.notifications/contents/ui/XpButton.qml",
+                                 "org.kde.plasma.notifications/contents/ui/XpBalloon.qml",
+                                 "org.kde.plasma.notifications/contents/ui/XpCopyDialog.qml",
+                                 "org.kde.plasma.notifications/contents/ui/XpPopup.qml",
+                                 "org.kde.plasma.notifications/contents/ui/global/Globals.qml",
+                                 "org.kde.plasma.notifications/contents/ui/main.qml",
+                                 "org.kde.plasma.systemtray/contents/ui/XpNotificationIcons.qml",
+                                 "org.kde.plasma.systemtray/contents/ui/main.qml"}) {
+            QQmlComponent component(&engine, QUrl::fromLocalFile(plasmoids + QLatin1Char('/') + QLatin1String(file)));
             QStringList wrong;
             for (const QQmlError &e : component.errors())
                 if (!e.description().contains(QLatin1String("is not installed")) && !e.description().endsWith(QLatin1String("unavailable")))

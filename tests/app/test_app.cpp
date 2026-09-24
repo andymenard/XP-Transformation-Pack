@@ -882,6 +882,17 @@ private Q_SLOTS:
         QVERIFY(QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/contents/ui/DigitalClock.qml")));
         QFile metrics(plasmoids + QLatin1String("/org.kde.plasma.taskmanager/contents/ui/code/layoutmetrics.js"));
         QVERIFY(metrics.open(QIODevice::ReadOnly) && metrics.readAll().contains("tasks.xpTaskband"));
+        // Balloons: the popups' delegate chosen by the art, the queue's icons in the tray.
+        const QString notifications = plasmoids + QLatin1String("/org.kde.plasma.notifications/contents/ui/");
+        QFile globals(notifications + QLatin1String("global/Globals.qml"));
+        QVERIFY(globals.open(QIODevice::ReadOnly));
+        const QByteArray globalsText = globals.readAll();
+        QVERIFY(globalsText.contains("delegate: globals.xpBalloons ? xpDelegate : stockDelegate")
+                && globalsText.contains("function xpAdvance()") && !globalsText.contains("{{"));
+        for (const char *f : {"XpPopup.qml", "XpBalloon.qml", "XpCopyDialog.qml", "XpButton.qml", "main.qml"})
+            QVERIFY2(QFileInfo(notifications + QLatin1String(f)).size() > 0, f);
+        QVERIFY(text.contains("XpNotificationIcons {"));
+        QVERIFY(QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.systemtray/contents/ui/XpNotificationIcons.qml")));
         // The desktop's menu: XP Properties, starting the editor outside the shell.
         QVERIFY2(overrides::installDesktopMenu(plasmoids, QStringLiteral("/opt/it's here/xplasma-edit"), &error), qPrintable(error));
         QFile layer(plasmoids + QLatin1String("/org.kde.desktopcontainment/contents/ui/FolderViewLayer.qml"));

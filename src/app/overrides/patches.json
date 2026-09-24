@@ -27,11 +27,11 @@
   },
   {
    "find": "                id: tasksGrid\n",
-   "replace": "                id: tasksGrid\n                Layout.row: 0\n                Layout.column: !root.vertical && root.xpTrayAvailable ? 1 : 0\n                // With no expander, reserve the theme's left cap ourselves.\n                Layout.leftMargin: root.xpTrayAvailable && !root.vertical && !expander.visible\n                    ? xpTrayBackground.margins.left : 0\n"
+   "replace": "                id: tasksGrid\n                Layout.row: 0\n                Layout.column: !root.vertical && root.xpTrayAvailable ? 2 : 0\n                // With no expander, reserve the theme's left cap ourselves.\n                Layout.leftMargin: root.xpTrayAvailable && !root.vertical && !expander.visible && !xpNotificationIcons.visible\n                    ? xpTrayBackground.margins.left : 0\n"
   },
   {
    "find": "                id: expander\n",
-   "replace": "                id: expander\n                Layout.row: root.vertical ? 1 : 0\n                Layout.column: root.vertical || root.xpTrayAvailable ? 0 : 1\n"
+   "replace": "                id: expander\n                Layout.row: root.vertical ? 2 : 0\n                Layout.column: root.vertical || root.xpTrayAvailable ? 0 : 2\n"
   },
   {
    "find": "visible: root.hiddenLayout.itemCount > 0",
@@ -44,6 +44,10 @@
   {
    "find": "readonly property int cellSpacing: Kirigami.Units.smallSpacing",
    "replace": "readonly property int cellSpacing: root.xpTrayAvailable ? 2 : Kirigami.Units.smallSpacing"
+  },
+  {
+   "find": "            ExpanderArrow {\n",
+   "replace": "            // XPLasma: notifications' own icons, for their balloons.\n            XpNotificationIcons {\n                id: xpNotificationIcons\n                Layout.row: root.vertical ? 1 : 0\n                Layout.column: root.vertical ? 0 : 1\n                Layout.alignment: Qt.AlignCenter\n                Layout.leftMargin: root.xpTrayAvailable && !root.vertical && !expander.visible\n                    ? xpTrayBackground.margins.left : 0\n                Layout.rightMargin: root.vertical ? 0 : 2\n                trayModel: activeModel\n                trayView: tasksGrid\n                vertical: root.vertical\n                thickness: root.vertical ? root.width : root.height\n            }\n\n            ExpanderArrow {\n"
   }
  ],
  "digitalclock/main.qml": [
@@ -128,6 +132,34 @@
   {
    "find": "        Plasmoid.contextualActions.push(actionSeparator);\n",
    "replace": "        Plasmoid.contextualActions.push(actionSeparator);\n        if (isContainment)\n            Plasmoid.contextualActions.push(xpPropertiesAction);   // XPLasma\n"
+  }
+ ],
+ "notifications/global/Globals.qml": [
+  {
+   "find": "import org.kde.kirigami 2.11 as Kirigami\n",
+   "replace": "import org.kde.kirigami 2.11 as Kirigami\nimport org.kde.ksvg as KSvg\n"
+  },
+  {
+   "find": "    id: globals\n",
+   "replace": "    id: globals\n{{xp-globals}}\n"
+  },
+  {
+   "find": "    function positionPopups() {\n",
+   "replace": "    function positionPopups() {\n        if (globals.xpBalloons) {\n            return;\n        }\n"
+  },
+  {
+   "find": "        delegate: NotificationPopup {\n",
+   "replace": "        delegate: globals.xpBalloons ? xpDelegate : stockDelegate\n        property Component xpDelegate: Component {\n        {{xp-delegate}}\n        }\n        property Component stockDelegate: Component {\n        NotificationPopup {\n"
+  },
+  {
+   "find": "        }\n        onObjectAdded: (index, object) => {\n            positionPopups();\n",
+   "replace": "        }\n        }\n        onObjectAdded: (index, object) => {\n            if (globals.xpBalloons) {\n                popupNotificationsModel.playSoundHint(popupNotificationsModel.index(index, 0));\n                globals.xpAdvance();\n                return;\n            }\n            positionPopups();\n"
+  }
+ ],
+ "notifications/main.qml": [
+  {
+   "find": "    id: root\n",
+   "replace": "    id: root\n\n    // XPLasma: the balloons' queue, for the system tray to draw.\n    readonly property var xpQueue: Globals.xpBalloons ? Globals.xpQueue : []\n    readonly property int xpCurrentId: Globals.xpCurrentId\n    function xpRegisterIcon(id, item) { Globals.xpRegisterIcon(id, item); }\n    function xpUnregisterIcon(id, item) { Globals.xpUnregisterIcon(id, item); }\n    function xpIconClicked(id) { Globals.xpRecall(id); }\n"
   }
  ]
 }
