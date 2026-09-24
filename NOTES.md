@@ -140,6 +140,9 @@ Each says where it came from, so it can be picked up without re-deriving it.
 - **Task buttons are laid out as XP's only for visual styles**: the
   hint-xplasma-taskband marker is in the Luna/style panel theme, not in
   Windows Classic's, whose task-button geometry hasn't been measured.
+- ~~Classic tray has no sunken frame art~~ (done 2026-09-23): XP's static
+  edge round the tray and clock, and explorer.exe's << >> on a flat button
+  for hidden icons (measured on a Windows Standard capture, 800x600).
 - ~~**The XP VM has ClearType on**~~ (resolved 2026-09-23): the image
   boots with ClearType; uxdump now sets XP's default "Standard" smoothing
   for the session at the start of every job (SPI_SETFONTSMOOTHINGTYPE, thrown

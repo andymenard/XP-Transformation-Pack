@@ -1,5 +1,6 @@
 #include "app/panel.h"
 
+#include "app/media.h"
 #include "app/package.h"
 #include "core/schema.h"
 
@@ -187,6 +188,74 @@ void classicArt(const Look &look, PanelArt &art)
     }
     for (const char *location : {"south-", ""})
         frame(art.tasks, QLatin1String(location) + QLatin1String("attention-"), flash, QMargins(4, 4, 6, 6), 0, QMargins(4, 0, 4, 0));
+
+    // The notification area (measured, Windows Standard, 800x600): a static
+    // edge -- a sunken 1px box, the shadow top and left, the highlight right
+    // and bottom -- from the buttons' top (4px down) to 3px above the bar's
+    // bottom, ending 3px in from the right; icons 4px in. Transparent
+    // around it: the bar shows through. The clock carries on its middle.
+    // (Plasma pads each icon: 1px of content margin puts the first 5px in.)
+    {
+        const QColor shadow = pal.color(QPalette::Dark), light = pal.color(QPalette::Light);
+        const int W = 200, top = 4, bottom = H - 3, right = W - 3;
+        QImage img(W, H, QImage::Format_ARGB32_Premultiplied);
+        img.fill(Qt::transparent);
+        QPainter p(&img);
+        p.fillRect(QRect(0, top, right, 1), shadow);
+        p.fillRect(QRect(0, top, 1, bottom - top), shadow);
+        p.fillRect(QRect(right, top, 1, bottom - top + 1), light);
+        p.fillRect(QRect(0, bottom, right + 1, 1), light);
+        p.end();
+        // (The tray's own part is open on the right: the clock closes the
+        // box, over or under it, and nothing shows between.)
+        QImage open = img.copy(0, 0, right, H);
+        frame(art.tray, QStringLiteral("tray-"), open, QMargins(1, top + 1, 0, H - bottom), 0, QMargins(1, 0, 0, 0));
+        frame(art.tray, QStringLiteral("clock-"), img.copy(1, 0, W - 1, H), QMargins(0, top + 1, W - right, H - bottom), 0);
+    }
+    // Show hidden icons: explorer.exe's << and >> (bitmaps 172, 173; magenta
+    // keyed out) on a flat toolbar button -- raised under the mouse, sunk
+    // (the glyph a pixel down and right) while pressed.
+    for (const auto &[prefix, id] : {std::pair("expand-", 172), std::pair("collapse-", 173)}) {
+        QImage glyph = media::bitmap(QStringLiteral("explorer.exe"), id).value_or(QImage());
+        if (!glyph.isNull()) {
+            glyph = glyph.convertToFormat(QImage::Format_ARGB32);
+            for (int y = 0; y < glyph.height(); ++y)
+                for (int x = 0; x < glyph.width(); ++x)
+                    if ((glyph.pixel(x, y) & 0xFFFFFF) == 0xFF00FF)
+                        glyph.setPixel(x, y, 0);
+        } else {
+            // (No XP media: the same two chevrons, drawn.)
+            glyph = QImage(9, 9, QImage::Format_ARGB32);
+            glyph.fill(Qt::transparent);
+            QPainter g(&glyph);
+            const bool left = id == 172;
+            for (int c = 0; c < 2; ++c)
+                for (int i = 0; i < 4; ++i) {
+                    const int x = left ? 1 + c * 4 + (3 - i) : 1 + c * 4 + i;
+                    g.fillRect(QRect(x, 1 + i, 2, 1), s.colour(u"ButtonText"));
+                    g.fillRect(QRect(x, 7 - i, 2, 1), s.colour(u"ButtonText"));
+                }
+        }
+        static const char *const states[] = {"normal", "hover", "pressed"};
+        for (int st = 0; st < 3; ++st) {
+            QImage img(20, 20, QImage::Format_ARGB32_Premultiplied);
+            img.fill(Qt::transparent);
+            QPainter p(&img);
+            const QRect r(1, 1, 18, 18);
+            if (st > 0) {
+                const QColor tl = st == 1 ? pal.color(QPalette::Light) : pal.color(QPalette::Dark);
+                const QColor br = st == 1 ? pal.color(QPalette::Dark) : pal.color(QPalette::Light);
+                p.fillRect(QRect(r.left(), r.top(), r.width() - 1, 1), tl);
+                p.fillRect(QRect(r.left(), r.top(), 1, r.height() - 1), tl);
+                p.fillRect(QRect(r.right(), r.top(), 1, r.height()), br);
+                p.fillRect(QRect(r.left(), r.bottom(), r.width(), 1), br);
+            }
+            const int shift = st == 2 ? 1 : 0;
+            p.drawImage(QPoint((20 - glyph.width()) / 2 + shift, (20 - glyph.height()) / 2 + shift), glyph);
+            p.end();
+            art.tray.append({QLatin1String(prefix) + QLatin1String(states[st]), img});
+        }
+    }
 }
 
 QByteArray colors(const Look &look, const PanelArt &art)
