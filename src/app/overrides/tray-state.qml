@@ -11,9 +11,28 @@
         if (activeModel) activeModel.invalidateFilter();
         if (hiddenModel) hiddenModel.invalidateFilter();
         if (xpExpandableModel) xpExpandableModel.invalidateFilter();
+        xpCountExpandable();
     }
     onXpTrayExpandedChanged: xpRefreshFilters()
     onXpHiddenItemsChanged: xpRefreshFilters()
+    // (and once the tray's art is there: items that came before it were
+    // filtered without it, and aren't looked at again till they change)
+    readonly property bool xpHiding: root.xpTrayAvailable && !root.vertical
+    onXpHidingChanged: xpRefreshFilters()
+
+    // How many hidden items the arrow would show -- counted here, as the
+    // model's own count isn't told of rows a new filter lets in (Plasma 6.6).
+    property int xpExpandableCount: 0
+    function xpCountExpandable() {
+        xpExpandableCount = xpExpandableModel ? xpExpandableModel.rowCount() : 0;
+    }
+    Connections {
+        target: xpExpandableModel
+        function onRowsInserted() { root.xpCountExpandable(); }
+        function onRowsRemoved() { root.xpCountExpandable(); }
+        function onModelReset() { root.xpCountExpandable(); }
+        function onLayoutChanged() { root.xpCountExpandable(); }
+    }
 
     KItemModels.KSortFilterProxyModel {
         id: xpExpandableModel
@@ -24,5 +43,12 @@
             return sourceModel.data(index, filterRole) === PlasmaCore.Types.PassiveStatus
                 && root.xpExplicitlyHidden(sourceModel.data(index, Qt.UserRole + 2));
         }
-        Component.onCompleted: sourceModel = Plasmoid.systemTrayModel
+        Component.onCompleted: {
+            sourceModel = Plasmoid.systemTrayModel;
+            root.xpCountExpandable();
+        }
     }
+    // XPLasma: the taskbar's colours, the theme's Complementary set (its
+    // Window set is XP's dialog colours, for Plasma's popups).
+    Kirigami.Theme.colorSet: root.xpTrayAvailable ? Kirigami.Theme.Complementary : Kirigami.Theme.Window
+    Kirigami.Theme.inherit: !root.xpTrayAvailable

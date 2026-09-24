@@ -5,6 +5,9 @@
 // 48px icon is never scaled down over its 16px art); names XP has nothing
 // for are inherited from the theme it's laid over.
 #include <QColor>
+#include <QHash>
+#include <QImage>
+#include <QMap>
 #include <QString>
 #include <QStringList>
 
@@ -24,7 +27,8 @@ QStringList iconSourceFiles();
 // returns its path, or empty with *error. The XP files come from the media
 // (media::systemFile). With `trayGlyphs`, the tray's icons XP has no art
 // for are the inherited theme's in that colour (the tray's text colour).
+// `drawn` adds icons drawn for the look (name -> size -> image; actions).
 QString writeIconTheme(const QString &directory, const QString &inherit, const QColor &trayGlyphs = QColor(),
-                       QString *error = nullptr);
+                       QString *error = nullptr, const QHash<QString, QMap<int, QImage>> &drawn = {});
 
 } // namespace xpl

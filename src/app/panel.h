@@ -12,6 +12,7 @@
 
 #include <QImage>
 #include <QList>
+#include <QMargins>
 #include <QString>
 
 namespace xpl {
@@ -27,6 +28,10 @@ struct PanelArt
     // with -- the balloon's close button, XP's severity icons, push buttons,
     // a text box, the progress bar, and shell32's file animations.
     QList<std::pair<QString, QImage>> notify;
+    // dialogs/background.svg's and widgets/tooltip.svg's: Plasma's popups
+    // (the tray's, KRunner's...) and tooltips, as XP's flyouts and tooltips.
+    QList<std::pair<QString, QImage>> popup;
+    QList<std::pair<QString, QImage>> tooltip;
     QColor panelColour;                        // the bar's average colour
     QColor textColour;                         // task and clock text
     QColor trayColour;                         // the notification area's average colour
@@ -34,6 +39,12 @@ struct PanelArt
     int height = kTaskbarHeight;
 };
 PanelArt panelArt(const Look &look);
+
+// FrameSvg's nine pieces of `image` for `prefix`, cut at `margins`: its
+// middle stretched (hint-stretch-borders) or, `tilePeriod` > 0, tiled; the
+// content hint margins where given. (How all XPLasma's frames are cut.)
+void appendFrame(QList<std::pair<QString, QImage>> &out, const QString &prefix, const QImage &image, QMargins margins,
+                 int tilePeriod = 0, const QMargins &content = QMargins());
 
 // What KSvg's FrameSvg paints for `prefix` at `size` from such elements:
 // corners at their own size, edges and centre stretched (with

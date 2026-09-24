@@ -69,20 +69,28 @@ QtObject {
     property Component balloonComponent: Component { XpBalloon {} }
     property Component dialogComponent: Component { XpCopyDialog {} }
 
+    // (Worked out here, not read from the properties above: called from
+    // their change handlers, those can still hold the old state -- a
+    // transfer just stopped with an error reads "finished, not failed".)
     function sync() {
-        if (wantsBalloon && !recalled)
+        const done = isJob && jobState === NotificationManager.Notifications.JobStateStopped;
+        const wants = !isJob || (done && jobError !== 0);
+        if (wants && !recalled)
             Globals.xpEnqueue(popup);
-        if (wantsBalloon && !balloon)
+        if (wants && !balloon)
             balloon = balloonComponent.createObject(null, {popup: popup});
-        if (isJob && !finished && !dialog)
+        if (isJob && !done && !dialog)
             dialog = dialogComponent.createObject(null, {popup: popup});
-        if (dialog && (!isJob || finished)) {
+        if (dialog && (!isJob || done)) {
             dialog.destroy();
             dialog = null;
         }
         // A transfer that finished well leaves nothing behind, as XP's.
-        if (finished && !failed)
-            Qt.callLater(popup.closeRequested);
+        if (done && jobError === 0)
+            Qt.callLater(() => {
+                if (popup.finished && !popup.failed)
+                    popup.closeRequested();
+            });
         Globals.xpAdvance();
     }
     onWantsBalloonChanged: sync()

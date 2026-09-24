@@ -11,7 +11,7 @@ QString rgb(const QColor &c)
 }
 } // namespace
 
-QByteArray colorScheme(const ClassicScheme &s, const QString &name)
+QByteArray colorScheme(const ClassicScheme &s, const QString &name, const std::pair<QColor, QColor> &complementary)
 {
     QString out;
     auto group = [&](const char *group, const char *bg, const char *fg) {
@@ -29,7 +29,14 @@ QByteArray colorScheme(const ClassicScheme &s, const QString &name)
     group("Window", "ButtonFace", "ButtonText");
     group("Button", "ButtonFace", "ButtonText");
     group("Header", "ButtonFace", "ButtonText");
-    group("Complementary", "ButtonFace", "ButtonText");
+    if (complementary.first.isValid() && complementary.second.isValid()) {
+        out += QStringLiteral("[Colors:Complementary]\n");
+        out += QStringLiteral("BackgroundNormal=%1\nBackgroundAlternate=%1\n").arg(rgb(complementary.first));
+        out += QStringLiteral("ForegroundNormal=%1\nForegroundActive=%1\nForegroundInactive=%1\n").arg(rgb(complementary.second));
+        out += QStringLiteral("DecorationFocus=%1\nDecorationHover=%1\n\n").arg(rgb(s.colour(u"Hilight")));
+    } else {
+        group("Complementary", "ButtonFace", "ButtonText");
+    }
     group("View", "Window", "WindowText");
     group("Selection", "Hilight", "HilightText");
     group("Tooltip", "InfoWindow", "InfoText");

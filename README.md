@@ -82,8 +82,14 @@ can't stand in for them. XPLasma builds its own of those from Plasma's source,
 one per Plasma series, in that series' container:
 
 ```sh
-./build-forks.sh 6.6    # build/plasma/6.6/out: the tray, notifications and task manager for Plasma 6.6
+./build-forks.sh 6.6 6.7   # build/plasma/SERIES/out: the tray, notifications and task manager per Plasma series
 ```
+
+Apply installs the build that loads in the running Plasma, or refuses the
+whole look if none does. After a Plasma upgrade to another series, a check at
+login (`xplasma check-forks`, from XPLasma's plasma-workspace env script)
+swaps in that series' build, or takes XPLasma's off so Plasma's own widgets
+come back, before Plasma's shell starts.
 
 XPLasma adopts what xp2plasma already imported on a machine (the asset
 library, saved schemes, the downloaded XP media) instead of fetching it again:

@@ -78,7 +78,9 @@ Grid {
 
     Repeater {
         id: drawn
-        model: icons.queue.filter((entry, i) => !icons.owners[i])
+        // (newest first: XP adds tray icons on the left, so the ones
+        // already there -- and a balloon pointing at one -- stay put)
+        model: icons.queue.filter((entry, i) => !icons.owners[i]).reverse()
         Item {
             id: cell
             required property var modelData

@@ -11,15 +11,18 @@
 //   xplasma pointers [SCHEME [--no-shadow] [--out DIR]]
 //                              XP's pointer schemes; one applied (or, --out,
 //                              written as a cursor theme there)
+//   xplasma check-forks        (at login) XPLasma's builds of Plasma's widgets
+//                              matched to the Plasma there is, after an upgrade
 //   xplasma build LOOK [--out DIR]
 //                              generate the Plasma packages for a look without
 //                              applying them (DIR: ~/.cache/xplasma/build)
 //
 // A LOOK is a .msstyles (optionally :VARIANT_INI), a .theme, or
-// classic:SCHEME.
+// classic:SCHEME -- or its name in `list` ("Windows XP", "Silver", "Brick").
 #include "app/adopt.h"
 #include "app/apply.h"
 #include "app/colors.h"
+#include "app/controls.h"
 #include "app/decoration.h"
 #include "app/pointers.h"
 #include "app/icons.h"
@@ -36,6 +39,7 @@
 #include "core/themefile.h"
 
 #include <QCommandLineParser>
+#include <QApplication>
 #include <QGuiApplication>
 #include <QDir>
 #include <QDirIterator>
@@ -117,6 +121,48 @@ int list(bool json)
 }
 
 // A look from the command line: STYLE[:VARIANT_INI], a .theme, or classic:SCHEME.
+// A look as `list` names it -- a theme ("Windows XP"), a visual style
+// ("Windows XP style") or one of its colours ("Silver", "Windows XP style:
+// Silver"), a Windows Classic scheme ("Brick") -- as a LOOK; a LOOK as it is.
+std::optional<QString> named(const QString &name, QString *error)
+{
+    const QString file = name.contains(QLatin1Char('/')) ? name : name.section(QLatin1Char(':'), 0, 0);
+    if (name.startsWith(QLatin1String("classic:"), Qt::CaseInsensitive) || QFileInfo::exists(name) || QFileInfo::exists(file))
+        return name;
+    const auto is = [&](const QString &label) { return label.compare(name, Qt::CaseInsensitive) == 0; };
+    const Library lib = Library::scan();
+    for (const ThemeBundle &t : lib.themes)
+        if (is(t.label))
+            return t.path;
+    QStringList found;
+    for (const StyleInfo &s : lib.styles) {
+        if (!s.readable())
+            continue;
+        if (is(s.label))
+            found << s.path;
+        const StyleVariant *standard = s.variant(s.defaultVariant);
+        for (const StyleOption &c : s.colours) {
+            if (!is(c.label) && !is(s.label + QStringLiteral(": ") + c.label))
+                continue;
+            QString ini = s.ini(c.key, standard ? standard->size : QString());
+            if (ini.isEmpty() && !s.sizesFor(c.key).isEmpty())
+                ini = s.ini(c.key, s.sizesFor(c.key).first().key);
+            if (!ini.isEmpty())
+                found << s.path + QLatin1Char(':') + ini;
+        }
+    }
+    for (const schemes::Entry &e : schemes::list())
+        if (is(e.name))
+            found << QStringLiteral("classic:") + e.name;
+    found.removeDuplicates();
+    if (found.size() == 1)
+        return found.first();
+    *error = found.isEmpty()
+        ? QStringLiteral("no look called \"%1\" (`xplasma list` shows them; or name a .theme or .msstyles file)").arg(name)
+        : QStringLiteral("\"%1\" could be any of: %2").arg(name, found.join(QStringLiteral(", ")));
+    return std::nullopt;
+}
+
 std::optional<Look> lookFrom(const QString &spec, QString *error)
 {
     if (spec.startsWith(QLatin1String("classic:"), Qt::CaseInsensitive)) {
@@ -152,11 +198,12 @@ void say(const QString &line)
     out() << line << Qt::endl;
 }
 
-int apply(const QString &spec, const QCommandLineParser &parser)
+int apply(const QString &name, const QCommandLineParser &parser)
 {
     adopt();
     QString error;
-    const auto look = lookFrom(spec, &error);
+    const QString spec = named(name, &error).value_or(QString());
+    const auto look = spec.isEmpty() ? std::nullopt : lookFrom(spec, &error);
     if (!look) {
         err() << "xplasma: " << error << Qt::endl;
         return 1;
@@ -187,11 +234,12 @@ int apply(const QString &spec, const QCommandLineParser &parser)
     return 0;
 }
 
-int widgets(const QString &spec)
+int widgets(const QString &name)
 {
     adopt();
     QString error;
-    const auto look = lookFrom(spec, &error);
+    const QString spec = named(name, &error).value_or(QString());
+    const auto look = spec.isEmpty() ? std::nullopt : lookFrom(spec, &error);
     LiveSession session;
     if (!look || !applyWidgets(session, *look, say, &error)) {
         err() << "xplasma: " << error << Qt::endl;
@@ -290,11 +338,12 @@ int runSetup(const QCommandLineParser &parser)
     return 0;
 }
 
-int build(const QString &spec, QString dir)
+int build(const QString &name, QString dir)
 {
     adopt();
     QString error;
-    const auto look = lookFrom(spec, &error);
+    const QString spec = named(name, &error).value_or(QString());
+    const auto look = spec.isEmpty() ? std::nullopt : lookFrom(spec, &error);
     if (!look) {
         err() << "xplasma: " << error << Qt::endl;
         return 1;
@@ -328,7 +377,7 @@ int build(const QString &spec, QString dir)
         return 1;
     }
     out() << "  start       " << startDir << "/theme.json\n";
-    const QString icons = writeIconTheme(dir + QLatin1String("/icons"), QStringLiteral("breeze"), panelArt(*look).trayTextColour, &error);
+    const QString icons = writeIconTheme(dir + QLatin1String("/icons"), QStringLiteral("breeze"), panelArt(*look).trayTextColour, &error, spinIcons(*look));
     if (icons.isEmpty()) {
         err() << "xplasma: the icons: " << error << Qt::endl;
         return 1;
@@ -341,6 +390,23 @@ int build(const QString &spec, QString dir)
 }
 
 // Building Plasma's widgets (build-forks.sh): a series' image, Qt floor,
+// At login (XPLasma's plasma-workspace env script): XPLasma's builds of
+// Plasma's widgets still right for the Plasma there is, after an upgrade.
+// Says what it changed, if anything.
+int checkForks()
+{
+    State state = State::load();
+    const QJsonObject before = state.settings;
+    LiveSession session;
+    QString what;
+    forks::check(session, state, &what);
+    if (state.settings != before)
+        state.save();
+    if (!what.isEmpty())
+        out() << what << Qt::endl;
+    return 0;
+}
+
 // sources and targets, one per line ("image IMAGE", "qtfloor 6.10",
 // "source PROJECT VERSION SHA256", "target PROJECT ID").
 int forkInfo(const QString &name)
@@ -378,10 +444,11 @@ int forkSources(const QString &name, const QString &pristine, const QString &wor
 
 int main(int argc, char **argv)
 {
-    // (A GUI application for fonts and painting; it never shows anything.)
+    // (A widgets application for fonts, painting and XPLasma's style, which
+    // draws the Plasma theme's controls; it never shows anything.)
     if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM"))
         qputenv("QT_QPA_PLATFORM", "offscreen");
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("xplasma"));
     QCoreApplication::setApplicationVersion(QStringLiteral(XPLASMA_VERSION));
 
@@ -415,6 +482,8 @@ int main(int argc, char **argv)
         return pointerSchemes(args.value(1), !parser.isSet(QStringLiteral("no-shadow")), parser.value(outOption));
     if (command == QLatin1String("build") && args.size() == 2)
         return build(args.at(1), parser.value(outOption));
+    if (command == QLatin1String("check-forks") && args.size() == 1)
+        return checkForks();
     if (command == QLatin1String("fork-info") && args.size() == 2)
         return forkInfo(args.at(1));
     if (command == QLatin1String("fork-sources") && args.size() == 4)

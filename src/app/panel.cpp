@@ -1,5 +1,7 @@
 #include "app/panel.h"
 
+#include "app/controls.h"
+
 #include "app/media.h"
 #include "app/package.h"
 #include "core/classic.h"
@@ -384,17 +386,64 @@ void notifyArt(const Look &look, PanelArt &art)
     }
 }
 
+// Plasma's popups and tooltips, as XP's. A popup is a flyout: the button
+// face in the frame XP gives its menus -- visual styles' flat button-shadow
+// line, Classic's raised edge (Light3D and DkShadow outside, Highlight and
+// Shadow inside). A tooltip is InfoWindow yellow in a 1px window-frame
+// line, as the style draws QToolTip. (Their text is the theme's Window
+// colours': XP's window text, black on both.)
+void popupArt(const Look &look, PanelArt &art)
+{
+    const ClassicScheme &s = look.system;
+    auto ring = [](QPainter &p, const QRect &q, const QColor &tl, const QColor &br) {
+        p.fillRect(QRect(q.left(), q.top(), q.width() - 1, 1), tl);
+        p.fillRect(QRect(q.left(), q.top(), 1, q.height() - 1), tl);
+        p.fillRect(QRect(q.left(), q.bottom(), q.width(), 1), br);
+        p.fillRect(QRect(q.right(), q.top(), 1, q.height()), br);
+    };
+    const int edge = look.classic() ? 2 : 1;
+    QImage popup(24, 24, QImage::Format_ARGB32_Premultiplied);
+    popup.fill(s.colour(u"ButtonFace"));
+    {
+        QPainter p(&popup);
+        if (look.classic()) {
+            ring(p, popup.rect(), s.colour(u"ButtonLight"), s.colour(u"ButtonDkShadow"));
+            ring(p, popup.rect().adjusted(1, 1, -1, -1), s.colour(u"ButtonHilight"), s.colour(u"ButtonShadow"));
+        } else {
+            ring(p, popup.rect(), s.colour(u"ButtonShadow"), s.colour(u"ButtonShadow"));
+        }
+    }
+    const int pad = edge + 4;
+    frame(art.popup, QString(), popup, QMargins(edge, edge, edge, edge), 0, QMargins(pad, pad, pad, pad));
+
+    QImage tip(16, 16, QImage::Format_ARGB32_Premultiplied);
+    tip.fill(s.colour(u"InfoWindow"));
+    {
+        QPainter p(&tip);
+        ring(p, tip.rect(), s.colour(u"WindowFrame"), s.colour(u"WindowFrame"));
+    }
+    frame(art.tooltip, QString(), tip, QMargins(1, 1, 1, 1), 0, QMargins(3, 2, 3, 2));
+}
+
 QByteArray colors(const Look &look, const PanelArt &art)
 {
     auto rgb = [](const QColor &c) { return QStringLiteral("%1,%2,%3").arg(c.red()).arg(c.green()).arg(c.blue()); };
     const ClassicScheme &s = look.system;
     QString out;
-    for (const char *group : {"Window", "Button", "View", "Header", "Complementary"}) {
-        out += QStringLiteral("[Colors:%1]\n").arg(QLatin1String(group));
-        out += QStringLiteral("BackgroundNormal=%1\nBackgroundAlternate=%1\n").arg(rgb(art.panelColour));
-        out += QStringLiteral("ForegroundNormal=%1\nForegroundActive=%1\nForegroundInactive=%1\n").arg(rgb(art.textColour));
+    // The taskbar's colours are the Complementary set's (XPLasma's taskbar
+    // widgets take that set); the rest are XP's, for Plasma's popups: the
+    // dialog face and window text, white for lists.
+    auto group = [&](const char *name, const QColor &background, const QColor &text, const QColor &inactive) {
+        out += QStringLiteral("[Colors:%1]\n").arg(QLatin1String(name));
+        out += QStringLiteral("BackgroundNormal=%1\nBackgroundAlternate=%1\n").arg(rgb(background));
+        out += QStringLiteral("ForegroundNormal=%1\nForegroundActive=%1\nForegroundInactive=%2\n").arg(rgb(text), rgb(inactive));
         out += QStringLiteral("DecorationFocus=%1\nDecorationHover=%1\n\n").arg(rgb(s.colour(u"Hilight")));
-    }
+    };
+    group("Window", s.colour(u"ButtonFace"), s.colour(u"WindowText"), s.colour(u"GrayText"));
+    group("Header", s.colour(u"ButtonFace"), s.colour(u"WindowText"), s.colour(u"GrayText"));
+    group("Button", s.colour(u"ButtonFace"), s.colour(u"ButtonText"), s.colour(u"GrayText"));
+    group("View", s.colour(u"Window"), s.colour(u"WindowText"), s.colour(u"GrayText"));
+    group("Complementary", art.panelColour, art.textColour, art.textColour);
     out += QStringLiteral("[Colors:Selection]\nBackgroundNormal=%1\nForegroundNormal=%2\n\n")
                .arg(rgb(s.colour(u"Hilight")), rgb(s.colour(u"HilightText")));
     out += QStringLiteral("[Colors:Tooltip]\nBackgroundNormal=%1\nForegroundNormal=%2\n\n")
@@ -416,6 +465,12 @@ QByteArray svg(const QList<std::pair<QString, QImage>> &elements)
 }
 
 } // namespace
+
+void appendFrame(QList<std::pair<QString, QImage>> &out, const QString &prefix, const QImage &image, QMargins margins,
+                 int tilePeriod, const QMargins &content)
+{
+    frame(out, prefix, image, margins, tilePeriod, content);
+}
 
 QImage composeFrame(const QList<std::pair<QString, QImage>> &elements, const QString &prefix, QSize size)
 {
@@ -467,6 +522,9 @@ PanelArt panelArt(const Look &look)
     else
         styleArt(look, art);
     notifyArt(look, art);
+    popupArt(look, art);
+    // (marks every XPLasma taskbar: its widgets take the Complementary colours)
+    art.tasks.append({QStringLiteral("hint-xplasma-colours"), QImage()});
     if (!art.trayTextColour.isValid()) {
         // Whichever of black and white stands out more from the tray.
         auto luminance = [](const QColor &c) {
@@ -492,10 +550,21 @@ QString writePanelTheme(const Look &look, const QString &directory, QString *err
         pkg.write(QStringLiteral("widgets/xp-tray.svg"), svg(art.tray));
     if (!art.notify.isEmpty())
         pkg.write(QStringLiteral("widgets/xp-notify.svg"), svg(art.notify));
+    pkg.write(QStringLiteral("dialogs/background.svg"), svg(art.popup));
+    pkg.write(QStringLiteral("widgets/background.svg"), svg(art.popup));
+    pkg.write(QStringLiteral("widgets/tooltip.svg"), svg(art.tooltip));
+    // The controls in Plasma's popups, as XP's (when XPLasma's style can
+    // draw them here; Plasma's own otherwise).
+    const auto controls = plasmaControls(look);
+    for (auto it = controls.cbegin(); it != controls.cend(); ++it)
+        pkg.write(QStringLiteral("widgets/%1.svg").arg(it.key()), svg(it.value()));
     pkg.write(QStringLiteral("colors"), colors(look, art));
     QJsonObject meta = pluginMetadata(id, look.name + QLatin1String(" (taskbar)"),
                                       QStringLiteral("The taskbar of the Windows XP look \"%1\", made by XPLasma").arg(look.name));
     meta.insert(QStringLiteral("X-Plasma-API-Minimum-Version"), QStringLiteral("6.0"));
+    // Without it Plasma takes the theme for a Plasma 4 one and gives every
+    // colour set but Window the Button colours: the taskbar's text black.
+    meta.insert(QStringLiteral("X-Plasma-API"), QStringLiteral("6.0"));
     meta.insert(QStringLiteral("X-XPLasma-PanelHeight"), art.height);
     pkg.writeJson(QStringLiteral("metadata.json"), meta);
     if (!pkg.ok()) {

@@ -1,6 +1,16 @@
 {
  "systemtray/main.qml": [
   {
+   "find": "                Layout.row: root.vertical && root.reverseLayout ? 1 : 0 // Explicitly define grid coordinates\n                Layout.column: 0                                        // to prevent overlapping\n",
+   "replace": "",
+   "optional": true
+  },
+  {
+   "find": "                Layout.row: root.vertical && !root.reverseLayout ? 1 : 0 // Explicitly define grid coordinates\n                Layout.column: root.vertical ? 0 : 1                     // to prevent overlapping\n",
+   "replace": "",
+   "optional": true
+  },
+  {
    "find": "import QtQuick\n",
    "replace": "import QtQuick\nimport org.kde.ksvg as KSvg\n",
    "unlessContains": "import org.kde.ksvg as KSvg"
@@ -35,7 +45,7 @@
   },
   {
    "find": "visible: root.hiddenLayout.itemCount > 0",
-   "replace": "visible: root.xpTrayAvailable && !root.vertical\n                    ? root.xpTrayExpanded || xpExpandableModel.count > 0\n                    : root.hiddenLayout.itemCount > 0"
+   "replace": "visible: root.xpTrayAvailable && !root.vertical\n                    ? root.xpTrayExpanded || root.xpExpandableCount > 0\n                    : root.hiddenLayout.itemCount > 0"
   },
   {
    "find": "readonly property int smallIconSize: Kirigami.Units.iconSizes.smallMedium",
@@ -67,7 +77,7 @@
  "taskmanager/main.qml": [
   {
    "find": "    readonly property bool shouldShrinkToZero: tasksModel.count === 0\n",
-   "replace": "    // XPLasma: an XP taskbar's panel theme marks its task buttons, laid out\n    // as XP's TaskBand lays them out.\n    KSvg.Svg { id: xpTasksSvg; imagePath: \"widgets/tasks\" }\n    readonly property bool xpTaskband: xpTasksSvg.hasElement(\"hint-xplasma-taskband\") && !vertical\n    readonly property bool shouldShrinkToZero: tasksModel.count === 0\n"
+   "replace": "    // XPLasma: an XP taskbar's panel theme marks its task buttons, laid out\n    // as XP's TaskBand lays them out.\n    KSvg.Svg { id: xpTasksSvg; imagePath: \"widgets/tasks\" }\n    readonly property bool xpTaskband: xpTasksSvg.hasElement(\"hint-xplasma-taskband\") && !vertical\n    // ...and every XPLasma taskbar its colours: the theme's Complementary\n    // set (its Window set is XP's dialog colours, for Plasma's popups).\n    readonly property bool xpColours: xpTasksSvg.hasElement(\"hint-xplasma-colours\")\n    Kirigami.Theme.colorSet: xpColours ? Kirigami.Theme.Complementary : Kirigami.Theme.Window\n    Kirigami.Theme.inherit: !xpColours\n    readonly property bool shouldShrinkToZero: tasksModel.count === 0\n"
   }
  ],
  "taskmanager/code/layoutmetrics.js": [
@@ -143,6 +153,10 @@
   {
    "find": "    id: root\n",
    "replace": "    id: root\n\n    // XPLasma: the balloons' queue, for the system tray to draw.\n    readonly property var xpQueue: Globals.xpBalloons ? Globals.xpQueue : []\n    readonly property int xpCurrentId: Globals.xpCurrentId\n    function xpRegisterIcon(id, item) { Globals.xpRegisterIcon(id, item); }\n    function xpUnregisterIcon(id, item) { Globals.xpUnregisterIcon(id, item); }\n    function xpIconClicked(id) { Globals.xpRecall(id); }\n"
+  },
+  {
+   "find": "    readonly property int effectiveStatus: historyModel.activeJobsCount > 0\n",
+   "replace": "    // XPLasma: with XP's balloons, no icon of its own but Do Not Disturb's -- XP's\n    // tray had none; the balloons' icons and the copy dialog show the rest.\n    readonly property int effectiveStatus: Globals.xpBalloons\n                     ? (Globals.inhibited ? PlasmaCore.Types.ActiveStatus : PlasmaCore.Types.PassiveStatus)\n                     : historyModel.activeJobsCount > 0\n"
   }
  ],
  "desktopcontainment/FolderView.qml": [

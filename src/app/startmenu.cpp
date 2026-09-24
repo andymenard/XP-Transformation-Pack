@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
+#include <QImage>
 #include <QJsonDocument>
 #include <QSaveFile>
 #include <QUrl>
@@ -33,6 +34,35 @@ bool installPackage(const QString &resource, const QString &plasmoids, const cha
     if (!pkg.ok() && error)
         *error = pkg.error();
     return pkg.ok();
+}
+
+// XP gave every new account one of its pictures (All Users\Application
+// Data\Microsoft\User Account Pictures\Default Pictures), which the Start
+// menu shows; this is the one XPLasma's shows for a user with no picture of
+// their own. Which one: from the user's name, so it stays theirs.
+const char *const kUserPictures[] = {"AIRPLANE", "ASTRO", "BEACH", "BUTTERFL", "CAR", "CAT", "CHESS", "DIRTBIKE",
+                                     "DOG", "DRIP", "DUCK", "FISH", "FROG", "GUITAR", "HORSES", "KICK", "LIFTOFF",
+                                     "PALMTREE", "PNKFLOWR", "REDFLOWR", "SKATER", "SNWFLAKE", "SOCCER"};
+
+QString userPictureName(const QString &user)
+{
+    quint32 hash = 0;
+    for (const QChar c : user)
+        hash = hash * 31 + c.unicode();
+    return QString::fromLatin1(kUserPictures[hash % std::size(kUserPictures)]);
+}
+
+// Written into `directory`; its URL, or empty if the media hasn't it.
+QString writeUserPicture(const QString &directory)
+{
+    const QString user = qEnvironmentVariable("USER", QDir::home().dirName());
+    const QString name = userPictureName(user);
+    const auto bytes = media::systemFile(name + QLatin1String(".BMP"));
+    const QImage image = bytes ? QImage::fromData(*bytes, "BMP") : QImage();
+    const QString file = QDir(directory).filePath(QStringLiteral("user-%1.png").arg(name.toLower()));
+    if (image.isNull() || !image.save(file))
+        return QString();
+    return QUrl::fromLocalFile(file).toString();
 }
 
 } // namespace
@@ -75,6 +105,8 @@ QJsonObject writeStartTheme(const Look &look, const QString &directory, QString 
     }
     theme.insert(QStringLiteral("button"), images);
     theme.insert(QStringLiteral("look"), look.name);
+    if (const QString picture = writeUserPicture(directory); !picture.isEmpty())
+        theme.insert(QStringLiteral("userPicture"), picture);
     QSaveFile out(QDir(directory).filePath(QStringLiteral("theme.json")));
     if (!out.open(QIODevice::WriteOnly) || out.write(QJsonDocument(theme).toJson()) < 0 || !out.commit()) {
         if (error)

@@ -4,15 +4,22 @@
 #include "core/classic.h"
 
 #include <QByteArray>
+#include <QColor>
 #include <QList>
 #include <QString>
+
+#include <utility>
 
 namespace xpl {
 
 // A KDE colour scheme from XP's system colours. KDE's Window group is the
 // dialog face -- XP's ButtonFace -- and its View group the document area,
 // XP's Window colour.
-QByteArray colorScheme(const ClassicScheme &system, const QString &name);
+// (`complementary`: the taskbar's background and text, for the Complementary
+// set -- XPLasma's taskbar widgets take it, and Plasma up to 6.3 reads it
+// from here, not from the Plasma theme; the button face's otherwise.)
+QByteArray colorScheme(const ClassicScheme &system, const QString &name,
+                       const std::pair<QColor, QColor> &complementary = {});
 
 // One key in a KConfig file under ~/.config.
 struct ConfigValue

@@ -10,7 +10,58 @@
 
 #include <QApplication>
 #include <QCommandLineParser>
+#include <QLocalServer>
+#include <QLocalSocket>
+#include <QStandardPaths>
 #include <QTextStream>
+#include <QWidget>
+
+namespace {
+
+// One of each, as XP's: opened again, the one already open comes to the
+// front. The second launch hands its activation token (Wayland's leave to
+// raise a window) to the first, over a socket in the user's runtime folder.
+QString instanceName(const QString &which)
+{
+    return QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation) + QLatin1String("/xplasma-edit-") + which;
+}
+
+bool raiseRunning(const QString &which)
+{
+    QLocalSocket socket;
+    socket.connectToServer(instanceName(which));
+    if (!socket.waitForConnected(500))
+        return false;
+    socket.write(qgetenv("XDG_ACTIVATION_TOKEN") + '\n');
+    socket.waitForBytesWritten(500);
+    socket.disconnectFromServer();
+    return true;
+}
+
+void serveInstance(const QString &which, QWidget *window)
+{
+    auto *server = new QLocalServer(window);
+    if (!server->listen(instanceName(which))) {
+        QLocalServer::removeServer(instanceName(which));   // (left by one that crashed)
+        server->listen(instanceName(which));
+    }
+    QObject::connect(server, &QLocalServer::newConnection, window, [server, window] {
+        QLocalSocket *peer = server->nextPendingConnection();
+        QObject::connect(peer, &QLocalSocket::disconnected, peer, &QObject::deleteLater);
+        QObject::connect(peer, &QLocalSocket::readyRead, window, [peer, window] {
+            if (!peer->canReadLine())
+                return;
+            const QByteArray token = peer->readLine().trimmed();
+            if (!token.isEmpty())
+                qputenv("XDG_ACTIVATION_TOKEN", token);   // (Qt's Wayland activation takes it from here)
+            window->showNormal();
+            window->raise();
+            window->activateWindow();
+        });
+    });
+}
+
+} // namespace
 
 int main(int argc, char **argv)
 {
@@ -31,18 +82,26 @@ int main(int argc, char **argv)
 
     if (parser.isSet(dateTime)) {
         QApplication::setApplicationDisplayName(QStringLiteral("Date and Time Properties"));
+        // (its own desktop entry: its own name and icon on the taskbar)
+        QApplication::setDesktopFileName(QStringLiteral("fyi.hotsocket.xplasma.datetime"));
         xpl::editor::DateTimeProperties dialog;
         if (parser.isSet(screenshots))
             return dialog.saveScreenshots(parser.value(screenshots)) ? 0 : 1;
+        if (raiseRunning(QStringLiteral("date-time")))
+            return 0;
+        serveInstance(QStringLiteral("date-time"), &dialog);
         dialog.show();
         return app.exec();
     }
 
     for (const QString &line : xpl::adoptLegacy())
         QTextStream(stderr) << line << '\n';
+    if (!parser.isSet(screenshots) && raiseRunning(QStringLiteral("display")))
+        return 0;
     xpl::editor::DisplayProperties dialog;
     if (parser.isSet(screenshots))
         return dialog.saveScreenshots(parser.value(screenshots)) ? 0 : 1;
+    serveInstance(QStringLiteral("display"), &dialog);
     dialog.show();
     return app.exec();
 }

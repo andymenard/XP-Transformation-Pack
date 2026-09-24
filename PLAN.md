@@ -400,6 +400,8 @@ stay unthemed without it); a real GTK3 generator; optionally a KDecoration
 plugin on the same core; real rendering in the editor's previews via
 `xplasma-render`; Windows Classic through the same plugin.
 
+**Wishlist:** kept in WISHLIST.md.
+
 ---
 
 ## 9. Risks

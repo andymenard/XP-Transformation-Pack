@@ -3,7 +3,67 @@
 Findings made along the way that are real but out of the current step's scope.
 Each says where it came from, so it can be picked up without re-deriving it.
 
+## Tested distributions (2026-09-24)
+
+Test VMs from `~/clod/vmtools` (its README): apply, balloons and their queue,
+the copy dialog and a failed copy, Start, Date and Time, apply/reset cycles.
+
+| Distribution | Plasma / Qt | Widgets from | Result |
+|---|---|---|---|
+| SteamOS (the Deck) | 6.4.3 / 6.9 | home-folder copies | daily use |
+| Debian 13 | 6.3.6 / 6.8.2 | home-folder copies (tray: `org.kde.plasma.private.systemtray`) | all pass |
+| Fedora 44 | 6.6.4 / 6.10.2 | 6.6 build | all pass |
+| Fedora 44 + updates | 6.7.5 / 6.11.2 | 6.7 build (swapped in at login after the upgrade) | all pass |
+| KDE neon | 6.7.5 / 6.11.1 | 6.7 build | all pass |
+| CachyOS (Arch + CachyOS repos) | 6.7.5 / 6.11.2 | 6.7 build | all pass (its pinned launchers found the Quick Launch bug: fixed) |
+| openSUSE Tumbleweed | 6.7.5 / 6.11.2 | 6.7 build | all pass (its default favourites pinned Firefox twice: fixed) |
+| Slackware64-current (no systemd) | 6.7.5 / 6.11 | 6.7 build | all pass: shell restarted with kquitapp6 in its own environment; Date and Time through pkexec |
+
 ## Open
+
+- ~~**Plasma's tooltips and tray popups are the taskbar's blue**~~ (done
+  2026-09-24): XPLasma's Plasma theme now has XP's colours in its Window,
+  Header, Button and View sets, a tooltip (InfoWindow in a 1px window-frame
+  line) and a popup frame (the button face in XP's menu frame: flat
+  button-shadow line, or Classic's raised edge); the taskbar's colours moved
+  to the Complementary set, which XPLasma's tray and task manager take
+  (marked `hint-xplasma-colours` in tasks.svg). Plasma up to 6.3 reads
+  Complementary from the colour scheme, not the Plasma theme, so the scheme
+  has them too. The controls inside popups are XP's too (controls.cpp:
+  drawn by XPLasma's style, in-process -- the CLI is a QApplication for it
+  -- and cut into Plasma's widget SVGs). Still Plasma's: DefaultToolTip's
+  padding and heading size. The theme's metadata must say `X-Plasma-API`
+  (6.0): without it Plasma takes the theme for a Plasma 4 one and gives
+  every colour set but Window the Button colours -- the taskbar's text
+  went black on 6.4 and 6.7 until it did.
+- **Plasma's unchecked check box is a small button, not XP's box.**
+  Plasma Components' CheckIndicator draws its box with the push button's
+  frame (widgets/button, "normal") and lays the tick (widgets/checkmarks)
+  over it only when checked; a theme can't tell a 16px check box from a
+  button (KSvg's size-hinted elements don't reach a frame's corners, which
+  are all a 16px frame is). Checked boxes are XP's whole box and tick.
+  Left so: none of Plasma's own popups has a check box (6.7's
+  plasma-workspace and plasma-desktop: only wallpaper settings, drawn by
+  the Qt style) -- they use switches, which are XP's check box already.
+  Fixing it would take a copy of org.kde.plasma.components per Plasma
+  series laid over Plasma's.
+- **Plasma's spin box is "- value +", not XP's up-down.** Its buttons ask
+  for the icons value-decrease and value-increase (nothing else of Plasma's
+  does), so XPLasma's icon theme has XP's up-down on its side there --
+  left and right, as XP's tab rows have it -- at every size 12 to 24 and
+  32 (a label's height: 13 under XP's 8pt Tahoma). The layout stays Plasma's.
+- ~~**The notifications icon shows a "1" in the tray while a copy runs**~~
+  (resolved 2026-09-24: with XP's balloons, the notifications applet shows
+  in the tray only for Do Not Disturb; its history isn't reachable from the
+  tray then, as XP had none).
+- **No Plasma 6.7 build for Qt 6.10.** 6.7 asks for Qt 6.10, but the only
+  distribution with its development files (Fedora 44's updates) has Qt
+  6.11, so the 6.7 build's floor is 6.11; a 6.7 on 6.10 is refused cleanly.
+- ~~**The Start menu's picture is blank for a user without one**~~ (done
+  2026-09-24: one of XP's 23 account pictures from the media, picked by the
+  user name, shown when KDE has none for the user; theirs isn't touched).
+- ~~**XP's Start button tooltip is "Click here to begin"**~~ (done
+  2026-09-24; still drawn in Plasma's tooltip colours, above).
 
 - **Date and Time Properties' zones are SP3's original 75.** A patched XP
   has more (Microsoft's later time zone updates: Caracas at -4:30,
@@ -14,7 +74,8 @@ Each says where it came from, so it can be picked up without re-deriving it.
   chrony.conf), root's to change; the box is disabled. Update Now restarts
   synchronization; the last sync's date isn't reported by timedated.
 
-- **Royale's clock is white on its light tray** (2026-09-23). Plasma draws
+- ~~**Royale's clock is white on its light tray**~~ (resolved 2026-09-24:
+  XPLasma's own clock takes the style's clock colour). (2026-09-23) Plasma draws
   the clock, like the task buttons, in the panel theme's one text colour
   (the taskbar's: white); the style's clock text is black (Clock TEXTCOLOR,
   now in PanelArt::trayTextColour, which the tray's fallback icons use).
@@ -25,7 +86,9 @@ Each says where it came from, so it can be picked up without re-deriving it.
   gets it in that colour too -- white on Luna Blue. The names are limited
   to tray ones ("-symbolic" status icons, Discover's update-*).
 
-- **A failed transfer leaves no balloon**, as with Plasma's own popups: a
+- ~~**A failed transfer leaves no balloon**~~ (resolved 2026-09-24: on 6.6
+  and 6.7 the job stays listed long enough; the balloon had been closed by
+  XpPopup itself, reading its state before it was updated). Was: a
   job terminated with an error (JobViewV3) leaves the popup model at once;
   the app shows its own error. XpPopup's error-balloon path stays for a job
   that is still listed when its error arrives.

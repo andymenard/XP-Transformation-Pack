@@ -110,6 +110,171 @@
     {
      "find": "    id: root\n",
      "replace": "    id: root\n\n    // XPLasma: the balloons' queue, for the system tray to draw.\n    readonly property var xpQueue: Notifications.Globals.xpBalloons ? Notifications.Globals.xpQueue : []\n    readonly property int xpCurrentId: Notifications.Globals.xpCurrentId\n    function xpRegisterIcon(id, item) { Notifications.Globals.xpRegisterIcon(id, item); }\n    function xpUnregisterIcon(id, item) { Notifications.Globals.xpUnregisterIcon(id, item); }\n    function xpIconClicked(id) { Notifications.Globals.xpRecall(id); }\n"
+    },
+    {
+     "find": "    readonly property int effectiveStatus: historyModel.activeJobsCount > 0\n",
+     "replace": "    // XPLasma: with XP's balloons, no icon of its own but Do Not Disturb's -- XP's\n    // tray had none; the balloons' icons and the copy dialog show the rest.\n    readonly property int effectiveStatus: Notifications.Globals.xpBalloons\n                     ? (Notifications.Globals.inhibited ? PlasmaCore.Types.ActiveStatus : PlasmaCore.Types.PassiveStatus)\n                     : historyModel.activeJobsCount > 0\n"
+    }
+   ],
+   "extra/XpPopup.qml": [
+    {
+     "find": "import \"global\"\n",
+     "replace": "import plasma.applet.org.kde.plasma.notifications\n"
+    }
+   ],
+   "extra/XpBalloon.qml": [
+    {
+     "find": "import org.kde.plasma.private.notifications as NotificationsApplet\n",
+     "replace": "import plasma.applet.org.kde.plasma.notifications as NotificationsApplet\n"
+    },
+    {
+     "find": "import \"global\"\n",
+     "replace": "import plasma.applet.org.kde.plasma.notifications\n"
+    }
+   ],
+   "taskmanager/Task.qml": [
+    {
+     "find": "            rightMargin: ((task.inPopup || task.tasksRoot.vertical) && taskList.columns > 1) ? TaskManagerApplet.LayoutMetrics.iconMargin : 0\n",
+     "replace": "            rightMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 2 : ((task.inPopup || task.tasksRoot.vertical) && taskList.columns > 1) ? TaskManagerApplet.LayoutMetrics.iconMargin : 0   // XPLasma: XP's 2px between buttons\n"
+    },
+    {
+     "find": "            leftMargin: adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))",
+     "replace": "            // XPLasma: XP's 16px icon, 10px in, centred.\n            leftMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 10 : adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: task.tasksRoot.xpTaskband && !task.inPopup ? Math.round((parent.height - 16) / 2) : adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: task.tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: task.tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))"
+    },
+    {
+     "find": "                    iconBox.width: Math.min(task.parent.minimumWidth, tasksRoot.height)\n",
+     "replace": "                    iconBox.width: task.tasksRoot.xpTaskband && !task.inPopup ? 16 : Math.min(task.parent.minimumWidth, tasksRoot.height)\n"
+    },
+    {
+     "find": "            leftMargin: taskFrame.margins.left + iconBox.width + TaskManagerApplet.LayoutMetrics.labelMargin\n",
+     "replace": "            leftMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 10 + 16 + 3 : taskFrame.margins.left + iconBox.width + TaskManagerApplet.LayoutMetrics.labelMargin   // XPLasma\n"
+    },
+    {
+     "find": "            topMargin: taskFrame.margins.top\n            rightMargin: taskFrame.margins.right + (task.audioStreamIcon",
+     "replace": "            topMargin: taskFrame.margins.top - (task.tasksRoot.xpTaskband && !task.inPopup ? 1 : 0)   // XPLasma: XP's baseline, 1px higher\n            rightMargin: taskFrame.margins.right + (task.audioStreamIcon"
+    },
+    {
+     "find": "            bottomMargin: taskFrame.margins.bottom\n        }\n\n        wrapMode",
+     "replace": "            bottomMargin: taskFrame.margins.bottom + (task.tasksRoot.xpTaskband && !task.inPopup ? 1 : 0)\n        }\n\n        wrapMode"
+    }
+   ]
+  }
+ },
+ "6.7": {
+  "image": "xplasma-plasma:6.7",
+  "qtFloor": "6.11",
+  "sources": {
+   "plasma-workspace": {
+    "version": "6.7.5",
+    "sha256": "94ab21e2243b7876f65c315f1e545081c6437f5bd0a041ca4fb6c2533ae874c9"
+   },
+   "plasma-desktop": {
+    "version": "6.7.5",
+    "sha256": "079fcf6b87d7bf65e3f2a4670d605fac9469344c279a285a98ad549332d7b53e"
+   }
+  },
+  "widgets": [
+   {
+    "id": "org.kde.plasma.systemtray",
+    "project": "plasma-workspace",
+    "dir": "applets/systemtray",
+    "files": {
+     "systemtray/main.qml": "qml/main.qml",
+     "systemtray/items/AbstractItem.qml": "qml/AbstractItem.qml"
+    },
+    "copies": {
+     "qml/PlasmaExpanderArrow.qml": "qml/ExpanderArrow.qml"
+    },
+    "extras": {
+     "ExpanderArrow.qml": "qml/ExpanderArrow.qml",
+     "XpNotificationIcons.qml": "qml/XpNotificationIcons.qml"
+    },
+    "register": {
+     "": [
+      "qml/PlasmaExpanderArrow.qml",
+      "qml/XpNotificationIcons.qml"
+     ]
+    }
+   },
+   {
+    "id": "org.kde.plasma.notifications",
+    "project": "plasma-workspace",
+    "dir": "applets/notifications",
+    "files": {
+     "notifications/main.qml": "main.qml",
+     "notifications/global/Globals.qml": "global/Globals.qml"
+    },
+    "extras": {
+     "XpPopup.qml": "XpPopup.qml",
+     "XpBalloon.qml": "XpBalloon.qml",
+     "XpCopyDialog.qml": "XpCopyDialog.qml",
+     "XpButton.qml": "XpButton.qml"
+    },
+    "register": {
+     "": [
+      "XpPopup.qml",
+      "XpBalloon.qml",
+      "XpCopyDialog.qml",
+      "XpButton.qml"
+     ]
+    }
+   },
+   {
+    "id": "org.kde.plasma.taskmanager",
+    "project": "plasma-desktop",
+    "dir": "applets/taskmanager",
+    "files": {
+     "taskmanager/main.qml": "qml/main.qml",
+     "taskmanager/Task.qml": "qml/Task.qml",
+     "taskmanager/code/layoutmetrics.js": "qml/code/LayoutMetrics.js"
+    }
+   }
+  ],
+  "rules": {
+   "systemtray/items/AbstractItem.qml": [
+    {
+     "find": "import QtQuick\n",
+     "replace": "import QtQuick\nimport QtQuick.Effects\n"
+    },
+    {
+     "find": "            id: iconContainer\n",
+     "replace": "            id: iconContainer\n{{tray-icon-shadow}}"
+    },
+    {
+     "find": "    readonly property bool inHiddenLayout: effectiveStatus === PlasmaCore.Types.PassiveStatus\n    readonly property bool inVisibleLayout: effectiveStatus === PlasmaCore.Types.ActiveStatus\n",
+     "replace": "    // XPLasma: a hidden item shown in the tray while it's expanded, XP-style.\n    readonly property int xpEffectiveStatus: effectiveStatus === PlasmaCore.Types.PassiveStatus && root.xpRevealHidden(itemId)\n        ? PlasmaCore.Types.ActiveStatus : effectiveStatus\n    readonly property bool inHiddenLayout: xpEffectiveStatus === PlasmaCore.Types.PassiveStatus\n    readonly property bool inVisibleLayout: xpEffectiveStatus === PlasmaCore.Types.ActiveStatus\n"
+    }
+   ],
+   "notifications/global/Globals.qml": [
+    {
+     "find": "import org.kde.kirigami as Kirigami\n",
+     "replace": "import org.kde.kirigami as Kirigami\nimport org.kde.ksvg as KSvg\n"
+    },
+    {
+     "find": "    id: globals\n",
+     "replace": "    id: globals\n{{xp-globals}}\n"
+    },
+    {
+     "find": "    function positionPopups() {\n",
+     "replace": "    function positionPopups() {\n        if (globals.xpBalloons) {\n            return;\n        }\n"
+    },
+    {
+     "find": "        delegate: NotificationPopup {\n",
+     "replace": "        delegate: globals.xpBalloons ? xpDelegate : stockDelegate\n        property Component xpDelegate: Component {\n        {{xp-delegate}}\n        }\n        property Component stockDelegate: Component {\n        NotificationPopup {\n"
+    },
+    {
+     "find": "        }\n        onObjectAdded: (index, object) => {\n            globals.positionPopups();\n",
+     "replace": "        }\n        }\n        onObjectAdded: (index, object) => {\n            if (globals.xpBalloons) {\n                globals.popupNotificationsModel.playSoundHint(globals.popupNotificationsModel.index(index, 0));\n                globals.xpAdvance();\n                return;\n            }\n            globals.positionPopups();\n"
+    }
+   ],
+   "notifications/main.qml": [
+    {
+     "find": "    id: root\n",
+     "replace": "    id: root\n\n    // XPLasma: the balloons' queue, for the system tray to draw.\n    readonly property var xpQueue: Notifications.Globals.xpBalloons ? Notifications.Globals.xpQueue : []\n    readonly property int xpCurrentId: Notifications.Globals.xpCurrentId\n    function xpRegisterIcon(id, item) { Notifications.Globals.xpRegisterIcon(id, item); }\n    function xpUnregisterIcon(id, item) { Notifications.Globals.xpUnregisterIcon(id, item); }\n    function xpIconClicked(id) { Notifications.Globals.xpRecall(id); }\n"
+    },
+    {
+     "find": "    readonly property int effectiveStatus: historyModel.activeJobsCount > 0\n",
+     "replace": "    // XPLasma: with XP's balloons, no icon of its own but Do Not Disturb's -- XP's\n    // tray had none; the balloons' icons and the copy dialog show the rest.\n    readonly property int effectiveStatus: Notifications.Globals.xpBalloons\n                     ? (Notifications.Globals.inhibited ? PlasmaCore.Types.ActiveStatus : PlasmaCore.Types.PassiveStatus)\n                     : historyModel.activeJobsCount > 0\n"
     }
    ],
    "extra/XpPopup.qml": [

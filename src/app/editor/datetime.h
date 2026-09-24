@@ -87,6 +87,7 @@ private:
     bool m_appliedSync = false;
     qint64 m_offset = 0;               // ms the shown time is ahead of the real one
     bool m_timeEdited = false;
+    bool m_zoneTouched = false;        // the zone list or its daylight box used, since opened / applied
     bool m_loading = false;
     QTimer *m_ticker = nullptr;
     QDateTime m_frozen;                // (screenshots: a fixed "now")

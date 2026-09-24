@@ -4,8 +4,8 @@
 #   ./install.sh [dev|release] [PREFIX]      default: dev, ~/.local
 #
 # Copies build/<mode>/ into PREFIX -- bin/xplasma, bin/xplasma-edit, the style
-# plugins under lib/xplasma/, and the Display Properties launcher, pointed at
-# the installed editor. (Styling Qt apps is `xplasma apply`'s job: it copies
+# plugins and the builds of Plasma's widgets under lib/xplasma/, and the
+# desktop entries, pointed at the installed editor. (Styling Qt apps is `xplasma apply`'s job: it copies
 # the plugin to where the session's Qt looks.)
 set -eu
 mode="${1:-dev}"
@@ -23,7 +23,16 @@ for m in 6 5; do
   mkdir -p "$d"
   cp "$from/lib/xplasma/qt$m/styles/libxplasma.so" "$d/.libxplasma.so.new" && mv -f "$d/.libxplasma.so.new" "$d/libxplasma.so"
 done
-desktop="$prefix/share/applications/fyi.hotsocket.xplasma.desktop"
-sed "s|^Exec=xplasma-edit|Exec=$prefix/bin/xplasma-edit|" "$from/share/applications/fyi.hotsocket.xplasma.desktop" > "$desktop"
+# XPLasma's builds of Plasma's widgets, per Plasma series (apply picks one).
+if [ -d "$from/lib/xplasma/forks" ]; then
+  rm -rf "$prefix/lib/xplasma/forks.new"
+  cp -r "$from/lib/xplasma/forks" "$prefix/lib/xplasma/forks.new"
+  rm -rf "$prefix/lib/xplasma/forks" && mv "$prefix/lib/xplasma/forks.new" "$prefix/lib/xplasma/forks"
+fi
+# The desktop entries (Display Properties, Date and Time), pointed at the
+# installed editor.
+for desktop in "$from"/share/applications/*.desktop; do
+  sed "s|^Exec=xplasma-edit|Exec=$prefix/bin/xplasma-edit|" "$desktop" > "$prefix/share/applications/${desktop##*/}"
+done
 command -v update-desktop-database >/dev/null && update-desktop-database -q "$prefix/share/applications" || true
 echo "installed $mode into $prefix"

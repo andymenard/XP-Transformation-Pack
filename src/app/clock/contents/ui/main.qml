@@ -39,7 +39,9 @@ PlasmoidItem {
             start();
         }
     }
-    readonly property string timeText: Qt.formatTime(now, Qt.locale().timeFormat(Locale.ShortFormat))
+    // The locale's short time, never with seconds (XP's clock showed none;
+    // some locales' short format has them -- C's: 10:33:20).
+    readonly property string timeText: Qt.formatTime(now, Qt.locale().timeFormat(Locale.ShortFormat).replace(/[.:]ss?/, ""))
 
     toolTipMainText: Qt.formatDate(now, Qt.locale().dateFormat(Locale.LongFormat))
     toolTipSubText: ""

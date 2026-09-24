@@ -58,6 +58,9 @@ PlasmoidItem {
     // The whole height of the panel, as XP's taskbar has its button.
     Plasmoid.constraintHints: Plasmoid.CanFillArea
     Plasmoid.icon: "start-here-kde"
+    // XP's tooltip over Start (not the widget's name and description)
+    toolTipMainText: i18n("Click here to begin")
+    toolTipSubText: ""
     preferredRepresentation: compactRepresentation
     compactRepresentation: StartButton { launcher: start }
     fullRepresentation: start.xpMenu ? xpMenu : null

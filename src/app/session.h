@@ -28,6 +28,10 @@ public:
     virtual bool call(const QString &service, const QString &path, const QString &interface, const QString &method,
                       const QVariantList &arguments = {}) = 0;
     virtual void signal(const QString &path, const QString &interface, const QString &name, const QVariantList &arguments = {}) = 0;
+    // A host program left running on its own: in `environment` (KEY=VALUE
+    // lines) if given, else this program's -- either way with this
+    // program's QT_PLUGIN_PATH (XPLasma's, or none).
+    virtual bool startDetached(const QStringList &argv, const QStringList &environment = {}) = 0;
 
     // Conveniences over those.
     bool writeConfig(const QString &file, const QStringList &groups, const QString &key, const QString &value,
@@ -37,8 +41,12 @@ public:
     void reconfigureKWin();
     // Stops plasmashell, runs `whileStopped` (plasmashell writes its layout
     // back when it quits, so the layout is edited with it down), starts it,
-    // and waits for its scripting interface.
+    // and waits for its scripting interface. Through systemd's user unit
+    // where the session has it; otherwise (a session without systemd:
+    // Slackware's, Gentoo's...) quit over D-Bus and started again.
     void restartPlasmaShell(const std::function<void()> &whileStopped = {});
+    // Whether plasmashell's scripting interface answered within `ms`.
+    bool waitForPlasmaShell(int ms = 20000);
 };
 
 // The real one: host::run, QtDBus.
@@ -50,6 +58,7 @@ public:
     bool call(const QString &service, const QString &path, const QString &interface, const QString &method,
               const QVariantList &arguments = {}) override;
     void signal(const QString &path, const QString &interface, const QString &name, const QVariantList &arguments = {}) override;
+    bool startDetached(const QStringList &argv, const QStringList &environment = {}) override;
 };
 
 } // namespace xpl

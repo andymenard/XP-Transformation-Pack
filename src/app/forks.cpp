@@ -237,15 +237,11 @@ std::optional<int> syncSources(const Series &series, const QString &pristine, co
 
 QString runningPlasma(Session &session)
 {
-    // plasmashell's own word -- started as the session starts it, not in
-    // this program's offscreen platform, which Plasma 6.6's crashes in.
-    static const QRegularExpression version(QStringLiteral("(\\d+\\.\\d+(\\.\\d+)?)"));
-    const host::Result r = session.run({QStringLiteral("env"), QStringLiteral("-u"), QStringLiteral("QT_QPA_PLATFORM"),
-                                        QStringLiteral("plasmashell"), QStringLiteral("--version")});
-    if (const auto m = version.match(QString::fromUtf8(r.out)); m.hasMatch())
-        return m.captured(1);
-    // Failing that, libPlasma's file name: libPlasma.so.6.6.4. (Where Qt's
-    // libraries are, and the usual places.)
+    // libPlasma's file name first -- libPlasma.so.6.7.5, released with
+    // Plasma, the same version -- as it needs nothing started: at login,
+    // before the session's display is up, plasmashell can't start even to
+    // say its version, and aborts (a "crash" the user would be told of).
+    // (Where Qt's libraries are, and the usual places.)
     QStringList dirs{QLibraryInfo::path(QLibraryInfo::LibrariesPath)};
     for (const char *d : {"/usr/lib64", "/usr/lib", "/usr/lib/x86_64-linux-gnu", "/usr/local/lib64", "/usr/local/lib"})
         dirs << QLatin1String(d);
@@ -254,6 +250,14 @@ QString runningPlasma(Session &session)
         for (const QString &name : QDir(dir).entryList({QStringLiteral("libPlasma.so.*")}, QDir::Files))
             if (const auto m = library.match(name); m.hasMatch())
                 return m.captured(1);
+    // Failing that, plasmashell's own word -- started as the session starts
+    // it, not in this program's offscreen platform, which Plasma 6.6's
+    // crashes in.
+    static const QRegularExpression version(QStringLiteral("(\\d+\\.\\d+(\\.\\d+)?)"));
+    const host::Result r = session.run({QStringLiteral("env"), QStringLiteral("-u"), QStringLiteral("QT_QPA_PLATFORM"),
+                                        QStringLiteral("plasmashell"), QStringLiteral("--version")});
+    if (const auto m = version.match(QString::fromUtf8(r.out)); m.hasMatch())
+        return m.captured(1);
     return QString();
 }
 
@@ -326,7 +330,50 @@ bool install(Session &session, const Choice &choice, State &state, QString *erro
     }
     state.settings.insert(QStringLiteral("forkPlugins"), installed);
     state.settings.insert(QStringLiteral("forkSeries"), choice.series);
+    state.settings.insert(QStringLiteral("forkPlasma"), runningPlasma(session));
+    state.settings.remove(QStringLiteral("forkLost"));
     return true;
+}
+
+bool installed(const State &state)
+{
+    return !state.settings.value(QStringLiteral("forkPlugins")).toArray().isEmpty();
+}
+
+Checked check(Session &session, State &state, QString *what)
+{
+    if (!installed(state))
+        return Checked::Fine;
+    const QString plasma = runningPlasma(session);
+    if (plasma.isEmpty())
+        return Checked::Fine;   // (can't tell: left as it is)
+    auto series = [](const QString &version) {
+        const QVersionNumber v = QVersionNumber::fromString(version);
+        return v.segmentCount() >= 2 ? QVersionNumber(v.majorVersion(), v.minorVersion()) : v;
+    };
+    // (the same series as when chosen: nothing to do -- the usual login)
+    if (series(plasma) == series(state.settings.value(QStringLiteral("forkPlasma")).toString()))
+        return Checked::Fine;
+    QStringList ids;
+    for (const QJsonValue &v : state.settings.value(QStringLiteral("forkPlugins")).toArray())
+        ids << QFileInfo(v.toString()).completeBaseName();
+    QString why;
+    if (const auto choice = choose(plasma, ids, &why)) {
+        if (choice->series == state.settings.value(QStringLiteral("forkSeries")).toString()) {
+            state.settings.insert(QStringLiteral("forkPlasma"), plasma);
+            return Checked::Fine;
+        }
+        if (install(session, *choice, state, &why)) {
+            if (what)
+                *what = QStringLiteral("Plasma %1: XPLasma's %2 build of its widgets installed").arg(plasma, choice->series);
+            return Checked::Replaced;
+        }
+    }
+    remove(state);
+    state.settings.insert(QStringLiteral("forkLost"), plasma);
+    if (what)
+        *what = QStringLiteral("Plasma %1: XPLasma's builds of its widgets taken off, Plasma's own back (%2)").arg(plasma, why);
+    return Checked::Removed;
 }
 
 void remove(State &state)
@@ -335,6 +382,7 @@ void remove(State &state)
         QFile::remove(v.toString());
     state.settings.remove(QStringLiteral("forkPlugins"));
     state.settings.remove(QStringLiteral("forkSeries"));
+    state.settings.remove(QStringLiteral("forkPlasma"));
 }
 
 } // namespace xpl::forks

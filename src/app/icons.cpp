@@ -67,7 +67,7 @@ const Mapping kMap[] = {
     {"shell32.dll", 269, "Categories", "system-users preferences-system-users"},
     {"shell32.dll", 250, "Categories", "preferences-desktop-display"},
     {"shell32.dll", 39, "Categories", "preferences-desktop-font"},
-    {"shell32.dll", 275, "Categories", "preferences-system-time"},
+    {"timedate.cpl", 200, "Categories", "preferences-system-time"},   // (Date and Time's own; shell32 275 is the pie of Performance and Maintenance)
     {"shell32.dll", 4, "Applications", "system-file-manager"},
     {"shell32.dll", 152, "MimeTypes", "text-plain text-x-generic"},
     {"shell32.dll", 1, "MimeTypes", "application-x-executable application-octet-stream unknown"},
@@ -229,7 +229,8 @@ QStringList iconSourceFiles()
     return files;
 }
 
-QString writeIconTheme(const QString &directory, const QString &inheritFrom, const QColor &trayGlyphs, QString *error)
+QString writeIconTheme(const QString &directory, const QString &inheritFrom, const QColor &trayGlyphs, QString *error,
+                       const QHash<QString, QMap<int, QImage>> &drawn)
 {
     const QString inherit = (inheritFrom.isEmpty() || inheritFrom == QLatin1String(kIconThemeId)
                              || inheritFrom.contains(QRegularExpression(QStringLiteral("[\\n\\r,/]"))))
@@ -330,6 +331,17 @@ QString writeIconTheme(const QString &directory, const QString &inheritFrom, con
         for (const char *name : {"emblem-symbolic-link", "emblem-symbolic-link-symbolic"})
             provenance.insert(QLatin1String(name), QJsonObject{{QStringLiteral("file"), QStringLiteral("shell32.dll")},
                                                             {QStringLiteral("group"), 30}, {QStringLiteral("sizes"), sizes}});
+    }
+
+    for (const auto &[name, images] : drawn.asKeyValueRange()) {
+        QJsonArray sizes;
+        for (const auto &[size, image] : images.asKeyValueRange()) {
+            const QString folder = QStringLiteral("%1x%1/actions").arg(size);
+            directories.insert(folder, {size, QStringLiteral("Actions")});
+            pkg.write(folder + QLatin1Char('/') + name + QLatin1String(".png"), image);
+            sizes.append(size);
+        }
+        provenance.insert(name, QJsonObject{{QStringLiteral("drawn"), true}, {QStringLiteral("sizes"), sizes}});
     }
 
     // Names XP has nothing for would be shortened ("...-inactive-symbolic"

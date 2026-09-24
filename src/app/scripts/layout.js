@@ -13,6 +13,9 @@
 var START = ${START};
 var THEME = ${THEME};
 var CLOCK = ${CLOCK};
+// This system's applications: desktop file id -> its file (Plasma's
+// scripting can't find one: applicationPath() gives the program).
+var DESKTOP_FILES = ${DESKTOP_FILES};
 var LAUNCHER_KEYS = ['favorites', 'systemFavorites', 'primaryActions', 'favoritesPortedToKAstats',
                      'systemApplications', 'paneSwap', 'favoritesDisplay', 'applicationsDisplay',
                      'alphaSort', 'pin', 'showActionButtonCaptions', 'compactMode'];
@@ -57,8 +60,36 @@ panels().forEach(function (p) {
         var l = icontasks.readConfig('launchers', '');
         launchers = (typeof l === 'string') ? (l.length ? l.split(',') : []) : l;
     }
+    // In the task manager's own URLs (applications:ID, preferred://KIND);
+    // Quick Launch knows only .desktop files' own. (Any not found here go.)
+    function desktopUrl(url) {
+        var id = url;
+        if (url.indexOf('preferred://') === 0)
+            id = defaultApplication(url.substring(12), true);
+        else if (url.indexOf('applications:') === 0)
+            id = url.substring(13);
+        else
+            return url;
+        var path = id ? DESKTOP_FILES[id] : '';
+        return path ? 'file://' + path : '';
+    }
+    function desktopUrls(urls) {
+        return urls.map(desktopUrl).filter(function (url) { return url.length > 0; });
+    }
+    launchers = desktopUrls(launchers);
+    // (None pinned, none added: XP's own came with Quick Launch off, and
+    // an empty one only shows Plasma's "add launchers" placeholder.)
     var quick = (byType['org.kde.plasma.quicklaunch'] || [])[0];
-    if (!quick) {
+    if (quick) {
+        // (one XPLasma set up with the task manager's URLs: in its own)
+        quick.currentConfigGroup = ['General'];
+        var q = quick.readConfig('launcherUrls', '');
+        q = (typeof q === 'string') ? (q.length ? q.split(',') : []) : q;
+        var fixed = desktopUrls(q);
+        if (fixed.join(',') !== q.join(','))
+            quick.writeConfig('launcherUrls', fixed);
+    }
+    if (!quick && launchers.length > 0) {
         quick = p.addWidget('org.kde.plasma.quicklaunch');
         quick.currentConfigGroup = ['General'];
         quick.writeConfig('launcherUrls', launchers);
@@ -112,7 +143,7 @@ panels().forEach(function (p) {
     spacer.currentConfigGroup = ['General'];
     spacer.writeConfig('expanding', false);
     spacer.writeConfig('length', 1);
-    var head = [start.id, spacer.id, quick.id, tasks.id];
+    var head = [start.id, spacer.id].concat(quick ? [quick.id] : [], [tasks.id]);
     var tail = clock ? [clock.id] : [];   // (the clock last, after the tray)
     var rest = p.widgets().map(function (w) { return w.id; })
         .filter(function (id) { return head.indexOf(id) < 0 && tail.indexOf(id) < 0 && !removed[id]; });

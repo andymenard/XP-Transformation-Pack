@@ -1,6 +1,6 @@
 # The app: a library holding everything (theme library, generators, apply,
 # setup), and the thin programs over it. Qt 6 only.
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Network DBus)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network DBus)
 
 set(XPLASMA_VERSION 0.1.0)
 
@@ -17,6 +17,7 @@ add_library(xplasma-app STATIC
   colors.cpp
   decoration.cpp
   panel.cpp
+  controls.cpp
   media.cpp
   startbutton.cpp
   gdifont.cpp
@@ -37,7 +38,7 @@ add_library(xplasma-app STATIC
 target_include_directories(xplasma-app PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_compile_definitions(xplasma-app PUBLIC XPLASMA_VERSION="${XPLASMA_VERSION}")
 target_link_libraries(xplasma-app
-  PUBLIC xplasma-core Qt6::Core Qt6::Gui Qt6::Network Qt6::DBus
+  PUBLIC xplasma-core Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network Qt6::DBus
   PRIVATE xplasma::archive)
 
 # XP's stock Windows Classic schemes (see hivedef.h), as :/schemes/*.theme.
@@ -85,4 +86,4 @@ set_tests_properties(editor-screenshots PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=o
 # Installed as <prefix>/bin/xplasma{,-edit}, beside lib/xplasma (the style
 # plugins) and the launcher; install.sh points the launcher at the real path.
 install(TARGETS xplasma-cli xplasma-edit RUNTIME DESTINATION bin)
-install(FILES data/fyi.hotsocket.xplasma.desktop DESTINATION share/applications)
+install(FILES data/fyi.hotsocket.xplasma.desktop data/fyi.hotsocket.xplasma.datetime.desktop DESTINATION share/applications)

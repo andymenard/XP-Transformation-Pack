@@ -99,6 +99,9 @@ std::optional<QString> patched(const QString &file, const QString &source, QStri
         if (!unless.isEmpty() && text.contains(unless))
             continue;
         const QString find = rule.value(QStringLiteral("find")).toString();
+        // (optional: for what only some Plasmas have -- skipped where it's not)
+        if (rule.value(QStringLiteral("optional")).toBool() && !text.contains(find))
+            continue;
         if (text.count(find) != 1) {
             fail(error, QStringLiteral("this Plasma's %1 isn't laid out as XPLasma expects (\"%2\"); not patching it")
                             .arg(file, find.left(60).trimmed()));
@@ -267,10 +270,24 @@ QString launchCommand(const QString &program, const QStringList &arguments)
     return QStringLiteral("systemd-run --user --collect --quiet -- %1 || %1").arg(run);
 }
 
+// Up to Plasma 6.3 the tray was two packages: org.kde.plasma.systemtray a
+// thin wrapper, the tray itself org.kde.plasma.private.systemtray (6.4 made
+// them one, near enough line for line) -- so there, that's the one patched.
+const QString kOldTrayId = QStringLiteral("org.kde.plasma.private.systemtray");
+static QList<Widget> panelWidgets()
+{
+    QList<Widget> list = kPanelWidgets;
+    if (!systemDir(QLatin1String("plasma/plasmoids/") + kOldTrayId).isEmpty())
+        for (Widget &w : list)
+            if (w.key == QLatin1String("systemtray"))
+                w.id = kOldTrayId;
+    return list;
+}
+
 QStringList builtInPanelWidgets()
 {
     QStringList ids;
-    for (const Widget &w : kPanelWidgets)
+    for (const Widget &w : panelWidgets())
         if (systemDir(QLatin1String("plasma/plasmoids/") + w.id).isEmpty())
             ids << w.id;
     return ids;
@@ -281,7 +298,7 @@ static QList<Widget> packagedPanelWidgets()
 {
     const QStringList builtIn = builtInPanelWidgets();
     QList<Widget> out;
-    for (const Widget &w : kPanelWidgets)
+    for (const Widget &w : panelWidgets())
         if (!builtIn.contains(w.id))
             out << w;
     return out;
@@ -305,6 +322,7 @@ void removePanelWidgets(const QString &plasmoids)
     QStringList ids = kRetiredWidgets;
     for (const Widget &w : kPanelWidgets)
         ids << w.id;
+    ids << kOldTrayId;
     removeWidgets(plasmoids, ids);
 }
 

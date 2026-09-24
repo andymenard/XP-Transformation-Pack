@@ -23,7 +23,10 @@ Item {
     onRecentLimitChanged: Qt.callLater(refresh)
     property var allApps: null
     readonly property string userName: user.fullName || user.loginName
-    readonly property url userPicture: user.faceIconUrl
+    // The user's own picture, or else the XP one XPLasma gave them (as XP
+    // gave every account one of its own).
+    readonly property url userPicture: user.faceIconUrl.toString() !== "" ? user.faceIconUrl
+                                                                           : (launcher.themeData?.userPicture ?? "")
     readonly property bool canLogout: session.canLogout
     readonly property bool canShutdown: session.canShutdown
 
@@ -49,11 +52,15 @@ Item {
             const label = String(model.data(model.index(row, 0), Qt.DisplayRole) || "");
             if (!label || role(model, row, "isSeparator")) continue;
             const identity = String(role(model, row, "favoriteId") || role(model, row, "url") || label);
-            // (Recent use can list one application more than once.)
-            if (excluded.indexOf(identity) !== -1 || result.some(entry => entry.identity === identity)) continue;
+            const url = String(role(model, row, "url") || "");
+            // (Recent use can list one application more than once; and two
+            // favourites can be one application -- preferred://browser and
+            // firefox.desktop, as openSUSE's defaults have them.)
+            const same = entry => entry.identity === identity || (url !== "" && entry.url === url);
+            if (excluded.indexOf(identity) !== -1 || (url !== "" && excluded.indexOf(url) !== -1) || result.some(same)) continue;
             result.push({label: label, icon: model.data(model.index(row, 0), Qt.DecorationRole),
                          description: String(role(model, row, "description") || ""), identity: identity,
-                         favoriteId: String(role(model, row, "favoriteId") || ""), url: String(role(model, row, "url") || ""),
+                         favoriteId: String(role(model, row, "favoriteId") || ""), url: url,
                          action: {model: model, row: row, identity: identity}});
         }
         return result;
@@ -63,7 +70,7 @@ Item {
         // Use the launcher's real Plasma favorites, including order and an
         // intentionally empty list. No private pins or synthetic defaults.
         pinned = entries(favorites, favorites ? favorites.count : 0, []);
-        const excluded = pinned.map(entry => entry.identity);
+        const excluded = pinned.map(entry => entry.identity).concat(pinned.map(entry => entry.url).filter(url => url !== ""));
         let result = entries(usage, recentLimit, excluded);
         for (const entry of result) {
             entry.description = "";

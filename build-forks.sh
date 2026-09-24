@@ -17,12 +17,13 @@
 #              API and to need no Qt newer than the series' own floor
 #
 # Needs podman, the series' image (containers/plasma-SERIES.Containerfile),
-# and the dev build's xplasma (./build.sh dev).
+# and the dev build's xplasma -- brought up to date first (./build.sh dev,
+# incremental), since the patches it applies are built into it.
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 xplasma="$here/build/dev/bin/xplasma"
-[ -x "$xplasma" ] || { echo "build-forks: build the app first (./build.sh dev)" >&2; exit 1; }
 [ $# -gt 0 ] || { echo "usage: $0 SERIES..." >&2; exit 2; }
+"$here/build.sh" dev >/dev/null || { echo "build-forks: the dev build failed (./build.sh dev)" >&2; exit 1; }
 
 for series in "$@"; do
     root="$here/build/plasma/$series"

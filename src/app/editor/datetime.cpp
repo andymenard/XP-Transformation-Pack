@@ -9,6 +9,10 @@
 #include <QDBusInterface>
 #include <QDBusReply>
 #include <QDir>
+#include <QRegularExpression>
+#include <QProcess>
+#include <QFileInfo>
+#include <QEventLoop>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QKeyEvent>
@@ -49,13 +53,60 @@ QVariant timedated(const char *property)
     return i.isValid() ? i.property(property) : QVariant();
 }
 
+// A command run as root through pkexec (the password dialog the desktop's
+// polkit agent's), the event loop running meanwhile; empty, or why it failed.
+QString asRoot(const QStringList &argv)
+{
+    QProcess process;
+    QEventLoop loop;
+    QObject::connect(&process, &QProcess::finished, &loop, &QEventLoop::quit);
+    QObject::connect(&process, &QProcess::errorOccurred, &loop, &QEventLoop::quit);
+    process.start(QStringLiteral("pkexec"), argv);
+    if (process.state() != QProcess::NotRunning)
+        loop.exec();
+    if (process.error() == QProcess::FailedToStart)
+        return QStringLiteral("there's no way to change it here (neither systemd's time service nor pkexec).");
+    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
+        const QString err = QString::fromLocal8Bit(process.readAllStandardError()).trimmed();
+        return err.isEmpty() ? QStringLiteral("not allowed.") : err;
+    }
+    return QString();
+}
+
+// Without timedated (a system without systemd): what it would do, done
+// directly as root -- the zone as /etc/localtime, the time into the system
+// clock and the hardware clock. Synchronization is the system's own
+// business there (ntpd, chrony...), not settable from here.
+QString withoutTimedated(const QString &method, const QVariantList &args)
+{
+    if (method == QLatin1String("SetTimezone")) {
+        const QString zone = args.value(0).toString();
+        static const QRegularExpression name(QStringLiteral("^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*$"));
+        const QString file = QStringLiteral("/usr/share/zoneinfo/") + zone;
+        if (!name.match(zone).hasMatch() || !QFileInfo(file).isFile())
+            return QStringLiteral("this system has no time zone %1.").arg(zone);
+        return asRoot({QStringLiteral("ln"), QStringLiteral("-sf"), file, QStringLiteral("/etc/localtime")});
+    }
+    if (method == QLatin1String("SetTime")) {
+        const qint64 seconds = args.value(0).toLongLong() / 1000000;
+        return asRoot({QStringLiteral("sh"), QStringLiteral("-c"),
+                       QStringLiteral("date -u -s @%1 >/dev/null && { hwclock --systohc 2>/dev/null || true; }").arg(seconds)});
+    }
+    return QStringLiteral("this system keeps its clock synchronized its own way (no systemd time service).");
+}
+
+bool haveTimedated()
+{
+    return QDBusInterface(kService, kPath, kService, QDBusConnection::systemBus()).isValid();
+}
+
 // A timedated call, asking for authorization as needed (the password dialog
 // is the desktop's polkit agent's); empty, or why it failed.
 QString timedatedCall(const QString &method, const QVariantList &args)
 {
     QDBusInterface i(kService, kPath, kService, QDBusConnection::systemBus());
     if (!i.isValid())
-        return QStringLiteral("systemd's time service (timedated) isn't available.");
+        return withoutTimedated(method, args);
     i.setTimeout(5 * 60 * 1000);   // (while someone types a password)
     const QDBusMessage reply = i.callWithArgumentList(QDBus::BlockWithGui, method, args);
     return reply.type() == QDBusMessage::ErrorMessage ? reply.errorMessage() : QString();
@@ -133,6 +184,15 @@ Captions captions()
 
 // --- the calendar ---------------------------------------------------------------
 
+// The calendar's locale: the user's -- or, for the C locale (a machine
+// with none set), English, as XP's: C's narrow day names are "1".."7" and
+// its week starts on Monday.
+QLocale calendarLocale()
+{
+    const QLocale locale;
+    return locale.language() == QLocale::C ? QLocale(QLocale::English, QLocale::UnitedStates) : locale;
+}
+
 // XP's month (CalWndMain), as measured on XP: a sunken edge; the days of the
 // week on the inactive caption's colour, 18px rows; each column a field two
 // digits wide on its centre, the day's name at its left, the day's number at
@@ -170,7 +230,7 @@ protected:
     }
     int firstColumn() const
     {
-        const int first = QLocale().firstDayOfWeek();
+        const int first = calendarLocale().firstDayOfWeek();
         return (QDate(m_date.year(), m_date.month(), 1).dayOfWeek() - first + 7) % 7;
     }
     QRect numberRect(int day) const
@@ -188,7 +248,7 @@ protected:
         p.fillRect(rect(), pal.color(QPalette::Base));
         p.fillRect(QRect(kEdge, kEdge, width() - 2 * kEdge, kRow), m_captions.inactive);
         sunkenEdge(p, rect(), bevels(this));
-        const QLocale locale;
+        const QLocale locale = calendarLocale();
         p.setPen(m_captions.inactiveText);
         for (int c = 0; c < 7; ++c) {
             const int day = (locale.firstDayOfWeek() - 1 + c) % 7 + 1;
@@ -240,6 +300,16 @@ protected:
     }
     void focusInEvent(QFocusEvent *) override { update(); }
     void focusOutEvent(QFocusEvent *) override { update(); }
+    void changeEvent(QEvent *event) override
+    {
+        // Another look put on while it's open: its captions, as XP's
+        // calendar takes the new system colours.
+        if (event->type() == QEvent::PaletteChange || event->type() == QEvent::StyleChange) {
+            m_captions = captions();
+            update();
+        }
+        QWidget::changeEvent(event);
+    }
 
 private:
     void choose(const QDate &date)
@@ -535,6 +605,17 @@ QWidget *DateTimeProperties::timeZoneTab()
         updateZoneLabel();
         updateApply();
     });
+    // (Only the user's own picks change the zone: the one shown for the
+    // computer's can be another name for it -- Etc/UTC shows as XP's
+    // Greenwich Standard Time, Atlantic/Reykjavik.)
+    connect(m_zone, &QComboBox::activated, this, [this] {
+        m_zoneTouched = true;
+        updateApply();
+    });
+    connect(m_daylight, &QCheckBox::clicked, this, [this] {
+        m_zoneTouched = true;
+        updateApply();
+    });
     return page;
 }
 
@@ -598,7 +679,9 @@ void DateTimeProperties::readTimeService()
     const QString server = sync.isValid() ? sync.property("ServerName").toString() : QString();
     m_server->clear();
     m_server->addItem(server.isEmpty() ? QStringLiteral("(your system's time service)") : server);
-    if (!can)
+    if (!haveTimedated())
+        m_syncStatus->setText(QStringLiteral("This computer keeps its time synchronized its own way, not through systemd's time service."));
+    else if (!can)
         m_syncStatus->setText(QStringLiteral("This computer has no time service that can synchronize it."));
     else if (m_appliedSync && synchronized)
         m_syncStatus->setText(server.isEmpty() ? QStringLiteral("The time has been successfully synchronized.")
@@ -703,7 +786,7 @@ void DateTimeProperties::updateApply()
     QByteArray zone = i >= 0 && i < m_zones.size() ? m_zones.at(i).iana : m_appliedZone;
     if (i >= 0 && m_daylight && !m_daylight->isChecked() && m_daylight->isEnabled())
         zone = standardOnly(zone);
-    const bool changed = m_timeEdited || std::abs(m_offset) > 1000 || zone != m_appliedZone
+    const bool changed = m_timeEdited || std::abs(m_offset) > 1000 || (m_zoneTouched && zone != m_appliedZone)
                          || (m_sync && m_sync->isChecked() != m_appliedSync);
     m_apply->setEnabled(changed);
 }
@@ -718,9 +801,9 @@ bool DateTimeProperties::apply()
         if (const QString why = timedatedCall(QStringLiteral("SetNTP"), {m_sync->isChecked(), true}); !why.isEmpty())
             errors << why;
     }
-    // The zone.
+    // The zone (if the user picked one: see m_zoneTouched).
     const int i = m_zone->currentIndex();
-    if (i >= 0 && i < m_zones.size()) {
+    if (m_zoneTouched && i >= 0 && i < m_zones.size()) {
         QByteArray zone = m_zones.at(i).iana;
         if (!m_daylight->isChecked() && m_daylight->isEnabled())
             zone = standardOnly(zone);
@@ -729,6 +812,7 @@ bool DateTimeProperties::apply()
                 errors << why;
             } else {
                 m_appliedZone = zone;
+                m_zoneTouched = false;
                 State state = State::load();
                 state.settings.insert(QStringLiteral("dateTimeZone"), m_zones.at(i).key);
                 state.save();

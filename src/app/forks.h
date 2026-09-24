@@ -64,8 +64,8 @@ std::optional<int> syncSources(const Series &series, const QString &pristine, co
 
 // --- Installing them ---------------------------------------------------------
 
-// The Plasma installed ("6.6.4": plasmashell --version, or libPlasma's
-// file name); empty if unknown.
+// The Plasma installed ("6.6.4": libPlasma's file name, or failing that
+// plasmashell --version); empty if unknown.
 QString runningPlasma(Session &session);
 
 struct Choice
@@ -83,6 +83,14 @@ std::optional<Choice> choose(const QString &plasma, const QStringList &ids, QStr
 // Puts a choice's plugins where the session's Qt looks first, so Plasma
 // loads them in place of its own; recorded in `state` for remove().
 bool install(Session &session, const Choice &choice, State &state, QString *error = nullptr);
+bool installed(const State &state);
 void remove(State &state);
+
+// At login, before Plasma's shell starts (XPLasma's env script runs it): the
+// builds installed still fit the Plasma there is -- or, after an upgrade to
+// another series, the build for that one instead, or none (Plasma's own
+// widgets back: a build that doesn't load leaves the panel without them).
+enum class Checked { Fine, Replaced, Removed };
+Checked check(Session &session, State &state, QString *what = nullptr);
 
 } // namespace xpl::forks

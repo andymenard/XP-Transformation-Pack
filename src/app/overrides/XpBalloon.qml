@@ -35,18 +35,23 @@ PlasmaCore.Dialog {
 
     // The tip at the sender's tray icon; the box as far right as the
     // screen allows, like XP's, and the stem wherever that leaves the tip.
-    function place() {
+    function tipAt() {
         const icon = Globals.xpIcons[popup.notificationId] || null;
         const screen = Globals.screenRect;
-        let tip;
         if (icon && icon.Window.window) {
             const g = icon.mapToGlobal(icon.width / 2, 0);
-            stemUp = g.y < screen.y + screen.height / 2;
-            tip = stemUp ? icon.mapToGlobal(icon.width / 2, icon.height) : g;
-        } else {
-            stemUp = false;
-            tip = Qt.point(screen.x + screen.width - 40, screen.y + screen.height);
+            const up = g.y < screen.y + screen.height / 2;
+            const tip = up ? icon.mapToGlobal(icon.width / 2, icon.height) : g;
+            return {x: Math.round(tip.x), y: Math.round(tip.y), up: up};
         }
+        return {x: screen.x + screen.width - 40, y: screen.y + screen.height, up: false};
+    }
+    property var placedTip: null
+    function place() {
+        const screen = Globals.screenRect;
+        const tip = tipAt();
+        placedTip = tip;
+        stemUp = tip.up;
         const w = content.width, h = content.height;
         let x = tip.x - (body.width - 13);
         x = Math.max(screen.x + 2, Math.min(x, screen.x + screen.width - w - 2));
@@ -62,6 +67,19 @@ PlasmaCore.Dialog {
         Connections {
             target: Globals
             function onXpIconsChanged() { if (balloon.visible) Qt.callLater(balloon.place) }
+        }
+        // ...and after it, wherever the tray moves it (icons coming and
+        // going beside it, the panel laying out again).
+        Timer {
+            interval: 100
+            repeat: true
+            running: balloon.visible
+            onTriggered: {
+                const tip = balloon.tipAt();
+                const was = balloon.placedTip;
+                if (!was || tip.x !== was.x || tip.y !== was.y || tip.up !== was.up)
+                    balloon.place();
+            }
         }
 
         // How long it stays, as Plasma's popups: Plasma's default, the

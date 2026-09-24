@@ -1,6 +1,7 @@
 #include "app/apply.h"
 
 #include "app/colors.h"
+#include "app/controls.h"
 #include "app/decoration.h"
 #include "app/forks.h"
 #include "app/icons.h"
@@ -28,6 +29,9 @@
 #include <QThread>
 #include <QUrl>
 
+#include <cstdio>
+#include <fcntl.h>
+
 namespace xpl {
 
 namespace {
@@ -45,17 +49,33 @@ QString share(const QString &relative)
 }
 
 // A package directory built under `from` moved into place at `to`.
+// Copied in beside the old one, then swapped for it in one step: whatever
+// is watching (every app, for an icon theme in use) never finds it missing
+// or half there.
 bool install(const QString &from, const QString &to, QString *error)
 {
-    QDir(to).removeRecursively();
-    QDir().mkpath(QFileInfo(to).absolutePath());
+    const QString fresh = to + QLatin1String(".xplasma-new");
+    QDir(fresh).removeRecursively();
+    QDir().mkpath(fresh);
     QDirIterator it(from, QDir::Files, QDirIterator::Subdirectories);
     while (it.hasNext()) {
         const QString file = it.next();
-        const QString target = to + file.mid(from.size());
+        const QString target = fresh + file.mid(from.size());
         QDir().mkpath(QFileInfo(target).absolutePath());
-        if (!QFile::copy(file, target))
-            return fail(error, QStringLiteral("can't install %1").arg(target));
+        if (!QFile::copy(file, target)) {
+            QDir(fresh).removeRecursively();
+            return fail(error, QStringLiteral("can't install %1").arg(to + file.mid(from.size())));
+        }
+    }
+    const QByteArray a = QFile::encodeName(fresh), b = QFile::encodeName(to);
+    if (QFileInfo(to).isDir() && ::renameat2(AT_FDCWD, a.constData(), AT_FDCWD, b.constData(), RENAME_EXCHANGE) == 0) {
+        QDir(fresh).removeRecursively();   // (the old one, now)
+        return true;
+    }
+    QDir(to).removeRecursively();   // (none there, or a filesystem that can't swap)
+    if (!QDir().rename(fresh, to)) {
+        QDir(fresh).removeRecursively();
+        return fail(error, QStringLiteral("can't install %1").arg(to));
     }
     return true;
 }
@@ -103,7 +123,8 @@ void applyDecoration(Session &session, const QString &id)
 
 // KWin rules for XPLasma's own windows that XP gave no minimize or maximize
 // box: the copy dialog (plasmashell's, titled "Copying..." and the like) and
-// the editor (Display Properties and its dialogs, property sheets on XP).
+// the editor (Display Properties and its dialogs, and Date and Time
+// Properties, property sheets on XP).
 // Wayland has no way for a window to say so itself. With neither box, the
 // decoration shows Close alone, as XP does. Other rules are left as they are.
 const QString kRulesFile = QStringLiteral("kwinrulesrc");
@@ -126,9 +147,9 @@ const QList<std::pair<QString, Rule>> kRules{
           {QStringLiteral("titlematch"), QStringLiteral("3")}}        // regular expression
          + kNoBoxes},
     {QStringLiteral("xplasma-display-properties"),
-     Rule{{QStringLiteral("Description"), QStringLiteral("XPLasma: Display Properties (Close only)")},
-          {QStringLiteral("wmclass"), QStringLiteral("fyi.hotsocket.xplasma")},
-          {QStringLiteral("wmclassmatch"), QStringLiteral("1")}}
+     Rule{{QStringLiteral("Description"), QStringLiteral("XPLasma: Display Properties, Date and Time Properties (Close only)")},
+          {QStringLiteral("wmclass"), QStringLiteral("^fyi\\.hotsocket\\.xplasma(\\.datetime)?$")},
+          {QStringLiteral("wmclassmatch"), QStringLiteral("3")}}      // regular expression
          + kNoBoxes},
 };
 
@@ -209,6 +230,24 @@ QString iconHelper()
 }
 
 } // namespace
+
+// The system's applications, as desktop file ids (a subfolder's joined on
+// with "-", as the spec has it) to their files -- the first found, the
+// user's own before the system's.
+QVariantMap desktopFiles()
+{
+    QVariantMap files;
+    for (const QString &root : QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation)) {
+        QDirIterator it(root, {QStringLiteral("*.desktop")}, QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            const QString path = it.next();
+            const QString id = path.mid(root.size() + 1).replace(QLatin1Char('/'), QLatin1Char('-'));
+            if (!files.contains(id))
+                files.insert(id, path);
+        }
+    }
+    return files;
+}
 
 QString scriptFrom(const QString &name, const QVariantMap &values)
 {
@@ -377,7 +416,7 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
             state.settings.insert(QStringLiteral("previousIconTheme"), previous);
         QString why;
         // (the tray's icons XP has no art for, in the tray's text colour)
-        iconTheme = writeIconTheme(build + QLatin1String("/icons"), previous, panelArt(look).trayTextColour, &why);
+        iconTheme = writeIconTheme(build + QLatin1String("/icons"), previous, panelArt(look).trayTextColour, &why, spinIcons(look));
         if (iconTheme.isEmpty())
             report(o, QStringLiteral("  no XP icons: %1").arg(why));
     }
@@ -393,7 +432,7 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
     QDir().mkpath(QFileInfo(colorsDest).absolutePath());
     {
         QSaveFile f(colorsDest);
-        if (!f.open(QIODevice::WriteOnly) || f.write(colorScheme(look.system, look.id)) < 0 || !f.commit())
+        if (!f.open(QIODevice::WriteOnly) || f.write(colorScheme(look.system, look.id, {panelArt(look).panelColour, panelArt(look).textColour})) < 0 || !f.commit())
             return fail(error, QStringLiteral("%1: %2").arg(colorsDest, f.errorString()));
     }
     if (o.taskbar) {
@@ -439,6 +478,9 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
         report(o, QStringLiteral("  text stays as it was: %1").arg(why));
     installWindowRules(session);
     applyDecoration(session, look.id);
+    // (Its name forgotten first: plasma-apply-colorscheme won't apply the
+    // scheme that's already current -- a look applied again, regenerated.)
+    session.writeConfig(QStringLiteral("kdeglobals"), {QStringLiteral("General")}, QStringLiteral("ColorScheme"), QString(), false);
     if (!session.run({QStringLiteral("plasma-apply-colorscheme"), look.id}).ok())
         report(o, QStringLiteral("  plasma-apply-colorscheme failed"));
     applyFonts(session, fontSettings(look.system));
@@ -480,6 +522,7 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
                                                        {QStringLiteral("CLOCK_POINTS"), clock.points()},
                                                        {QStringLiteral("CLOCK_WEIGHT"), clock.weight},
                                                        {QStringLiteral("CLOCK"), QLatin1String(kClockPlasmoidId)},
+                                                       {QStringLiteral("DESKTOP_FILES"), desktopFiles()},
                                                        {QStringLiteral("CLOCK_COLOR"), panelArt(look).trayTextColour.name()},
                                                        {QStringLiteral("CLOCK_COMMAND"), overrides::launchCommand(editorPath(), {QStringLiteral("--date-time")})}}),
                                            &why);
@@ -558,9 +601,15 @@ bool resetDesktop(Session &session, const std::function<void(const QString &)> &
         say(QStringLiteral("  ") + line);
     overrides::removeTitleShadows(share(QStringLiteral("kwin/aurorae/aurorae.qml")));
     removeWindowRules(session);
-    overrides::removePanelWidgets(share(QStringLiteral("plasma/plasmoids")));
-    overrides::removeDesktopMenu(share(QStringLiteral("plasma/plasmoids")));
-    forks::remove(state);
+    // Plasma's own widgets back, in a shell of their own, before Plasma's
+    // layout is: the running shell has XPLasma's loaded, and given the
+    // default panel it would load Plasma's beside them -- with builds of
+    // them, the same QML module registered twice, which Qt won't survive.
+    session.restartPlasmaShell([&] {
+        overrides::removePanelWidgets(share(QStringLiteral("plasma/plasmoids")));
+        overrides::removeDesktopMenu(share(QStringLiteral("plasma/plasmoids")));
+        forks::remove(state);
+    });
 
     say(QStringLiteral("Clearing the XP fonts ..."));
     xptext::revert(session, state);
@@ -576,7 +625,7 @@ bool resetDesktop(Session &session, const std::function<void(const QString &)> &
     const host::Result r = session.run({QStringLiteral("plasma-apply-lookandfeel"), QStringLiteral("-a"), lookAndFeel, QStringLiteral("--resetLayout")});
     if (!r.ok())
         return fail(error, QStringLiteral("plasma-apply-lookandfeel failed: %1").arg(QString::fromUtf8(r.err).trimmed()));
-    session.restartPlasmaShell();
+    session.waitForPlasmaShell();   // (it may restart the shell itself)
 
     // The wallpaper from the global theme's own defaults, set outright.
     for (const QString &root : paths::systemData()) {

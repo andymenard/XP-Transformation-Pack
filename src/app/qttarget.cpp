@@ -4,6 +4,7 @@
 #include "core/themefile.h"
 
 #include <QCryptographicHash>
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -85,11 +86,15 @@ QStringList sessionPluginPath(Session &session)
 
 void setSessionPluginPath(Session &session, const QStringList &path)
 {
+    // (and this program's own: a shell it starts itself, in a session
+    // without systemd, has it from here)
     if (path.isEmpty()) {
         session.run({QStringLiteral("systemctl"), QStringLiteral("--user"), QStringLiteral("unset-environment"), QStringLiteral("QT_PLUGIN_PATH")});
+        qunsetenv("QT_PLUGIN_PATH");
         return;
     }
     const QString value = QStringLiteral("QT_PLUGIN_PATH=") + path.join(QLatin1Char(':'));
+    qputenv("QT_PLUGIN_PATH", path.join(QLatin1Char(':')).toLocal8Bit());
     session.run({QStringLiteral("systemctl"), QStringLiteral("--user"), QStringLiteral("set-environment"), value});
     session.run({QStringLiteral("dbus-update-activation-environment"), QStringLiteral("--systemd"), value});
 }
@@ -111,10 +116,19 @@ bool ensurePluginPath(Session &session, QString *error)
     QStringList roots{paths::stylePluginRoot(6)};
     if (QFileInfo::exists(installedPlugin(5)))
         roots << paths::stylePluginRoot(5);
+    // And, before Plasma's shell starts, XPLasma's builds of its widgets
+    // checked against the Plasma there is (an upgrade to another series
+    // would leave the panel without them).
+    QByteArray check;
+    if (const QString cli = QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("xplasma")); QFileInfo(cli).isExecutable()) {
+        QByteArray quoted = cli.toUtf8();
+        quoted.replace('\'', "'\\''");
+        check = "[ -x '" + quoted + "' ] && '" + quoted + "' check-forks >/dev/null 2>&1\n";
+    }
     if (!writeAtomically(envScript(),
                          QByteArray("# Written by XPLasma: lets Qt find XPLasma's user-local plugins first.\n"
                                     "export QT_PLUGIN_PATH=\"")
-                             + roots.join(QLatin1Char(':')).toUtf8() + "${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}\"\n",
+                             + roots.join(QLatin1Char(':')).toUtf8() + "${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}\"\n" + check,
                          error))
         return false;
     QStringList path = roots;
