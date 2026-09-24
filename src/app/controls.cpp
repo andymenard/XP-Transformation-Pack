@@ -364,10 +364,31 @@ Elements scrollBar(QStyle *style, const Look &look)
             style->drawComplexControl(QStyle::CC_ScrollBar, &d, &p, nullptr);
             return image;
         };
+        const QString background = horizontal ? QStringLiteral("background-horizontal-") : QStringLiteral("background-vertical-");
+        // A visual style's parts drawn alone: the style's whole scroll bar
+        // would leave its track in the thumb's rounded corners, and its grip
+        // in the thumb's middle, stretched along with it (Plasma's frames
+        // can't centre anything) -- so Plasma's thumb goes without one.
+        if (!look.classic()) {
+            // SBP_LOWERTRACKHORZ 4 / SBP_LOWERTRACKVERT 6; the thumb,
+            // SBP_THUMBBTNVERT 3 (Plasma has one thumb for both ways).
+            const PartRef track{QStringLiteral("scrollbar"), horizontal ? 4 : 6, 1, {}};
+            const PartRef thumb{QStringLiteral("scrollbar"), 3, 1, {}}, thumbHot{QStringLiteral("scrollbar"), 3, 2, {}};
+            if (look.renderer->hasPart(track) && look.renderer->hasPart(thumb)) {
+                appendFrame(out, background, look.renderer->background(track, size),
+                            within(look.renderer->margins(track, u"sizingmargins"), size));
+                if (!horizontal) {
+                    const QSize thumbSize(width, 48);
+                    const QMargins m = within(look.renderer->margins(thumb, u"sizingmargins"), thumbSize);
+                    appendFrame(out, QStringLiteral("slider-"), look.renderer->background(thumb, thumbSize), m);
+                    appendFrame(out, QStringLiteral("mouseover-slider-"), look.renderer->background(thumbHot, thumbSize), m);
+                }
+                continue;
+            }
+        }
         const QRect page = style->subControlRect(QStyle::CC_ScrollBar, &o, QStyle::SC_ScrollBarSubPage, nullptr);
         const QImage track = draw(QStyle::SC_ScrollBarSubPage, {}, {}).copy(page);
-        appendFrame(out, horizontal ? QStringLiteral("background-horizontal-") : QStringLiteral("background-vertical-"), track,
-                    within(QMargins(1, 1, 1, 1), track.size()));
+        appendFrame(out, background, track, within(QMargins(1, 1, 1, 1), track.size()));
         if (!horizontal) {
             const QRect thumb = style->subControlRect(QStyle::CC_ScrollBar, &o, QStyle::SC_ScrollBarSlider, nullptr);
             const QMargins m = within(QMargins(3, 3, 3, 3), thumb.size());
@@ -455,29 +476,36 @@ QStyle *xpStyle(const Look &look)
 QHash<QString, QMap<int, QImage>> spinIcons(const Look &look)
 {
     QHash<QString, QMap<int, QImage>> out;
-    QStyle *style = look.classic() ? xpStyle(look) : nullptr;
+    QStyle *style = xpStyle(look);
     for (const auto &[name, part, arrow] : {std::tuple{"value-decrease", 4, QStyle::PE_IndicatorArrowLeft},
                                            std::tuple{"value-increase", 3, QStyle::PE_IndicatorArrowRight}}) {
+        // The arrow alone, unscaled in the middle: the icon sits on Plasma's
+        // flat button, and XP's button behind it would be a button in one.
+        // A visual style's is the up-down's glyph (SpinLeftGlyph.bmp and the
+        // like); Classic's, the style's arrow.
+        QImage glyph;
+        if (!look.classic()) {
+            const PartRef ref{QStringLiteral("spin"), part, 1, {}};
+            if (look.renderer->hasPart(ref))
+                glyph = trimmed(look.renderer->stateImage(ref, true));
+        }
         // (Every size a label's height might ask for -- 13 under XP's 8pt
         // Tahoma -- so none is a scaled one.)
         for (int size = 12; size <= 32; size += size < 24 ? 1 : 8) {
-            QImage image;
-            if (!look.classic()) {
-                const PartRef ref{QStringLiteral("spin"), part, 1, {}};
-                if (look.renderer->hasPart(ref))
-                    image = look.renderer->background(ref, QSize(size, size));
-            } else if (style) {
-                // (Classic's: a raised button, the arrow on it.)
-                image = canvas(QSize(size, size));
+            QImage image = canvas(QSize(size, size));
+            if (!glyph.isNull()) {
                 QPainter p(&image);
-                auto o = option<QStyleOptionButton>(style, image.size(), QStyle::State_Raised);
-                style->drawControl(QStyle::CE_PushButtonBevel, &o, &p, nullptr);
+                p.drawImage((size - glyph.width()) / 2, (size - glyph.height()) / 2, glyph);
+            } else if (style) {
+                QPainter p(&image);
+                auto o = option<QStyleOption>(style, image.size());
                 const int inset = size / 4;
                 o.rect = o.rect.adjusted(inset, inset, -inset, -inset);
                 style->drawPrimitive(arrow, &o, &p, nullptr);
+            } else {
+                continue;
             }
-            if (!image.isNull())
-                out[QLatin1String(name)].insert(size, image);
+            out[QLatin1String(name)].insert(size, image);
         }
     }
     return out;

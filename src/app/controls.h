@@ -26,9 +26,10 @@ QStyle *xpStyle(const Look &look);
 QHash<QString, QList<std::pair<QString, QImage>>> plasmaControls(const Look &look);
 
 // The icons Plasma's spin boxes put on their buttons (value-decrease,
-// value-increase; nothing else of Plasma's asks for them), by size: XP's
-// up-down on its side, as XP's tab rows have it -- pointing left, and right.
-// For the icon theme; empty for a Classic look without the style.
+// value-increase; nothing else of Plasma's asks for them), by size: the
+// arrows of XP's up-down on its side, as XP's tab rows have it -- pointing
+// left, and right. For the icon theme; empty for a Classic look without the
+// style.
 QHash<QString, QMap<int, QImage>> spinIcons(const Look &look);
 
 } // namespace xpl

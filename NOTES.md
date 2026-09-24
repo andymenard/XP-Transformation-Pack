@@ -35,23 +35,37 @@ the copy dialog and a failed copy, Start, Date and Time, apply/reset cycles.
   padding and heading size. The theme's metadata must say `X-Plasma-API`
   (6.0): without it Plasma takes the theme for a Plasma 4 one and gives
   every colour set but Window the Button colours -- the taskbar's text
-  went black on 6.4 and 6.7 until it did.
+  went black on 6.4 and 6.7 until it did. What the tray and task manager
+  declare inside themselves inherits their Complementary set: the tray's
+  popup (on 6.4, where it's declared in the tray) and the task manager's
+  tooltips set Window back, or their text is white on beige and yellow.
+  Plasma's other widgets on the taskbar (its own clock, the keyboard
+  layout's "us") have the Window set, black on the blue; the panel
+  containment sets none (6.4 has it as a package, 6.5+ built in).
 - **Plasma's unchecked check box is a small button, not XP's box.**
   Plasma Components' CheckIndicator draws its box with the push button's
   frame (widgets/button, "normal") and lays the tick (widgets/checkmarks)
   over it only when checked; a theme can't tell a 16px check box from a
   button (KSvg's size-hinted elements don't reach a frame's corners, which
   are all a 16px frame is). Checked boxes are XP's whole box and tick.
-  Left so: none of Plasma's own popups has a check box (6.7's
-  plasma-workspace and plasma-desktop: only wallpaper settings, drawn by
-  the Qt style) -- they use switches, which are XP's check box already.
-  Fixing it would take a copy of org.kde.plasma.components per Plasma
-  series laid over Plasma's.
+  Left so for now, though popups do have them: the volume popup's "Raise
+  maximum volume" (plasma-pa), the brightness popup's "Dark Mode"
+  (powerdevil). Fixing it would take a copy of org.kde.plasma.components
+  per Plasma series laid over Plasma's.
 - **Plasma's spin box is "- value +", not XP's up-down.** Its buttons ask
   for the icons value-decrease and value-increase (nothing else of Plasma's
-  does), so XPLasma's icon theme has XP's up-down on its side there --
-  left and right, as XP's tab rows have it -- at every size 12 to 24 and
-  32 (a label's height: 13 under XP's 8pt Tahoma). The layout stays Plasma's.
+  does), so XPLasma's icon theme has the arrows of XP's up-down on its side
+  there -- left and right, as XP's tab rows have it; the glyph alone
+  (SpinLeftGlyph.bmp and the like), unscaled, at every size 12 to 24 and
+  32 (a label's height: 13 under XP's 8pt Tahoma). XP's button behind the
+  arrow made a button inside Plasma's flat one, and that frame can't grow
+  to fill the cell (it's every flat tool button's). The layout stays Plasma's.
+- **Plasma's scroll bar thumb has no grip.** FrameSvg can only pin an
+  overlay to an edge or stretch it, never centre it, so XP's grip would
+  stretch with the thumb; the thumb and track come from the msstyles parts
+  alone (the style's whole scroll bar left its track in the thumb's
+  corners). The track shows only under the pointer, as Plasma has it, and
+  there are no arrow buttons (Plasma's scroll bars have none).
 - ~~**The notifications icon shows a "1" in the tray while a copy runs**~~
   (resolved 2026-09-24: with XP's balloons, the notifications applet shows
   in the tray only for Do Not Disturb; its history isn't reachable from the

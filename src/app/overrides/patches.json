@@ -58,6 +58,11 @@
   {
    "find": "            ExpanderArrow {\n",
    "replace": "            // XPLasma: notifications' own icons, for their balloons.\n            XpNotificationIcons {\n                id: xpNotificationIcons\n                Layout.row: root.vertical ? 1 : 0\n                Layout.column: root.vertical ? 0 : 1\n                Layout.alignment: Qt.AlignCenter\n                Layout.leftMargin: root.xpTrayAvailable && !root.vertical && !expander.visible\n                    ? xpTrayBackground.margins.left : 0\n                Layout.rightMargin: root.vertical ? 0 : 2\n                trayModel: activeModel\n                trayView: tasksGrid\n                vertical: root.vertical\n                thickness: root.vertical ? root.width : root.height\n            }\n\n            ExpanderArrow {\n"
+  },
+  {
+   "find": "            mainItem: ExpandedRepresentation {\n                id: expandedRepresentation\n",
+   "replace": "            mainItem: ExpandedRepresentation {\n                id: expandedRepresentation\n                // XPLasma: the popup in XP's dialog colours, not the taskbar's\n                // the tray takes (a popup declared in it inherits them).\n                Kirigami.Theme.colorSet: Kirigami.Theme.Window\n                Kirigami.Theme.inherit: false\n",
+   "optional": true
   }
  ],
  "systemtray/items/AbstractItem.qml": [
@@ -78,6 +83,16 @@
   {
    "find": "    readonly property bool shouldShrinkToZero: tasksModel.count === 0\n",
    "replace": "    // XPLasma: an XP taskbar's panel theme marks its task buttons, laid out\n    // as XP's TaskBand lays them out.\n    KSvg.Svg { id: xpTasksSvg; imagePath: \"widgets/tasks\" }\n    readonly property bool xpTaskband: xpTasksSvg.hasElement(\"hint-xplasma-taskband\") && !vertical\n    // ...and every XPLasma taskbar its colours: the theme's Complementary\n    // set (its Window set is XP's dialog colours, for Plasma's popups).\n    readonly property bool xpColours: xpTasksSvg.hasElement(\"hint-xplasma-colours\")\n    Kirigami.Theme.colorSet: xpColours ? Kirigami.Theme.Complementary : Kirigami.Theme.Window\n    Kirigami.Theme.inherit: !xpColours\n    readonly property bool shouldShrinkToZero: tasksModel.count === 0\n"
+  },
+  {
+   "find": "        ToolTipDelegate {\n            id: openWindowToolTipDelegate\n",
+   "replace": "        ToolTipDelegate {\n            id: openWindowToolTipDelegate\n            // XPLasma: in XP's tooltip colours, not the taskbar's the task\n            // manager takes (the tooltip, declared in it, inherits them).\n            Kirigami.Theme.colorSet: Kirigami.Theme.Window\n            Kirigami.Theme.inherit: false\n",
+   "optional": true
+  },
+  {
+   "find": "        ToolTipDelegate {\n            id: pinnedAppToolTipDelegate\n",
+   "replace": "        ToolTipDelegate {\n            id: pinnedAppToolTipDelegate\n            // XPLasma: in XP's tooltip colours, not the taskbar's the task\n            // manager takes (the tooltip, declared in it, inherits them).\n            Kirigami.Theme.colorSet: Kirigami.Theme.Window\n            Kirigami.Theme.inherit: false\n",
+   "optional": true
   }
  ],
  "taskmanager/code/layoutmetrics.js": [
