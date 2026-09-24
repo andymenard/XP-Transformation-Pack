@@ -840,10 +840,24 @@ private Q_SLOTS:
                         box |= QRect(x, y, 1, 1);
             QCOMPARE(box, QRect(square - arrow, square - arrow, arrow, arrow));
         }
+        // Updates as Automatic Updates' shields; brightness as Power Options'
+        // monitor, 32px only on XP, so scaled for the tray's 16.
+        QCOMPARE(QImage(theme + QLatin1String("/16x16/status/update-none-symbolic.png")).size(), QSize(16, 16));
+        QVERIFY(QImage(theme + QLatin1String("/16x16/status/update-high.png")) != QImage(theme + QLatin1String("/16x16/status/update-none.png")));
+        QCOMPARE(QImage(theme + QLatin1String("/16x16/status/brightness-high-symbolic.png")).size(), QSize(16, 16));
+        QCOMPARE(QImage(theme + QLatin1String("/32x32/status/brightness-high-symbolic.png")).size(), QSize(32, 32));
+        // Charging: the level's frame, the plug's head over its bottom-right
+        // corner only.
+        {
+            const QImage idle(theme + QLatin1String("/16x16/status/battery-050.png"));
+            const QImage charging(theme + QLatin1String("/16x16/status/battery-050-charging.png"));
+            QCOMPARE(idle.copy(0, 0, 8, 16), charging.copy(0, 0, 8, 16));
+            QVERIFY(idle.copy(8, 9, 8, 7) != charging.copy(8, 9, 8, 7));
+        }
         // The tray's icons XP has none for: the inherited theme's, in the
         // tray's text colour, beyond the icon loader's recolouring.
         if (QFileInfo::exists(QStringLiteral("/usr/share/icons/breeze/index.theme"))) {
-            QFile sun(theme + QLatin1String("/16x16/status/brightness-high-symbolic.svg"));
+            QFile sun(theme + QLatin1String("/16x16/status/redshift-status-on-symbolic.svg"));
             QVERIFY(sun.open(QIODevice::ReadOnly));
             const QByteArray svg = sun.readAll();
             QVERIFY2(svg.contains("#ffffff") && !svg.contains("currentColor") && !svg.contains("current-color-scheme"), svg.left(400).constData());

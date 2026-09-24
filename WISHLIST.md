@@ -11,10 +11,9 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 - **Extras... in Display Properties** (from the user). The Appearance tab's
   Effects... button back, as Extras...: the Start button's text and logo
   changeable. The user's example: 🐧 fart.
-- **XP's own tray icons for updates and brightness** (needs the user's call).
-  Candidates on the media: Windows Update's globe (wuauclt), the shields
-  (wuaucpl), Display's monitor (desk), the monitor with a moon (powercfg).
-  Also: should the battery show the plug while charging?
+- **XPLasma's own update notifier** (from the user): a tray icon when a new
+  XPLasma is out, as XP's Automatic Updates globe (wuauclt.exe's icon 1) --
+  kept for it, not used for the system's updates.
 - **Sounds tab** in Display Properties' sibling, XP's Sounds and Audio
   Devices: XP's sound schemes from the media -- and other schemes beside
   them (the user's idea: a small rock band recording a whole XP sound theme).
@@ -34,6 +33,10 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Done
 
+- XP's tray icons for the rest (the user's picks): Automatic Updates'
+  green and yellow shields for system updates, Power Options' monitor
+  with a moon for brightness, and a charging battery that keeps its level
+  with XP's plug in its corner (2026-09-24).
 - Plasma's own widgets on the taskbar (its clock, the keyboard layout)
   in the taskbar's white text (2026-09-24).
 - The last of Plasma's popup controls: spin boxes' buttons as XP's up-down

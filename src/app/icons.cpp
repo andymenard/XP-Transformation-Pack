@@ -17,6 +17,7 @@
 #include <QSettings>
 
 #include <memory>
+#include <optional>
 
 namespace xpl {
 
@@ -107,6 +108,14 @@ const Mapping kMap[] = {
     {"netshell.dll", 190, "Status", "network-wired network-wired-activated network-wireless-connected network-wireless-available"},
     {"netshell.dll", 195, "Status", "network-wired-unavailable network-wireless-disconnected network-wireless-off"},
     {"netshell.dll", 196, "Status", "network-wired-activated-limited"},
+    // Discover's update notifier: Automatic Updates' shields -- green with
+    // nothing to do, yellow with updates waiting or a restart to finish them.
+    // (XP's globe, wuauclt's, is kept for XPLasma's own updates.)
+    {"wuaucpl.cpl", 3, "Status", "update-none"},
+    {"wuaucpl.cpl", 4, "Status", "update-low update-medium update-high system-reboot-update"},
+    // Brightness, which XP had no icon for: Power Options' monitor with a
+    // moon. (Night Light's own states inherit.) 32px only -- see below.
+    {"powercfg.cpl", 203, "Status", "brightness-high brightness-medium brightness-low video-display-brightness"},
 };
 
 struct Source
@@ -159,8 +168,11 @@ QHash<QString, Source> mappings()
 }
 
 // batmeter.dll's image lists: bitmap 301 is ten 16px frames, 300 ten 32px,
-// magenta the transparent colour; frame 7 is the charging overlay.
-QMap<int, QImage> batteryFrame(const QString &file, int frame, bool charging, QString *error)
+// magenta the transparent colour. Charging, the battery keeps its level and
+// gets XP's plug (Power Options' icon, `plug` by size) in its bottom-right
+// corner: the plug's head, unscaled, in place of batmeter's own charging bolt
+// (frame 7), which covers the level.
+QMap<int, QImage> batteryFrame(const QString &file, int frame, bool charging, const QMap<int, QImage> &plug, QString *error)
 {
     QMap<int, QImage> out;
     for (const auto &[size, id] : {std::pair(16, 301), std::pair(32, 300)}) {
@@ -176,10 +188,13 @@ QMap<int, QImage> batteryFrame(const QString &file, int frame, bool charging, QS
             return img;
         };
         QImage img = cell(frame);
-        if (charging) {
-            QImage over = cell(7);
+        if (charging && plug.contains(size)) {
+            const QRect head(size / 2, size * 9 / 16, size / 2, size * 7 / 16);
             QPainter p(&img);
-            p.drawImage(0, 0, over);
+            p.drawImage(head.topLeft(), plug.value(size).copy(head));
+        } else if (charging) {
+            QPainter p(&img);
+            p.drawImage(0, 0, cell(7));
         }
         out.insert(size, img);
     }
@@ -225,7 +240,7 @@ QStringList iconSourceFiles()
     for (const Mapping &m : kMap)
         if (!files.contains(QLatin1String(m.file)))
             files << QLatin1String(m.file);
-    files << QStringLiteral("batmeter.dll");
+    files << QStringLiteral("batmeter.dll") << QStringLiteral("powercfg.cpl");   // (and its plug, for charging)
     return files;
 }
 
@@ -241,13 +256,26 @@ QString writeIconTheme(const QString &directory, const QString &inheritFrom, con
     QMap<QString, std::pair<int, QString>> directories;   // "16x16/places" -> (size, context)
     QJsonObject provenance;
     const auto map = mappings();
+    // XP's plug (powercfg.cpl's 200), for charging batteries: loaded once.
+    std::optional<QMap<int, QImage>> plugImages;
+    auto plug = [&]() {
+        if (!plugImages) {
+            plugImages.emplace();
+            QString why;
+            if (const auto bytes = media::systemFile(QStringLiteral("powercfg.cpl"), &why))
+                if (const auto pe = PeResources::parse(*bytes, &why))
+                    for (const auto &[size, icon] : iconGroup(*pe, QStringLiteral("200"), &why).asKeyValueRange())
+                        plugImages->insert(size, icon.image.convertToFormat(QImage::Format_ARGB32));
+        }
+        return *plugImages;
+    };
     QStringList names = map.keys();
     names.sort();
     for (const QString &name : std::as_const(names)) {
         const Source &src = map.value(name);
         QMap<int, QImage> images;
         if (src.batteryFrame >= 0) {
-            images = batteryFrame(src.file, src.batteryFrame, src.charging, error);
+            images = batteryFrame(src.file, src.batteryFrame, src.charging, plug(), error);
         } else {
             if (!files.contains(src.file)) {
                 const auto bytes = media::systemFile(src.file, error);
@@ -263,6 +291,10 @@ QString writeIconTheme(const QString &directory, const QString &inheritFrom, con
         }
         // (shell32's 96px folder is a thumbnail backplate, not the folder.)
         images.removeIf([](auto it) { return it.key() > 48; });
+        // The tray's size, where XP drew only 32px (the brightness monitor):
+        // scaled down, smoothly, since nothing else stands in.
+        if (!images.isEmpty() && !images.contains(16) && images.contains(32))
+            images.insert(16, images.value(32).scaled(16, 16, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
         if (images.isEmpty()) {
             if (error && error->isEmpty())
                 *error = QStringLiteral("%1 has nothing for %2").arg(src.file, name);
