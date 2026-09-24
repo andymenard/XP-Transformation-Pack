@@ -1080,9 +1080,11 @@ private Q_SLOTS:
         QVERIFY(QFileInfo::exists(share + QLatin1String("/aurorae/themes/Mine")));
         // Switched to.
         QCOMPARE(session.config.value(QStringLiteral("kwinrc|org.kde.kdecoration2|theme")), QStringLiteral("__aurorae__svg__windows-xp-style-silver"));
-        // The copy dialog's rule, beside the user's own.
-        QCOMPARE(session.config.value(QStringLiteral("kwinrulesrc|General|rules")), QStringLiteral("someone-elses,xplasma-copy-dialog"));
-        QCOMPARE(session.config.value(QStringLiteral("kwinrulesrc|General|count")), QStringLiteral("2"));
+        // The copy dialog's and the editor's rules, beside the user's own.
+        QCOMPARE(session.config.value(QStringLiteral("kwinrulesrc|General|rules")),
+                 QStringLiteral("someone-elses,xplasma-copy-dialog,xplasma-display-properties"));
+        QCOMPARE(session.config.value(QStringLiteral("kwinrulesrc|General|count")), QStringLiteral("3"));
+        QCOMPARE(session.config.value(QStringLiteral("kwinrulesrc|xplasma-display-properties|wmclass")), QStringLiteral("fyi.hotsocket.xplasma"));
         QCOMPARE(session.config.value(QStringLiteral("kwinrulesrc|xplasma-copy-dialog|minimizerule")), QStringLiteral("2"));
         QCOMPARE(session.config.value(QStringLiteral("kdeglobals|KDE|widgetStyle")), QStringLiteral("XPLasma"));
         QVERIFY(session.config.value(QStringLiteral("kdeglobals|WM|activeFont")).startsWith(QLatin1String("Trebuchet MS,10")));

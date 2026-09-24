@@ -99,18 +99,14 @@ void applyDecoration(Session &session, const QString &id)
     session.reconfigureKWin();
 }
 
-// A KWin rule for XPLasma's own windows that XP gave no minimize box: the
-// copy dialog (plasmashell's, titled "Copying..." and the like). Wayland
-// has no way for the window to say so itself. With neither box, the
+// KWin rules for XPLasma's own windows that XP gave no minimize or maximize
+// box: the copy dialog (plasmashell's, titled "Copying..." and the like) and
+// the editor (Display Properties and its dialogs, property sheets on XP).
+// Wayland has no way for a window to say so itself. With neither box, the
 // decoration shows Close alone, as XP does. Other rules are left as they are.
 const QString kRulesFile = QStringLiteral("kwinrulesrc");
-const QString kRuleId = QStringLiteral("xplasma-copy-dialog");
-const QList<std::pair<QString, QString>> kRule{
-    {QStringLiteral("Description"), QStringLiteral("XPLasma: XP's copy dialog (Close only)")},
-    {QStringLiteral("wmclass"), QStringLiteral("org.kde.plasmashell")},
-    {QStringLiteral("wmclassmatch"), QStringLiteral("1")},      // exact
-    {QStringLiteral("title"), QStringLiteral("\\.\\.\\.$")},
-    {QStringLiteral("titlematch"), QStringLiteral("3")},        // regular expression
+using Rule = QList<std::pair<QString, QString>>;
+const Rule kNoBoxes{
     {QStringLiteral("types"), QStringLiteral("33")},            // normal, dialog
     {QStringLiteral("minimize"), QStringLiteral("false")},
     {QStringLiteral("minimizerule"), QStringLiteral("2")},      // force
@@ -118,6 +114,20 @@ const QList<std::pair<QString, QString>> kRule{
     {QStringLiteral("maximizehorizrule"), QStringLiteral("2")},
     {QStringLiteral("maximizevert"), QStringLiteral("false")},
     {QStringLiteral("maximizevertrule"), QStringLiteral("2")},
+};
+const QList<std::pair<QString, Rule>> kRules{
+    {QStringLiteral("xplasma-copy-dialog"),
+     Rule{{QStringLiteral("Description"), QStringLiteral("XPLasma: XP's copy dialog (Close only)")},
+          {QStringLiteral("wmclass"), QStringLiteral("org.kde.plasmashell")},
+          {QStringLiteral("wmclassmatch"), QStringLiteral("1")},      // exact
+          {QStringLiteral("title"), QStringLiteral("\\.\\.\\.$")},
+          {QStringLiteral("titlematch"), QStringLiteral("3")}}        // regular expression
+         + kNoBoxes},
+    {QStringLiteral("xplasma-display-properties"),
+     Rule{{QStringLiteral("Description"), QStringLiteral("XPLasma: Display Properties (Close only)")},
+          {QStringLiteral("wmclass"), QStringLiteral("fyi.hotsocket.xplasma")},
+          {QStringLiteral("wmclassmatch"), QStringLiteral("1")}}
+         + kNoBoxes},
 };
 
 QStringList ruleIds(Session &session)
@@ -134,20 +144,25 @@ void setRuleIds(Session &session, const QStringList &ids)
 
 void installWindowRules(Session &session)
 {
-    for (const auto &[key, value] : kRule)
-        session.writeConfig(kRulesFile, {kRuleId}, key, value, false);
     QStringList ids = ruleIds(session);
-    if (!ids.contains(kRuleId))
-        setRuleIds(session, ids << kRuleId);
+    for (const auto &[id, rule] : kRules) {
+        for (const auto &[key, value] : rule)
+            session.writeConfig(kRulesFile, {id}, key, value, false);
+        if (!ids.contains(id))
+            ids << id;
+    }
+    setRuleIds(session, ids);
 }
 
 void removeWindowRules(Session &session)
 {
     QStringList ids = ruleIds(session);
-    if (ids.removeAll(kRuleId))
-        setRuleIds(session, ids);
-    for (const auto &[key, value] : kRule)
-        session.deleteConfig(kRulesFile, {kRuleId}, key, false);
+    for (const auto &[id, rule] : kRules) {
+        ids.removeAll(id);
+        for (const auto &[key, value] : rule)
+            session.deleteConfig(kRulesFile, {id}, key, false);
+    }
+    setRuleIds(session, ids);
 }
 
 // The fonts, and the running session told: the platform theme only re-reads
