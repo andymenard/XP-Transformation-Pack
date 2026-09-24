@@ -50,17 +50,6 @@
    "replace": "            // XPLasma: notifications' own icons, for their balloons.\n            XpNotificationIcons {\n                id: xpNotificationIcons\n                Layout.row: root.vertical ? 1 : 0\n                Layout.column: root.vertical ? 0 : 1\n                Layout.alignment: Qt.AlignCenter\n                Layout.leftMargin: root.xpTrayAvailable && !root.vertical && !expander.visible\n                    ? xpTrayBackground.margins.left : 0\n                Layout.rightMargin: root.vertical ? 0 : 2\n                trayModel: activeModel\n                trayView: tasksGrid\n                vertical: root.vertical\n                thickness: root.vertical ? root.width : root.height\n            }\n\n            ExpanderArrow {\n"
   }
  ],
- "digitalclock/main.qml": [
-  {
-   "find": "import QtQuick\n",
-   "replace": "import QtQuick\nimport org.kde.ksvg as KSvg\n",
-   "unlessContains": "import org.kde.ksvg as KSvg"
-  },
-  {
-   "find": "    id: root\n",
-   "replace": "    id: root\n{{backdrop-clock}}{{clock-datetime}}"
-  }
- ],
  "systemtray/items/AbstractItem.qml": [
   {
    "find": "import QtQuick\n",
@@ -73,16 +62,6 @@
   {
    "find": "effectiveStatus: model.effectiveStatus || PlasmaCore.Types.UnknownStatus",
    "replace": "effectiveStatus: model.effectiveStatus === PlasmaCore.Types.PassiveStatus && root.xpRevealHidden(itemId)\n        ? PlasmaCore.Types.ActiveStatus : (model.effectiveStatus || PlasmaCore.Types.UnknownStatus)"
-  }
- ],
- "digitalclock/DigitalClock.qml": [
-  {
-   "find": "const pixelsPerInch = Screen.pixelDensity * 25.4",
-   "replace": "const pixelsPerInch = root.xpTrayAvailable ? 96 : Screen.pixelDensity * 25.4"
-  },
-  {
-   "find": "    onClicked: root.expanded = !wasExpanded\n",
-   "replace": "    // XPLasma: XP's clock does nothing on a click; a double-click opens\n    // Date and Time Properties.\n    onClicked: if (!root.xpTrayAvailable) root.expanded = !wasExpanded\n    onDoubleClicked: if (root.xpTrayAvailable) root.xpOpenDateTime()\n"
   }
  ],
  "taskmanager/main.qml": [

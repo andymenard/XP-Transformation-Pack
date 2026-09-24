@@ -46,6 +46,9 @@ qt_add_resources(xplasma-app "schemes" PREFIX /schemes BASE data/schemes FILES $
 # The Start plasmoid's package, as :/start-menu/...
 file(GLOB_RECURSE start_menu RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS start-menu/*)
 qt_add_resources(xplasma-app "startmenu" PREFIX /start-menu BASE start-menu FILES ${start_menu})
+# The clock plasmoid's package, as :/clock/...
+file(GLOB_RECURSE clock_package RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS clock/*)
+qt_add_resources(xplasma-app "clock" PREFIX /clock BASE clock FILES ${clock_package})
 
 # KDE QML patched over (overrides/) and plasmashell scripts (scripts/), as
 # :/overrides/... and :/scripts/...

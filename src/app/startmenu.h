@@ -11,10 +11,13 @@
 namespace xpl {
 
 constexpr const char *kStartPlasmoidId = "fyi.hotsocket.xplasma.start";
+// XPLasma's taskbar clock (in place of Plasma's): see clock/contents/ui/main.qml.
+constexpr const char *kClockPlasmoidId = "fyi.hotsocket.xplasma.clock";
 
 // Installs the package under `plasmoids` (~/.local/share/plasma/plasmoids),
 // replacing what's there (xp2plasma's Kickoff fork had this id too).
 bool installStartPlasmoid(const QString &plasmoids, QString *error = nullptr);
+bool installClockPlasmoid(const QString &plasmoids, QString *error = nullptr);
 
 // The look's Start data into `directory`: the button (with the flag from
 // the XP media) and the menu. The JSON the plasmoid is given, or empty with

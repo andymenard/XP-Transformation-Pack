@@ -176,6 +176,14 @@ void applyFonts(Session &session, const QList<ConfigValue> &fonts)
     session.reconfigureKWin();
 }
 
+// This XPLasma's editor (Display Properties, Date and Time Properties),
+// beside this program; or whichever is on the PATH.
+QString editorPath()
+{
+    const QString beside = QCoreApplication::applicationDirPath() + QLatin1String("/xplasma-edit");
+    return QFileInfo(beside).isExecutable() ? beside : QStringLiteral("xplasma-edit");
+}
+
 // Plasma's helper that switches the icon theme: in its libexec, wherever the
 // distribution keeps that -- found beside Plasma's own tools first.
 QString iconHelper()
@@ -380,11 +388,11 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
             return fail(error, QStringLiteral("%1: %2").arg(colorsDest, f.errorString()));
     }
     if (o.taskbar) {
-        if (!install(panel, panelDest, error) || !installStartPlasmoid(share(QStringLiteral("plasma/plasmoids")), error))
+        if (!install(panel, panelDest, error) || !installStartPlasmoid(share(QStringLiteral("plasma/plasmoids")), error)
+            || !installClockPlasmoid(share(QStringLiteral("plasma/plasmoids")), error))
             return false;
         QString why;
-        const QString editor = QCoreApplication::applicationDirPath() + QLatin1String("/xplasma-edit");
-        if (!overrides::installPanelWidgets(share(QStringLiteral("plasma/plasmoids")), QFileInfo(editor).isExecutable() ? editor : QString(), &why))
+        if (!overrides::installPanelWidgets(share(QStringLiteral("plasma/plasmoids")), &why))
             for (const QString &line : why.split(QLatin1Char('\n')))
                 report(o, QStringLiteral("  left as Plasma's own: %1").arg(line));
     }
@@ -453,7 +461,10 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
                                                        {QStringLiteral("THEME"), startTheme.toVariantMap()},
                                                        {QStringLiteral("CLOCK_FAMILY"), clock.face},
                                                        {QStringLiteral("CLOCK_POINTS"), clock.points()},
-                                                       {QStringLiteral("CLOCK_WEIGHT"), clock.weight}}),
+                                                       {QStringLiteral("CLOCK_WEIGHT"), clock.weight},
+                                                       {QStringLiteral("CLOCK"), QLatin1String(kClockPlasmoidId)},
+                                                       {QStringLiteral("CLOCK_COLOR"), panelArt(look).trayTextColour.name()},
+                                                       {QStringLiteral("CLOCK_COMMAND"), overrides::launchCommand(editorPath(), {QStringLiteral("--date-time")})}}),
                                            &why);
         if (!layout) {
             report(o, QStringLiteral("  the panel wasn't rearranged: %1").arg(why));
@@ -587,6 +598,7 @@ bool resetDesktop(Session &session, const std::function<void(const QString &)> &
     }
     const QString start = share(QStringLiteral("plasma/plasmoids/")) + QLatin1String(kStartPlasmoidId);
     QDir(start).removeRecursively();
+    QDir(share(QStringLiteral("plasma/plasmoids/")) + QLatin1String(kClockPlasmoidId)).removeRecursively();
     QDir(paths::data() + QLatin1String("/start")).removeRecursively();
     say(QStringLiteral("  %1 removed").arg(packages.size() + 1));
 

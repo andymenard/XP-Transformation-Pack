@@ -14,21 +14,37 @@
 
 namespace xpl {
 
-bool installStartPlasmoid(const QString &plasmoids, QString *error)
+namespace {
+
+// A plasmoid package shipped in the resources (:/<name>/...), written out whole.
+bool installPackage(const QString &resource, const QString &plasmoids, const char *id, QString *error)
 {
-    const QString target = QDir(plasmoids).filePath(QLatin1String(kStartPlasmoidId));
+    const QString target = QDir(plasmoids).filePath(QLatin1String(id));
     Package pkg(target);
-    QDirIterator it(QStringLiteral(":/start-menu"), QDir::Files, QDirIterator::Subdirectories);
+    const QString root = QStringLiteral(":/%1/").arg(resource);
+    QDirIterator it(root.chopped(1), QDir::Files, QDirIterator::Subdirectories);
     while (it.hasNext()) {
         const QString file = it.next();
         QFile f(file);
         if (!f.open(QIODevice::ReadOnly))
             continue;
-        pkg.write(file.mid(QStringLiteral(":/start-menu/").size()), f.readAll());
+        pkg.write(file.mid(root.size()), f.readAll());
     }
     if (!pkg.ok() && error)
         *error = pkg.error();
     return pkg.ok();
+}
+
+} // namespace
+
+bool installStartPlasmoid(const QString &plasmoids, QString *error)
+{
+    return installPackage(QStringLiteral("start-menu"), plasmoids, kStartPlasmoidId, error);
+}
+
+bool installClockPlasmoid(const QString &plasmoids, QString *error)
+{
+    return installPackage(QStringLiteral("clock"), plasmoids, kClockPlasmoidId, error);
 }
 
 QJsonObject writeStartTheme(const Look &look, const QString &directory, QString *error)

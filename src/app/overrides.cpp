@@ -125,8 +125,6 @@ const QList<Widget> kPanelWidgets{
     {QStringLiteral("org.kde.plasma.systemtray"), QStringLiteral("systemtray"),
      {QStringLiteral("main.qml"), QStringLiteral("items/AbstractItem.qml")}, {},
      {QStringLiteral("XpNotificationIcons.qml")}},
-    {QStringLiteral("org.kde.plasma.digitalclock"), QStringLiteral("digitalclock"),
-     {QStringLiteral("main.qml"), QStringLiteral("DigitalClock.qml")}, {}, {}},
     {QStringLiteral("org.kde.plasma.taskmanager"), QStringLiteral("taskmanager"),
      {QStringLiteral("main.qml"), QStringLiteral("Task.qml"), QStringLiteral("code/layoutmetrics.js")}, {}, {}},
     // XP's balloons (when the look has their art; Plasma's popups otherwise).
@@ -134,6 +132,9 @@ const QList<Widget> kPanelWidgets{
      {QStringLiteral("main.qml"), QStringLiteral("global/Globals.qml")}, {},
      {QStringLiteral("XpPopup.qml"), QStringLiteral("XpBalloon.qml"), QStringLiteral("XpCopyDialog.qml"), QStringLiteral("XpButton.qml")}},
 };
+// Widgets XPLasma once patched and doesn't any more: a copy of ours goes.
+// (The clock is XPLasma's own now: fyi.hotsocket.xplasma.clock.)
+const QStringList kRetiredWidgets{QStringLiteral("org.kde.plasma.digitalclock")};
 // (org.kde.plasma.folder, the desktop, is this package under another name.)
 const QString kDesktopId = QStringLiteral("org.kde.desktopcontainment");
 
@@ -236,48 +237,42 @@ bool installWidgets(const QString &plasmoids, const QList<Widget> &widgets, QStr
     return true;
 }
 
-// A shell command as a QML string literal: `editor` started as its own
-// transient systemd unit, or (without systemd) directly.
-QString launchLiteral(const QString &editor, const QStringList &arguments = {})
+// A shell command as a QML string literal (see launchCommand).
+QString launchLiteral(const QString &program, const QStringList &arguments = {})
 {
-    auto quote = [](QString word) {
-        word.replace(QLatin1Char('\''), QLatin1String("'\\''"));
-        return QLatin1Char('\'') + word + QLatin1Char('\'');
-    };
-    QStringList words{quote(editor)};
-    for (const QString &a : arguments)
-        words << quote(a);
-    const QString run = words.join(QLatin1Char(' '));
-    const QString command = QStringLiteral("systemd-run --user --collect --quiet -- %1 || %1").arg(run);
+    const QString command = launchCommand(program, arguments);
     return QString::fromUtf8(QJsonDocument(QJsonArray{command}).toJson(QJsonDocument::Compact)).mid(1).chopped(1);
 }
 
 } // namespace
 
-static QList<Widget> panelWidgets(const QString &editor)
+QString launchCommand(const QString &program, const QStringList &arguments)
 {
-    // The clock opens Date and Time Properties: this XPLasma's editor.
-    QList<Widget> widgets = kPanelWidgets;
-    for (Widget &w : widgets)
-        if (w.key == QLatin1String("digitalclock"))
-            w.values.insert(QStringLiteral("LAUNCH_DATETIME"),
-                            launchLiteral(editor.isEmpty() ? QStringLiteral("xplasma-edit") : editor, {QStringLiteral("--date-time")}));
-    return widgets;
+    auto quote = [](QString word) {
+        word.replace(QLatin1Char('\''), QLatin1String("'\\''"));
+        return QLatin1Char('\'') + word + QLatin1Char('\'');
+    };
+    QStringList words{quote(program)};
+    for (const QString &a : arguments)
+        words << quote(a);
+    const QString run = words.join(QLatin1Char(' '));
+    return QStringLiteral("systemd-run --user --collect --quiet -- %1 || %1").arg(run);
 }
 
-bool installPanelWidgets(const QString &plasmoids, const QString &editor, QString *error)
+bool installPanelWidgets(const QString &plasmoids, QString *error)
 {
-    return installWidgets(plasmoids, panelWidgets(editor), error);
+    removeWidgets(plasmoids, kRetiredWidgets);
+    return installWidgets(plasmoids, kPanelWidgets, error);
 }
 
 bool checkPanelWidgets(const QString &plasmoids, QString *error)
 {
-    return installWidgets(plasmoids, panelWidgets(QString()), error, true);
+    return installWidgets(plasmoids, kPanelWidgets, error, true);
 }
 
 void removePanelWidgets(const QString &plasmoids)
 {
-    QStringList ids;
+    QStringList ids = kRetiredWidgets;
     for (const Widget &w : kPanelWidgets)
         ids << w.id;
     removeWidgets(plasmoids, ids);

@@ -913,22 +913,20 @@ private Q_SLOTS:
             QSKIP("no Plasma here");
         const QString plasmoids = m_home.filePath(QStringLiteral("plasmoids"));
         QString error;
-        QVERIFY2(overrides::installPanelWidgets(plasmoids, QStringLiteral("/opt/it's here/xplasma-edit"), &error), qPrintable(error));
-        // The clock: a double-click opens Date and Time Properties.
-        QFile clock(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/contents/ui/main.qml"));
-        QVERIFY(clock.open(QIODevice::ReadOnly));
-        const QByteArray clockText = clock.readAll();
-        const QByteArray run = "\x27/opt/it\x27\\\\\x27\x27s here/xplasma-edit\x27 \x27--date-time\x27";
-        const QByteArray launch = "connectSource(\"systemd-run --user --collect --quiet -- " + run + " || " + run + "\")";
-        QVERIFY2(clockText.contains(launch), clockText.mid(clockText.indexOf("connectSource"), 200).constData());
-        QFile clockMouse(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/contents/ui/DigitalClock.qml"));
-        QVERIFY(clockMouse.open(QIODevice::ReadOnly) && clockMouse.readAll().contains("onDoubleClicked: if (root.xpTrayAvailable) root.xpOpenDateTime()"));
+        // A copy of the Plasma clock XPLasma once patched goes: the clock is
+        // XPLasma's own now.
+        writeFile(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/metadata.json"), "{\"X-XPLasma-Panel-Override\": true}");
+        QVERIFY2(overrides::installPanelWidgets(plasmoids, &error), qPrintable(error));
+        QVERIFY(!QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.digitalclock")));
+        // What the clock runs on a double-click: the editor, quoted, as its own unit.
+        const QString run = QStringLiteral("'/opt/it'\\''s here/xplasma-edit' '--date-time'");
+        QCOMPARE(overrides::launchCommand(QStringLiteral("/opt/it's here/xplasma-edit"), {QStringLiteral("--date-time")}),
+                 QStringLiteral("systemd-run --user --collect --quiet -- %1 || %1").arg(run));
         QFile patchedTray(plasmoids + QLatin1String("/org.kde.plasma.systemtray/contents/ui/main.qml"));
         QVERIFY(patchedTray.open(QIODevice::ReadOnly));
         const QByteArray text = patchedTray.readAll();
         QVERIFY(text.contains("xpTrayAvailable") && text.contains("imagePath: \"widgets/xp-tray\"") && !text.contains("{{"));
         QVERIFY(QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.systemtray/contents/ui/PlasmaExpanderArrow.qml")));
-        QVERIFY(QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/contents/ui/DigitalClock.qml")));
         QFile metrics(plasmoids + QLatin1String("/org.kde.plasma.taskmanager/contents/ui/code/layoutmetrics.js"));
         QVERIFY(metrics.open(QIODevice::ReadOnly) && metrics.readAll().contains("tasks.xpTaskband"));
         // Balloons: the popups' delegate chosen by the art, the queue's icons in the tray.
@@ -958,12 +956,12 @@ private Q_SLOTS:
         overrides::removeDesktopMenu(plasmoids);
         QVERIFY(!QFileInfo::exists(plasmoids + QLatin1String("/org.kde.desktopcontainment")));
         // Again (it's ours now), then gone.
-        QVERIFY2(overrides::installPanelWidgets(plasmoids, QString(), &error), qPrintable(error));
+        QVERIFY2(overrides::installPanelWidgets(plasmoids, &error), qPrintable(error));
         overrides::removePanelWidgets(plasmoids);
         QVERIFY(!QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.systemtray")));
         // Someone else's is left alone.
-        writeFile(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/metadata.json"), "{}");
-        QVERIFY(!overrides::installPanelWidgets(plasmoids, QString(), &error));
+        writeFile(plasmoids + QLatin1String("/org.kde.plasma.taskmanager/metadata.json"), "{}");
+        QVERIFY(!overrides::installPanelWidgets(plasmoids, &error));
         QVERIFY(error.contains(QLatin1String("someone else")));
         QVERIFY(!overrides::patched(QStringLiteral("systemtray/main.qml"), QStringLiteral("not KDE's QML")));
     }
@@ -982,18 +980,18 @@ private Q_SLOTS:
         const QByteArray saved = qgetenv("XDG_DATA_DIRS");
         qputenv("XDG_DATA_DIRS", system.toUtf8());
         const QString plasmoids = m_home.filePath(QStringLiteral("plasmoids-6.6"));
-        writeFile(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/metadata.json"), "{\"X-XPLasma-Panel-Override\": true}");
+        writeFile(plasmoids + QLatin1String("/org.kde.plasma.taskmanager/metadata.json"), "{\"X-XPLasma-Panel-Override\": true}");
         QString checked, installed;
         const bool can = overrides::checkPanelWidgets(plasmoids, &checked);
-        const bool did = overrides::installPanelWidgets(plasmoids, QString(), &installed);
+        const bool did = overrides::installPanelWidgets(plasmoids, &installed);
         qputenv("XDG_DATA_DIRS", saved);
         QVERIFY(!can && !did);
         QCOMPARE(installed, checked);
-        QCOMPARE(checked.split(QLatin1Char('\n')).size(), 3);
-        for (const char *id : {"org.kde.plasma.digitalclock", "org.kde.plasma.taskmanager", "org.kde.plasma.notifications"})
+        QCOMPARE(checked.split(QLatin1Char('\n')).size(), 2);
+        for (const char *id : {"org.kde.plasma.taskmanager", "org.kde.plasma.notifications"})
             QVERIFY2(checked.contains(QLatin1String(id)), id);
         QVERIFY(!QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.systemtray")));
-        QVERIFY(QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/metadata.json")));
+        QVERIFY(QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.taskmanager/metadata.json")));
         // Everything this Plasma has: all of them.
         QVERIFY2(overrides::checkPanelWidgets(plasmoids, &checked), qPrintable(checked));
     }

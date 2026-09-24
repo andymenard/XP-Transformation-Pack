@@ -3,10 +3,9 @@
 // KDE's QML, patched, that Plasma prefers over the system's -- and removed
 // again on reset, leaving KDE's untouched.
 //
-//   * The notification area and the clock (org.kde.plasma.systemtray,
-//     org.kde.plasma.digitalclock) over the panel theme's xp-tray art, with
-//     XP's show-hidden-icons button, 16px icons, and the clock at 96 dpi,
-//     which opens Date and Time Properties on a double-click.
+//   * The notification area (org.kde.plasma.systemtray) over the panel
+//     theme's xp-tray art, with XP's show-hidden-icons button and 16px
+//     icons. (The clock is XPLasma's own plasmoid.)
 //   * The task manager (org.kde.plasma.taskmanager), with XP's task button
 //     layout when the panel theme marks its buttons as XP's TaskBand
 //     (hint-xplasma-taskband): one every 160px at most, 2px apart, a 16px
@@ -30,14 +29,13 @@
 // half-patched: every override can be checked first (check*, which write
 // nothing), and applying a look does, taking all of them or none.
 #include <QString>
+#include <QStringList>
 
 #include <optional>
 
 namespace xpl::overrides {
 
-// `editor`: the xplasma-edit the clock starts Date and Time Properties with
-// (empty: whichever is on the PATH).
-bool installPanelWidgets(const QString &plasmoids, const QString &editor = QString(), QString *error = nullptr);
+bool installPanelWidgets(const QString &plasmoids, QString *error = nullptr);
 // Whether they could all be installed on this Plasma (nothing is written);
 // *error lists each that couldn't, a line each.
 bool checkPanelWidgets(const QString &plasmoids, QString *error = nullptr);
@@ -51,6 +49,10 @@ void removeDesktopMenu(const QString &plasmoids);
 
 // `themes` is where the Aurorae themes are (their rc files say which want a
 // shadow); `target` the override's path (~/.local/share/kwin/aurorae/aurorae.qml).
+// A shell command starting `program` as its own transient systemd unit (so
+// the shell restarting doesn't take it along), or directly without systemd.
+QString launchCommand(const QString &program, const QStringList &arguments = {});
+
 bool installTitleShadows(const QString &themes, const QString &target, QString *error = nullptr);
 bool checkTitleShadows(const QString &target, QString *error = nullptr);
 void removeTitleShadows(const QString &target);

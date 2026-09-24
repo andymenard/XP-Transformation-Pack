@@ -110,17 +110,21 @@ private Q_SLOTS:
         // (org.kde.plasma.plasmoid): a file that needs one can't be
         // compiled here, but Qt parses it before resolving imports, so a
         // syntax error still shows.
-        const QDir ui(QCoreApplication::applicationDirPath() + QLatin1String("/../../../../src/app/start-menu/contents/ui"));
+        // (And the clock's.)
         QQmlEngine engine;
-        const QStringList files = ui.entryList({QStringLiteral("*.qml")});
-        QVERIFY(files.size() >= 7);
-        for (const QString &file : files) {
-            QQmlComponent component(&engine, QUrl::fromLocalFile(ui.absoluteFilePath(file)));
-            QStringList wrong;
-            for (const QQmlError &e : component.errors())
-                if (!e.description().contains(QLatin1String("is not installed")) && !e.description().endsWith(QLatin1String("unavailable")))
-                    wrong << e.toString();
-            QVERIFY2(wrong.isEmpty(), qPrintable(wrong.join(QLatin1Char('\n'))));
+        for (const char *package : {"start-menu", "clock"}) {
+            const QDir ui(QCoreApplication::applicationDirPath() + QLatin1String("/../../../../src/app/") + QLatin1String(package)
+                          + QLatin1String("/contents/ui"));
+            const QStringList files = ui.entryList({QStringLiteral("*.qml")});
+            QVERIFY(files.size() >= (QLatin1String(package) == QLatin1String("clock") ? 1 : 7));
+            for (const QString &file : files) {
+                QQmlComponent component(&engine, QUrl::fromLocalFile(ui.absoluteFilePath(file)));
+                QStringList wrong;
+                for (const QQmlError &e : component.errors())
+                    if (!e.description().contains(QLatin1String("is not installed")) && !e.description().endsWith(QLatin1String("unavailable")))
+                        wrong << e.toString();
+                QVERIFY2(wrong.isEmpty(), qPrintable(wrong.join(QLatin1Char('\n'))));
+            }
         }
     }
 
@@ -132,7 +136,7 @@ private Q_SLOTS:
             QSKIP("no Plasma here");
         const QString plasmoids = m_scratch.filePath(QStringLiteral("plasmoids"));
         QString error;
-        QVERIFY2(xpl::overrides::installPanelWidgets(plasmoids, QStringLiteral("/bin/true"), &error), qPrintable(error));
+        QVERIFY2(xpl::overrides::installPanelWidgets(plasmoids, &error), qPrintable(error));
         QVERIFY2(xpl::overrides::installDesktopMenu(plasmoids, QStringLiteral("/bin/true"), &error), qPrintable(error));
         QQmlEngine engine;
         for (const char *file : {"org.kde.plasma.notifications/contents/ui/XpButton.qml",

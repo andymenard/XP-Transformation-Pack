@@ -7,10 +7,12 @@
 // slot (Kickoff, or xp2plasma's), which goes. Launchers pinned to an
 // icons-only task manager move to Quick Launch; the task manager is the
 // labelled one, never grouping; the pager and show-desktop go (XP had
-// neither); the clock shows the time only. The order it wants is printed;
+// neither); the clock is XPLasma's, in place of Plasma's, given the look's
+// font and colour. The order it wants is printed;
 // Plasma's scripting can't reorder, so the caller writes it.
 var START = ${START};
 var THEME = ${THEME};
+var CLOCK = ${CLOCK};
 var LAUNCHER_KEYS = ['favorites', 'systemFavorites', 'primaryActions', 'favoritesPortedToKAstats',
                      'systemApplications', 'paneSwap', 'favoritesDisplay', 'applicationsDisplay',
                      'alphaSort', 'pin', 'showActionButtonCaptions', 'compactMode'];
@@ -86,27 +88,34 @@ panels().forEach(function (p) {
         (byType[t] || []).forEach(function (w) { drop(w, t); });
     });
 
-    // 5. The clock: the time only, in XP's clock font.
-    (byType['org.kde.plasma.digitalclock'] || []).forEach(function (w) {
-        w.currentConfigGroup = ['Appearance'];
-        w.writeConfig('showDate', false);
-        w.writeConfig('autoFontAndSize', false);
-        w.writeConfig('fontFamily', ${CLOCK_FAMILY});
-        w.writeConfig('fontSize', ${CLOCK_POINTS});
-        w.writeConfig('fontWeight', ${CLOCK_WEIGHT});
-        w.writeConfig('boldText', ${CLOCK_WEIGHT} >= 600);
-        w.writeConfig('italicText', false);
-        w.writeConfig('fontStyleName', '');
-    });
+    // 5. The clock: XPLasma's, where Plasma's was (last, if there was none),
+    // in XP's clock font and colour.
+    (byType['org.kde.plasma.digitalclock'] || []).forEach(function (w) { drop(w, 'Plasma\'s clock'); });
+    var clock = (byType[CLOCK] || [])[0];
+    if (!clock) {
+        clock = p.addWidget(CLOCK);
+        if (clock) log.push('added the clock');
+        else log.push('could not add ' + CLOCK + ' (Plasma hasn\'t found the package yet?)');
+    }
+    if (clock) {
+        clock.currentConfigGroup = ['General'];
+        clock.writeConfig('fontFamily', ${CLOCK_FAMILY});
+        clock.writeConfig('fontPoints', ${CLOCK_POINTS});
+        clock.writeConfig('fontWeight', ${CLOCK_WEIGHT});
+        clock.writeConfig('textColor', ${CLOCK_COLOR});
+        clock.writeConfig('dateTimeCommand', ${CLOCK_COMMAND});
+    }
 
-    // 6. The order: Start, a pixel's gap, Quick Launch, the tasks, then the rest.
+    // 6. The order: Start, a pixel's gap, Quick Launch, the tasks, the rest,
+    // the clock.
     var spacer = (byType['org.kde.plasma.panelspacer'] || [])[0] || p.addWidget('org.kde.plasma.panelspacer');
     spacer.currentConfigGroup = ['General'];
     spacer.writeConfig('expanding', false);
     spacer.writeConfig('length', 1);
     var head = [start.id, spacer.id, quick.id, tasks.id];
+    var tail = clock ? [clock.id] : [];   // (the clock last, after the tray)
     var rest = p.widgets().map(function (w) { return w.id; })
-        .filter(function (id) { return head.indexOf(id) < 0 && !removed[id]; });
-    result.push({panel: p.id, order: head.concat(rest)});
+        .filter(function (id) { return head.indexOf(id) < 0 && tail.indexOf(id) < 0 && !removed[id]; });
+    result.push({panel: p.id, order: head.concat(rest, tail)});
 });
 print(JSON.stringify({log: log, panels: result}));
