@@ -77,8 +77,6 @@ Item {
         onCloseProgramsRequested: submenu.back(false)
         onRequested: action => backend.activate(action)
         onContextRequested: (action, item, x, y) => root.showActions(action, item, x, y)
-        onMoveRequested: (from, to) => backend.movePinned(from, to)
-        onPinRequested: (action, at) => backend.pinAt(action, at)
         onPinIdRequested: (id, at) => backend.pinIdAt(id, at)
     }
     ActionMenu {
@@ -106,7 +104,7 @@ Item {
         target: root.launcher
         property: "hideOnWindowDeactivate"
         value: false
-        when: submenu.visible || actionMenu.opened
+        when: submenu.visible || actionMenu.opened || menu.dragging
         restoreMode: Binding.RestoreBindingOrValue
     }
     Connections {

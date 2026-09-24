@@ -22,35 +22,21 @@ FocusScope {
     signal requested(var action)
     // A right-click (or the Menu key) on an entry, at (x, y) in `item`.
     signal contextRequested(var action, Item item, real x, real y)
-    // XP's drag and drop in the program list: a pinned program moved
-    // (pinned indices), or a recent one pinned at a place.
-    signal moveRequested(int from, int to)
-    signal pinRequested(var action, int at)
-    // A program dropped from elsewhere (All Programs): its favourite id.
+    // XP's drag and drop: a program drags out of the list as itself -- to
+    // Quick Launch, the desktop, another place in the list -- and one dropped
+    // on the list, from it or from All Programs, is pinned where it lands (a
+    // pinned one moves there). Its favourite id.
     signal pinIdRequested(string id, int at)
-    property Item dragEntry: null
-    property int dropSlot: -1   // before which pinned item it would land; -1: nowhere
-    function dragMove(entry, y) {
-        dragEntry = entry;
+    readonly property string favoriteMime: "application/x-xplasma-favorite"
+    property Item dragEntry: null   // being dragged (dimmed meanwhile)
+    readonly property bool dragging: dragEntry !== null
+    property int dropSlot: -1       // before which pinned item it would land; -1: nowhere
+    function slotFor(id, y) {       // y in the program list
         const n = pinnedItems.length;
         // A recent program dropped among the recent ones stays where it is.
-        dropSlot = entry.pinnedIndex < 0 && y > n * provisional.pinnedRowHeight + separatorHeight / 2
-            ? -1 : Math.max(0, Math.min(n, Math.round(y / provisional.pinnedRowHeight)));
-    }
-    function slotAt(y) {   // y in the program list; past the pinned: the end
-        return Math.max(0, Math.min(pinnedItems.length, Math.round(y / provisional.pinnedRowHeight)));
-    }
-    function dragEnd() {
-        const entry = dragEntry, slot = dropSlot;
-        dragEntry = null;
-        dropSlot = -1;
-        if (!entry || slot < 0) return;
-        if (entry.pinnedIndex >= 0) {
-            const to = slot > entry.pinnedIndex ? slot - 1 : slot;
-            if (to !== entry.pinnedIndex) moveRequested(entry.pinnedIndex, to);
-        } else {
-            pinRequested(entry.entryData.action, slot);
-        }
+        if (!pinnedItems.some(p => p.identity === id) && y > n * provisional.pinnedRowHeight + separatorHeight / 2)
+            return -1;
+        return Math.max(0, Math.min(n, Math.round(y / provisional.pinnedRowHeight)));
     }
     signal closeProgramsRequested()
     readonly property var parts: themeData.parts
@@ -192,29 +178,40 @@ FocusScope {
             }
             onExited: { closeProgramsTimer.stop(); recentOpenTimer.stop(); }
             acceptedButtons: Qt.LeftButton | Qt.RightButton
-            // Dragging: past the system's drag distance, the list's own.
+            // Dragging, past the system's drag distance: the list's, not a flick.
             preventStealing: entry.draggable
-            property point pressedAt
-            property bool moved: false
-            onPressed: mouse => { pressedAt = Qt.point(mouse.x, mouse.y); moved = false; }
-            onPositionChanged: mouse => {
-                if (!entry.draggable || !(pressedButtons & Qt.LeftButton)) return;
-                if (!moved && Math.abs(mouse.x - pressedAt.x) + Math.abs(mouse.y - pressedAt.y) < Qt.styleHints.startDragDistance) return;
-                moved = true;
-                menu.dragMove(entry, entry.mapToItem(programEntries, mouse.x, mouse.y).y);
+            drag.target: entry.draggable ? dragProxy : null
+            onPressed: {
+                // (What the drag shows: the entry's icon.)
+                if (entry.draggable)
+                    icon.grabToImage(result => dragProxy.Drag.imageSource = result.url);
             }
-            onReleased: if (moved) menu.dragEnd()
-            onCanceled: {
-                if (moved) { menu.dragEntry = null; menu.dropSlot = -1; }
-                moved = false;
-            }
+            onReleased: { dragProxy.x = 0; dragProxy.y = 0; }
             onClicked: mouse => {
-                if (moved) return;
                 if (mouse.button === Qt.RightButton)
                     menu.contextRequested(entry.entryData.action, entry, mouse.x, mouse.y);
                 else
                     entry.activate();
             }
+        }
+        Item {
+            // What a drag carries: the program (for this list), and its
+            // launcher (for Quick Launch, the desktop, a file manager).
+            id: dragProxy
+            width: entry.iconSize
+            height: width
+            Drag.dragType: Drag.Automatic
+            Drag.supportedActions: Qt.CopyAction | Qt.LinkAction
+            Drag.hotSpot.x: width / 2
+            Drag.hotSpot.y: height / 2
+            Drag.mimeData: {
+                let data = {};
+                data[menu.favoriteMime] = entry.entryData.favoriteId || "";
+                if (entry.entryData.url) data["text/uri-list"] = entry.entryData.url;
+                return data;
+            }
+            Drag.active: hover.drag.active && entry.draggable && !!entry.entryData.favoriteId
+            Drag.onActiveChanged: menu.dragEntry = Drag.active ? entry : null
         }
         Timer {
             id: recentOpenTimer
@@ -353,17 +350,17 @@ FocusScope {
             }
         }
         DropArea {
-            // Programs dragged in from All Programs: pinned where they're dropped.
+            // Programs dropped on the list: pinned where they land.
             objectName: "pinDropArea"
             anchors.fill: programScroll
-            keys: ["application/x-xplasma-favorite"]
-            onPositionChanged: drag => menu.dropSlot = menu.slotAt(drag.y + programScroll.contentY)
+            keys: [menu.favoriteMime]
+            onPositionChanged: drag => menu.dropSlot = menu.slotFor(drag.getDataAsString(menu.favoriteMime), drag.y + programScroll.contentY)
             onExited: menu.dropSlot = -1
             onDropped: drop => {
-                const id = drop.getDataAsString("application/x-xplasma-favorite");
-                const slot = menu.slotAt(drop.y + programScroll.contentY);
+                const id = drop.getDataAsString(menu.favoriteMime);
+                const slot = id ? menu.slotFor(id, drop.y + programScroll.contentY) : -1;
                 menu.dropSlot = -1;
-                if (!id) return;
+                if (slot < 0) return;
                 drop.accept(Qt.CopyAction);
                 menu.pinIdRequested(id, slot);
             }

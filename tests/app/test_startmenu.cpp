@@ -158,8 +158,10 @@ private Q_SLOTS:
 
     void dragToRearrange()
     {
-        // XP's program list: drag a pinned program to another place, or a
-        // recent one up among the pinned to pin it there.
+        // XP's program list: a pinned program dropped at another place moves
+        // there; a recent one dropped among the pinned is pinned there, and
+        // among the recent ones nothing happens. (The drag itself is a
+        // system drag: it carries the program's id and launcher.)
         if (m_themes.isEmpty())
             QSKIP("no asset library on this machine");
         const auto look = Look::fromStyle(m_themes + QLatin1String("/Luna/luna.msstyles"));
@@ -169,9 +171,11 @@ private Q_SLOTS:
         QVERIFY2(!theme.isEmpty(), qPrintable(error));
         auto items = [](const char *name, int n) {
             QVariantList list;
-            for (int i = 0; i < n; ++i)
-                list << QVariantMap{{QStringLiteral("label"), QStringLiteral("%1 %2").arg(QLatin1String(name)).arg(i)},
-                                    {QStringLiteral("action"), QStringLiteral("%1-%2").arg(QLatin1String(name)).arg(i)}};
+            for (int i = 0; i < n; ++i) {
+                const QString id = QStringLiteral("%1-%2.desktop").arg(QLatin1String(name)).arg(i);
+                list << QVariantMap{{QStringLiteral("label"), id}, {QStringLiteral("identity"), id},
+                                    {QStringLiteral("favoriteId"), id}, {QStringLiteral("action"), QStringLiteral("close")}};
+            }
             return list;
         };
         QObject *menu = nullptr;
@@ -183,26 +187,30 @@ private Q_SLOTS:
         const qreal pinnedRow = provisional.value(QStringLiteral("pinnedRowHeight")).toDouble();
         const qreal recentRow = provisional.value(QStringLiteral("recentRowHeight")).toDouble();
         const qreal separator = menu->property("separatorHeight").toReal();
-        auto at = [&](qreal y) { return list->mapToScene(QPointF(40, y)).toPoint(); };
-        auto drag = [&](QPoint from, QPoint to) {
-            QTest::mousePress(window, Qt::LeftButton, {}, from);
-            for (int i = 1; i <= 8; ++i)
-                QTest::mouseMove(window, from + (to - from) * i / 8);
-            QTest::mouseRelease(window, Qt::LeftButton, {}, to);
+        QSignalSpy spy(menu, SIGNAL(pinIdRequested(QString,int)));
+        auto drop = [&](const QString &id, qreal y) {
+            QMimeData data;
+            data.setData(QStringLiteral("application/x-xplasma-favorite"), id.toUtf8());
+            const QPoint at = list->mapToScene(QPointF(40, y)).toPoint();
+            QDragEnterEvent enter(at, Qt::CopyAction, &data, Qt::LeftButton, Qt::NoModifier);
+            QCoreApplication::sendEvent(window, &enter);
+            QDragMoveEvent move(at, Qt::CopyAction, &data, Qt::LeftButton, Qt::NoModifier);
+            QCoreApplication::sendEvent(window, &move);
+            const int slot = menu->property("dropSlot").toInt();
+            QDropEvent dropped(at, Qt::CopyAction, &data, Qt::LeftButton, Qt::NoModifier);
+            QCoreApplication::sendEvent(window, &dropped);
+            return slot;
         };
-        QSignalSpy moved(menu, SIGNAL(moveRequested(int,int)));
-        QSignalSpy pinned(menu, SIGNAL(pinRequested(QVariant,int)));
-        drag(at(pinnedRow / 2), at(pinnedRow * 2.9));   // the first, below the last
-        QCOMPARE(moved.size(), 1);
-        QCOMPARE(moved.at(0).at(0).toInt(), 0);
-        QCOMPARE(moved.at(0).at(1).toInt(), 2);
-        drag(at(pinnedRow * 3 + separator + recentRow / 2), at(pinnedRow * 0.2));   // the first recent, to the top
-        QCOMPARE(pinned.size(), 1);
-        QCOMPARE(pinned.at(0).at(0).toString(), QStringLiteral("recent-0"));
-        QCOMPARE(pinned.at(0).at(1).toInt(), 0);
-        drag(at(pinnedRow * 3 + separator + recentRow / 2), at(pinnedRow * 3 + separator + recentRow * 1.5));   // among the recent: nothing
-        QCOMPARE(pinned.size(), 1);
-        QCOMPARE(moved.size(), 1);
+        QCOMPARE(drop(QStringLiteral("pinned-0.desktop"), pinnedRow * 2.9), 3);   // the first, below the last
+        QCOMPARE(spy.size(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QStringLiteral("pinned-0.desktop"));
+        QCOMPARE(spy.at(0).at(1).toInt(), 3);
+        QCOMPARE(drop(QStringLiteral("recent-0.desktop"), pinnedRow * 0.2), 0);   // a recent one, to the top
+        QCOMPARE(spy.size(), 2);
+        QCOMPARE(spy.at(1).at(1).toInt(), 0);
+        QCOMPARE(drop(QStringLiteral("recent-0.desktop"), pinnedRow * 3 + separator + recentRow * 1.5), -1);   // among the recent
+        QCOMPARE(spy.size(), 2);
+        QCOMPARE(drop(QStringLiteral("pinned-1.desktop"), pinnedRow * 3 + separator + recentRow * 1.5), 3);   // pinned, dropped low: the end
     }
 
     void dropFromAllPrograms()

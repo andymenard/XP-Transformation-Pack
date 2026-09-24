@@ -53,6 +53,7 @@ Item {
             if (excluded.indexOf(identity) !== -1 || result.some(entry => entry.identity === identity)) continue;
             result.push({label: label, icon: model.data(model.index(row, 0), Qt.DecorationRole),
                          description: String(role(model, row, "description") || ""), identity: identity,
+                         favoriteId: String(role(model, row, "favoriteId") || ""), url: String(role(model, row, "url") || ""),
                          action: {model: model, row: row, identity: identity}});
         }
         return result;
@@ -145,8 +146,7 @@ Item {
         }
     }
 
-    // Dragged in the program list: pinned[from] to pinned[to]'s place, or
-    // a program pinned before pinned[at] (at the end past the last).
+    // pinned[from] to pinned[to]'s place.
     function movePinned(from, to) {
         if (dryRun) { actionDispatched({move: [from, to]}); return; }
         const a = pinned[from], b = pinned[to];
@@ -154,17 +154,6 @@ Item {
         launcher.rootModel.favoritesModel.moveRow(a.action.row, b.action.row);
         Qt.callLater(refresh);
     }
-    function pinAt(action, at) {
-        if (dryRun) { actionDispatched({pin: action, at: at}); return; }
-        const current = typeof action === "object" && action && action.model ? resolve(action) : null;
-        if (!current) return;
-        const id = role(action.model, current.action.row, "favoriteId");
-        const favorites = launcher.rootModel.favoritesModel;
-        if (!id || favorites.isFavorite(String(id))) return;
-        favorites.addFavorite(String(id), at < pinned.length ? pinned[at].action.row : favorites.count);
-        Qt.callLater(refresh);
-    }
-
     // A program dropped on the pinned list by its favourite id: pinned
     // there, or -- pinned already -- moved there.
     function pinIdAt(id, at) {
