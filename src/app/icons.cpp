@@ -82,7 +82,6 @@ const Mapping kMap[] = {
     {"shell32.dll", 240, "Actions", "edit-delete"},
     {"shell32.dll", 133, "Actions", "edit-copy"},
     {"shell32.dll", 133, "Status", "klipper clipboard"},
-    {"shell32.dll", 30, "Emblems", "emblem-symbolic-link emblem-symbolic-link-symbolic"},
     {"shell32.dll", 137, "Actions", "document-properties"},
     {"shell32.dll", 17, "Actions", "document-print"},
     {"shell32.dll", 24, "Actions", "help-contents help-browser"},
@@ -279,6 +278,57 @@ QString writeIconTheme(const QString &directory, const QString &inheritFrom, con
                                             {src.batteryFrame >= 0 ? QStringLiteral("frame") : QStringLiteral("group"),
                                              src.batteryFrame >= 0 ? src.batteryFrame : src.group},
                                             {QStringLiteral("sizes"), sizes}});
+    }
+
+    // The shortcut arrow (shell32's overlay, 30). XP lays the whole overlay
+    // over the icon, the arrow in its bottom-left corner: 7px on 16px icons,
+    // 11px on 32px ones. KDE paints an emblem in a square of its own in the
+    // icon's bottom-right corner -- 8px for icons under 32, 16 to 48, 22 to
+    // 96, then 32 and 64 -- so each square gets XP's arrow at XP's size (the
+    // 11px one doubled and more for big icons), in that corner.
+    {
+        if (!files.contains(QStringLiteral("shell32.dll"))) {
+            const auto bytes = media::systemFile(QStringLiteral("shell32.dll"), error);
+            auto pe = bytes ? PeResources::parse(*bytes, error) : std::nullopt;
+            if (!pe)
+                return QString();
+            files.insert(QStringLiteral("shell32.dll"), std::make_shared<PeResources>(*pe));
+        }
+        QMap<int, QImage> arrows;   // XP's overlay size -> the arrow alone
+        for (const auto &[size, icon] : iconGroup(*files.value(QStringLiteral("shell32.dll")), QStringLiteral("30"), error).asKeyValueRange()) {
+            QImage img = icon.image.convertToFormat(QImage::Format_ARGB32);
+            QRect box;
+            for (int y = 0; y < img.height(); ++y)
+                for (int x = 0; x < img.width(); ++x)
+                    if (qAlpha(img.pixel(x, y)) > 0)
+                        box |= QRect(x, y, 1, 1);
+            if (!box.isEmpty())
+                arrows.insert(size, img.copy(box));
+        }
+        if (!arrows.contains(16) || !arrows.contains(32)) {
+            if (error)
+                *error = QStringLiteral("shell32.dll has no 16 and 32px shortcut overlay");
+            return QString();
+        }
+        QJsonArray sizes;
+        for (const int square : {8, 16, 22, 32, 64}) {
+            const QImage arrow = square < 16 ? arrows.value(16) : arrows.value(32);
+            const int scale = square < 16 ? 1 : qMax(1, square / arrow.width());
+            QImage img(square, square, QImage::Format_ARGB32_Premultiplied);
+            img.fill(Qt::transparent);
+            QPainter p(&img);
+            const QSize size = arrow.size() * scale;
+            p.drawImage(QRect(QPoint(square - size.width(), square - size.height()), size), arrow);
+            p.end();
+            const QString folder = QStringLiteral("%1x%1/emblems").arg(square);
+            directories.insert(folder, {square, QStringLiteral("Emblems")});
+            for (const char *name : {"emblem-symbolic-link", "emblem-symbolic-link-symbolic"})
+                pkg.write(folder + QLatin1Char('/') + QLatin1String(name) + QLatin1String(".png"), img);
+            sizes.append(square);
+        }
+        for (const char *name : {"emblem-symbolic-link", "emblem-symbolic-link-symbolic"})
+            provenance.insert(QLatin1String(name), QJsonObject{{QStringLiteral("file"), QStringLiteral("shell32.dll")},
+                                                            {QStringLiteral("group"), 30}, {QStringLiteral("sizes"), sizes}});
     }
 
     // Names XP has nothing for would be shortened ("...-inactive-symbolic"

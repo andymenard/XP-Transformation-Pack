@@ -796,6 +796,18 @@ private Q_SLOTS:
         QFile index(theme + QLatin1String("/index.theme"));
         QVERIFY(index.open(QIODevice::ReadOnly));
         QVERIFY(index.readAll().contains("Inherits=breeze,hicolor"));
+        // The shortcut arrow in KDE's emblem squares, bottom-right, XP's size:
+        // the 7px arrow for small icons, the 11px one at 32.
+        for (const auto &[square, arrow] : {std::pair(8, 7), std::pair(16, 11), std::pair(22, 22)}) {
+            const QImage emblem(theme + QStringLiteral("/%1x%1/emblems/emblem-symbolic-link.png").arg(square));
+            QCOMPARE(emblem.size(), QSize(square, square));
+            QRect box;
+            for (int y = 0; y < square; ++y)
+                for (int x = 0; x < square; ++x)
+                    if (qAlpha(emblem.pixel(x, y)) > 0)
+                        box |= QRect(x, y, 1, 1);
+            QCOMPARE(box, QRect(square - arrow, square - arrow, arrow, arrow));
+        }
         // The tray's icons XP has none for: the inherited theme's, in the
         // tray's text colour, beyond the icon loader's recolouring.
         if (QFileInfo::exists(QStringLiteral("/usr/share/icons/breeze/index.theme"))) {
