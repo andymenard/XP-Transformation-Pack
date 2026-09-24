@@ -29,6 +29,8 @@ struct PanelArt
     QList<std::pair<QString, QImage>> notify;
     QColor panelColour;                        // the bar's average colour
     QColor textColour;                         // task and clock text
+    QColor trayColour;                         // the notification area's average colour
+    QColor trayTextColour;                     // the clock's text: what reads on the tray
     int height = kTaskbarHeight;
 };
 PanelArt panelArt(const Look &look);

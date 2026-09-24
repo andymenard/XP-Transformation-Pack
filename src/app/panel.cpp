@@ -10,6 +10,8 @@
 #include <QDir>
 #include <QPainter>
 
+#include <cmath>
+
 namespace xpl {
 
 namespace {
@@ -96,6 +98,7 @@ void styleArt(const Look &look, PanelArt &art)
     for (const char *prefix : {"south-", ""})
         frame(art.panel, QLatin1String(prefix), barImage, r.margins(bar, u"sizingmargins"), tilePeriod(r, bar));
     art.panelColour = average(barImage);
+    art.trayColour = art.panelColour;   // (unless the style has a tray of its own, below)
 
     // Task buttons, the height of the bar.
     const int button = schema::partId(u"toolbar", u"button");
@@ -120,6 +123,11 @@ void styleArt(const Look &look, PanelArt &art)
     QRgb text = qRgb(255, 255, 255);
     parseColour(r.property({QStringLiteral("toolbar"), button, 1, QStringLiteral("taskband")}, u"textcolor").value_or(QString()), &text);
     art.textColour = QColor(text);
+    // Text on the tray: the clock's colour (Royale's is black on its light
+    // tray, where the taskbar's is white), else whatever reads on the tray.
+    QRgb clockText = 0;
+    if (parseColour(r.property({QStringLiteral("clock"), 0, 0, QStringLiteral("traynotify")}, u"textcolor").value_or(QString()), &clockText))
+        art.trayTextColour = QColor(clockText);
 
     // The notification area: its backdrop (the clock carries on its middle,
     // without the tray's left end), and the button that shows hidden icons.
@@ -127,6 +135,7 @@ void styleArt(const Look &look, PanelArt &art)
     if (r.hasPart(tray)) {
         const QImage img = r.background(tray, QSize(200, H));
         const QMargins m = r.margins(tray, u"sizingmargins");
+        art.trayColour = average(img);
         frame(art.tray, QStringLiteral("tray-"), img, m, tilePeriod(r, tray), QMargins(r.contentMargins(tray).left(), 0, 0, 0));
         frame(art.tray, QStringLiteral("clock-"), img.copy(m.left(), 0, img.width() - m.left(), H), QMargins(0, m.top(), m.right(), m.bottom()),
               tilePeriod(r, tray));
@@ -162,6 +171,8 @@ void classicArt(const Look &look, PanelArt &art)
         frame(art.panel, QLatin1String(prefix), bar, QMargins(0, 0, 2, 1), 0);
     art.panelColour = pal.color(QPalette::Button);
     art.textColour = s.colour(u"ButtonText");
+    art.trayColour = art.panelColour;   // (the static edge is only a line)
+    art.trayTextColour = art.textColour;
 
     for (const auto &t : kTaskStates) {
         QImage img(160, H, QImage::Format_ARGB32_Premultiplied);
@@ -456,6 +467,15 @@ PanelArt panelArt(const Look &look)
     else
         styleArt(look, art);
     notifyArt(look, art);
+    if (!art.trayTextColour.isValid()) {
+        // Whichever of black and white stands out more from the tray.
+        auto luminance = [](const QColor &c) {
+            auto channel = [](double v) { return v <= 0.03928 ? v / 12.92 : std::pow((v + 0.055) / 1.055, 2.4); };
+            return 0.2126 * channel(c.redF()) + 0.7152 * channel(c.greenF()) + 0.0722 * channel(c.blueF());
+        };
+        const double tray = luminance(art.trayColour);
+        art.trayTextColour = (1.05 / (tray + 0.05)) > ((tray + 0.05) / 0.05) ? QColor(Qt::white) : QColor(Qt::black);
+    }
     return art;
 }
 

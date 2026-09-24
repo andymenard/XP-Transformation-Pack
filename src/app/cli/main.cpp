@@ -327,7 +327,7 @@ int build(const QString &spec, QString dir)
         return 1;
     }
     out() << "  start       " << startDir << "/theme.json\n";
-    const QString icons = writeIconTheme(dir + QLatin1String("/icons"), QStringLiteral("breeze"), &error);
+    const QString icons = writeIconTheme(dir + QLatin1String("/icons"), QStringLiteral("breeze"), panelArt(*look).trayTextColour, &error);
     if (icons.isEmpty()) {
         err() << "xplasma: the icons: " << error << Qt::endl;
         return 1;

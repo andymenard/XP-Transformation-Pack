@@ -329,7 +329,8 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
         if (!previous.isEmpty())
             state.settings.insert(QStringLiteral("previousIconTheme"), previous);
         QString why;
-        iconTheme = writeIconTheme(build + QLatin1String("/icons"), previous, &why);
+        // (the tray's icons XP has no art for, in the tray's text colour)
+        iconTheme = writeIconTheme(build + QLatin1String("/icons"), previous, panelArt(look).trayTextColour, &why);
         if (iconTheme.isEmpty())
             report(o, QStringLiteral("  no XP icons: %1").arg(why));
     }

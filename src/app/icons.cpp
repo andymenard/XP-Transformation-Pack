@@ -188,6 +188,37 @@ QMap<int, QImage> batteryFrame(const QString &file, int frame, bool charging, QS
 
 } // namespace
 
+QByteArray recolouredSvg(const QByteArray &svg, const QColor &text)
+{
+    QString s = QString::fromUtf8(svg);
+    QHash<QString, QString> colours;
+    static const QRegularExpression styleBlock(QStringLiteral("<style[^>]*id=\"current-color-scheme\"[^>]*>(.*?)</style>"),
+                                               QRegularExpression::DotMatchesEverythingOption);
+    static const QRegularExpression rule(QStringLiteral("\\.ColorScheme-(\\w+)\\s*\\{\\s*color\\s*:\\s*(#[0-9a-fA-F]{3,8})"));
+    if (const auto block = styleBlock.match(s); block.hasMatch()) {
+        for (auto it = rule.globalMatch(block.captured(1)); it.hasNext();) {
+            const auto m = it.next();
+            colours.insert(m.captured(1), m.captured(2));
+        }
+        s.remove(block.capturedStart(), block.capturedLength());
+    }
+    colours.insert(QStringLiteral("Text"), text.name());
+    static const QRegularExpression tag(QStringLiteral("<[^>]*class=\"[^\"]*ColorScheme-(\\w+)[^\"]*\"[^>]*>"));
+    QString out;
+    qsizetype at = 0;
+    for (auto it = tag.globalMatch(s); it.hasNext();) {
+        const auto m = it.next();
+        out += s.mid(at, m.capturedStart() - at);
+        QString element = m.captured(0);
+        element.replace(QLatin1String("currentColor"), colours.value(m.captured(1), text.name()));
+        out += element;
+        at = m.capturedEnd();
+    }
+    out += s.mid(at);
+    out.replace(QLatin1String("currentColor"), text.name());
+    return out.toUtf8();
+}
+
 QStringList iconSourceFiles()
 {
     QStringList files;
@@ -198,7 +229,7 @@ QStringList iconSourceFiles()
     return files;
 }
 
-QString writeIconTheme(const QString &directory, const QString &inheritFrom, QString *error)
+QString writeIconTheme(const QString &directory, const QString &inheritFrom, const QColor &trayGlyphs, QString *error)
 {
     const QString inherit = (inheritFrom.isEmpty() || inheritFrom == QLatin1String(kIconThemeId)
                              || inheritFrom.contains(QRegularExpression(QStringLiteral("[\\n\\r,/]"))))
@@ -258,29 +289,59 @@ QString writeIconTheme(const QString &directory, const QString &inheritFrom, QSt
         for (const char *charging : {"", "-charging"})
             for (const char *profile : {"powersave", "balanced", "performance"})
                 pinned << QStringLiteral("battery-%1%2-profile-%3").arg(level, 3, 10, QLatin1Char('0')).arg(QLatin1String(charging), QLatin1String(profile));
-    QJsonObject fallbacks;
-    for (const QString &theme : QStringList{inherit, QStringLiteral("breeze")})
+    // The tray's icons XP has nothing for (the panel asks for "-symbolic"
+    // ones; Discover's are plain) come in one colour, the desktop's text
+    // colour -- black on Luna's blue. They're taken from the inherited theme
+    // in the tray's own text colour instead.
+    static const QRegularExpression trayName(QStringLiteral(
+        "^((brightness|redshift-status|video-display-brightness|input-keyboard-brightness|notification|notifications"
+        "|media-playback|audio-input-microphone|microphone-sensitivity|camera|network|bluetooth|kdeconnect|plasmavault"
+        "|preferences-desktop-display-randr|input-touchpad|system-suspend-inhibited|airplane-mode|klipper|state"
+        "|input-keyboard-virtual|battery)[a-z0-9-]*-symbolic"
+        "|update-(none|low|medium|high)|system-software-update|system-reboot-update)$"));
+    // The file for each: from the nearest theme along the inheritance
+    // (breeze last), in the size nearest 16 (16, larger, then smaller).
+    struct Found { int theme; int distance; QString path; };
+    QMap<QString, Found> found;
+    QStringList themes{inherit};
+    for (int t = 0; t < themes.size(); ++t) {
+        const QString theme = themes.at(t);
         for (const QString &base : QStringList{QDir::homePath() + QLatin1String("/.local/share/icons"), QStringLiteral("/usr/share/icons")}) {
             const QString root = base + QLatin1Char('/') + theme;
             QSettings index(root + QLatin1String("/index.theme"), QSettings::IniFormat);
-            const QStringList dirs = index.value(QStringLiteral("Icon Theme/Directories")).toStringList();
-            for (const QString &dir : dirs)
-                for (const QString &name : std::as_const(pinned)) {
-                    const QString svg = root + QLatin1Char('/') + dir + QLatin1Char('/') + name + QLatin1String(".svg");
-                    if (fallbacks.contains(name) || !QFileInfo::exists(svg))
+            for (QString parent : index.value(QStringLiteral("Icon Theme/Inherits")).toStringList())
+                if (parent = parent.trimmed(); !themes.contains(parent) && parent != QLatin1String("hicolor"))
+                    themes << parent;
+            for (const QString &dir : index.value(QStringLiteral("Icon Theme/Directories")).toStringList()) {
+                const int size = index.value(dir + QLatin1String("/Size"), 0).toInt();
+                const int distance = size >= 16 ? size - 16 : 1000 + 16 - size;
+                for (const QFileInfo &file : QDir(root + QLatin1Char('/') + dir).entryInfoList({QStringLiteral("*.svg")}, QDir::Files)) {
+                    const QString name = file.completeBaseName();
+                    if (!pinned.contains(name) && !(trayGlyphs.isValid() && !map.contains(name) && trayName.match(name).hasMatch()))
                         continue;
-                    QFile f(svg);
-                    if (!f.open(QIODevice::ReadOnly))
+                    const auto have = found.constFind(name);
+                    if (have != found.cend() && (have->theme < t || (have->theme == t && have->distance <= distance)))
                         continue;
-                    const QByteArray bytes = f.readAll();
-                    for (const int size : {16, 24, 32, 48}) {
-                        const QString folder = QStringLiteral("%1x%1/status").arg(size);
-                        directories.insert(folder, {size, QStringLiteral("Status")});
-                        pkg.write(folder + QLatin1Char('/') + name + QLatin1String(".svg"), bytes);
-                    }
-                    fallbacks.insert(name, svg);
+                    found.insert(name, {t, distance, file.filePath()});
                 }
+            }
         }
+        if (t == themes.size() - 1 && !themes.contains(QStringLiteral("breeze")))
+            themes << QStringLiteral("breeze");
+    }
+    QJsonObject fallbacks;
+    for (const auto &[name, entry] : found.asKeyValueRange()) {
+        QFile f(entry.path);
+        if (!f.open(QIODevice::ReadOnly))
+            continue;
+        const QByteArray bytes = trayGlyphs.isValid() ? recolouredSvg(f.readAll(), trayGlyphs) : f.readAll();
+        for (const int size : {16, 22, 24, 32, 48}) {
+            const QString folder = QStringLiteral("%1x%1/status").arg(size);
+            directories.insert(folder, {size, QStringLiteral("Status")});
+            pkg.write(folder + QLatin1Char('/') + name + QLatin1String(".svg"), bytes);
+        }
+        fallbacks.insert(name, entry.path);
+    }
 
     QString index = QStringLiteral("[Icon Theme]\nName=Windows XP\nComment=Windows XP's own icons, taken from your XP media by XPLasma\n"
                                    "Inherits=%1,hicolor\nDirectories=%2\n")

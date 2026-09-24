@@ -689,6 +689,13 @@ private Q_SLOTS:
         const PanelArt art = panelArt(*look);
         const Renderer &r = *look->renderer;
         QCOMPARE(art.height, 30);
+        // Text on the tray is the clock's: Royale's is black on its light
+        // tray (its taskbar text is white); Luna Blue's white.
+        if (style.startsWith(QLatin1String("Royale/")) || variant == QLatin1String("NORMALMETALLIC_INI"))
+            QCOMPARE(art.trayTextColour, QColor(Qt::black));
+        else if (variant == QLatin1String("NORMALBLUE_INI"))
+            QCOMPARE(art.trayTextColour, QColor(Qt::white));
+        QVERIFY(art.trayTextColour.isValid());
         for (const int width : {640, 800, 1280, 1366, 1920}) {
             const QImage xp = r.background({QStringLiteral("taskbar"), 1, 0, {}}, QSize(width, 30));
             const QImage ours = composeFrame(art.panel, QString(), QSize(width, 30));
@@ -775,7 +782,7 @@ private Q_SLOTS:
         state.media = m_realIso;
         QVERIFY(state.save());
         QString error;
-        const QString theme = writeIconTheme(m_home.filePath(QStringLiteral("out")), QStringLiteral("breeze"), &error);
+        const QString theme = writeIconTheme(m_home.filePath(QStringLiteral("out")), QStringLiteral("breeze"), QColor(Qt::white), &error);
         QVERIFY2(!theme.isEmpty(), qPrintable(error));
         // XP's own sizes only: shell32's folder at 16, 32 and 48, never larger.
         for (const char *size : {"16x16", "32x32", "48x48"})
@@ -789,6 +796,24 @@ private Q_SLOTS:
         QFile index(theme + QLatin1String("/index.theme"));
         QVERIFY(index.open(QIODevice::ReadOnly));
         QVERIFY(index.readAll().contains("Inherits=breeze,hicolor"));
+        // The tray's icons XP has none for: the inherited theme's, in the
+        // tray's text colour, beyond the icon loader's recolouring.
+        if (QFileInfo::exists(QStringLiteral("/usr/share/icons/breeze/index.theme"))) {
+            QFile sun(theme + QLatin1String("/16x16/status/brightness-high-symbolic.svg"));
+            QVERIFY(sun.open(QIODevice::ReadOnly));
+            const QByteArray svg = sun.readAll();
+            QVERIFY2(svg.contains("#ffffff") && !svg.contains("currentColor") && !svg.contains("current-color-scheme"), svg.left(400).constData());
+            QVERIFY(!QFileInfo::exists(theme + QLatin1String("/16x16/status/folder-symbolic.svg")));   // (not the tray's)
+        }
+    }
+
+    void recolouredSymbolic()
+    {
+        const QByteArray in = R"(<svg><defs><style id="current-color-scheme" type="text/css">.ColorScheme-Text { color:#232629; } .ColorScheme-Highlight { color:#3daee9; }</style></defs>)"
+                              R"(<path class="ColorScheme-Text" fill="currentColor" d="m0 0"/><rect class="ColorScheme-Highlight" style="fill:currentColor"/><g fill="currentColor"/></svg>)";
+        const QByteArray out = xpl::recolouredSvg(in, QColor(0x41, 0x40, 0x0a));
+        QVERIFY2(out == R"(<svg><defs></defs><path class="ColorScheme-Text" fill="#41400a" d="m0 0"/><rect class="ColorScheme-Highlight" style="fill:#3daee9"/><g fill="#41400a"/></svg>)",
+                 out.constData());
     }
 
     void startPanel()

@@ -5,6 +5,17 @@ Each says where it came from, so it can be picked up without re-deriving it.
 
 ## Open
 
+- **Royale's clock is white on its light tray** (2026-09-23). Plasma draws
+  the clock, like the task buttons, in the panel theme's one text colour
+  (the taskbar's: white); the style's clock text is black (Clock TEXTCOLOR,
+  now in PanelArt::trayTextColour, which the tray's fallback icons use).
+  The clock needs its own colour channel -- e.g. a value in its patch.
+- **Tray icons in apps**: the tray names XP has no art for are recoloured to
+  the tray's text colour in the icon theme itself (Plasma recolours with the
+  desktop's text colour, black), so an app asking for one of those names
+  gets it in that colour too -- white on Luna Blue. The names are limited
+  to tray ones ("-symbolic" status icons, Discover's update-*).
+
 - **A failed transfer leaves no balloon**, as with Plasma's own popups: a
   job terminated with an error (JobViewV3) leaves the popup model at once;
   the app shows its own error. XpPopup's error-balloon path stays for a job
