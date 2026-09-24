@@ -40,8 +40,11 @@ the copy dialog and a failed copy, Start, Date and Time, apply/reset cycles.
   popup (on 6.4, where it's declared in the tray) and the task manager's
   tooltips set Window back, or their text is white on beige and yellow.
   Plasma's other widgets on the taskbar (its own clock, the keyboard
-  layout's "us") have the Window set, black on the blue; the panel
-  containment sets none (6.4 has it as a package, 6.5+ built in).
+  layout's "us") take the Complementary set from the panel containment
+  (org.kde.panel), patched like the tray: a package up to 6.4, in
+  XPLasma's builds from 6.5. The panel lays the theme's south-active-tab
+  behind a widget whose popup is open (tray icons too); XPLasma leaves it
+  empty, as XP shows nothing there (XP's pale tab put white on white).
 - **Plasma's unchecked check box is a small button, not XP's box.**
   Plasma Components' CheckIndicator draws its box with the push button's
   frame (widgets/button, "normal") and lays the tick (widgets/checkmarks)

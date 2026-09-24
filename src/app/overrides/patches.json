@@ -183,5 +183,11 @@
    "find": "dir.drop(target, event, dropItemAt(dropPos), ",
    "replace": "dir.drop(target, xpShortcutDrop(event), dropItemAt(dropPos), "
   }
+ ],
+ "panel/main.qml": [
+  {
+   "find": "ContainmentItem {\n    id: root\n",
+   "replace": "ContainmentItem {\n    id: root\n    // XPLasma: an XPLasma taskbar's colours -- the theme's Complementary\n    // set; its Window set is XP's dialog colours, for Plasma's popups -- for\n    // every widget on it (Plasma's own clock, the keyboard layout's label).\n    KSvg.Svg { id: xpTasksSvg; imagePath: \"widgets/tasks\" }\n    readonly property bool xpColours: xpTasksSvg.hasElement(\"hint-xplasma-colours\")\n    Kirigami.Theme.colorSet: xpColours ? Kirigami.Theme.Complementary : Kirigami.Theme.Window\n    Kirigami.Theme.inherit: !xpColours\n"
+  }
  ]
 }

@@ -405,22 +405,23 @@ Elements scrollBar(QStyle *style, const Look &look)
 Elements tabs(QStyle *style)
 {
     Elements out;
-    for (const bool north : {true, false}) {
-        // (in room to spare: XP draws a selected tab a little larger than
-        // its box, over its neighbours and the pane's edge)
-        auto o = option<QStyleOptionTab>(style, QSize(64, 22), QStyle::State_Selected);
-        o.rect.translate(6, 6);
-        o.shape = north ? QTabBar::RoundedNorth : QTabBar::RoundedSouth;
-        o.position = QStyleOptionTab::Middle;
-        QImage image = canvas(o.rect.size() + QSize(12, 12));
-        {
-            QPainter p(&image);
-            style->drawControl(QStyle::CE_TabBarTabShape, &o, &p, nullptr);
-        }
-        const QImage tab = trimmed(image);
-        appendFrame(out, north ? QStringLiteral("north-active-tab-") : QStringLiteral("south-active-tab-"), tab,
-                    within(QMargins(3, 3, 3, 3), tab.size()), 0, QMargins(6, 3, 6, 3));
+    // (in room to spare: XP draws a selected tab a little larger than its
+    // box, over its neighbours and the pane's edge)
+    auto o = option<QStyleOptionTab>(style, QSize(64, 22), QStyle::State_Selected);
+    o.rect.translate(6, 6);
+    o.shape = QTabBar::RoundedNorth;
+    o.position = QStyleOptionTab::Middle;
+    QImage image = canvas(o.rect.size() + QSize(12, 12));
+    {
+        QPainter p(&image);
+        style->drawControl(QStyle::CE_TabBarTabShape, &o, &p, nullptr);
     }
+    const QImage tab = trimmed(image);
+    appendFrame(out, QStringLiteral("north-active-tab-"), tab, within(QMargins(3, 3, 3, 3), tab.size()), 0, QMargins(6, 3, 6, 3));
+    // south-active-tab left empty: the panel lays it behind a widget whose
+    // popup is open (the tray's icons too), where XP shows nothing -- and
+    // XP's pale tab there put the taskbar's white text on white.
+    appendFrame(out, QStringLiteral("south-active-tab-"), canvas(QSize(4, 4)), QMargins(1, 1, 1, 1));
     return out;
 }
 

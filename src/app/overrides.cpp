@@ -136,6 +136,9 @@ const QList<Widget> kPanelWidgets{
      {QStringLiteral("XpNotificationIcons.qml")}},
     {QStringLiteral("org.kde.plasma.taskmanager"), QStringLiteral("taskmanager"),
      {QStringLiteral("main.qml"), QStringLiteral("Task.qml"), QStringLiteral("code/layoutmetrics.js")}, {}, {}},
+    // The panel itself (a containment): the taskbar's colours for every
+    // widget on it, not only those XPLasma patches.
+    {QStringLiteral("org.kde.panel"), QStringLiteral("panel"), {QStringLiteral("main.qml")}, {}, {}},
     // XP's balloons (when the look has their art; Plasma's popups otherwise).
     {QStringLiteral("org.kde.plasma.notifications"), QStringLiteral("notifications"),
      {QStringLiteral("main.qml"), QStringLiteral("global/Globals.qml")}, {},

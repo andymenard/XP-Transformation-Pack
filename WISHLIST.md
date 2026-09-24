@@ -34,6 +34,8 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Done
 
+- Plasma's own widgets on the taskbar (its clock, the keyboard layout)
+  in the taskbar's white text (2026-09-24).
 - The last of Plasma's popup controls: spin boxes' buttons as XP's up-down
   on its side; scroll bars seen live (the clipboard's popup, Fedora, thumb
   and hover track). The unchecked check box stays a small button: see

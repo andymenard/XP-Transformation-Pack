@@ -1,6 +1,6 @@
 #!/bin/sh
 # XPLasma's builds of Plasma's own widgets, one per Plasma series (see
-# src/app/forks.h): the tray, notifications and task manager that Plasma
+# src/app/forks.h): the tray, notifications, task manager and panel that Plasma
 # 6.5+ builds into its plugins, patched as XPLasma patches the packaged ones.
 #
 #   ./build-forks.sh SERIES...        e.g. ./build-forks.sh 6.6

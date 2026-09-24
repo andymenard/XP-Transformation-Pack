@@ -67,6 +67,14 @@
      "taskmanager/Task.qml": "qml/Task.qml",
      "taskmanager/code/layoutmetrics.js": "qml/code/LayoutMetrics.js"
     }
+   },
+   {
+    "id": "org.kde.panel",
+    "project": "plasma-desktop",
+    "dir": "containments/panel",
+    "files": {
+     "panel/main.qml": "main.qml"
+    }
    }
   ],
   "rules": {
@@ -227,6 +235,14 @@
      "taskmanager/main.qml": "qml/main.qml",
      "taskmanager/Task.qml": "qml/Task.qml",
      "taskmanager/code/layoutmetrics.js": "qml/code/LayoutMetrics.js"
+    }
+   },
+   {
+    "id": "org.kde.panel",
+    "project": "plasma-desktop",
+    "dir": "containments/panel",
+    "files": {
+     "panel/main.qml": "main.qml"
     }
    }
   ],

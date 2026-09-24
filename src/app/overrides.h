@@ -10,6 +10,9 @@
 //     layout when the panel theme marks its buttons as XP's TaskBand
 //     (hint-xplasma-taskband): one every 160px at most, 2px apart, a 16px
 //     icon 10px in and the label 3px after it.
+//   * The panel (org.kde.panel), whose widgets all take the taskbar's
+//     colours when the panel theme is XPLasma's (hint-xplasma-colours) --
+//     Plasma's own too, a clock or the keyboard layout's label.
 //   * Notifications (org.kde.plasma.notifications), as XP's balloons when
 //     the panel theme has their art (widgets/xp-notify): one at a time from
 //     the sender's tray icon -- or an icon of its own, next to the others,

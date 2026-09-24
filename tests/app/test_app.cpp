@@ -1068,7 +1068,8 @@ private Q_SLOTS:
         const bool can = overrides::checkPanelWidgets(plasmoids, &checked);
         const bool did = overrides::installPanelWidgets(plasmoids, &installed);
         qputenv("XDG_DATA_DIRS", saved);
-        QCOMPARE(builtIn, (QStringList{QStringLiteral("org.kde.plasma.taskmanager"), QStringLiteral("org.kde.plasma.notifications")}));
+        QCOMPARE(builtIn, (QStringList{QStringLiteral("org.kde.plasma.taskmanager"), QStringLiteral("org.kde.panel"),
+                                       QStringLiteral("org.kde.plasma.notifications")}));
         QVERIFY2(can && did, qPrintable(checked + installed));
         QVERIFY(QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.systemtray/contents/ui/XpNotificationIcons.qml")));
         QVERIFY(!QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.taskmanager")));
