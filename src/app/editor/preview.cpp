@@ -217,7 +217,7 @@ QImage Previewer::desktop(const Wallpaper &wallpaper, QSize size)
     return out;
 }
 
-QImage Previewer::theme(const Look &look, const Wallpaper &desktop, QSize size)
+QImage Previewer::theme(const Look &look, const Wallpaper &desktop, QSize size, const StartButtonExtras &start)
 {
     // The screen scaled down: the wallpaper, the windows, the taskbar with
     // the Start button along the bottom.
@@ -233,8 +233,8 @@ QImage Previewer::theme(const Look &look, const Wallpaper &desktop, QSize size)
     p.drawImage(QRect(0, screen.height(), size.width(), barHeight), composeFrame(art.panel, QString(), QSize(800, art.height)));
     const auto flag = look.classic() ? media::classicStartFlag() : media::startFlag();
     if (flag)
-        if (const auto start = startButton(look, *flag, look.classic() ? QStringLiteral("Start") : QStringLiteral("start")))
-            p.drawImage(QRect(0, screen.height(), start->normal.width() * barHeight / start->normal.height(), barHeight), start->normal);
+        if (const auto button = startButton(look, *flag, start))
+            p.drawImage(QRect(0, screen.height(), button->normal.width() * barHeight / button->normal.height(), barHeight), button->normal);
     return full;
 }
 

@@ -290,6 +290,19 @@ QStringList generatedPackages(const QStringList &keep)
     return found;
 }
 
+bool applyStartButton(Session &session, const Look &look, QString *error)
+{
+    const StartButtonExtras extras = StartButtonExtras::fromJson(State::load().settings.value(QLatin1String(kStartButtonKey)).toObject());
+    const QString startDir = paths::data() + QLatin1String("/start/") + look.id;
+    QDir(startDir).removeRecursively();
+    const QJsonObject theme = writeStartTheme(look, startDir, error, extras);
+    if (theme.isEmpty())
+        return false;
+    session.script(scriptFrom(QStringLiteral("start-theme"),
+                              {{QStringLiteral("START"), QLatin1String(kStartPlasmoidId)}, {QStringLiteral("THEME"), theme.toVariantMap()}}));
+    return true;
+}
+
 bool applyWidgets(Session &session, const Look &look, const std::function<void(const QString &)> &progress, QString *error)
 {
     State state = State::load();
@@ -402,7 +415,8 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
     QJsonObject startTheme;
     if (o.taskbar) {
         QDir(startDir).removeRecursively();
-        startTheme = writeStartTheme(look, startDir, error);
+        startTheme = writeStartTheme(look, startDir, error,
+                                     StartButtonExtras::fromJson(state.settings.value(QLatin1String(kStartButtonKey)).toObject()));
         if (startTheme.isEmpty())
             return false;
     }

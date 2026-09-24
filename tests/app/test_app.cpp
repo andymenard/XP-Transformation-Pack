@@ -795,6 +795,32 @@ private Q_SLOTS:
         const auto classicArt = xpl::startButton(classic, flag, QStringLiteral("start"), &error);
         QVERIFY2(classicArt, qPrintable(error));
         QCOMPARE(classicArt->normal.height(), 30);
+
+        // Extras: none is XP's own button; a longer label, a wider one; a
+        // logo of characters or a picture in the flag's place, its height.
+        const auto plain = xpl::startButton(*look, flag, StartButtonExtras{}, &error);
+        QVERIFY2(plain, qPrintable(error));
+        QCOMPARE(plain->normal, art->normal);
+        const auto longer = xpl::startButton(*look, flag, StartButtonExtras{QStringLiteral("start me up"), {}, {}}, &error);
+        QVERIFY(longer && longer->normal.width() > art->normal.width());
+        const auto emoji = xpl::startButton(*look, flag, StartButtonExtras{QStringLiteral("fart"), QStringLiteral("\U0001F427"), {}}, &error);
+        QVERIFY(emoji);
+        QVERIFY(emoji->normal.pixel(10, 5) != qRgb(255, 0, 0));   // no flag
+        QImage picture(40, 40, QImage::Format_ARGB32);
+        picture.fill(qRgba(0, 255, 0, 255));
+        const QString file = m_home.filePath(QStringLiteral("logo.png"));
+        QVERIFY(picture.save(file));
+        const auto pictured = xpl::startButton(*look, flag, StartButtonExtras{{}, QStringLiteral("ignored"), file}, &error);
+        QVERIFY(pictured);
+        QCOMPARE(pictured->normal.pixel(10, 5), qRgb(0, 255, 0));
+        QCOMPARE(pictured->normal.pixel(29, 24), qRgb(0, 255, 0));   // 20 tall and wide, where the flag was 25 x 20
+        // A picture that's gone: XP's flag.
+        const auto gone = xpl::startButton(*look, flag, StartButtonExtras{{}, {}, file + QLatin1String(".gone")}, &error);
+        QVERIFY(gone && gone->normal == art->normal);
+        // Kept as JSON, only what's set.
+        const StartButtonExtras e{QStringLiteral("fart"), QStringLiteral("\U0001F427"), {}};
+        QCOMPARE(StartButtonExtras::fromJson(e.toJson()), e);
+        QVERIFY(StartButtonExtras{}.toJson().isEmpty());
     }
 
     void iconTheme()
@@ -983,6 +1009,29 @@ private Q_SLOTS:
         // One of XP's account pictures, for a user without their own: 48x48.
         const QImage picture(QUrl(theme.value(QStringLiteral("userPicture")).toString()).toLocalFile());
         QCOMPARE(picture.size(), QSize(48, 48));
+    }
+
+    void startButtonExtrasApplied()
+    {
+        // Extras... applied alone: the button redrawn with the user's label
+        // (State's settings) and handed to the running Start buttons.
+        if (m_realThemes.isEmpty() || m_realIso.isEmpty())
+            QSKIP("needs the asset library and the XP ISO");
+        State state;
+        state.media = m_realIso;
+        state.settings.insert(QLatin1String(kStartButtonKey), StartButtonExtras{QStringLiteral("start me up"), {}, {}}.toJson());
+        QVERIFY(state.save());
+        const auto look = Look::fromStyle(m_realThemes + QLatin1String("/Luna/luna.msstyles"));
+        RecordingSession session;
+        QString error;
+        QVERIFY2(applyStartButton(session, *look, &error), qPrintable(error));
+        QCOMPARE(session.scripts.size(), 1);
+        const QString js = session.scripts.first();
+        QVERIFY(js.contains(QLatin1String(kStartPlasmoidId)) && js.contains(QLatin1String("writeConfig('theme'")));
+        const QRegularExpression width(QStringLiteral("\\\\?\"width\\\\?\":(\\d+)"));
+        const auto m = width.match(js);
+        QVERIFY2(m.hasMatch(), qPrintable(js.left(300)));
+        QVERIFY(m.captured(1).toInt() > 99);   // wider than XP's "start"
     }
 
     // --- applying to the session --------------------------------------------------

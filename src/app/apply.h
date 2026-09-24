@@ -43,6 +43,10 @@ void applyWallpaper(Session &session, const Wallpaper &wallpaper, const std::fun
 // is down: a running shell loads a panel's saved state a moment after its
 // scripting answers, so a script run then is undone.
 void settleTaskbars(Session &session, int height);
+// The Start button only, redrawn for `look` (the one applied) with the
+// user's extras (State's settings, kStartButtonKey) and handed to the
+// running taskbar's Start buttons.
+bool applyStartButton(Session &session, const Look &look, QString *error = nullptr);
 // Qt apps' widgets only.
 bool applyWidgets(Session &session, const Look &look, const std::function<void(const QString &)> &progress, QString *error = nullptr);
 // Plasma's default look back (Breeze, the default panel and wallpaper), and

@@ -8,9 +8,6 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Wanted
 
-- **Extras... in Display Properties** (from the user). The Appearance tab's
-  Effects... button back, as Extras...: the Start button's text and logo
-  changeable. The user's example: 🐧 fart.
 - **XPLasma's own update notifier** (from the user): a tray icon when a new
   XPLasma is out, as XP's Automatic Updates globe (wuauclt.exe's icon 1) --
   kept for it, not used for the system's updates.
@@ -33,6 +30,9 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Done
 
+- Extras... in Display Properties (the user's idea): the Start button's
+  label, and its logo -- XP's flag, characters (an emoji), or a picture.
+  Applied alone it only redraws the button (2026-09-24).
 - XP's tray icons for the rest (the user's picks): Automatic Updates'
   green and yellow shields for system updates, Power Options' monitor
   with a moon for brightness, and a charging battery that keeps its level

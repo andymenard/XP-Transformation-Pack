@@ -12,6 +12,7 @@
 #include "app/editor/preview.h"
 #include "app/library.h"
 #include "app/pointers.h"
+#include "app/startbutton.h"
 
 #include <QDialog>
 
@@ -58,6 +59,7 @@ private:
     void appearanceChanged();
     void desktopChanged();
     void openAdvanced();
+    void openExtras();
     void saveAs();
     void deleteTheme();
     bool apply();
@@ -91,6 +93,8 @@ private:
     std::optional<pointers::Scheme> m_pointers;
     bool m_pointerShadow = true;
     std::optional<std::pair<pointers::Scheme, bool>> m_appliedPointers;
+    // The Start button's extras (label, logo) as edited, and as applied.
+    StartButtonExtras m_startExtras, m_appliedStartExtras;
     QHash<QString, QList<CursorFrame>> m_cursorCache;   // file ("" + role: the default) -> frames
     int m_previewFrame = 0;
 
@@ -108,7 +112,7 @@ private:
     // Appearance
     QLabel *m_appearanceSample;
     QComboBox *m_style, *m_colour, *m_size;
-    QPushButton *m_advanced;
+    QPushButton *m_advanced, *m_extras;
     // Pointers
     QComboBox *m_pointerScheme;
     QListWidget *m_pointerList;

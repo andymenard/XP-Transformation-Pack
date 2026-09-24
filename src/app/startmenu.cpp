@@ -77,7 +77,7 @@ bool installClockPlasmoid(const QString &plasmoids, QString *error)
     return installPackage(QStringLiteral("clock"), plasmoids, kClockPlasmoidId, error);
 }
 
-QJsonObject writeStartTheme(const Look &look, const QString &directory, QString *error)
+QJsonObject writeStartTheme(const Look &look, const QString &directory, QString *error, const StartButtonExtras &extras)
 {
     QJsonObject theme = writeStartPanel(look, directory, error);
     if (theme.isEmpty())
@@ -85,7 +85,7 @@ QJsonObject writeStartTheme(const Look &look, const QString &directory, QString 
     const auto flag = look.classic() ? media::classicStartFlag(error) : media::startFlag(error);
     if (!flag)
         return QJsonObject();
-    const auto button = startButton(look, *flag, look.classic() ? QStringLiteral("Start") : QStringLiteral("start"), error);
+    const auto button = startButton(look, *flag, extras, error);
     if (!button)
         return QJsonObject();
     // (A new name per content, so no image cache ever shows the old one.)

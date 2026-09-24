@@ -10,6 +10,7 @@
 //     button, as XPLasma generates them.
 #include "app/apply.h"
 #include "app/look.h"
+#include "app/startbutton.h"
 
 #include <QImage>
 #include <QTemporaryDir>
@@ -29,7 +30,7 @@ public:
 
     // (Style plugins for a look, made once and kept.)
     QImage appearance(const Look &look, QSize size, const QColor &background);
-    QImage theme(const Look &look, const Wallpaper &desktop, QSize size);
+    QImage theme(const Look &look, const Wallpaper &desktop, QSize size, const StartButtonExtras &start = {});
     QImage desktop(const Wallpaper &wallpaper, QSize size);
 
     // Whether XPLasma's style plugin could be loaded (the samples need it).

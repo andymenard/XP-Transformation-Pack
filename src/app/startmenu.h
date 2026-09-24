@@ -4,6 +4,7 @@
 // which does -- the Start button's images and the Start menu's art, as the
 // JSON the plasmoid takes in its "theme" setting.
 #include "app/look.h"
+#include "app/startbutton.h"
 
 #include <QJsonObject>
 #include <QString>
@@ -20,8 +21,9 @@ bool installStartPlasmoid(const QString &plasmoids, QString *error = nullptr);
 bool installClockPlasmoid(const QString &plasmoids, QString *error = nullptr);
 
 // The look's Start data into `directory`: the button (with the flag from
-// the XP media) and the menu. The JSON the plasmoid is given, or empty with
-// *error.
-QJsonObject writeStartTheme(const Look &look, const QString &directory, QString *error = nullptr);
+// the XP media, and the user's `extras`) and the menu. The JSON the plasmoid
+// is given, or empty with *error.
+QJsonObject writeStartTheme(const Look &look, const QString &directory, QString *error = nullptr,
+                            const StartButtonExtras &extras = {});
 
 } // namespace xpl

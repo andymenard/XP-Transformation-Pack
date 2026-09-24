@@ -1,6 +1,7 @@
 #include "app/editor/displayproperties.h"
 
 #include "app/editor/advanced.h"
+#include "app/editor/extras.h"
 #include "app/editor/jobs.h"
 #include "app/editor/setupdialog.h"
 #include "app/paths.h"
@@ -202,6 +203,7 @@ DisplayProperties::DisplayProperties(QWidget *parent)
     }
     fillPointerSchemes();
     showPointers();
+    m_appliedStartExtras = m_startExtras = StartButtonExtras::fromJson(state.settings.value(QLatin1String(kStartButtonKey)).toObject());
     updateApply();
     if (!m_previewer.styleAvailable())
         m_appearanceSample->setToolTip(QStringLiteral("XPLasma's style plugin isn't installed: the samples can't be drawn"));
@@ -298,12 +300,15 @@ QWidget *DisplayProperties::appearanceTab()
     m_colour = new QComboBox;
     m_size = new QComboBox;
     m_advanced = new QPushButton(QStringLiteral("Advanced"));
+    // (Where XP had Effects...: XPLasma's own, the Start button's label and logo.)
+    m_extras = new QPushButton(QStringLiteral("Extras..."));
     grid->addWidget(new QLabel(QStringLiteral("Windows and buttons:")), 0, 0);
     grid->addWidget(m_style, 1, 0);
     grid->addWidget(new QLabel(QStringLiteral("Color scheme:")), 2, 0);
     grid->addWidget(m_colour, 3, 0);
     grid->addWidget(new QLabel(QStringLiteral("Font size:")), 4, 0);
     grid->addWidget(m_size, 5, 0);
+    grid->addWidget(m_extras, 3, 2);
     grid->addWidget(m_advanced, 5, 2);
     grid->setColumnStretch(0, 5);
     grid->setColumnMinimumWidth(1, 40);
@@ -320,6 +325,7 @@ QWidget *DisplayProperties::appearanceTab()
     });
     connect(m_size, &QComboBox::activated, this, &DisplayProperties::appearanceChanged);
     connect(m_advanced, &QPushButton::clicked, this, &DisplayProperties::openAdvanced);
+    connect(m_extras, &QPushButton::clicked, this, &DisplayProperties::openExtras);
     return page;
 }
 
@@ -718,6 +724,16 @@ void DisplayProperties::desktopChanged()
     updateApply();
 }
 
+void DisplayProperties::openExtras()
+{
+    ExtrasDialog dialog(look(), m_startExtras, this);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+    m_startExtras = dialog.extras();
+    renderThemes();
+    updateApply();
+}
+
 void DisplayProperties::openAdvanced()
 {
     AdvancedDialog dialog(m_scheme, &m_previewer, this);
@@ -801,11 +817,21 @@ bool DisplayProperties::apply()
     const bool lookChanged = everything || lookKey(l) != m_appliedLook;
     const bool desktopChanged = everything || !sameDesktop(desktop, m_appliedDesktop);
     const bool pointersChanged = pointersDiffer() || (everything && m_pointers);
-    if (!lookChanged && !desktopChanged && !pointersChanged && m_themeFile == m_appliedThemeFile)
+    const bool startChanged = m_startExtras != m_appliedStartExtras;
+    if (!lookChanged && !desktopChanged && !pointersChanged && !startChanged && m_themeFile == m_appliedThemeFile)
         return true;
 
     QString error;
     bool ok = true;
+    if (startChanged) {
+        // (Kept first: a look applied now draws its Start button with them.)
+        State state = State::load();
+        if (m_startExtras.isDefault())
+            state.settings.remove(QLatin1String(kStartButtonKey));
+        else
+            state.settings.insert(QLatin1String(kStartButtonKey), m_startExtras.toJson());
+        state.save();
+    }
     if (lookChanged) {
         ApplyOptions o;
         if (desktopChanged)
@@ -827,6 +853,14 @@ bool DisplayProperties::apply()
         state.themeFile = m_themeFile;
         state.save();
     }
+    if (startChanged && !lookChanged) {
+        ok = runJob(this, QStringLiteral("Applying the Start button"), [&](const JobContext &, QString *e) {
+            LiveSession session;
+            return applyStartButton(session, l, e);
+        }, &error);
+    }
+    if (ok && startChanged)
+        m_appliedStartExtras = m_startExtras;
     if (ok) {
         if (lookChanged)
             m_appliedLook = lookKey(l);
@@ -856,7 +890,7 @@ bool DisplayProperties::apply()
 void DisplayProperties::updateApply()
 {
     m_apply->setEnabled(shiftHeld() || lookKey(look()) != m_appliedLook || !sameDesktop(wallpaper(), m_appliedDesktop)
-                        || m_themeFile != m_appliedThemeFile || pointersDiffer());
+                        || m_themeFile != m_appliedThemeFile || pointersDiffer() || m_startExtras != m_appliedStartExtras);
 }
 
 bool DisplayProperties::eventFilter(QObject *watched, QEvent *event)
@@ -873,7 +907,7 @@ void DisplayProperties::renderThemes()
 {
     if (m_loading)
         return;
-    m_themeSample->setPixmap(QPixmap::fromImage(m_previewer.theme(look(), wallpaper(), preview::kThemesSize)));
+    m_themeSample->setPixmap(QPixmap::fromImage(m_previewer.theme(look(), wallpaper(), preview::kThemesSize, m_startExtras)));
 }
 
 void DisplayProperties::renderDesktop()
@@ -909,6 +943,11 @@ bool DisplayProperties::saveScreenshots(const QString &dir)
     advanced.show();
     QApplication::processEvents();
     ok &= advanced.grab().save(QDir(dir).filePath(QStringLiteral("advanced.png")));
+    ExtrasDialog extras(look(), m_startExtras, this);
+    extras.setAttribute(Qt::WA_DontShowOnScreen);
+    extras.show();
+    QApplication::processEvents();
+    ok &= extras.grab().save(QDir(dir).filePath(QStringLiteral("extras.png")));
     return ok;
 }
 

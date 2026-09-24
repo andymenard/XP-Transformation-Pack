@@ -76,6 +76,7 @@ add_executable(xplasma-edit
   editor/datetime.cpp
   editor/preview.cpp
   editor/advanced.cpp
+  editor/extras.cpp
   editor/setupdialog.cpp
   editor/jobs.cpp
 )
