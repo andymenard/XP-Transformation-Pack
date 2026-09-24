@@ -76,6 +76,15 @@ xplasma-edit                           # Display Properties (also in the app men
 xplasma-edit --date-time               # Date and Time Properties (double-click the clock)
 ```
 
+From Plasma 6.5 on, Plasma builds some of its widgets (the tray,
+notifications, the task manager) into their plugins, where a home-folder copy
+can't stand in for them. XPLasma builds its own of those from Plasma's source,
+one per Plasma series, in that series' container:
+
+```sh
+./build-forks.sh 6.6    # build/plasma/6.6/out: the tray, notifications and task manager for Plasma 6.6
+```
+
 XPLasma adopts what xp2plasma already imported on a machine (the asset
 library, saved schemes, the downloaded XP media) instead of fetching it again:
 it moves them into its own places on first run, leaving symlinks behind

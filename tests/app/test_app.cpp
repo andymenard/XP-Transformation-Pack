@@ -14,6 +14,7 @@
 #include "app/media.h"
 #include "app/inf.h"
 #include "app/panel.h"
+#include "app/forks.h"
 #include "app/pointers.h"
 #include "app/timezones.h"
 #include "app/startbutton.h"
@@ -61,6 +62,12 @@ void writeFile(const QString &path, const QByteArray &bytes)
     QFile f(path);
     QVERIFY(f.open(QIODevice::WriteOnly));
     f.write(bytes);
+}
+
+QByteArray readFile(const QString &path)
+{
+    QFile f(path);
+    return f.open(QIODevice::ReadOnly) ? f.readAll() : QByteArray();
 }
 
 // An archive written with libarchive: `format` is "zip" or "tar.gz".
@@ -1019,6 +1026,49 @@ private Q_SLOTS:
         QVERIFY(session.runs.isEmpty());
         QVERIFY(session.config.isEmpty());
         QVERIFY(session.scripts.isEmpty());
+    }
+
+    void forkSources()
+    {
+        // A Plasma series' source, patched into a work tree: the patch, the
+        // build file's changes, an added file; a second sync writes nothing;
+        // one that can't patch writes nothing at all.
+        QVERIFY(forks::seriesNames().contains(QStringLiteral("6.6")));
+        const QString pristine = m_home.filePath(QStringLiteral("fork/pristine")), work = m_home.filePath(QStringLiteral("fork/work"));
+        const QString js = QStringLiteral("function preferredMaxWidth() {\n    if (tasks.iconsOnly) {\n        return 1;\n    }\n}\n");
+        writeFile(pristine + QLatin1String("/plasma-desktop-9.9/applets/tm/code/metrics.js"), js.toUtf8());
+        writeFile(pristine + QLatin1String("/plasma-desktop-9.9/applets/tm/CMakeLists.txt"), "plasma_add_applet(org.example.tm)\n");
+        writeFile(pristine + QLatin1String("/plasma-desktop-9.9/README"), "unchanged\n");
+        forks::Series series;
+        series.name = QStringLiteral("test");
+        series.sources = {{QStringLiteral("plasma-desktop"), QStringLiteral("9.9"), QString()}};
+        forks::Widget w;
+        w.id = QStringLiteral("org.example.tm");
+        w.project = QStringLiteral("plasma-desktop");
+        w.dir = QStringLiteral("applets/tm");
+        w.files.insert(QStringLiteral("taskmanager/code/layoutmetrics.js"), QStringLiteral("code/metrics.js"));
+        w.extras.insert(QStringLiteral("XpButton.qml"), QStringLiteral("XpButton.qml"));
+        w.registered.insert(QString(), {QStringLiteral("XpButton.qml")});
+        series.widgets = {w};
+        QString error;
+        auto written = forks::syncSources(series, pristine, work, &error);
+        QVERIFY2(written, qPrintable(error));
+        QCOMPARE(*written, 4);
+        const QString tree = work + QLatin1String("/plasma-desktop-9.9");
+        QVERIFY(readFile(tree + QLatin1String("/applets/tm/code/metrics.js")).contains("xpTaskband"));
+        const QByteArray cmake = readFile(tree + QLatin1String("/applets/tm/CMakeLists.txt"));
+        QVERIFY(cmake.contains("QT_QML_SKIP_CACHEGEN TRUE") && cmake.indexOf("QT_QML_SKIP_CACHEGEN") < cmake.indexOf("plasma_add_applet"));
+        QVERIFY(cmake.contains("ecm_target_qml_sources(org.example.tm SOURCES XpButton.qml)"));
+        QVERIFY(QFileInfo::exists(tree + QLatin1String("/applets/tm/XpButton.qml")));
+        written = forks::syncSources(series, pristine, work, &error);
+        QVERIFY(written);
+        QCOMPARE(*written, 0);
+        // A source that has moved on: refused, nothing touched.
+        writeFile(pristine + QLatin1String("/plasma-desktop-9.9/applets/tm/code/metrics.js"), "// something else\n");
+        writeFile(pristine + QLatin1String("/plasma-desktop-9.9/README"), "changed\n");
+        QVERIFY(!forks::syncSources(series, pristine, work, &error));
+        QVERIFY(error.contains(QLatin1String("org.example.tm")));
+        QCOMPARE(readFile(tree + QLatin1String("/README")), QByteArray("unchanged\n"));
     }
 
     void xpTextRules()

@@ -28,6 +28,7 @@
 // Plasma whose QML has moved on is refused with a message, never
 // half-patched: every override can be checked first (check*, which write
 // nothing), and applying a look does, taking all of them or none.
+#include <QJsonArray>
 #include <QString>
 #include <QStringList>
 
@@ -58,6 +59,11 @@ bool checkTitleShadows(const QString &target, QString *error = nullptr);
 void removeTitleShadows(const QString &target);
 
 // Patch `source` by `file`'s rules in patches.json ("systemtray/main.qml").
-std::optional<QString> patched(const QString &file, const QString &source, QString *error = nullptr);
+// With `rules`, those instead of patches.json's for `file` (a Plasma series'
+// own, where its source has moved on: see forks.h).
+std::optional<QString> patched(const QString &file, const QString &source, QString *error = nullptr,
+                               const QJsonArray *rules = nullptr);
+// A file of overrides/ ("XpBalloon.qml"), as text.
+QString resourceText(const QString &name);
 
 } // namespace xpl::overrides

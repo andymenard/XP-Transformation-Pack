@@ -24,6 +24,7 @@
 #include "app/pointers.h"
 #include "app/icons.h"
 #include "app/media.h"
+#include "app/forks.h"
 #include "app/panel.h"
 #include "app/startbutton.h"
 #include "app/startmenu.h"
@@ -339,6 +340,40 @@ int build(const QString &spec, QString dir)
     return 0;
 }
 
+// Building Plasma's widgets (build-forks.sh): a series' image, Qt floor,
+// sources and targets, one per line ("image IMAGE", "qtfloor 6.10",
+// "source PROJECT VERSION SHA256", "target PROJECT ID").
+int forkInfo(const QString &name)
+{
+    QString error;
+    const auto s = forks::series(name, &error);
+    if (!s) {
+        err() << "xplasma: " << error << Qt::endl;
+        return 1;
+    }
+    out() << "image " << s->image << Qt::endl;
+    out() << "qtfloor " << s->qtFloor << Qt::endl;
+    for (const forks::Source &src : s->sources)
+        out() << "source " << src.project << ' ' << src.version << ' ' << src.sha256 << Qt::endl;
+    for (const forks::Widget &w : s->widgets)
+        out() << "target " << w.project << ' ' << w.id << Qt::endl;
+    return 0;
+}
+
+// ...and the series' patched source, synced from the pristine trees.
+int forkSources(const QString &name, const QString &pristine, const QString &work)
+{
+    QString error;
+    const auto s = forks::series(name, &error);
+    const auto written = s ? forks::syncSources(*s, pristine, work, &error) : std::nullopt;
+    if (!written) {
+        err() << "xplasma: " << error << Qt::endl;
+        return 1;
+    }
+    out() << *written << " file(s) changed" << Qt::endl;
+    return 0;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -380,6 +415,10 @@ int main(int argc, char **argv)
         return pointerSchemes(args.value(1), !parser.isSet(QStringLiteral("no-shadow")), parser.value(outOption));
     if (command == QLatin1String("build") && args.size() == 2)
         return build(args.at(1), parser.value(outOption));
+    if (command == QLatin1String("fork-info") && args.size() == 2)
+        return forkInfo(args.at(1));
+    if (command == QLatin1String("fork-sources") && args.size() == 4)
+        return forkSources(args.at(1), args.at(2), args.at(3));
     if (command.isEmpty())
         parser.showHelp(2);
     err() << "xplasma: unknown command: " << command << Qt::endl;

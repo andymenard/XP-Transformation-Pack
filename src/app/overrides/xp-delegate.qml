@@ -1,5 +1,9 @@
 XpPopup {
             id: xpPopup
+            // (Required, not context properties: Plasma 6.6's Globals.qml binds
+            // its components -- pragma ComponentBehavior: Bound.)
+            required property int index
+            required property var model
             notificationId: model.notificationId
             type: model.type
             summary: model.summary || ""
@@ -28,11 +32,11 @@ XpPopup {
             readonly property bool hasSomeActions: hasDefaultAction || actionLabels.length > 0 || hasReplyAction
             readonly property int behavior: model.resident ? NotificationManager.Notifications.None : NotificationManager.Notifications.Close
 
-            onCloseRequested: popupNotificationsModel.close(popupNotificationsModel.index(index, 0))
-            onDefaultActionRequested: popupNotificationsModel.invokeDefaultAction(popupNotificationsModel.index(index, 0), behavior)
-            onActionRequested: name => popupNotificationsModel.invokeAction(popupNotificationsModel.index(index, 0), name, behavior)
-            onReplyRequested: text => popupNotificationsModel.reply(popupNotificationsModel.index(index, 0), text, behavior)
-            onKillRequested: popupNotificationsModel.killJob(popupNotificationsModel.index(index, 0))
+            onCloseRequested: globals.popupNotificationsModel.close(globals.popupNotificationsModel.index(index, 0))
+            onDefaultActionRequested: globals.popupNotificationsModel.invokeDefaultAction(globals.popupNotificationsModel.index(index, 0), behavior)
+            onActionRequested: name => globals.popupNotificationsModel.invokeAction(globals.popupNotificationsModel.index(index, 0), name, behavior)
+            onReplyRequested: text => globals.popupNotificationsModel.reply(globals.popupNotificationsModel.index(index, 0), text, behavior)
+            onKillRequested: globals.popupNotificationsModel.killJob(globals.popupNotificationsModel.index(index, 0))
             onReadRequested: {
                 model.read = true;
                 globals.xpForget(notificationId);
@@ -43,7 +47,7 @@ XpPopup {
                     // (kept in the history, usable, as Plasma's popups do)
                     model.expired = true;
                 } else {
-                    popupNotificationsModel.expire(popupNotificationsModel.index(index, 0));
+                    globals.popupNotificationsModel.expire(globals.popupNotificationsModel.index(index, 0));
                 }
             }
 
@@ -52,10 +56,10 @@ XpPopup {
                     model.wasAddedDuringInhibition = false;
                 }
                 if (model.type === NotificationManager.Notifications.NotificationType && model.desktopEntry && !model.notifyRcName) {
-                    notificationSettings.registerKnownApplication(model.desktopEntry);
-                    notificationSettings.save();
+                    globals.notificationSettings.registerKnownApplication(model.desktopEntry);
+                    globals.notificationSettings.save();
                 }
                 // The balloon keeps its own time, from when it's shown.
-                popupNotificationsModel.stopTimeout(popupNotificationsModel.index(index, 0));
+                globals.popupNotificationsModel.stopTimeout(globals.popupNotificationsModel.index(index, 0));
             }
         }

@@ -79,15 +79,21 @@ bool writeText(const QString &path, const QString &text)
 
 } // namespace
 
-std::optional<QString> patched(const QString &file, const QString &source, QString *error)
+QString resourceText(const QString &name)
 {
-    static const QJsonObject rules = QJsonDocument::fromJson(resource(QStringLiteral("patches.json")).toUtf8()).object();
-    if (!rules.contains(file)) {
+    return resource(name);
+}
+
+std::optional<QString> patched(const QString &file, const QString &source, QString *error, const QJsonArray *rules)
+{
+    static const QJsonObject base = QJsonDocument::fromJson(resource(QStringLiteral("patches.json")).toUtf8()).object();
+    if (!rules && !base.contains(file)) {
         fail(error, QStringLiteral("no patches for %1").arg(file));
         return std::nullopt;
     }
+    const QJsonArray list = rules ? *rules : base.value(file).toArray();
     QString text = source;
-    for (const QJsonValue &v : rules.value(file).toArray()) {
+    for (const QJsonValue &v : list) {
         const QJsonObject rule = v.toObject();
         const QString unless = rule.value(QStringLiteral("unlessContains")).toString();
         if (!unless.isEmpty() && text.contains(unless))
