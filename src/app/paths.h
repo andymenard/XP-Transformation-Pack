@@ -44,6 +44,10 @@ QString findSystemData(const QString &relative);
 // ships it: <prefix>/lib/xplasma, beside bin/ (in a checkout, build.sh's
 // build/<mode>); empty if there isn't one.
 QString shippedStylePlugin(int qtMajor);
+// Plasma's widgets as XPLasma builds them for the Plasmas that build them in
+// (build-forks.sh): <prefix>/lib/xplasma/forks/<series>/plasma/applets/
+// <id>.so; empty if this copy has none.
+QString shippedForks();
 // Where Qt apps find it: ~/.local/lib/qt<N>/plugins.
 QString stylePluginRoot(int qtMajor);
 

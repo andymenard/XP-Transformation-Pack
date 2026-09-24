@@ -107,9 +107,10 @@ QString legacyCache()
     return home() + QLatin1String("/.cache/xp2plasma");
 }
 
-QString shippedStylePlugin(int qtMajor)
+// Something this copy of XPLasma ships under <prefix>/lib/xplasma, beside
+// bin/ -- in a checkout, build.sh's build/<mode>; empty if it isn't there.
+static QString shipped(const QString &relative)
 {
-    const QString relative = QStringLiteral("qt%1/styles/libxplasma.so").arg(qtMajor);
     const QDir exe(QCoreApplication::applicationDirPath());
     QStringList candidates{exe.absoluteFilePath(QLatin1String("../lib/xplasma/") + relative)};
     // A checkout: this is build/<mode>-qt6/..., and build.sh installed into
@@ -127,6 +128,16 @@ QString shippedStylePlugin(int qtMajor)
         if (QFileInfo::exists(c))
             return QFileInfo(c).absoluteFilePath();
     return QString();
+}
+
+QString shippedStylePlugin(int qtMajor)
+{
+    return shipped(QStringLiteral("qt%1/styles/libxplasma.so").arg(qtMajor));
+}
+
+QString shippedForks()
+{
+    return shipped(QStringLiteral("forks"));
 }
 
 QString stylePluginRoot(int qtMajor)

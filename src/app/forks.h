@@ -10,6 +10,9 @@
 // overrides/forks.json holds each series: its container image, its source
 // tarballs, and per widget where its files are in the source, what's added
 // to it, and the extra QML files its build registers.
+#include "app/session.h"
+#include "app/state.h"
+
 #include <QHash>
 #include <QJsonArray>
 #include <QList>
@@ -58,5 +61,28 @@ std::optional<Series> series(const QString &name, QString *error = nullptr);
 // differs are written, so a build there is incremental. Returns how many were
 // written (or removed); *error lists each file that couldn't be patched.
 std::optional<int> syncSources(const Series &series, const QString &pristine, const QString &work, QString *error = nullptr);
+
+// --- Installing them ---------------------------------------------------------
+
+// The Plasma installed ("6.6.4": plasmashell --version, or libPlasma's
+// file name); empty if unknown.
+QString runningPlasma(Session &session);
+
+struct Choice
+{
+    QString series;                   // "6.6"
+    QHash<QString, QString> plugins;  // widget id -> the shipped plugin
+};
+// The build this copy ships for `plasma` that provides `ids`: down the
+// series from the newest not newer than it, the first whose plugins all
+// load here -- against this system's own Qt and Plasma, which is what decides
+// (a build for another Plasma doesn't). None, *error saying why each series
+// couldn't, if none does.
+std::optional<Choice> choose(const QString &plasma, const QStringList &ids, QString *error = nullptr);
+
+// Puts a choice's plugins where the session's Qt looks first, so Plasma
+// loads them in place of its own; recorded in `state` for remove().
+bool install(Session &session, const Choice &choice, State &state, QString *error = nullptr);
+void remove(State &state);
 
 } // namespace xpl::forks

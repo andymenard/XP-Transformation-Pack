@@ -1,12 +1,18 @@
 #include "app/forks.h"
 
 #include "app/overrides.h"
+#include "app/paths.h"
+#include "app/qttarget.h"
 
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
+#include <QLibraryInfo>
+#include <QPluginLoader>
+#include <QRegularExpression>
+#include <QVersionNumber>
 #include <QJsonObject>
 #include <QSaveFile>
 #include <QSet>
@@ -227,6 +233,108 @@ std::optional<int> syncSources(const Series &series, const QString &pristine, co
         }
     }
     return written;
+}
+
+QString runningPlasma(Session &session)
+{
+    // plasmashell's own word -- started as the session starts it, not in
+    // this program's offscreen platform, which Plasma 6.6's crashes in.
+    static const QRegularExpression version(QStringLiteral("(\\d+\\.\\d+(\\.\\d+)?)"));
+    const host::Result r = session.run({QStringLiteral("env"), QStringLiteral("-u"), QStringLiteral("QT_QPA_PLATFORM"),
+                                        QStringLiteral("plasmashell"), QStringLiteral("--version")});
+    if (const auto m = version.match(QString::fromUtf8(r.out)); m.hasMatch())
+        return m.captured(1);
+    // Failing that, libPlasma's file name: libPlasma.so.6.6.4. (Where Qt's
+    // libraries are, and the usual places.)
+    QStringList dirs{QLibraryInfo::path(QLibraryInfo::LibrariesPath)};
+    for (const char *d : {"/usr/lib64", "/usr/lib", "/usr/lib/x86_64-linux-gnu", "/usr/local/lib64", "/usr/local/lib"})
+        dirs << QLatin1String(d);
+    static const QRegularExpression library(QStringLiteral("^libPlasma\\.so\\.(\\d+\\.\\d+\\.\\d+)$"));
+    for (const QString &dir : std::as_const(dirs))
+        for (const QString &name : QDir(dir).entryList({QStringLiteral("libPlasma.so.*")}, QDir::Files))
+            if (const auto m = library.match(name); m.hasMatch())
+                return m.captured(1);
+    return QString();
+}
+
+std::optional<Choice> choose(const QString &plasma, const QStringList &ids, QString *error)
+{
+    const QVersionNumber running = QVersionNumber::fromString(plasma);
+    if (running.isNull()) {
+        fail(error, QStringLiteral("can't tell which Plasma this is (plasmashell --version)"));
+        return std::nullopt;
+    }
+    const QString shipped = paths::shippedForks();
+    QStringList series = shipped.isEmpty() ? QStringList() : QDir(shipped).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    std::sort(series.begin(), series.end(), [](const QString &a, const QString &b) {
+        return QVersionNumber::fromString(b) < QVersionNumber::fromString(a);
+    });
+    QStringList why;
+    for (const QString &name : std::as_const(series)) {
+        if (running < QVersionNumber::fromString(name))
+            continue;   // (for a newer Plasma)
+        Choice choice{name, {}};
+        QString problem;
+        for (const QString &id : ids) {
+            const QString path = QStringLiteral("%1/%2/plasma/applets/%3.so").arg(shipped, name, id);
+            if (!QFileInfo::exists(path)) {
+                problem = QStringLiteral("no %1").arg(id);
+                break;
+            }
+            // Loaded here -- its Qt, its KDE libraries, its libPlasma
+            // version all this system's. (And left loaded: unloading leaves
+            // Qt's type registries pointing into code that's gone.)
+            QPluginLoader loader(path);
+            if (!loader.load()) {
+                problem = loader.errorString();
+                break;
+            }
+            choice.plugins.insert(id, path);
+        }
+        if (problem.isEmpty())
+            return choice;
+        why << QStringLiteral("the %1 build: %2").arg(name, problem);
+    }
+    fail(error, why.isEmpty() ? QStringLiteral("XPLasma has no build of Plasma's %1 for Plasma %2").arg(ids.join(QStringLiteral(", ")), plasma)
+                              : QStringLiteral("none of XPLasma's builds of Plasma's widgets loads in Plasma %1 (%2)").arg(plasma, why.join(QStringLiteral("; "))));
+    return std::nullopt;
+}
+
+bool install(Session &session, const Choice &choice, State &state, QString *error)
+{
+    // In the style plugin's root, which the session's QT_PLUGIN_PATH names
+    // ahead of the system's.
+    if (!qtstyle::ensurePluginPath(session, error))
+        return false;
+    remove(state);
+    const QString applets = paths::stylePluginRoot(6) + QLatin1String("/plasma/applets/");
+    QDir().mkpath(applets);
+    QJsonArray installed;
+    for (auto it = choice.plugins.cbegin(); it != choice.plugins.cend(); ++it) {
+        const QString to = applets + it.key() + QLatin1String(".so");
+        // (A new file renamed over the old, never written into: a running
+        // shell has the old one mapped.)
+        const QString staged = to + QLatin1String(".new");
+        QFile::remove(staged);
+        if (!QFile::copy(it.value(), staged))
+            return fail(error, QStringLiteral("can't install %1").arg(to));
+        // (QFile::rename won't replace a file: the old one is unlinked first,
+        // which a process that has it mapped keeps.)
+        if (!QFile::rename(staged, to) && !(QFile::remove(to) && QFile::rename(staged, to)))
+            return fail(error, QStringLiteral("can't install %1").arg(to));
+        installed.append(to);
+    }
+    state.settings.insert(QStringLiteral("forkPlugins"), installed);
+    state.settings.insert(QStringLiteral("forkSeries"), choice.series);
+    return true;
+}
+
+void remove(State &state)
+{
+    for (const QJsonValue &v : state.settings.value(QStringLiteral("forkPlugins")).toArray())
+        QFile::remove(v.toString());
+    state.settings.remove(QStringLiteral("forkPlugins"));
+    state.settings.remove(QStringLiteral("forkSeries"));
 }
 
 } // namespace xpl::forks

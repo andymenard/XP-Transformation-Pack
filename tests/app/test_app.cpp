@@ -975,9 +975,9 @@ private Q_SLOTS:
 
     void overridesAllOrNothing()
     {
-        // A Plasma that builds some widgets into their plugins (6.5 on) can't
-        // take the whole XP look: nothing is installed, what's there is left
-        // as it was, and applying refuses before changing anything.
+        // A Plasma that builds some widgets into their plugins (6.5 on): those
+        // are the ones XPLasma's own builds stand in for; the rest are
+        // patched, all or nothing, and a copy of ours of a built-in one goes.
         const QString tray = QStringLiteral("/usr/share/plasma/plasmoids/org.kde.plasma.systemtray");
         if (!QFileInfo::exists(tray))
             QSKIP("no Plasma here");
@@ -988,19 +988,33 @@ private Q_SLOTS:
         qputenv("XDG_DATA_DIRS", system.toUtf8());
         const QString plasmoids = m_home.filePath(QStringLiteral("plasmoids-6.6"));
         writeFile(plasmoids + QLatin1String("/org.kde.plasma.taskmanager/metadata.json"), "{\"X-XPLasma-Panel-Override\": true}");
+        const QStringList builtIn = overrides::builtInPanelWidgets();
         QString checked, installed;
         const bool can = overrides::checkPanelWidgets(plasmoids, &checked);
         const bool did = overrides::installPanelWidgets(plasmoids, &installed);
         qputenv("XDG_DATA_DIRS", saved);
-        QVERIFY(!can && !did);
-        QCOMPARE(installed, checked);
-        QCOMPARE(checked.split(QLatin1Char('\n')).size(), 2);
-        for (const char *id : {"org.kde.plasma.taskmanager", "org.kde.plasma.notifications"})
-            QVERIFY2(checked.contains(QLatin1String(id)), id);
-        QVERIFY(!QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.systemtray")));
-        QVERIFY(QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.taskmanager/metadata.json")));
-        // Everything this Plasma has: all of them.
-        QVERIFY2(overrides::checkPanelWidgets(plasmoids, &checked), qPrintable(checked));
+        QCOMPARE(builtIn, (QStringList{QStringLiteral("org.kde.plasma.taskmanager"), QStringLiteral("org.kde.plasma.notifications")}));
+        QVERIFY2(can && did, qPrintable(checked + installed));
+        QVERIFY(QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.systemtray/contents/ui/XpNotificationIcons.qml")));
+        QVERIFY(!QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.taskmanager")));
+    }
+
+    void forkChoice()
+    {
+        // Down the shipped builds, the first that loads here: on this Plasma
+        // a 6.6 build doesn't (older Qt than its floor, libPlasma.so.6 not
+        // .7 -- whichever the loader meets first), and there is none for 6.4.
+        if (paths::shippedForks().isEmpty() || !QFileInfo::exists(paths::shippedForks() + QLatin1String("/6.6")))
+            QSKIP("no 6.6 builds here (./build-forks.sh 6.6, then ./build.sh)");
+        if (!QFileInfo::exists(QStringLiteral("/usr/lib/libPlasma.so.6")))
+            QSKIP("this test expects Plasma 6.4's libraries");
+        const QStringList ids{QStringLiteral("org.kde.plasma.systemtray")};
+        QString error;
+        QVERIFY(!forks::choose(QStringLiteral("6.6.4"), ids, &error));
+        QVERIFY2(error.contains(QLatin1String("the 6.6 build")) && error.contains(QLatin1String("org.kde.plasma.systemtray.so")), qPrintable(error));
+        QVERIFY(!forks::choose(QStringLiteral("6.4.3"), ids, &error));
+        QVERIFY2(error.contains(QLatin1String("no build")), qPrintable(error));
+        QVERIFY(!forks::choose(QString(), ids, &error));
     }
 
     void applyRefusesPartialLook()
@@ -1022,8 +1036,14 @@ private Q_SLOTS:
         qputenv("XDG_DATA_DIRS", saved);
         QVERIFY(!applied);
         QVERIFY2(error.contains(QLatin1String("nothing was changed")), qPrintable(error));
-        QVERIFY(error.contains(QLatin1String("org.kde.plasma.systemtray")) && error.contains(QLatin1String("Aurorae")));
-        QVERIFY(session.runs.isEmpty());
+        // (The built-in widgets: no build of them for this Plasma, whichever it is.)
+        QVERIFY2((error.contains(QLatin1String("which Plasma")) || error.contains(QLatin1String("no build"))
+                  || error.contains(QLatin1String("builds of Plasma's widgets")))
+                     && error.contains(QLatin1String("Aurorae")),
+                 qPrintable(error));
+        // (Only asking which Plasma it is.)
+        for (const QStringList &run : std::as_const(session.runs))
+            QVERIFY2(run.contains(QStringLiteral("plasmashell")) && run.contains(QStringLiteral("--version")), qPrintable(run.join(QLatin1Char(' '))));
         QVERIFY(session.config.isEmpty());
         QVERIFY(session.scripts.isEmpty());
     }

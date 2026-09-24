@@ -27,6 +27,14 @@ for m in 6 5; do
   cmake --build build/$mode-qt\$m
   cmake --install build/$mode-qt\$m >/dev/null
 done"
+# Plasma's widgets as XPLasma builds them (./build-forks.sh), per Plasma series.
+rm -rf "$root/build/$mode/lib/xplasma/forks"
+for out in "$root"/build/plasma/*/out; do
+  [ -d "$out/plasma/applets" ] || continue
+  series="$(basename "$(dirname "$out")")"
+  mkdir -p "$root/build/$mode/lib/xplasma/forks/$series"
+  cp -a "$out/plasma" "$root/build/$mode/lib/xplasma/forks/$series/"
+done
 if [ "$mode" = release ]; then
   for m in 6 5; do "$root/check-abi.sh" "$root/build/$mode/lib/xplasma/qt$m/styles/libxplasma.so"; done
 fi

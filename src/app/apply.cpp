@@ -2,6 +2,7 @@
 
 #include "app/colors.h"
 #include "app/decoration.h"
+#include "app/forks.h"
 #include "app/icons.h"
 #include "app/overrides.h"
 #include "app/panel.h"
@@ -325,11 +326,19 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
 {
     // The whole XP look or none of it: what this Plasma can't take is known
     // before anything changes.
+    // (Widgets this Plasma builds in come from XPLasma's builds of them, if
+    // one for this Plasma loads here.)
+    std::optional<forks::Choice> builds;
     {
         QStringList cannot;
         QString why;
         if (o.taskbar && !overrides::checkPanelWidgets(share(QStringLiteral("plasma/plasmoids")), &why))
             cannot << why.split(QLatin1Char('\n'));
+        if (const QStringList builtIn = overrides::builtInPanelWidgets(); o.taskbar && !builtIn.isEmpty()) {
+            builds = forks::choose(forks::runningPlasma(session), builtIn, &why);
+            if (!builds)
+                cannot << why;
+        }
         if (!overrides::checkDesktopMenu(share(QStringLiteral("plasma/plasmoids")), &why))
             cannot << why.split(QLatin1Char('\n'));
         if (!overrides::checkTitleShadows(share(QStringLiteral("kwin/aurorae/aurorae.qml")), &why))
@@ -395,6 +404,14 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
         if (!overrides::installPanelWidgets(share(QStringLiteral("plasma/plasmoids")), &why))
             for (const QString &line : why.split(QLatin1Char('\n')))
                 report(o, QStringLiteral("  left as Plasma's own: %1").arg(line));
+        if (builds) {
+            if (!forks::install(session, *builds, state, error))
+                return false;
+            report(o, QStringLiteral("  Plasma's %1 as XPLasma builds them (Plasma %2)")
+                          .arg(QStringList(builds->plugins.keys()).join(QStringLiteral(", ")), builds->series));
+        } else {
+            forks::remove(state);   // (none wanted: an older Plasma's, if any, go)
+        }
     }
     if (!iconTheme.isEmpty() && !install(iconTheme, iconsDest, error))
         return false;
@@ -543,6 +560,7 @@ bool resetDesktop(Session &session, const std::function<void(const QString &)> &
     removeWindowRules(session);
     overrides::removePanelWidgets(share(QStringLiteral("plasma/plasmoids")));
     overrides::removeDesktopMenu(share(QStringLiteral("plasma/plasmoids")));
+    forks::remove(state);
 
     say(QStringLiteral("Clearing the XP fonts ..."));
     xptext::revert(session, state);

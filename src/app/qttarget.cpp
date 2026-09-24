@@ -104,6 +104,27 @@ void setWidgetStyle(Session &session, const QString &style)
 
 } // namespace
 
+bool ensurePluginPath(Session &session, QString *error)
+{
+    // XPLasma's plugin roots: Qt 6's always (the style's, and Plasma's
+    // widgets as XPLasma builds them), Qt 5's where its style is installed.
+    QStringList roots{paths::stylePluginRoot(6)};
+    if (QFileInfo::exists(installedPlugin(5)))
+        roots << paths::stylePluginRoot(5);
+    if (!writeAtomically(envScript(),
+                         QByteArray("# Written by XPLasma: lets Qt find XPLasma's user-local plugins first.\n"
+                                    "export QT_PLUGIN_PATH=\"")
+                             + roots.join(QLatin1Char(':')).toUtf8() + "${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}\"\n",
+                         error))
+        return false;
+    QStringList path = roots;
+    for (const QString &p : sessionPluginPath(session))
+        if (!path.contains(p))
+            path << p;
+    setSessionPluginPath(session, path);
+    return true;
+}
+
 QString freeze(const Look &look, QString *error)
 {
     QByteArray bytes;
@@ -151,17 +172,8 @@ bool apply(Session &session, const Look &look, State &state, QStringList *log, Q
             *error = QStringLiteral("no XPLasma style plugin to install (a checkout builds them with ./build.sh)");
         return false;
     }
-    if (!writeAtomically(envScript(),
-                         QByteArray("# Written by XPLasma: lets Qt find the user-local XPLasma style plugins.\n"
-                                    "export QT_PLUGIN_PATH=\"")
-                             + roots.join(QLatin1Char(':')).toUtf8() + "${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}\"\n",
-                         error))
+    if (!ensurePluginPath(session, error))
         return false;
-    QStringList path = roots;
-    for (const QString &p : sessionPluginPath(session))
-        if (!path.contains(p))
-            path << p;
-    setSessionPluginPath(session, path);
 
     // The look, frozen, named by xplasmarc.
     const QString frozen = freeze(look, error);

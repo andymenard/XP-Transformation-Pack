@@ -6,8 +6,11 @@
 # itself.
 #
 # Built static from the tarball beside this file, so nothing is needed on the
-# host beyond the compression libraries every Linux system has (zlib, bzip2,
-# xz), which libarchive links as usual.
+# host beyond the compression libraries every Linux system has (zlib, xz),
+# which libarchive links as usual -- and bzip2, linked in static where the
+# build system has it (the release image does): its library's file name
+# differs between distributions (Debian's libbz2.so.1.0, Fedora's
+# libbz2.so.1), so a binary asking for one doesn't start on the others.
 include(FetchContent)
 
 # --- libarchive: the reader only ---------------------------------------------------
@@ -21,6 +24,11 @@ endforeach()
 foreach(option ENABLE_ZLIB ENABLE_BZip2 ENABLE_LZMA)
   set(${option} ON CACHE BOOL "" FORCE)
 endforeach()
+find_library(XPLASMA_BZIP2_STATIC NAMES libbz2.a)
+if(XPLASMA_BZIP2_STATIC)
+  set(BZIP2_LIBRARY_RELEASE ${XPLASMA_BZIP2_STATIC} CACHE FILEPATH "" FORCE)
+  set(BZIP2_LIBRARY ${XPLASMA_BZIP2_STATIC} CACHE FILEPATH "" FORCE)
+endif()
 FetchContent_Declare(libarchive
   URL ${CMAKE_CURRENT_SOURCE_DIR}/libarchive-3.8.9.tar.xz
   URL_HASH SHA256=888c934f9d95648ecb9163dc8e23ab80a476ecb81a8f1154704a227b5b676dde

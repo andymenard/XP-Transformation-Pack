@@ -36,6 +36,10 @@
 
 namespace xpl::overrides {
 
+// The panel widgets this Plasma builds into their plugins (from 6.5 on) and
+// so can't be patched: XPLasma's own builds of them stand in (forks.h).
+QStringList builtInPanelWidgets();
+// The rest, which it has as packages, patched.
 bool installPanelWidgets(const QString &plasmoids, QString *error = nullptr);
 // Whether they could all be installed on this Plasma (nothing is written);
 // *error lists each that couldn't, a line each.

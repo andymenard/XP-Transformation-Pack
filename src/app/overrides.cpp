@@ -254,7 +254,9 @@ QString launchLiteral(const QString &program, const QStringList &arguments = {})
 
 QString launchCommand(const QString &program, const QStringList &arguments)
 {
-    auto quote = [](QString word) {
+    // (QString, not auto: with QStringBuilder the sum is a builder holding a
+    // reference to `word`, gone when the lambda returns.)
+    auto quote = [](QString word) -> QString {
         word.replace(QLatin1Char('\''), QLatin1String("'\\''"));
         return QLatin1Char('\'') + word + QLatin1Char('\'');
     };
@@ -265,15 +267,37 @@ QString launchCommand(const QString &program, const QStringList &arguments)
     return QStringLiteral("systemd-run --user --collect --quiet -- %1 || %1").arg(run);
 }
 
+QStringList builtInPanelWidgets()
+{
+    QStringList ids;
+    for (const Widget &w : kPanelWidgets)
+        if (systemDir(QLatin1String("plasma/plasmoids/") + w.id).isEmpty())
+            ids << w.id;
+    return ids;
+}
+
+// The panel widgets this Plasma has as packages, which are patched.
+static QList<Widget> packagedPanelWidgets()
+{
+    const QStringList builtIn = builtInPanelWidgets();
+    QList<Widget> out;
+    for (const Widget &w : kPanelWidgets)
+        if (!builtIn.contains(w.id))
+            out << w;
+    return out;
+}
+
 bool installPanelWidgets(const QString &plasmoids, QString *error)
 {
-    removeWidgets(plasmoids, kRetiredWidgets);
-    return installWidgets(plasmoids, kPanelWidgets, error);
+    // (Copies of ours from an earlier Plasma, of widgets it has since built
+    // in or XPLasma no longer patches, go.)
+    removeWidgets(plasmoids, kRetiredWidgets + builtInPanelWidgets());
+    return installWidgets(plasmoids, packagedPanelWidgets(), error);
 }
 
 bool checkPanelWidgets(const QString &plasmoids, QString *error)
 {
-    return installWidgets(plasmoids, kPanelWidgets, error, true);
+    return installWidgets(plasmoids, packagedPanelWidgets(), error, true);
 }
 
 void removePanelWidgets(const QString &plasmoids)
