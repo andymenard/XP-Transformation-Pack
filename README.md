@@ -27,7 +27,8 @@ xp2plasma carried.
 | `tests/app/` | QtTest for the app. |
 | `tests/oracle/` | Dev tooling (Python) that holds the style against the Windows XP reference VM (`styles_matrix.py`, …). |
 | `refharness/` | The programs that run inside the XP VM and dump what real uxtheme draws. |
-| `containers/` | Build containers: the dev image (host-matched toolchain) and the release image (oldest supported Qt). |
+| `containers/` | Build containers: the dev image (host-matched toolchain), the release image (oldest supported Qt), and one per Plasma series for `build-forks.sh`. |
+| `project.ini` | The project's own settings: its version, its issue tracker, where it checks for a newer XPLasma, and the Internet Archive. The build writes them into `app/project.h`. |
 | `docs/xp2plasma/` | xp2plasma's README and visual notes, kept for reference. |
 
 ## Building
@@ -83,6 +84,7 @@ From a checkout, for development:
 ```sh
 ./install.sh [dev|release] [PREFIX]    # default: dev into ~/.local
 xplasma setup --download-media         # or --media PATH/TO/XP.iso (or its I386 folder)
+xplasma check                          # whether this desktop can take the XP look (--json for Setup)
 xplasma list                           # the styles, themes and Classic schemes it found
 xplasma apply ~/.local/share/xplasma/assets/themes/Luna/Luna.theme
 xplasma apply 'classic:Windows Standard'   # LOOK: a .msstyles[:VARIANT_INI], a .theme, or classic:SCHEME

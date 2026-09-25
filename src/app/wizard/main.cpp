@@ -416,6 +416,11 @@ public:
             m_grid->addWidget(icon, row, 0, Qt::AlignTop);
             auto *what = new QLabel(r.what);
             what->setWordWrap(true);
+            // (a wrapped label in a grid: its row is only made tall enough
+            // for the lines it takes when its policy says so)
+            QSizePolicy policy = what->sizePolicy();
+            policy.setHeightForWidth(true);
+            what->setSizePolicy(policy);
             m_grid->addWidget(what, row, 1);
             auto *found = new QLabel(r.found.isEmpty() ? QStringLiteral("not found") : QFileInfo(r.found).isAbsolute() ? QStringLiteral("found") : r.found);
             found->setEnabled(r.met);

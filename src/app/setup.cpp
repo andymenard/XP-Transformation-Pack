@@ -416,9 +416,9 @@ QList<Check> preflight()
     const struct { const char *tool, *purpose; bool apply; const char *alternative; } tools[] = {
         {"kwriteconfig6", "write KDE settings", true, nullptr},
         {"kreadconfig6", "read KDE settings", true, nullptr},
-        {"plasma-apply-colorscheme", "apply the colour scheme", true, nullptr},
-        {"plasma-apply-desktoptheme", "apply the taskbar's Plasma theme", true, nullptr},
-        {"plasma-apply-lookandfeel", "reset to Plasma's default look", false, nullptr},
+        {"plasma-apply-colorscheme", "set the colour scheme", true, nullptr},
+        {"plasma-apply-desktoptheme", "set the taskbar's theme", true, nullptr},
+        {"plasma-apply-lookandfeel", "reset to Plasma's look", false, nullptr},
         {"systemctl", "restart Plasma's shell", true, "kquitapp6"},   // (without systemd: quit over D-Bus, started again)
         {"fc-cache", "make the XP fonts visible", false, nullptr},
     };

@@ -22,7 +22,7 @@ Plasma set up, nothing of XPLasma's, for trying Setup from scratch.
 | Slackware64-current (no systemd) | 6.7.5 / 6.11 | 6.7 build | all pass: shell restarted with kquitapp6 in its own environment; Date and Time through pkexec |
 | Gentoo (23.0 no-multilib + Plasma, systemd; 2026-09-25) | 6.7.5 / 6.11.2 | 6.7 build | Setup: install (downloading XP), apply, Remove keeping and deleting XP's files, all clean -- after two fixes: cursor themes linked into ~/.icons (its libXcursor doesn't look in ~/.local/share/icons, so the pointers didn't apply), and reset/Remove taking the folders they empty |
 | CachyOS on Plasma 6.8 Beta 2 (2026-09-25) | 6.7.91 / 6.12.0rc1 | 6.8 build | all pass: XPLasma's patches applied to 6.7.91's source unchanged, so the 6.8 series is 6.7's with its own pinned sources. Its libPlasma is .so.8 (6.7's is .so.7), so the 6.7 build doesn't load there and XPLasma took it off at login, as it should |
-| Void (glibc, runit; 2026-09-25) | 6.7.5 / 6.11.2 | 6.7 build | Setup: install, apply (one click on first start), Sounds and Audio Devices (its tray icon on and off), Remove -- clean |
+| Void (glibc, runit; 2026-09-25) | 6.7.5 / 6.11.2 | 6.7 build | Setup: install, apply (one click on first start), Sounds and Audio Devices (its tray icon on and off), Remove -- clean. Setup again with a disc image of the user's: its requirements page, the image checked for SP3, installed in a minute with no download, applied |
 
 ## Open
 
