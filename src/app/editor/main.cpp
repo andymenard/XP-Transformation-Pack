@@ -1,12 +1,15 @@
-// xplasma-edit: Display Properties, and Date and Time Properties.
+// xplasma-edit: Display Properties, Date and Time Properties, and Sounds
+// and Audio Devices Properties.
 //
 //   xplasma-edit                    Display Properties
 //   xplasma-edit --date-time        Date and Time Properties
+//   xplasma-edit --sounds           Sounds and Audio Devices Properties
 //   ... --screenshots DIR           every tab drawn to DIR/*.png, then exit
 //                                   (tests; with QT_QPA_PLATFORM=offscreen)
 #include "app/adopt.h"
 #include "app/editor/datetime.h"
 #include "app/editor/displayproperties.h"
+#include "app/editor/soundsproperties.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -78,7 +81,22 @@ int main(int argc, char **argv)
     parser.addOption(screenshots);
     const QCommandLineOption dateTime(QStringLiteral("date-time"), QStringLiteral("Date and Time Properties."));
     parser.addOption(dateTime);
+    const QCommandLineOption soundsOption(QStringLiteral("sounds"), QStringLiteral("Sounds and Audio Devices Properties."));
+    parser.addOption(soundsOption);
     parser.process(app);
+
+    if (parser.isSet(soundsOption)) {
+        QApplication::setApplicationDisplayName(QStringLiteral("Sounds and Audio Devices Properties"));
+        QApplication::setDesktopFileName(QStringLiteral("fyi.hotsocket.xplasma.sounds"));
+        xpl::editor::SoundsProperties dialog;
+        if (parser.isSet(screenshots))
+            return dialog.saveScreenshots(parser.value(screenshots)) ? 0 : 1;
+        if (raiseRunning(QStringLiteral("sounds")))
+            return 0;
+        serveInstance(QStringLiteral("sounds"), &dialog);
+        dialog.show();
+        return app.exec();
+    }
 
     if (parser.isSet(dateTime)) {
         QApplication::setApplicationDisplayName(QStringLiteral("Date and Time Properties"));

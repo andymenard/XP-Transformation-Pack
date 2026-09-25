@@ -20,6 +20,7 @@
 #include "app/gtk.h"
 #include "app/install.h"
 #include "app/pointers.h"
+#include "app/sounds.h"
 #include "app/timezones.h"
 #include "app/startbutton.h"
 #include "app/startmenu.h"
@@ -1984,6 +1985,76 @@ private Q_SLOTS:
         QVERIFY(!session.config.contains(QStringLiteral("kcminputrc|Mouse|cursorSize")));   // (it had none)
         QVERIFY(!pointers::applied(state));
         QVERIFY(QDir(paths::localShare() + QLatin1String("/icons")).entryList({QStringLiteral("xplasma-pointers-*")}, QDir::Dirs).isEmpty());
+    }
+
+    void soundSchemes()
+    {
+        // Every event under Plasma's names; Windows Default as XP's registry
+        // has it; a sound for each of WINDOWS\Media's names.
+        QSet<QString> names;
+        for (const sounds::Event &e : sounds::events()) {
+            QVERIFY(!e.names.isEmpty());
+            for (const QString &n : e.names) {
+                QVERIFY2(!names.contains(n), qPrintable(n));   // (one event per name)
+                names.insert(n);
+            }
+        }
+        const sounds::Scheme xp = sounds::defaultScheme();
+        QCOMPARE(xp.sounds.value(QStringLiteral("SystemStart")), QStringLiteral("Windows XP Startup.wav"));
+        QVERIFY(!xp.sounds.contains(QStringLiteral("SystemQuestion")));   // (XP's was quiet)
+        for (const QString &sound : std::as_const(xp.sounds))
+            QVERIFY2(sounds::mediaSounds().contains(sound), qPrintable(sound));
+        QCOMPARE(sounds::Scheme::fromJson(xp.toJson()), xp);
+        State saved;
+        sounds::saveScheme(saved, sounds::Scheme{QStringLiteral("Mine"), {{QStringLiteral(".Default"), QStringLiteral("chord.wav")}}});
+        QCOMPARE(sounds::savedSchemes(saved).size(), 1);
+        sounds::deleteScheme(saved, QStringLiteral("Mine"));
+        QVERIFY(sounds::savedSchemes(saved).isEmpty());
+
+        // No Sounds: silence under every name (no other theme's stands in).
+        const QString quiet = m_home.filePath(QStringLiteral("quiet"));
+        QString error;
+        QVERIFY2(sounds::writeTheme(sounds::Scheme{QStringLiteral("No Sounds"), {}}, quiet, &error), qPrintable(error));
+        for (const QString &n : std::as_const(names))
+            QVERIFY2(QFileInfo(quiet + QLatin1String("/stereo/") + n + QLatin1String(".wav")).size() == 44 + 2204, qPrintable(n));
+
+        if (m_realIso.isEmpty())
+            QSKIP("no XP ISO on this machine");
+        State s = State::load();
+        s.media = m_realIso;
+        QVERIFY(s.save());
+        // Windows Default's sounds from the media, under each name; the
+        // log-in and lock sounds switched on; the user's theme kept for reset.
+        RecordingSession session;
+        session.config.insert(QStringLiteral("kdeglobals|Sounds|Theme"), QStringLiteral("oxygen"));
+        State state;
+        QVERIFY2(sounds::apply(session, state, xp, &error), qPrintable(error));
+        const QString id = session.config.value(QStringLiteral("kdeglobals|Sounds|Theme"));
+        QVERIFY(id.startsWith(QLatin1String("xplasma-sounds-")));
+        const QString stereo = paths::localShare() + QLatin1String("/sounds/") + id + QLatin1String("/stereo/");
+        QFile login(stereo + QLatin1String("desktop-login.wav"));
+        QVERIFY(login.open(QIODevice::ReadOnly));
+        const QByteArray wav = login.readAll();
+        QVERIFY(wav.startsWith("RIFF") && wav.size() > 400000);   // (XP's Startup: 4.8 s)
+        QVERIFY(QFileInfo(stereo + QLatin1String("dialog-question.wav")).size() < 3000);   // (quiet)
+        QCOMPARE(session.config.value(QStringLiteral("plasma_workspace.notifyrc|Event/startkde|Action")), QStringLiteral("Sound"));
+        QCOMPARE(session.config.value(QStringLiteral("ksmserver.notifyrc|Event/locked|Sound")), QStringLiteral("service-logout"));
+        QCOMPARE(sounds::applied(state)->name, QStringLiteral("Windows Default"));
+
+        // Another scheme: its own theme, the last one gone.
+        sounds::Scheme mine = xp;
+        mine.name = QStringLiteral("Mine");
+        mine.sounds.remove(QStringLiteral("SystemStart"));
+        QVERIFY2(sounds::apply(session, state, mine, &error), qPrintable(error));
+        QVERIFY(session.config.value(QStringLiteral("kdeglobals|Sounds|Theme")) != id);
+        QVERIFY(!QFileInfo::exists(stereo));
+        QVERIFY(!session.config.contains(QStringLiteral("plasma_workspace.notifyrc|Event/startkde|Action")));
+
+        sounds::revert(session, state);
+        QCOMPARE(session.config.value(QStringLiteral("kdeglobals|Sounds|Theme")), QStringLiteral("oxygen"));
+        QVERIFY(!session.config.contains(QStringLiteral("ksmserver.notifyrc|Event/locked|Action")));
+        QVERIFY(!sounds::applied(state));
+        QVERIFY(QDir(paths::localShare() + QLatin1String("/sounds")).entryList({QStringLiteral("xplasma-sounds-*")}, QDir::Dirs).isEmpty());
     }
 
     void wallpaperNamesFromInfs()

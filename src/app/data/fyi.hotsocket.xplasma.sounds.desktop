@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Sounds and Audio Devices (XPLasma)
+GenericName=Sound scheme
+Comment=Change the sound scheme, as Windows XP did
+Exec=xplasma-edit --sounds
+Icon=preferences-desktop-sound
+Terminal=false
+Categories=Settings;
+Keywords=Windows;XP;sounds;sound scheme;audio;XPLasma;

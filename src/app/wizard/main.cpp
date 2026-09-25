@@ -30,6 +30,7 @@
 #include "app/archive.h"
 #include "app/session.h"
 #include "app/setup.h"
+#include "app/sounds.h"
 #include "app/state.h"
 #include "app/wizard/art.h"
 
@@ -204,6 +205,12 @@ private:
             LiveSession session;
             if (!resetDesktop(session, [this](const QString &line) { Q_EMIT status(line.trimmed()); }, error))
                 return false;
+        } else if (State state = State::load(); sounds::applied(state)) {
+            // (a sound scheme on a desktop that's otherwise Plasma's)
+            Q_EMIT status(QStringLiteral("Putting Plasma's own sounds back"));
+            LiveSession session;
+            sounds::revert(session, state);
+            state.save();
         }
         Q_EMIT status(QStringLiteral("Removing Windows XP's pointers"));
         pointers::removeSchemes();

@@ -37,6 +37,7 @@
 #include "app/library.h"
 #include "app/paths.h"
 #include "app/setup.h"
+#include "app/sounds.h"
 #include "app/state.h"
 #include "core/themefile.h"
 
@@ -288,6 +289,47 @@ int pointerSchemes(const QString &name, bool shadow, const QString &out)
     return 0;
 }
 
+// A sound scheme: XP's (Windows Default, No Sounds) or one saved in Sounds
+// and Audio Devices; "off", the user's own sounds back; none, the list.
+int soundSchemes(const QString &name, const QString &out)
+{
+    State state = State::load();
+    const QList<sounds::Scheme> all = sounds::builtinSchemes() + sounds::savedSchemes(state);
+    if (name.isEmpty()) {
+        for (const sounds::Scheme &s : all)
+            say(s.name);
+        return 0;
+    }
+    LiveSession session;
+    if (name == QLatin1String("off")) {
+        sounds::revert(session, state);
+        state.save();
+        say(QStringLiteral("Sounds: the desktop's own"));
+        return 0;
+    }
+    const auto it = std::find_if(all.begin(), all.end(), [&](const sounds::Scheme &s) { return s.name.compare(name, Qt::CaseInsensitive) == 0; });
+    if (it == all.end()) {
+        err() << "xplasma: no sound scheme " << name << Qt::endl;
+        return 1;
+    }
+    QString error;
+    if (!out.isEmpty()) {
+        if (!sounds::writeTheme(*it, out, &error)) {
+            err() << "xplasma: " << error << Qt::endl;
+            return 1;
+        }
+        say(QStringLiteral("%1: %2").arg(it->name, out));
+        return 0;
+    }
+    if (!sounds::apply(session, state, *it, &error)) {
+        err() << "xplasma: " << error << Qt::endl;
+        return 1;
+    }
+    state.save();
+    say(QStringLiteral("Sounds: %1").arg(it->name));
+    return 0;
+}
+
 int reset()
 {
     LiveSession session;
@@ -469,7 +511,7 @@ int main(int argc, char **argv)
     parser.setApplicationDescription(QStringLiteral("Windows XP visual styles for KDE Plasma."));
     parser.addHelpOption();
     parser.addVersionOption();
-    parser.addPositionalArgument(QStringLiteral("command"), QStringLiteral("list | apply LOOK | widgets LOOK | pointers [SCHEME] | reset | setup | build LOOK"));
+    parser.addPositionalArgument(QStringLiteral("command"), QStringLiteral("list | apply LOOK | widgets LOOK | pointers [SCHEME] | sounds [SCHEME|off] | reset | setup | build LOOK"));
     parser.addOption(QCommandLineOption(QStringLiteral("media"), QStringLiteral("XP's install media (an ISO, or a folder with I386)."), QStringLiteral("PATH")));
     for (const char *name : {"no-widgets", "no-taskbar", "no-icons", "no-wallpaper", "download-media", "no-packs", "all-packs", "no-shadow"})
         parser.addOption(QCommandLineOption(QString::fromLatin1(name)));
@@ -493,6 +535,8 @@ int main(int argc, char **argv)
         return reset();
     if (command == QLatin1String("pointers") && args.size() <= 2)
         return pointerSchemes(args.value(1), !parser.isSet(QStringLiteral("no-shadow")), parser.value(outOption));
+    if (command == QLatin1String("sounds") && args.size() <= 2)
+        return soundSchemes(args.value(1), parser.value(outOption));
     if (command == QLatin1String("build") && args.size() == 2)
         return build(args.at(1), parser.value(outOption));
     if (command == QLatin1String("check-forks") && args.size() == 1)

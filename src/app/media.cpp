@@ -4,6 +4,7 @@
 #include "app/paths.h"
 #include "app/state.h"
 #include "core/dib.h"
+#include "core/icons.h"
 #include "core/pe.h"
 
 #include <QDir>
@@ -215,6 +216,27 @@ std::optional<QList<QImage>> animation(const QString &file, int id, QString *err
         return std::nullopt;
     }
     return frames;
+}
+
+std::optional<QImage> icon(const QString &file, int group, int size, QString *error)
+{
+    const auto bytes = systemFile(file, error);
+    if (!bytes)
+        return std::nullopt;
+    const auto pe = PeResources::parse(*bytes, error);
+    if (!pe)
+        return std::nullopt;
+    const QMap<int, IconImage> images = iconGroup(*pe, QString::number(group), error);
+    if (images.isEmpty()) {
+        fail(error, QStringLiteral("%1 has no icon %2").arg(file).arg(group));
+        return std::nullopt;
+    }
+    if (images.contains(size))
+        return images.value(size).image;
+    // (the nearest larger, scaled down)
+    auto it = images.lowerBound(size);
+    const QImage from = (it != images.cend() ? it : std::prev(images.cend()))->image;
+    return from.scaled(size, size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
 }
 
 std::optional<QImage> startFlag(QString *error)

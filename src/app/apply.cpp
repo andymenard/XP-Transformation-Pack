@@ -11,6 +11,7 @@
 #include "app/pointers.h"
 #include "app/paths.h"
 #include "app/qttarget.h"
+#include "app/sounds.h"
 #include "app/startmenu.h"
 #include "app/state.h"
 #include "app/xptext.h"
@@ -678,6 +679,7 @@ bool resetDesktop(Session &session, const std::function<void(const QString &)> &
     say(QStringLiteral("Clearing the XP fonts ..."));
     xptext::revert(session, state);
     pointers::revert(session, state);
+    sounds::revert(session, state);
     for (const ConfigValue &v : fontSettings(ClassicScheme()))
         session.deleteConfig(v.file, v.group.split(QLatin1Char('/')), v.key);
     session.signal(QStringLiteral("/KDEPlatformTheme"), QStringLiteral("org.kde.KDEPlatformTheme"), QStringLiteral("refreshFonts"));

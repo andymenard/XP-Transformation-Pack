@@ -94,7 +94,8 @@ QStringList installedPaths()
     for (const QString &p : kPrograms)
         out << QLatin1String("bin/") + p;
     out << QStringLiteral("lib/xplasma") << QStringLiteral("share/applications/fyi.hotsocket.xplasma.desktop")
-        << QStringLiteral("share/applications/fyi.hotsocket.xplasma.datetime.desktop");
+        << QStringLiteral("share/applications/fyi.hotsocket.xplasma.datetime.desktop")
+        << QStringLiteral("share/applications/fyi.hotsocket.xplasma.sounds.desktop");
     return out;
 }
 

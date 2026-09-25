@@ -68,7 +68,8 @@ const Mapping kMap[] = {
     {"shell32.dll", 269, "Categories", "system-users preferences-system-users"},
     {"shell32.dll", 250, "Categories", "preferences-desktop-display"},
     {"shell32.dll", 39, "Categories", "preferences-desktop-font"},
-    {"timedate.cpl", 200, "Categories", "preferences-system-time"},   // (Date and Time's own; shell32 275 is the pie of Performance and Maintenance)
+    {"timedate.cpl", 200, "Categories", "preferences-system-time"},
+    {"mmsys.cpl", 3004, "Categories", "preferences-desktop-sound"},   // (Sounds and Audio Devices' own)   // (Date and Time's own; shell32 275 is the pie of Performance and Maintenance)
     {"shell32.dll", 4, "Applications", "system-file-manager"},
     {"shell32.dll", 152, "MimeTypes", "text-plain text-x-generic"},
     {"shell32.dll", 1, "MimeTypes", "application-x-executable application-octet-stream unknown"},

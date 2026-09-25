@@ -28,6 +28,7 @@ add_library(xplasma-app STATIC
   xptext.cpp
   inf.cpp
   pointers.cpp
+  sounds.cpp
   timezones.cpp
   forks.cpp
   flatpak.cpp
@@ -77,6 +78,7 @@ add_executable(xplasma-edit
   editor/main.cpp
   editor/displayproperties.cpp
   editor/datetime.cpp
+  editor/soundsproperties.cpp
   editor/preview.cpp
   editor/advanced.cpp
   editor/extras.cpp
@@ -97,4 +99,4 @@ set_tests_properties(setup-screenshots PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=of
 # Installed as <prefix>/bin/xplasma{,-edit}, beside lib/xplasma (the style
 # plugins) and the launcher; install.sh points the launcher at the real path.
 install(TARGETS xplasma-cli xplasma-edit xplasma-setup RUNTIME DESTINATION bin)
-install(FILES data/fyi.hotsocket.xplasma.desktop data/fyi.hotsocket.xplasma.datetime.desktop DESTINATION share/applications)
+install(FILES data/fyi.hotsocket.xplasma.desktop data/fyi.hotsocket.xplasma.datetime.desktop data/fyi.hotsocket.xplasma.sounds.desktop DESTINATION share/applications)

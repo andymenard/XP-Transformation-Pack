@@ -162,6 +162,22 @@ the copy dialog and a failed copy, Start, Date and Time, apply/reset cycles.
 - ~~**XP's Start button tooltip is "Click here to begin"**~~ (done
   2026-09-24; still drawn in Plasma's tooltip colours, above).
 
+- **Sounds: only XP's events Plasma makes a sound for.** A scheme is written
+  as a freedesktop sound theme (Plasma plays notifications by those names)
+  and made kdeglobals' [Sounds] Theme: message boxes (Asterisk, Exclamation,
+  Critical Stop, Question), battery alarms, devices, the recycle bin, the
+  bell and the volume's feedback (Default Beep), log-in and log-out (Start
+  and Exit Windows), lock and unlock (Windows Logoff and Logon, as XP played
+  them switching users). Plasma has no event for opening, closing,
+  minimizing or maximizing a window, menus or navigating, so those aren't
+  listed (XP's Windows Default had them quiet anyway). An event a scheme
+  leaves quiet is written as silence, not left to another theme. Checked on
+  Fedora 44 (2026-09-25): plasmashell's volume feedback came from the
+  scheme (XP's Ding, as PipeWire cached it); the play button plays through
+  pw-play, paplay or aplay (vmtools' listen heard it).
+- **Plasma's power plug, unplug and password-prompt sounds are silenced**
+  under every scheme: XP made no sound for them.
+
 - **Date and Time Properties' zones are SP3's original 75.** A patched XP
   has more (Microsoft's later time zone updates: Caracas at -4:30,
   Asuncion...); the list comes from the media's HIVESFT.INF, and each entry

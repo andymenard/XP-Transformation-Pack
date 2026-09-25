@@ -21,6 +21,10 @@ std::optional<QByteArray> systemFile(const QString &name, QString *error = nullp
 // A bitmap resource of such a file, decoded (alpha kept).
 std::optional<QImage> bitmap(const QString &file, int id, QString *error = nullptr);
 
+// An icon group of such a file at `size` pixels (the deepest image of that
+// size; else the nearest larger, scaled down).
+std::optional<QImage> icon(const QString &file, int group, int size, QString *error = nullptr);
+
 // An animation resource ("AVI") of such a file -- shell32.dll's file
 // operations (161 copying, 160 moving, 162 deleting): its frames, in
 // order, magenta see-through. They play at 10 a second.
