@@ -68,6 +68,8 @@ bool copyTree(const QString &from, const QString &to, QString *error)
 const QStringList kPrograms{QStringLiteral("xplasma"), QStringLiteral("xplasma-edit")};
 // What runs at login (~/.config/autostart): the update check.
 const char *const kAutostart[] = {"fyi.hotsocket.xplasma.updates.desktop"};
+// Desktop entries earlier XPlasmas installed, gone since: removed on install.
+const char *const kRetiredEntries[] = {"fyi.hotsocket.xplasma.sounds.desktop"};   // (now XPlasma Properties' Sounds tab)
 
 QString autostartDir()
 {
@@ -101,8 +103,9 @@ QStringList installedPaths()
     for (const QString &p : kPrograms)
         out << QLatin1String("bin/") + p;
     out << QStringLiteral("lib/xplasma") << QStringLiteral("share/applications/fyi.hotsocket.xplasma.desktop")
-        << QStringLiteral("share/applications/fyi.hotsocket.xplasma.datetime.desktop")
-        << QStringLiteral("share/applications/fyi.hotsocket.xplasma.sounds.desktop");
+        << QStringLiteral("share/applications/fyi.hotsocket.xplasma.datetime.desktop");
+    for (const char *name : kRetiredEntries)
+        out << QLatin1String("share/applications/") + QLatin1String(name);
     return out;
 }
 
@@ -153,6 +156,8 @@ bool installFiles(const QString &package, const QString &prefix, const Progress 
     const QString apps = prefix + QLatin1String("/share/applications");
     if (!entries(package + QLatin1String("/share/applications"), apps))
         return false;
+    for (const char *name : kRetiredEntries)
+        QFile::remove(apps + QLatin1Char('/') + QLatin1String(name));
     // (and what runs at login: the update check)
     if (!entries(package + QLatin1String("/share/xplasma/autostart"), autostartDir()))
         return false;

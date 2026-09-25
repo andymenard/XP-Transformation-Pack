@@ -149,7 +149,7 @@ void applyDecoration(Session &session, const QString &id)
 
 // KWin rules for XPlasma's own windows that XP gave no minimize or maximize
 // box: the copy dialog (plasmashell's, titled "Copying..." and the like) and
-// the editor (Display Properties and its dialogs, and Date and Time
+// the editor (XPlasma Properties and its dialogs, and Date and Time
 // Properties, property sheets on XP).
 // Wayland has no way for a window to say so itself. With neither box, the
 // decoration shows Close alone, as XP does. Other rules are left as they are.
@@ -173,7 +173,7 @@ const QList<std::pair<QString, Rule>> kRules{
           {QStringLiteral("titlematch"), QStringLiteral("3")}}        // regular expression
          + kNoBoxes},
     {QStringLiteral("xplasma-display-properties"),
-     Rule{{QStringLiteral("Description"), QStringLiteral("XPlasma: Display Properties, Date and Time Properties (Close only)")},
+     Rule{{QStringLiteral("Description"), QStringLiteral("XPlasma: XPlasma Properties, Date and Time Properties (Close only)")},
           {QStringLiteral("wmclass"), QStringLiteral("^fyi\\.hotsocket\\.xplasma(\\.datetime)?$")},
           {QStringLiteral("wmclassmatch"), QStringLiteral("3")}}      // regular expression
          + kNoBoxes},
@@ -224,7 +224,7 @@ void applyFonts(Session &session, const QList<ConfigValue> &fonts)
     session.reconfigureKWin();
 }
 
-// This XPlasma's editor (Display Properties, Date and Time Properties),
+// This XPlasma's editor (XPlasma Properties, Date and Time Properties),
 // beside this program; or whichever is on the PATH.
 QString editorPath()
 {
@@ -545,9 +545,9 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
     // XP's Properties on the desktop's menu: this XPlasma's editor.
     const QString editor = QCoreApplication::applicationDirPath() + QLatin1String("/xplasma-edit");
     if (!QFileInfo(editor).isExecutable())
-        report(o, QStringLiteral("  no XP Properties on the desktop: %1 isn't there").arg(editor));
+        report(o, QStringLiteral("  no XPlasma Properties on the desktop: %1 isn't there").arg(editor));
     else if (!overrides::installDesktopMenu(share(QStringLiteral("plasma/plasmoids")), editor, &why))
-        report(o, QStringLiteral("  no XP Properties on the desktop: %1").arg(why));
+        report(o, QStringLiteral("  no XPlasma Properties on the desktop: %1").arg(why));
     if (!overrides::installTitleShadows(share(QStringLiteral("aurorae/themes")), share(QStringLiteral("kwin/aurorae/aurorae.qml")), &why))
         report(o, QStringLiteral("  no title shadows: %1").arg(why));
     // Other looks' packages go: one of each at a time.

@@ -1,10 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=Display Properties (XPlasma)
-GenericName=Windows XP appearance
-Comment=Apply Windows XP visual styles and colour schemes to Plasma and to Qt apps
+Name=XPlasma Properties
+GenericName=Windows XP appearance and sounds
+Comment=Apply Windows XP visual styles, colour schemes and sounds to Plasma and to Qt apps
 Exec=xplasma-edit
 Icon=preferences-desktop-theme
 Terminal=false
 Categories=Settings;DesktopSettings;
-Keywords=Windows;XP;Luna;Royale;Classic;theme;msstyles;Plasma;XPlasma;
+Keywords=Windows;XP;Luna;Royale;Classic;theme;msstyles;Plasma;XPlasma;sounds;Display Properties;

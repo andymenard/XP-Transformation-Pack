@@ -4,6 +4,7 @@
 #include "app/editor/extras.h"
 #include "app/editor/jobs.h"
 #include "app/editor/setupdialog.h"
+#include "app/editor/soundstab.h"
 #include "app/paths.h"
 #include "app/session.h"
 #include "app/state.h"
@@ -109,13 +110,16 @@ QLabel *sampleBox(QSize size)
 DisplayProperties::DisplayProperties(QWidget *parent)
     : QDialog(parent)
 {
-    setWindowTitle(QStringLiteral("Display Properties"));
+    setWindowTitle(QStringLiteral("XPlasma Properties"));
     auto *root = new QVBoxLayout(this);
     m_tabs = new QTabWidget;
     m_tabs->addTab(themesTab(), QStringLiteral("Themes"));
     m_tabs->addTab(desktopTab(), QStringLiteral("Desktop"));
     m_tabs->addTab(appearanceTab(), QStringLiteral("Appearance"));
     m_tabs->addTab(pointersTab(), QStringLiteral("Pointers"));
+    m_sounds = new SoundsTab;
+    m_tabs->addTab(m_sounds, QStringLiteral("Sounds"));
+    connect(m_sounds, &SoundsTab::changed, this, &DisplayProperties::updateApply);
     root->addWidget(m_tabs, 1);
     // A property sheet: its size is its contents', not the user's to change.
     root->setSizeConstraint(QLayout::SetFixedSize);
@@ -834,7 +838,7 @@ bool DisplayProperties::apply()
     const bool pointersChanged = pointersDiffer() || (everything && m_pointers);
     const bool startChanged = m_startExtras != m_appliedStartExtras;
     if (!lookChanged && !desktopChanged && !pointersChanged && !startChanged && m_themeFile == m_appliedThemeFile)
-        return true;
+        return m_sounds->apply();
 
     QString error;
     bool ok = true;
@@ -898,6 +902,9 @@ bool DisplayProperties::apply()
     }
     if (!ok)
         QMessageBox::warning(this, QStringLiteral("Apply"), error);
+    // (after the look, which may have put Windows Default on itself)
+    if (ok)
+        ok = m_sounds->apply();
     updateApply();
     return ok;
 }
@@ -905,7 +912,8 @@ bool DisplayProperties::apply()
 void DisplayProperties::updateApply()
 {
     m_apply->setEnabled(shiftHeld() || lookKey(look()) != m_appliedLook || !sameDesktop(wallpaper(), m_appliedDesktop)
-                        || m_themeFile != m_appliedThemeFile || pointersDiffer() || m_startExtras != m_appliedStartExtras);
+                        || m_themeFile != m_appliedThemeFile || pointersDiffer() || m_startExtras != m_appliedStartExtras
+                        || m_sounds->pending());
 }
 
 bool DisplayProperties::eventFilter(QObject *watched, QEvent *event)
@@ -941,13 +949,21 @@ void DisplayProperties::renderAppearance()
     m_appearanceSample->setPixmap(QPixmap::fromImage(m_previewer.appearance(l, preview::kAppearanceSize, l.system.colour(u"Background"))));
 }
 
+void DisplayProperties::showTab(const QString &name)
+{
+    for (int i = 0; i < m_tabs->count(); ++i)
+        if (m_tabs->tabText(i).remove(QLatin1Char('&')).compare(name, Qt::CaseInsensitive) == 0)
+            m_tabs->setCurrentIndex(i);
+}
+
 bool DisplayProperties::saveScreenshots(const QString &dir)
 {
     QDir().mkpath(dir);
     setAttribute(Qt::WA_DontShowOnScreen);
     show();
     bool ok = true;
-    const char *const names[] = {"themes", "desktop", "appearance", "pointers"};
+    m_sounds->showForScreenshot();
+    const char *const names[] = {"themes", "desktop", "appearance", "pointers", "sounds"};
     for (int i = 0; i < m_tabs->count(); ++i) {
         m_tabs->setCurrentIndex(i);
         QApplication::processEvents();

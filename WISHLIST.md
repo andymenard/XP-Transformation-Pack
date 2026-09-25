@@ -8,7 +8,6 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Wanted
 
-- **Sounds and Audio Devices' other tabs**: Audio, Voice, Hardware.
 - **Other sound schemes** (the user's idea: a small rock band recording a
   whole XP sound theme).
 - **Flatpak's Qt 5 apps** (KDE runtime 5.15): the Qt 5 plugin as the same
@@ -30,8 +29,12 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Done
 
+- One XPlasma Properties (the user's idea): Display Properties' tabs,
+  Pointers and Sounds in one dialog, in the app menu and on the desktop's
+  right-click menu. XP's Volume tab dropped: Plasma's audio settings do the
+  same (2026-09-25).
 - Window sounds: XP's Open program, Close program, Minimize, Maximize,
-  Restore Up and Restore Down, in Sounds and Audio Devices' list, played by
+  Restore Up and Restore Down, in the Sounds tab's list, played by
   XPlasma's Start button from Plasma's task model (quiet in Windows
   Default, as XP had them) (2026-09-25).
 - XPlasma's own update notifier (the user's idea): XP's Automatic Updates
@@ -40,9 +43,6 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
   login; a declined version isn't shown again (2026-09-25).
 - XP's sounds on with the first look applied, as XP had them from the
   start; `xplasma sounds off` is remembered (2026-09-25).
-- Sounds and Audio Devices Properties, its Volume tab: the default output's
-  name, volume and mute (pactl, else wpctl), the volume icon in the taskbar
-  (Plasma's tray); Advanced... opens Plasma's audio settings (2026-09-25).
 - Sounds and Audio Devices Properties, its Sounds tab: XP's Windows Default
   and No Sounds schemes (XP's registry defaults, its WAVs from the media),
   the user's own (Save As...), each event's sound picked from WINDOWS\Media

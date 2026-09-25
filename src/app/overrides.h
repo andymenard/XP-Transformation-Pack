@@ -19,7 +19,7 @@
 //     which blinks if it went unread -- and file transfers as XP's copy
 //     dialog.
 //   * The desktop (org.kde.desktopcontainment), whose right-click menu gets
-//     XP's Properties, as "XP Properties": Display Properties; and where
+//     XP's Properties, as "XPlasma Properties"; and where
 //     what's dragged from the Start menu lands as a shortcut (a link),
 //     without KIO's Move/Copy/Link menu.
 //   * KWin's Aurorae renderer (kwin/aurorae/aurorae.qml), for the caption
@@ -50,7 +50,7 @@ bool checkPanelWidgets(const QString &plasmoids, QString *error = nullptr);
 void removePanelWidgets(const QString &plasmoids);
 
 // The desktop's right-click menu (org.kde.desktopcontainment, which the
-// desktop, org.kde.plasma.folder, is): "XP Properties", starting `editor`.
+// desktop, org.kde.plasma.folder, is): "XPlasma Properties", starting `editor`.
 bool installDesktopMenu(const QString &plasmoids, const QString &editor, QString *error = nullptr);
 bool checkDesktopMenu(const QString &plasmoids, QString *error = nullptr);
 void removeDesktopMenu(const QString &plasmoids);

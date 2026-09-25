@@ -1,10 +1,11 @@
 #pragma once
-// xplasma-edit: Windows XP's Display Properties, for Plasma. Three of XP's
-// tabs -- Themes, Desktop, Appearance -- with OK, Cancel and Apply; Apply
-// does what `xplasma apply` does, for what changed since the last Apply:
-// only the desktop's wallpaper, say, is set without rebuilding the look.
-// Apply is greyed out until something changes; with Shift held it's
-// available anyway and rebuilds everything.
+// xplasma-edit: XPlasma Properties -- Windows XP's Display Properties, for
+// Plasma, its Themes, Desktop and Appearance tabs, Mouse Properties'
+// Pointers, and Sounds and Audio Devices' Sounds (soundstab.h) -- with OK,
+// Cancel and Apply; Apply does what `xplasma apply` does, for what changed
+// since the last Apply: only the desktop's wallpaper, say, is set without
+// rebuilding the look. Apply is greyed out until something changes; with
+// Shift held it's available anyway and rebuilds everything.
 //
 // The dialog is drawn in whatever widget style the system has (never forced
 // to XPlasma); only its samples are drawn by XPlasma, in the look they show.
@@ -27,6 +28,7 @@ class QTabWidget;
 namespace xpl::editor {
 
 class ColourButton;
+class SoundsTab;
 
 class DisplayProperties : public QDialog
 {
@@ -36,6 +38,9 @@ public:
 
     // Every tab (and the Advanced dialog) rendered to DIR as PNGs.
     bool saveScreenshots(const QString &dir);
+
+    // The tab of that name shown ("Sounds").
+    void showTab(const QString &name);
 
     // What the dialog would apply.
     Look look() const;
@@ -120,6 +125,8 @@ private:
     QCheckBox *m_pointerShadowBox;
     QPushButton *m_pointerDefault, *m_pointerBrowse;
     QTimer *m_pointerTimer;
+    // Sounds
+    SoundsTab *m_sounds;
 };
 
 } // namespace xpl::editor

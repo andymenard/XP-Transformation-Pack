@@ -302,7 +302,7 @@ QString soundFile(const QString &sound, QString *error)
 bool writeTheme(const Scheme &scheme, const QString &dir, QString *error)
 {
     QDir(dir).removeRecursively();
-    const QString index = QStringLiteral("[Sound Theme]\nName=%1 (XP)\nComment=Windows XP's sounds, set by XPlasma's Sounds and Audio Devices\n"
+    const QString index = QStringLiteral("[Sound Theme]\nName=%1 (XP)\nComment=Windows XP's sounds, set by XPlasma Properties\n"
                                          "Directories=stereo\n\n[stereo]\nOutputProfile=stereo\n")
                               .arg(scheme.name);
     if (!write(dir + QLatin1String("/index.theme"), index.toUtf8())) {

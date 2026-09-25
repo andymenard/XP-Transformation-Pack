@@ -9,7 +9,7 @@ wallpaper, icons, and **every Qt application's widgets**, drawn by a native Qt
 style that reads the `.msstyles` itself.
 
 **Status:** the style is done to the pixel against real XP (see PLAN.md and
-NOTES.md). The app around it -- the Display Properties editor, the generators,
+NOTES.md). The app around it -- the XPlasma Properties editor, the generators,
 setup and the CLI -- is C++/Qt 6 on the same core, rewritten from the Python
 xp2plasma carried.
 
@@ -44,7 +44,7 @@ podman build -t xplasma-release:2  -f containers/release.Containerfile container
 ```
 
 Each installs into `build/<mode>/`: `bin/xplasma` (the CLI), `bin/xplasma-edit`
-(Display Properties), the style plugins in `lib/xplasma/qt{6,5}/styles/`, and
+(XPlasma Properties), the style plugins in `lib/xplasma/qt{6,5}/styles/`, and
 the launcher in `share/applications/`. The app is Qt 6 only; the style is built
 for both majors. Nothing else is needed on the host: archives (the XP ISO, its
 CAB-compressed files, the theme packs' ZIPs) are read by the linked-in
@@ -72,7 +72,7 @@ Windows ships in it: its look is XPlasma's own Classic drawing, its pictures
 its own). Run, it downloads Windows XP from the Internet Archive (or uses the
 copy already downloaded), takes out what XPlasma uses, installs XPlasma into
 `~/.local`, installs XP's pointer schemes as cursor themes, and offers to
-launch XPlasma. Choosing a look is Display Properties' job, never the
+launch XPlasma. Choosing a look is XPlasma Properties' job, never the
 wizard's. Run again, it repairs or removes XPlasma.
 
 ```sh
@@ -89,9 +89,9 @@ xplasma list                           # the styles, themes and Classic schemes 
 xplasma apply ~/.local/share/xplasma/assets/themes/Luna/Luna.theme
 xplasma apply 'classic:Windows Standard'   # LOOK: a .msstyles[:VARIANT_INI], a .theme, or classic:SCHEME
 xplasma reset                          # back to Plasma's own look
-xplasma-edit                           # Display Properties (also in the app menu)
+xplasma-edit                           # XPlasma Properties: Themes, Desktop, Appearance, Pointers, Sounds (also in the app menu)
 xplasma-edit --date-time               # Date and Time Properties (double-click the clock)
-xplasma-edit --sounds                  # Sounds and Audio Devices Properties: volume, XP's sound schemes
+xplasma-edit --sounds                  # ... opened on its Sounds tab: XP's sound schemes
 xplasma-edit --check-updates --now     # XP's update globe, if project.ini's UpdatesUrl names a newer XPlasma (run at login)
 xplasma sounds 'Windows Default'       # or 'No Sounds', a saved scheme, or off (kept off by later applies)
 ```

@@ -29,8 +29,9 @@ if [ -d "$from/lib/xplasma/forks" ]; then
   cp -r "$from/lib/xplasma/forks" "$prefix/lib/xplasma/forks.new"
   rm -rf "$prefix/lib/xplasma/forks" && mv "$prefix/lib/xplasma/forks.new" "$prefix/lib/xplasma/forks"
 fi
-# The desktop entries (Display Properties, Date and Time), pointed at the
+# The desktop entries (XPlasma Properties, Date and Time), pointed at the
 # installed editor.
+rm -f "$prefix/share/applications/fyi.hotsocket.xplasma.sounds.desktop"   # (retired: now a tab)
 for desktop in "$from"/share/applications/*.desktop; do
   sed "s|^Exec=xplasma-edit|Exec=$prefix/bin/xplasma-edit|" "$desktop" > "$prefix/share/applications/${desktop##*/}"
 done

@@ -1,9 +1,9 @@
-// xplasma-edit: Display Properties, Date and Time Properties, and Sounds
-// and Audio Devices Properties.
+// xplasma-edit: XPlasma Properties, and Date and Time Properties.
 //
-//   xplasma-edit                    Display Properties
+//   xplasma-edit                    XPlasma Properties (Themes, Desktop,
+//                                   Appearance, Pointers, Sounds)
+//   xplasma-edit --sounds           ... open on its Sounds tab
 //   xplasma-edit --date-time        Date and Time Properties
-//   xplasma-edit --sounds           Sounds and Audio Devices Properties
 //   xplasma-edit --check-updates    XP's globe in the tray, if a newer XPlasma
 //                                   is out (at login; --now: even if checked today)
 //   ... --screenshots DIR           every tab drawn to DIR/*.png, then exit
@@ -12,7 +12,6 @@
 #include "app/desktop.h"
 #include "app/editor/datetime.h"
 #include "app/editor/displayproperties.h"
-#include "app/editor/soundsproperties.h"
 #include "app/editor/updatenotifier.h"
 
 #include <QApplication>
@@ -87,7 +86,7 @@ int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
     QApplication::setApplicationName(QStringLiteral("xplasma-edit"));
-    QApplication::setApplicationDisplayName(QStringLiteral("Display Properties"));
+    QApplication::setApplicationDisplayName(QStringLiteral("XPlasma Properties"));
     QApplication::setApplicationVersion(QStringLiteral(XPLASMA_VERSION));
     QApplication::setDesktopFileName(QStringLiteral("fyi.hotsocket.xplasma"));
     QCommandLineParser parser;
@@ -98,7 +97,7 @@ int main(int argc, char **argv)
     parser.addOption(screenshots);
     const QCommandLineOption dateTime(QStringLiteral("date-time"), QStringLiteral("Date and Time Properties."));
     parser.addOption(dateTime);
-    const QCommandLineOption soundsOption(QStringLiteral("sounds"), QStringLiteral("Sounds and Audio Devices Properties."));
+    const QCommandLineOption soundsOption(QStringLiteral("sounds"), QStringLiteral("XPlasma Properties, on its Sounds tab."));
     parser.addOption(soundsOption);
     const QCommandLineOption checkUpdates(QStringLiteral("check-updates"), QStringLiteral("Show XP's update globe if a newer XPlasma is out."));
     parser.addOption(checkUpdates);
@@ -115,21 +114,6 @@ int main(int argc, char **argv)
     }
     // (the screenshots, drawn offscreen for the tests, need no desktop)
     const bool screenshotsOnly = parser.isSet(screenshots);
-
-    if (parser.isSet(soundsOption)) {
-        QApplication::setApplicationDisplayName(QStringLiteral("Sounds and Audio Devices Properties"));
-        QApplication::setDesktopFileName(QStringLiteral("fyi.hotsocket.xplasma.sounds"));
-        if (!screenshotsOnly && !requirePlasma())
-            return 1;
-        xpl::editor::SoundsProperties dialog;
-        if (parser.isSet(screenshots))
-            return dialog.saveScreenshots(parser.value(screenshots)) ? 0 : 1;
-        if (raiseRunning(QStringLiteral("sounds")))
-            return 0;
-        serveInstance(QStringLiteral("sounds"), &dialog);
-        dialog.show();
-        return app.exec();
-    }
 
     if (parser.isSet(dateTime)) {
         QApplication::setApplicationDisplayName(QStringLiteral("Date and Time Properties"));
@@ -156,6 +140,8 @@ int main(int argc, char **argv)
     xpl::editor::DisplayProperties dialog;
     if (parser.isSet(screenshots))
         return dialog.saveScreenshots(parser.value(screenshots)) ? 0 : 1;
+    if (parser.isSet(soundsOption))
+        dialog.showTab(QStringLiteral("Sounds"));
     serveInstance(QStringLiteral("display"), &dialog);
     dialog.show();
     return app.exec();

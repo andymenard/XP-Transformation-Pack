@@ -1,13 +1,10 @@
 #pragma once
-// xplasma-edit --sounds: Windows XP's Sounds and Audio Devices Properties,
-// its Volume and Sounds tabs -- laid out from XP's own dialog templates
-// (mmsys.cpl's "Volume" and "Events Schemes", in dialog units), its words,
-// its bitmaps and icons taken from the XP media.
+// XPlasma Properties' Sounds tab: Windows XP's, from Sounds and Audio
+// Devices Properties -- laid out from XP's own dialog template (mmsys.cpl's
+// "Events Schemes", in dialog units), its words, its bitmaps and icons taken
+// from the XP media. (XP's Volume tab isn't here: Plasma's audio settings
+// do all it did.)
 //
-//   Volume           the default output's name, its volume (Low to High) and
-//                    mute, as they change; the volume icon in the taskbar
-//                    (Plasma's tray), on Apply; Advanced... and Speaker
-//                    Volume... open Plasma's audio settings
 //   Sound scheme     Windows Default, No Sounds and the user's own; changing
 //                    an event's sound makes it "(modified)", for Save As...
 //   Program events   XP's events Plasma has a sound for (sounds.h), a
@@ -15,41 +12,44 @@
 //   Sounds           WINDOWS\Media's sounds, (None), or a file of one's own
 //                    (Browse...); the play button plays it, and stops it
 //
-// Apply makes the scheme Plasma's sound theme (sounds::apply). Opened with
-// nothing applied, it shows Windows Default with Apply ready.
+// The dialog's Apply makes the scheme Plasma's sound theme (sounds::apply).
+// Opened with nothing applied, it shows Windows Default, to be applied; with
+// sounds turned off (`xplasma sounds off`), No Sounds, as it is.
 #include "app/sounds.h"
 
-#include <QDialog>
 #include <QIcon>
+#include <QWidget>
 
 #include <optional>
 
-class QCheckBox;
 class QComboBox;
 class QLabel;
-class QSlider;
-class QTabWidget;
 class QProcess;
 class QPushButton;
 class QTreeWidget;
-class QTreeWidgetItem;
 
 namespace xpl::editor {
 
-class SoundsProperties : public QDialog
+class SoundsTab : public QWidget
 {
     Q_OBJECT
 public:
-    explicit SoundsProperties(QWidget *parent = nullptr);
-    ~SoundsProperties() override;
+    explicit SoundsTab(QWidget *parent = nullptr);
+    ~SoundsTab() override;
 
-    // The tabs rendered to DIR/volume.png and sounds.png (tests; Windows
-    // Default, Asterisk picked).
-    bool saveScreenshots(const QString &dir);
+    // Whether what's shown isn't what's applied.
+    bool pending() const;
+    // What's shown applied; false, having said why, if it couldn't be.
+    bool apply();
+    // Windows Default shown, Asterisk picked (tests' screenshots).
+    void showForScreenshot();
+
+Q_SIGNALS:
+    // What's shown changed (for the dialog's Apply).
+    void changed();
 
 private:
-    QWidget *volumeTab();
-    QWidget *soundsTab();
+    void build();
     QRect du(int x, int y, int w, int h) const;
 
     // The scheme combo's entries: XP's, the user's, and "(modified)" when
@@ -66,20 +66,11 @@ private:
     void saveAs();
     void deleteScheme();
     void updateApply();
-    bool apply();
 
     QList<sounds::Scheme> allSchemes() const;
     std::optional<sounds::Scheme> named(const QString &name) const;
     bool modified() const;
 
-    QTabWidget *m_tabs = nullptr;
-    QPushButton *m_apply = nullptr;
-    // Volume
-    QSlider *m_volume = nullptr;
-    QCheckBox *m_mute = nullptr;
-    QCheckBox *m_trayIcon = nullptr;
-    std::optional<bool> m_appliedTrayIcon;
-    // Sounds
     QComboBox *m_schemes = nullptr;
     QPushButton *m_saveAs = nullptr;
     QPushButton *m_delete = nullptr;
@@ -93,6 +84,7 @@ private:
 
     sounds::Scheme m_scheme;                    // what's shown
     std::optional<sounds::Scheme> m_applied;    // what's applied
+    bool m_off = false;                         // turned off, nothing applied
     QList<sounds::Scheme> m_saved;
     QStringList m_browsed;                      // files picked with Browse..., for the list
     bool m_loading = false;
