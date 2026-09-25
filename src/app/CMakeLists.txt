@@ -29,6 +29,7 @@ add_library(xplasma-app STATIC
   inf.cpp
   pointers.cpp
   sounds.cpp
+  volume.cpp
   timezones.cpp
   forks.cpp
   flatpak.cpp

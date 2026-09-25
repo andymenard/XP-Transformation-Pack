@@ -15,8 +15,7 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
   Restore Up/Down, Menu popup): Plasma has no notification event for them.
   The taskbar's task model sees windows open, close, minimize and maximize;
   a sound played from there would reach the scheme's names.
-- **Sounds and Audio Devices' other tabs**: Volume (the device volume, mute,
-  the volume icon in the taskbar), Audio, Voice, Hardware.
+- **Sounds and Audio Devices' other tabs**: Audio, Voice, Hardware.
 - **Other sound schemes** (the user's idea: a small rock band recording a
   whole XP sound theme).
 - **Flatpak's Qt 5 apps** (KDE runtime 5.15): the Qt 5 plugin as the same
@@ -38,6 +37,9 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Done
 
+- Sounds and Audio Devices Properties, its Volume tab: the default output's
+  name, volume and mute (pactl, else wpctl), the volume icon in the taskbar
+  (Plasma's tray); Advanced... opens Plasma's audio settings (2026-09-25).
 - Sounds and Audio Devices Properties, its Sounds tab: XP's Windows Default
   and No Sounds schemes (XP's registry defaults, its WAVs from the media),
   the user's own (Save As...), each event's sound picked from WINDOWS\Media

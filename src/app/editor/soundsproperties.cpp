@@ -3,13 +3,16 @@
 #include "app/media.h"
 #include "app/session.h"
 #include "app/state.h"
+#include "app/volume.h"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
@@ -18,8 +21,10 @@
 #include <QPainter>
 #include <QProcess>
 #include <QPushButton>
+#include <QSlider>
 #include <QStandardPaths>
 #include <QTabWidget>
+#include <QTimer>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
@@ -104,9 +109,10 @@ SoundsProperties::SoundsProperties(QWidget *parent)
     m_stopIcon = glyph(4609);
     m_speaker = icon16(QStringLiteral("mmsys.cpl"), 4354);
     auto *root = new QVBoxLayout(this);
-    auto *tabs = new QTabWidget;
-    tabs->addTab(soundsTab(), QStringLiteral("Sounds"));
-    root->addWidget(tabs);
+    m_tabs = new QTabWidget;
+    m_tabs->addTab(volumeTab(), QStringLiteral("Volume"));
+    m_tabs->addTab(soundsTab(), QStringLiteral("Sounds"));
+    root->addWidget(m_tabs);
     root->setSizeConstraint(QLayout::SetFixedSize);
     auto *row = new QHBoxLayout;
     row->addStretch(1);
@@ -151,6 +157,86 @@ QRect SoundsProperties::du(int x, int y, int w, int h) const
     const int cx = (fm.horizontalAdvance(QStringLiteral("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")) / 26 + 1) / 2;
     const int cy = fm.height();
     return QRect(mulDiv(x, cx, 4), mulDiv(y, cy, 8), mulDiv(w, cx, 4), mulDiv(h, cy, 8));
+}
+
+QWidget *SoundsProperties::volumeTab()
+{
+    // mmsys.cpl's dialog 4905, "Volume" (227 x 218).
+    auto *page = new QWidget;
+    page->setFixedSize(du(0, 0, 227, 218).size());
+    auto place = [&](QWidget *w, QRect r) {
+        w->setParent(page);
+        w->setGeometry(r);
+    };
+    auto picture = [&](const std::optional<QImage> &image, QRect r) {
+        auto *l = new QLabel;
+        if (image)
+            l->setPixmap(QPixmap::fromImage(*image));
+        l->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+        place(l, r);
+        return l;
+    };
+    const auto device = volume::defaultOutput();
+    // The device: Sounds and Audio Devices' icon, its name.
+    picture(media::icon(QStringLiteral("mmsys.cpl"), 3004, 32), du(7, 7, 32, 32));
+    auto *name = new QLabel(device ? device->name : QStringLiteral("No Audio Device"));
+    place(name, du(44, 18, 175, 8));
+    auto *group = new QGroupBox(QStringLiteral("Device volume"));
+    place(group, du(7, 45, 213, 103));
+    picture(media::icon(QStringLiteral("mmsys.cpl"), 4379, 32), du(25, 62, 20, 20));
+    m_volume = new QSlider(Qt::Horizontal);
+    m_volume->setRange(0, 100);
+    m_volume->setTickPosition(QSlider::TicksBelow);
+    m_volume->setTickInterval(10);
+    m_volume->setPageStep(10);
+    place(m_volume, du(62, 60, 130, 20));
+    auto *low = new QLabel(QStringLiteral("Low"));
+    place(low, du(58, 82, 14, 8));
+    auto *high = new QLabel(QStringLiteral("High"));
+    place(high, du(180, 82, 17, 8));
+    m_mute = new QCheckBox(QStringLiteral("&Mute"));
+    place(m_mute, du(46, 96, 50, 9));
+    m_trayIcon = new QCheckBox(QStringLiteral("Place volume &icon in the taskbar"));
+    place(m_trayIcon, du(46, 110, 165, 9));
+    auto *advanced = new QPushButton(QStringLiteral("Ad&vanced..."));
+    place(advanced, du(139, 130, 75, 14));
+    auto *speakers = new QGroupBox(QStringLiteral("Speaker settings"));
+    place(speakers, du(7, 155, 213, 60));
+    picture(media::bitmap(QStringLiteral("mmsys.cpl"), 4624), du(9, 167, 51, 39));
+    auto *text = new QLabel(QStringLiteral("Use the settings below to change individual speaker volume and other settings."));
+    text->setWordWrap(true);
+    text->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    place(text, du(60, 168, 150, 24));
+    auto *speakerVolume = new QPushButton(QStringLiteral("&Speaker Volume..."));
+    place(speakerVolume, du(60, 197, 75, 14));
+    auto *speakerAdvanced = new QPushButton(QStringLiteral("A&dvanced..."));
+    place(speakerAdvanced, du(139, 197, 75, 14));
+    for (QWidget *w : std::initializer_list<QWidget *>{low, high, m_volume, m_mute, advanced, speakerVolume, speakerAdvanced})
+        w->setEnabled(bool(device));
+
+    if (device) {
+        m_volume->setValue(device->percent);
+        m_mute->setChecked(device->muted);
+    }
+    // (they take effect as they're moved, as XP's did; the slider's, once
+    // it rests a moment)
+    auto *settle = new QTimer(this);
+    settle->setSingleShot(true);
+    settle->setInterval(80);
+    connect(settle, &QTimer::timeout, this, [this] { volume::setPercent(m_volume->value()); });
+    connect(m_volume, &QSlider::valueChanged, settle, qOverload<>(&QTimer::start));
+    connect(m_mute, &QCheckBox::toggled, this, [](bool on) { volume::setMuted(on); });
+    // Plasma's audio settings, for XP's Volume Control and speaker setup.
+    auto settings = [] { QProcess::startDetached(QStringLiteral("systemsettings"), {QStringLiteral("kcm_pulseaudio")}); };
+    for (QPushButton *b : {advanced, speakerVolume, speakerAdvanced})
+        connect(b, &QPushButton::clicked, this, settings);
+    // The tray's icon: whether it's there (none without a tray, or a shell).
+    LiveSession session;
+    m_appliedTrayIcon = volume::trayIcon(session);
+    m_trayIcon->setChecked(m_appliedTrayIcon.value_or(false));
+    m_trayIcon->setEnabled(m_appliedTrayIcon.has_value());
+    connect(m_trayIcon, &QCheckBox::toggled, this, &SoundsProperties::updateApply);
+    return page;
 }
 
 QWidget *SoundsProperties::soundsTab()
@@ -483,13 +569,21 @@ void SoundsProperties::deleteScheme()
 
 void SoundsProperties::updateApply()
 {
-    m_apply->setEnabled(!m_applied || *m_applied != m_scheme);
+    const bool tray = m_appliedTrayIcon && *m_appliedTrayIcon != m_trayIcon->isChecked();
+    m_apply->setEnabled(!m_applied || *m_applied != m_scheme || tray);
 }
 
 bool SoundsProperties::apply()
 {
-    if (m_applied && *m_applied == m_scheme)
+    if (m_appliedTrayIcon && *m_appliedTrayIcon != m_trayIcon->isChecked()) {
+        LiveSession session;
+        if (volume::setTrayIcon(session, m_trayIcon->isChecked()))
+            m_appliedTrayIcon = m_trayIcon->isChecked();
+    }
+    if (m_applied && *m_applied == m_scheme) {
+        updateApply();
         return true;
+    }
     stop();
     QApplication::setOverrideCursor(Qt::WaitCursor);
     LiveSession session;
@@ -517,8 +611,14 @@ bool SoundsProperties::saveScreenshots(const QString &dir)
     eventPicked();
     setAttribute(Qt::WA_DontShowOnScreen);
     show();
-    QApplication::processEvents();
-    return grab().save(QDir(dir).filePath(QStringLiteral("sounds.png")));
+    bool ok = true;
+    const char *const names[] = {"volume", "sounds"};
+    for (int i = 0; i < m_tabs->count(); ++i) {
+        m_tabs->setCurrentIndex(i);
+        QApplication::processEvents();
+        ok &= grab().save(QDir(dir).filePath(QLatin1String(names[i]) + QLatin1String(".png")));
+    }
+    return ok;
 }
 
 } // namespace xpl::editor

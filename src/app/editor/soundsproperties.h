@@ -1,9 +1,13 @@
 #pragma once
 // xplasma-edit --sounds: Windows XP's Sounds and Audio Devices Properties,
-// its Sounds tab -- laid out from XP's own dialog template (mmsys.cpl's
-// "Events Schemes", in dialog units), its words, its play and stop
-// bitmaps and speaker icons taken from the XP media.
+// its Volume and Sounds tabs -- laid out from XP's own dialog templates
+// (mmsys.cpl's "Volume" and "Events Schemes", in dialog units), its words,
+// its bitmaps and icons taken from the XP media.
 //
+//   Volume           the default output's name, its volume (Low to High) and
+//                    mute, as they change; the volume icon in the taskbar
+//                    (Plasma's tray), on Apply; Advanced... and Speaker
+//                    Volume... open Plasma's audio settings
 //   Sound scheme     Windows Default, No Sounds and the user's own; changing
 //                    an event's sound makes it "(modified)", for Save As...
 //   Program events   XP's events Plasma has a sound for (sounds.h), a
@@ -20,8 +24,11 @@
 
 #include <optional>
 
+class QCheckBox;
 class QComboBox;
 class QLabel;
+class QSlider;
+class QTabWidget;
 class QProcess;
 class QPushButton;
 class QTreeWidget;
@@ -36,11 +43,12 @@ public:
     explicit SoundsProperties(QWidget *parent = nullptr);
     ~SoundsProperties() override;
 
-    // The tab rendered to DIR/sounds.png (tests; Windows Default, Asterisk
-    // picked).
+    // The tabs rendered to DIR/volume.png and sounds.png (tests; Windows
+    // Default, Asterisk picked).
     bool saveScreenshots(const QString &dir);
 
 private:
+    QWidget *volumeTab();
     QWidget *soundsTab();
     QRect du(int x, int y, int w, int h) const;
 
@@ -64,7 +72,14 @@ private:
     std::optional<sounds::Scheme> named(const QString &name) const;
     bool modified() const;
 
+    QTabWidget *m_tabs = nullptr;
     QPushButton *m_apply = nullptr;
+    // Volume
+    QSlider *m_volume = nullptr;
+    QCheckBox *m_mute = nullptr;
+    QCheckBox *m_trayIcon = nullptr;
+    std::optional<bool> m_appliedTrayIcon;
+    // Sounds
     QComboBox *m_schemes = nullptr;
     QPushButton *m_saveAs = nullptr;
     QPushButton *m_delete = nullptr;
