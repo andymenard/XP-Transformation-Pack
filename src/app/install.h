@@ -26,9 +26,13 @@ QString installedPrefix();
 
 // The package's files into `prefix` (recorded as the install's prefix).
 bool installFiles(const QString &package, const QString &prefix, const Progress &progress, QString *error = nullptr);
-// XPLasma's files out of `prefix` (its record gone). With `data`, also what
-// it collected: XP's files, the theme library, the downloads cache.
-void removeFiles(const QString &prefix, bool data, const Progress &progress);
+// XPLasma's files out of `prefix` (its record gone). With `extracted`, also
+// what it took out of Windows XP and made of it (the fonts, the theme
+// library, its settings); with `downloads`, the downloaded Windows XP CD
+// image and theme packs.
+void removeFiles(const QString &prefix, bool extracted, bool downloads, const Progress &progress);
+// How much the downloads take (bytes), for the wizard to say.
+qint64 downloadsSize();
 // The paths installFiles writes, relative to the prefix (for removal).
 QStringList installedPaths();
 

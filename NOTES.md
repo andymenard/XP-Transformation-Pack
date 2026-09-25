@@ -88,6 +88,15 @@ the copy dialog and a failed copy, Start, Date and Time, apply/reset cycles.
   the shared copy first when sandboxed, and XPLasma's Flatpak setup removes
   empty stand-ins. (ghostwriter from Flathub traps offscreen whatever the
   style -- its web engine -- so it's only checked on a real session.)
+- **Invisible window decorations once, after a fresh install (the Deck,
+  2026-09-25).** The user removed XPLasma (with its XP files) and installed
+  it again with XPLasma-Setup; the first apply after left windows with their
+  title text but no borders or buttons, and a second apply fixed it. KWin's
+  log at the first apply: "QFSFileEngine::open: No file name specified" and
+  KSvg NaturalSize "-1,-1" -- it looked the Aurorae theme's SVGs up and found
+  none; the theme folder's time is the second apply's. Not reproduced on a
+  second attempt; watch for it (KWin's cached Aurorae theme of the same name,
+  deleted by Remove while KWin ran, is the suspect).
 - **KRunner crashed as the Plasma theme changed, Fedora 44 (2026-09-24
   21:40):** SIGSEGV in KSvg::SvgPrivate::eraseRenderer from
   ImageSet::imageSetChanged, during back-to-back reset and apply cycles.

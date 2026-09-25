@@ -125,7 +125,8 @@ struct Plan
     Mode mode = Mode::Install;
     QString package;
     QString prefix;
-    bool deleteData = false;
+    bool deleteExtracted = false;
+    bool deleteDownloads = false;
 };
 
 class Worker : public QThread
@@ -206,7 +207,7 @@ private:
         }
         Q_EMIT status(QStringLiteral("Removing Windows XP's pointers"));
         pointers::removeSchemes();
-        installer::removeFiles(m_plan.prefix, m_plan.deleteData, [this](const QString &line) { Q_EMIT status(line); });
+        installer::removeFiles(m_plan.prefix, m_plan.deleteExtracted, m_plan.deleteDownloads, [this](const QString &line) { Q_EMIT status(line); });
         Q_EMIT percent(100);
         return true;
     }
@@ -330,9 +331,11 @@ public:
         auto *layout = new QVBoxLayout(this);
         m_text = wrapped(QString());
         layout->addWidget(m_text);
-        m_data = new QCheckBox(QStringLiteral("Also delete the Windows XP files XPLasma collected"));
+        m_extracted = new QCheckBox(QStringLiteral("Also delete what XPLasma took out of Windows XP (its fonts, styles, themes)"));
+        m_downloads = new QCheckBox;
         layout->addSpacing(8);
-        layout->addWidget(m_data);
+        layout->addWidget(m_extracted);
+        layout->addWidget(m_downloads);
         layout->addStretch(1);
         setCommitPage(true);
     }
@@ -354,20 +357,24 @@ public:
                                       "to exit the wizard.")
                      : QStringLiteral("Click Repair to repair the installation of XPLasma.\n\nIf you want to review or change any of "
                                       "your installation settings, click Back. Click Cancel to exit the wizard."));
-        m_data->setVisible(remove);
+        m_extracted->setVisible(remove);
+        const qint64 downloaded = installer::downloadsSize();
+        m_downloads->setText(QStringLiteral("Also delete the downloaded Windows XP CD image (%1 MB)").arg(downloaded / 1048576));
+        m_downloads->setVisible(remove && downloaded > 0);
         setButtonText(QWizard::CommitButton,
                       m_plan->mode == Mode::Install ? QStringLiteral("&Install") : remove ? QStringLiteral("&Remove") : QStringLiteral("&Repair"));
     }
     bool validatePage() override
     {
-        m_plan->deleteData = m_plan->mode == Mode::Remove && m_data->isChecked();
+        m_plan->deleteExtracted = m_plan->mode == Mode::Remove && m_extracted->isChecked();
+        m_plan->deleteDownloads = m_plan->mode == Mode::Remove && m_downloads->isVisible() && m_downloads->isChecked();
         return true;
     }
 
 private:
     Plan *m_plan;
     QLabel *m_text;
-    QCheckBox *m_data;
+    QCheckBox *m_extracted, *m_downloads;
 };
 
 class ProgressPage : public QWizardPage

@@ -147,7 +147,7 @@ bool installFiles(const QString &package, const QString &prefix, const Progress 
     return true;
 }
 
-void removeFiles(const QString &prefix, bool data, const Progress &progress)
+void removeFiles(const QString &prefix, bool extracted, bool downloads, const Progress &progress)
 {
     auto say = [&](const QString &line) {
         if (progress)
@@ -163,16 +163,40 @@ void removeFiles(const QString &prefix, bool data, const Progress &progress)
     }
     if (const QString tool = QStandardPaths::findExecutable(QStringLiteral("update-desktop-database")); !tool.isEmpty())
         QProcess::execute(tool, {QStringLiteral("-q"), prefix + QLatin1String("/share/applications")});
-    if (data) {
-        say(QStringLiteral("Removing the Windows XP files and themes XPLasma collected"));
+    if (downloads) {
+        say(QStringLiteral("Removing the downloaded Windows XP CD image"));
+        QDir(paths::downloads()).removeRecursively();
+    }
+    if (extracted) {
+        say(QStringLiteral("Removing the Windows XP files XPLasma took out"));
         QDir(paths::data()).removeRecursively();
-        QDir(paths::cache()).removeRecursively();
+        QDir(paths::xpFonts()).removeRecursively();
+        // (Its cache, less the downloads when they stay.)
+        for (const QFileInfo &f : QDir(paths::cache()).entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden)) {
+            if (f.absoluteFilePath() == QFileInfo(paths::downloads()).absoluteFilePath())
+                continue;
+            if (f.isDir())
+                QDir(f.absoluteFilePath()).removeRecursively();
+            else
+                QFile::remove(f.absoluteFilePath());
+        }
         QFile::remove(paths::config() + QLatin1String("/xplasmarc"));
         return;
     }
     State state = State::load();
     state.settings.remove(QStringLiteral("installPrefix"));
     state.save();
+}
+
+qint64 downloadsSize()
+{
+    qint64 total = 0;
+    QDirIterator it(paths::downloads(), QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        it.next();
+        total += it.fileInfo().size();
+    }
+    return total;
 }
 
 } // namespace xpl::installer

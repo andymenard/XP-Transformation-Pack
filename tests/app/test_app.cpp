@@ -600,8 +600,11 @@ private Q_SLOTS:
         QVERIFY(QFileInfo::exists(paths::cache() + QLatin1String("/style-index.json")));
         QCOMPARE(Library::style(luna.path).toJson(), luna.toJson());
 
-        const StyleInfo noir = Library::style(m_realThemes + QLatin1String("/Royale Noir/Royale Noir.msstyles"));
-        QCOMPARE(noir.resolve(QStringLiteral("Metallic"), QStringLiteral("NormalSize")), QStringLiteral("NORMALDARKROYALE_INI"));
+        // (Royale Noir is a theme pack's, not the XP disc's: where it's been fetched.)
+        if (const QString noirPath = m_realThemes + QLatin1String("/Royale Noir/Royale Noir.msstyles"); QFileInfo::exists(noirPath)) {
+            const StyleInfo noir = Library::style(noirPath);
+            QCOMPARE(noir.resolve(QStringLiteral("Metallic"), QStringLiteral("NormalSize")), QStringLiteral("NORMALDARKROYALE_INI"));
+        }
 
         const ThemeBundle xp = Library::bundle(m_realThemes + QLatin1String("/Luna/Luna.theme"));
         QCOMPARE(xp.label, QStringLiteral("Windows XP"));
@@ -1139,9 +1142,19 @@ private Q_SLOTS:
         QVERIFY(desktop.open(QIODevice::ReadOnly));
         QVERIFY(desktop.readAll().contains(("Exec=" + prefix + "/bin/xplasma-edit\n").toUtf8()));
         QCOMPARE(installer::installedPrefix(), prefix);
-        installer::removeFiles(prefix, false, {});
+        // (The downloads stay unless asked, apart from what was taken out.)
+        writeFile(paths::downloads() + QLatin1String("/xp.iso"), "iso");
+        QCOMPARE(installer::downloadsSize(), qint64(3));
+        installer::removeFiles(prefix, false, false, {});
+        QVERIFY(QFileInfo::exists(paths::downloads() + QLatin1String("/xp.iso")));
         QVERIFY(!QFileInfo::exists(prefix + QLatin1String("/bin/xplasma")) && !QFileInfo::exists(prefix + QLatin1String("/lib/xplasma")));
         QVERIFY(installer::installedPrefix().isEmpty());
+        // What was taken out gone, the image kept; then the image too.
+        writeFile(paths::xpFonts() + QLatin1String("/tahoma.ttf"), "font");
+        installer::removeFiles(prefix, true, false, {});
+        QVERIFY(!QFileInfo::exists(paths::xpFonts()) && QFileInfo::exists(paths::downloads() + QLatin1String("/xp.iso")));
+        installer::removeFiles(prefix, false, true, {});
+        QVERIFY(!QFileInfo::exists(paths::downloads() + QLatin1String("/xp.iso")));
     }
 
     void gtkTheme()
