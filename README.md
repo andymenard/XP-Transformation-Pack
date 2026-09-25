@@ -92,6 +92,7 @@ xplasma reset                          # back to Plasma's own look
 xplasma-edit                           # Display Properties (also in the app menu)
 xplasma-edit --date-time               # Date and Time Properties (double-click the clock)
 xplasma-edit --sounds                  # Sounds and Audio Devices Properties: volume, XP's sound schemes
+xplasma-edit --check-updates --now     # XP's update globe, if project.ini's UpdatesUrl names a newer XPlasma (run at login)
 xplasma sounds 'Windows Default'       # or 'No Sounds', a saved scheme, or off (kept off by later applies)
 ```
 

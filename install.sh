@@ -35,4 +35,10 @@ for desktop in "$from"/share/applications/*.desktop; do
   sed "s|^Exec=xplasma-edit|Exec=$prefix/bin/xplasma-edit|" "$desktop" > "$prefix/share/applications/${desktop##*/}"
 done
 command -v update-desktop-database >/dev/null && update-desktop-database -q "$prefix/share/applications" || true
+# What runs at login: the update check (XP's globe when a newer XPlasma is out).
+mkdir -p "$HOME/.config/autostart"
+for desktop in "$from"/share/xplasma/autostart/*.desktop; do
+  [ -f "$desktop" ] || continue
+  sed "s|^Exec=xplasma-edit|Exec=$prefix/bin/xplasma-edit|" "$desktop" > "$HOME/.config/autostart/${desktop##*/}"
+done
 echo "installed $mode into $prefix"

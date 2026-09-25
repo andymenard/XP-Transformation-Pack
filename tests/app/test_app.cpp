@@ -21,6 +21,7 @@
 #include "app/install.h"
 #include "app/pointers.h"
 #include "app/sounds.h"
+#include "app/updates.h"
 #include "app/timezones.h"
 #include "app/startbutton.h"
 #include "app/startmenu.h"
@@ -1132,6 +1133,8 @@ private Q_SLOTS:
         writeFile(src + QLatin1String("/lib/xplasma/qt6/styles/libxplasma.so"), "plugin");
         writeFile(src + QLatin1String("/lib/xplasma/forks/6.7/plasma/applets/org.kde.panel.so"), "fork");
         writeFile(src + QLatin1String("/share/applications/fyi.hotsocket.xplasma.desktop"), "[Desktop Entry]\nName=Display Properties\nExec=xplasma-edit\n");
+        writeFile(src + QLatin1String("/share/xplasma/autostart/fyi.hotsocket.xplasma.updates.desktop"),
+                  "[Desktop Entry]\nName=XPlasma Updates\nExec=xplasma-edit --check-updates\n");
         const QString tar = m_home.filePath(QStringLiteral("pkg.tar"));
         QCOMPARE(QProcess::execute(QStringLiteral("tar"), {QStringLiteral("-C"), src, QStringLiteral("-cf"), tar, QStringLiteral("bin"), QStringLiteral("lib"),
                                                           QStringLiteral("share")}),
@@ -1149,11 +1152,15 @@ private Q_SLOTS:
         QFile desktop(prefix + QLatin1String("/share/applications/fyi.hotsocket.xplasma.desktop"));
         QVERIFY(desktop.open(QIODevice::ReadOnly));
         QVERIFY(desktop.readAll().contains(("Exec=" + prefix + "/bin/xplasma-edit\n").toUtf8()));
+        // (the update check run at login, pointed at it too)
+        const QString autostart = paths::config() + QLatin1String("/autostart/fyi.hotsocket.xplasma.updates.desktop");
+        QVERIFY(readFile(autostart).contains(("Exec=" + prefix + "/bin/xplasma-edit --check-updates").toUtf8()));
         QCOMPARE(installer::installedPrefix(), prefix);
         // (The downloads stay unless asked, apart from what was taken out.)
         writeFile(paths::downloads() + QLatin1String("/xp.iso"), "iso");
         QCOMPARE(installer::downloadsSize(), qint64(3));
         installer::removeFiles(prefix, false, false, {});
+        QVERIFY(!QFileInfo::exists(autostart));
         QVERIFY(QFileInfo::exists(paths::downloads() + QLatin1String("/xp.iso")));
         QVERIFY(!QFileInfo::exists(prefix + QLatin1String("/bin/xplasma")) && !QFileInfo::exists(prefix + QLatin1String("/lib/xplasma")));
         QVERIFY(!QFileInfo::exists(prefix + QLatin1String("/lib")));   // (its folders too, emptied)
@@ -2044,6 +2051,42 @@ private Q_SLOTS:
         QVERIFY(!pointers::applied(state));
         QVERIFY(QDir(paths::localShare() + QLatin1String("/icons")).entryList({QStringLiteral("xplasma-pointers-*")}, QDir::Dirs).isEmpty());
         QVERIFY(!QFileInfo::exists(paths::home() + QLatin1String("/.icons")));   // (its links gone, and it with them)
+    }
+
+    void updateCheck()
+    {
+        // The release file: a version and a web page; anything else refused.
+        const auto r = updates::parse("{\"version\": \"0.2.0\", \"page\": \"https:\/\/example.org/xplasma\", \"notes\": \"Sounds.\"}");
+        QVERIFY(r);
+        QCOMPARE(r->version, QStringLiteral("0.2.0"));
+        QVERIFY(!updates::parse("not json"));
+        QVERIFY(!updates::parse("{\"page\": \"https:\/\/example.org\"}"));
+        QVERIFY(!updates::parse("{\"version\": \"0.2.0\", \"page\": \"file:\/\/\/etc/passwd\"}"));
+        QVERIFY(updates::newer(QStringLiteral("0.2.0"), QStringLiteral("0.1.0")));
+        QVERIFY(updates::newer(QStringLiteral("0.10.0"), QStringLiteral("0.9.1")));
+        QVERIFY(!updates::newer(QStringLiteral("0.1.0"), QStringLiteral("0.1.0")));
+
+        // Once a day; a declined version not told again, a later one is.
+        State state;
+        const QDateTime now = QDateTime::currentDateTimeUtc();
+        QVERIFY(updates::due(state, now));
+        updates::checked(state, now);
+        QVERIFY(!updates::due(state, now.addSecs(3600)));
+        QVERIFY(updates::due(state, now.addDays(1)));
+        const updates::Release far{QStringLiteral("99.0"), QStringLiteral("https://example.org"), QString()};
+        QVERIFY(updates::worthTelling(state, far));
+        updates::decline(state, far);
+        QVERIFY(!updates::worthTelling(state, far));
+        QVERIFY(updates::worthTelling(state, updates::Release{QStringLiteral("99.1"), QStringLiteral("https://example.org"), QString()}));
+        QVERIFY(!updates::worthTelling(state, updates::Release{QStringLiteral("0.0.1"), QStringLiteral("https://example.org"), QString()}));
+
+        // Fetched (a file here, as a web address would be).
+        const QString file = m_home.filePath(QStringLiteral("latest.json"));
+        writeFile(file, "{\"version\": \"0.3.0\", \"page\": \"https:\/\/example.org/get\"}");
+        QString error;
+        const auto fetched = updates::fetch(QUrl::fromLocalFile(file).toString(), &error);
+        QVERIFY2(fetched, qPrintable(error));
+        QCOMPARE(fetched->page, QStringLiteral("https://example.org/get"));
     }
 
     void plasmaSeries()

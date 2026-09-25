@@ -4,6 +4,8 @@
 //   xplasma-edit                    Display Properties
 //   xplasma-edit --date-time        Date and Time Properties
 //   xplasma-edit --sounds           Sounds and Audio Devices Properties
+//   xplasma-edit --check-updates    XP's globe in the tray, if a newer XPlasma
+//                                   is out (at login; --now: even if checked today)
 //   ... --screenshots DIR           every tab drawn to DIR/*.png, then exit
 //                                   (tests; with QT_QPA_PLATFORM=offscreen)
 #include "app/adopt.h"
@@ -11,6 +13,7 @@
 #include "app/editor/datetime.h"
 #include "app/editor/displayproperties.h"
 #include "app/editor/soundsproperties.h"
+#include "app/editor/updatenotifier.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -97,7 +100,17 @@ int main(int argc, char **argv)
     parser.addOption(dateTime);
     const QCommandLineOption soundsOption(QStringLiteral("sounds"), QStringLiteral("Sounds and Audio Devices Properties."));
     parser.addOption(soundsOption);
+    const QCommandLineOption checkUpdates(QStringLiteral("check-updates"), QStringLiteral("Show XP's update globe if a newer XPlasma is out."));
+    parser.addOption(checkUpdates);
+    const QCommandLineOption now(QStringLiteral("now"), QStringLiteral("With --check-updates: check even if checked today."));
+    parser.addOption(now);
     parser.process(app);
+    if (parser.isSet(checkUpdates)) {
+        // (at login, unasked: never a dialog -- outside Plasma it just ends)
+        QApplication::setApplicationDisplayName(QStringLiteral("XPlasma Updates"));
+        QApplication::setQuitOnLastWindowClosed(false);
+        return xpl::editor::checkUpdates(parser.isSet(now));
+    }
     // (the screenshots, drawn offscreen for the tests, need no desktop)
     const bool screenshotsOnly = parser.isSet(screenshots);
 

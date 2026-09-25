@@ -66,6 +66,13 @@ bool copyTree(const QString &from, const QString &to, QString *error)
 // (The Setup wizard is a program of its own, not installed: run again, it
 // repairs or removes, as a Windows Installer package does.)
 const QStringList kPrograms{QStringLiteral("xplasma"), QStringLiteral("xplasma-edit")};
+// What runs at login (~/.config/autostart): the update check.
+const char *const kAutostart[] = {"fyi.hotsocket.xplasma.updates.desktop"};
+
+QString autostartDir()
+{
+    return paths::config() + QLatin1String("/autostart");
+}
 
 } // namespace
 
@@ -122,24 +129,33 @@ bool installFiles(const QString &package, const QString &prefix, const Progress 
     if (QFileInfo::exists(package + QLatin1String("/lib/xplasma/forks"))
         && !copyTree(package + QLatin1String("/lib/xplasma/forks"), prefix + QLatin1String("/lib/xplasma/forks"), error))
         return false;
+    // Desktop entries from `from` into `to`, their Exec the installed programs.
+    auto entries = [&](const QString &from, const QString &to) {
+        QDir().mkpath(to);
+        for (const QFileInfo &desktop : QDir(from).entryInfoList({QStringLiteral("*.desktop")}, QDir::Files)) {
+            QFile in(desktop.absoluteFilePath());
+            if (!in.open(QIODevice::ReadOnly))
+                continue;
+            QByteArray text = in.readAll();
+            for (const QString &p : kPrograms)
+                for (const char end : {' ', '\n'}) {
+                    const QByteArray from = QByteArray("\nExec=") + p.toUtf8() + end;
+                    const QByteArray to = QByteArray("\nExec=") + (prefix + QLatin1String("/bin/") + p).toUtf8() + end;
+                    text.replace(from, to);
+                }
+            QSaveFile out(to + QLatin1Char('/') + desktop.fileName());
+            if (!out.open(QIODevice::WriteOnly) || out.write(text) < 0 || !out.commit())
+                return fail(error, QStringLiteral("%1: %2").arg(out.fileName(), out.errorString()));
+        }
+        return true;
+    };
     say(QStringLiteral("Adding XPlasma to the application menu"));
     const QString apps = prefix + QLatin1String("/share/applications");
-    QDir().mkpath(apps);
-    for (const QFileInfo &desktop : QDir(package + QLatin1String("/share/applications")).entryInfoList({QStringLiteral("*.desktop")}, QDir::Files)) {
-        QFile in(desktop.absoluteFilePath());
-        if (!in.open(QIODevice::ReadOnly))
-            continue;
-        QByteArray text = in.readAll();
-        for (const QString &p : kPrograms)
-            for (const char end : {' ', '\n'}) {
-                const QByteArray from = QByteArray("\nExec=") + p.toUtf8() + end;
-                const QByteArray to = QByteArray("\nExec=") + (prefix + QLatin1String("/bin/") + p).toUtf8() + end;
-                text.replace(from, to);
-            }
-        QSaveFile out(apps + QLatin1Char('/') + desktop.fileName());
-        if (!out.open(QIODevice::WriteOnly) || out.write(text) < 0 || !out.commit())
-            return fail(error, QStringLiteral("%1: %2").arg(out.fileName(), out.errorString()));
-    }
+    if (!entries(package + QLatin1String("/share/applications"), apps))
+        return false;
+    // (and what runs at login: the update check)
+    if (!entries(package + QLatin1String("/share/xplasma/autostart"), autostartDir()))
+        return false;
     if (const QString tool = QStandardPaths::findExecutable(QStringLiteral("update-desktop-database")); !tool.isEmpty())
         QProcess::execute(tool, {QStringLiteral("-q"), apps});
     State state = State::load();
@@ -155,6 +171,8 @@ void removeFiles(const QString &prefix, bool extracted, bool downloads, const Pr
             progress(line);
     };
     say(QStringLiteral("Removing XPlasma's files"));
+    for (const char *name : kAutostart)
+        QFile::remove(autostartDir() + QLatin1Char('/') + QLatin1String(name));
     for (const QString &rel : installedPaths()) {
         const QString path = prefix + QLatin1Char('/') + rel;
         if (QFileInfo(path).isDir())

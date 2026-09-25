@@ -8,9 +8,6 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Wanted
 
-- **XPlasma's own update notifier** (from the user): a tray icon when a new
-  XPlasma is out, as XP's Automatic Updates globe (wuauclt.exe's icon 1) --
-  kept for it, not used for the system's updates.
 - **Window sounds** (XP's Open program, Close program, Minimize, Maximize,
   Restore Up/Down, Menu popup): Plasma has no notification event for them.
   The taskbar's task model sees windows open, close, minimize and maximize;
@@ -37,6 +34,10 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Done
 
+- XPlasma's own update notifier (the user's idea): XP's Automatic Updates
+  globe in the tray and its balloon, "Updates are ready for your computer",
+  when project.ini's UpdatesUrl names a newer release; checked once a day at
+  login; a declined version isn't shown again (2026-09-25).
 - XP's sounds on with the first look applied, as XP had them from the
   start; `xplasma sounds off` is remembered (2026-09-25).
 - Sounds and Audio Devices Properties, its Volume tab: the default output's
