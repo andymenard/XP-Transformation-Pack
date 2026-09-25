@@ -1981,12 +1981,15 @@ private Q_SLOTS:
         QVERIFY(run.last().startsWith(QLatin1String("xplasma-pointers-")));
         QCOMPARE(session.config.value(QStringLiteral("kcminputrc|Mouse|cursorSize")), QStringLiteral("32"));
         QVERIFY(QFileInfo(paths::localShare() + QLatin1String("/icons/") + run.last() + QLatin1String("/cursors/default")).exists());
+        // (and in ~/.icons, where every Xcursor library looks)
+        QVERIFY(QFileInfo(paths::home() + QLatin1String("/.icons/") + run.last() + QLatin1String("/cursors/default")).exists());
         QCOMPARE(pointers::applied(state)->first.name, QStringLiteral("Dinosaur"));
         pointers::revert(session, state);
         QCOMPARE(session.runs.last().last(), QStringLiteral("breeze_cursors"));
         QVERIFY(!session.config.contains(QStringLiteral("kcminputrc|Mouse|cursorSize")));   // (it had none)
         QVERIFY(!pointers::applied(state));
         QVERIFY(QDir(paths::localShare() + QLatin1String("/icons")).entryList({QStringLiteral("xplasma-pointers-*")}, QDir::Dirs).isEmpty());
+        QVERIFY(!QFileInfo::exists(paths::home() + QLatin1String("/.icons")));   // (its links gone, and it with them)
     }
 
     void soundSchemes()

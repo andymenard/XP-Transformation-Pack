@@ -41,6 +41,33 @@ QString iconsDir()
     return paths::localShare() + QLatin1String("/icons");
 }
 
+// ~/.icons: in every Xcursor library's search path, where the XDG folder
+// isn't always (Gentoo builds libXcursor without it -- Plasma's cursor
+// settings, going by it, didn't see XPLasma's themes). Each of XPLasma's
+// themes is linked in there too; the links go with them.
+QString legacyIconsDir()
+{
+    return paths::home() + QLatin1String("/.icons");
+}
+
+void linkLegacy(const QString &name)
+{
+    const QString link = legacyIconsDir() + QLatin1Char('/') + name;
+    QDir().mkpath(legacyIconsDir());
+    QFile::remove(link);
+    QFile::link(iconsDir() + QLatin1Char('/') + name, link);
+}
+
+// XPLasma's links whose themes are gone, and ~/.icons if that empties it.
+void pruneLegacy()
+{
+    const QDir legacy(legacyIconsDir());
+    for (const QFileInfo &f : legacy.entryInfoList({QStringLiteral("xplasma-*")}, QDir::AllEntries | QDir::System | QDir::NoDotAndDotDot))
+        if (f.isSymLink() && !f.exists())
+            QFile::remove(f.absoluteFilePath());
+    QDir().rmdir(legacyIconsDir());
+}
+
 bool write(const QString &path, const QByteArray &bytes)
 {
     QDir().mkpath(QFileInfo(path).absolutePath());
@@ -292,6 +319,7 @@ bool apply(Session &session, State &state, const Scheme &scheme, bool shadow, QS
     int size = 32;
     if (!writeTheme(scheme, shadow, iconsDir() + QLatin1Char('/') + id, &size, error))
         return false;
+    linkLegacy(id);
     const QStringList mouse{QStringLiteral("Mouse")};
     if (!state.settings.contains(QStringLiteral("previousCursor"))) {
         state.settings.insert(QStringLiteral("previousCursor"),
@@ -310,6 +338,7 @@ bool apply(Session &session, State &state, const Scheme &scheme, bool shadow, QS
     for (const QFileInfo &d : QDir(iconsDir()).entryInfoList({QLatin1String(kThemeId) + QLatin1String("-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
         if (d.fileName() != id)
             QDir(d.absoluteFilePath()).removeRecursively();
+    pruneLegacy();
     state.settings.insert(QStringLiteral("pointers"), QJsonObject{{QStringLiteral("scheme"), scheme.toJson()}, {QStringLiteral("shadow"), shadow}});
     return true;
 }
@@ -331,6 +360,7 @@ void revert(Session &session, State &state)
     session.run({QStringLiteral("plasma-apply-cursortheme"), theme});
     for (const QFileInfo &d : QDir(iconsDir()).entryInfoList({QLatin1String(kThemeId) + QLatin1String("-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
         QDir(d.absoluteFilePath()).removeRecursively();
+    pruneLegacy();
     state.settings.remove(QStringLiteral("pointers"));
     state.settings.remove(QStringLiteral("previousCursor"));
 }
@@ -352,6 +382,7 @@ QStringList installSchemes(QString *error)
         QDir(dir).removeRecursively();
         if (!writeTheme(scheme, true, dir, &size, error))
             return {};
+        linkLegacy(QFileInfo(dir).fileName());
         names << scheme.name;
     }
     return names;
@@ -362,6 +393,7 @@ void removeSchemes()
     const QDir icons(paths::localShare() + QLatin1String("/icons"));
     for (const QString &dir : icons.entryList({QStringLiteral("xplasma-cursors-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
         QDir(icons.filePath(dir)).removeRecursively();
+    pruneLegacy();
 }
 
 } // namespace xpl::pointers
