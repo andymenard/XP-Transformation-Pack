@@ -1,5 +1,6 @@
 #include "app/xptext.h"
 
+#include "app/host.h"
 #include "app/paths.h"
 
 #include <QDir>
@@ -14,6 +15,7 @@
 #include <QtEndian>
 
 #include <climits>
+#include <cmath>
 
 namespace xpl::xptext {
 
@@ -144,10 +146,11 @@ bool apply(Session &session, State &state, QString *error)
     session.writeConfig(QStringLiteral("kdeglobals"), general, QStringLiteral("XftSubPixel"), QStringLiteral("none"));
     session.writeConfig(QStringLiteral("kdeglobals"), general, QStringLiteral("XftAntialias"), QStringLiteral("true"));
     state.settings.insert(QStringLiteral("xpTextScale"), scale);
+    setGtk4Rendering(session, state, scale);
     return true;
 }
 
-bool refresh(State &state)
+bool refresh(Session &session, State &state)
 {
     const QString file = fontconfigDir() + QLatin1Char('/') + QLatin1String(kRulesName);
     if (!QFileInfo::exists(file))
@@ -158,7 +161,29 @@ bool refresh(State &state)
     if (!write(file, rules(paths::xpFonts(), scale)))
         return false;
     state.settings.insert(QStringLiteral("xpTextScale"), scale);
+    setGtk4Rendering(session, state, scale);
     return true;
+}
+
+void setGtk4Rendering(Session &session, State &state, double scale)
+{
+    const QStringList key{QStringLiteral("org.gnome.desktop.interface"), QStringLiteral("font-rendering")};
+    const QString previousKey = QStringLiteral("previousGtkFontRendering");
+    const bool fractional = std::abs(scale - std::round(scale)) > 0.01;
+    if (fractional) {
+        if (!state.settings.contains(previousKey)) {
+            const host::Result was = session.run(QStringList{QStringLiteral("gsettings"), QStringLiteral("get")} + key);
+            if (!was.ok())
+                return;   // (no GSettings, or a GTK older than the key: nothing to do)
+            state.settings.insert(previousKey, QString::fromUtf8(was.out).trimmed().remove(QLatin1Char('\'')));
+        }
+        session.run(QStringList{QStringLiteral("gsettings"), QStringLiteral("set")} + key + QStringList{QStringLiteral("manual")});
+    } else if (state.settings.contains(previousKey)) {
+        const QString previous = state.settings.value(previousKey).toString();
+        session.run(QStringList{QStringLiteral("gsettings"), QStringLiteral("set")} + key
+                    + QStringList{previous.isEmpty() ? QStringLiteral("automatic") : previous});
+        state.settings.remove(previousKey);
+    }
 }
 
 double displayScale(const QByteArray &kwinOutputConfig, const QStringList &connected)
@@ -240,6 +265,8 @@ void revert(Session &session, State &state)
         }
         state.settings.remove(QStringLiteral("previousXft"));
     }
+    setGtk4Rendering(session, state, 1.0);   // (the user's own back)
+    state.settings.remove(QStringLiteral("xpTextScale"));
 }
 
 } // namespace xpl::xptext

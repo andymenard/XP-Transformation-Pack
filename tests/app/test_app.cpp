@@ -1571,6 +1571,24 @@ private Q_SLOTS:
         QCOMPARE(xptext::displayScale(config, {QStringLiteral("eDP-1"), QStringLiteral("DP-1")}), 1.5);
         QCOMPARE(xptext::displayScale(config, {QStringLiteral("HDMI-A-1")}), 1.0);   // (no setup for it)
         QCOMPARE(xptext::displayScale(QByteArray("not json"), {QStringLiteral("eDP-1")}), 1.0);
+
+        // GTK 4 smooths its text at fractional scales (its one-bit glyphs lose
+        // stems stretched), and the user's setting is back at whole ones.
+        RecordingSession session;
+        State state;
+        auto lastGsettings = [&] {
+            for (qsizetype i = session.runs.size() - 1; i >= 0; --i)
+                if (session.runs.at(i).value(0) == QLatin1String("gsettings") && session.runs.at(i).value(1) == QLatin1String("set"))
+                    return session.runs.at(i).last();
+            return QString();
+        };
+        xptext::setGtk4Rendering(session, state, 1.25);
+        QCOMPARE(lastGsettings(), QStringLiteral("manual"));
+        xptext::setGtk4Rendering(session, state, 1.5);   // (the first previous kept)
+        QVERIFY(state.settings.contains(QStringLiteral("previousGtkFontRendering")));
+        xptext::setGtk4Rendering(session, state, 2.0);
+        QCOMPARE(lastGsettings(), QStringLiteral("automatic"));   // (the recording session's empty answer: GTK's default)
+        QVERIFY(!state.settings.contains(QStringLiteral("previousGtkFontRendering")));
     }
 
     void xpTextApplyAndRevert()

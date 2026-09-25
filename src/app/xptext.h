@@ -37,7 +37,15 @@ double displayScale(const QByteArray &kwinOutputConfig, const QStringList &conne
 bool apply(Session &session, State &state, QString *error = nullptr);
 // The rules written again for the display's scale now, if it's changed since
 // they were (at login: a scale changed in the last session); whether it was.
-bool refresh(State &state);
+bool refresh(Session &session, State &state);
+
+// GTK 4 at a fractional scale draws the one-bit glyphs the rules ask for
+// and then stretches them, and a one-pixel stem stretched by a fraction can
+// vanish ("k" came out "<" at 125%). There, GTK 4's font rendering is made
+// "manual" (GNOME's interface settings), so it smooths all its text as its
+// antialiasing setting says; at whole scales, and on revert, the user's own
+// setting is back. Qt and GTK 3 draw the rules' one-bit text cleanly.
+void setGtk4Rendering(Session &session, State &state, double scale);
 // The user's settings back, and XPlasma's rules gone.
 void revert(Session &session, State &state);
 

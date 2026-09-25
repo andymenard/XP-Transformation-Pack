@@ -176,10 +176,16 @@ Plasma set up, nothing of XPlasma's, for trying Setup from scratch.
   read at login before KWin starts; `check-forks` rewrites them when it
   changes), so 22 px drawn is smoothed and 14 px drawn isn't -- as XP's
   Large Fonts smoothed bigger text. Checked with Qt rendering into images
-  at 2x under the rules a 200% Void VM got. Limits: one scale for every
-  screen (the main one's), apps started before a change keep the old rules,
-  and GTK hasn't been checked (if it asks fontconfig at the drawn size, its
-  bands are now off by the scale).
+  at 2x under the rules a 200% Void VM got. GTK 3 and 4 ask fontconfig at
+  the unscaled size too (10.667 px for Tahoma 8 at 200%, traced on
+  Fedora), so the same rules fit them. But GTK 4 at a fractional scale
+  draws the one-bit glyphs and then stretches them, and stems vanish ("k"
+  came out "<", "u" as a hook at 125%): there XPlasma sets GTK 4's
+  font-rendering to "manual" (GNOME's interface settings), so it smooths its
+  text, and puts the user's setting back at whole scales and on reset. GTK
+  3 draws at 2x and has Plasma shrink it, soft but whole. Limits: one scale
+  for every screen (the main one's), and apps started before a change keep
+  the old rules.
 
 - **The 6.8 series is pinned to Plasma's beta (6.7.91).** Until a
   distribution carries 6.8, its development files come from Arch's

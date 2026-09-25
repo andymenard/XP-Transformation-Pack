@@ -507,7 +507,7 @@ int checkForks()
     if (!flatpakWhat.isEmpty())
         what += (what.isEmpty() ? QString() : QStringLiteral("\n")) + flatpakWhat;
     // (And XP's text for the display's scale now, if it changed last session.)
-    if (xptext::refresh(state))
+    if (xptext::refresh(session, state))
         what += (what.isEmpty() ? QString() : QStringLiteral("\n"))
                 + QStringLiteral("XP's text: its smoothing for a display at %1x").arg(state.settings.value(QStringLiteral("xpTextScale")).toDouble());
     if (state.settings != before)
