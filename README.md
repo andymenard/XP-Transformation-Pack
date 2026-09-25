@@ -65,6 +65,21 @@ XPLASMA_SAFE=1 …    # the plugin draws nothing of its own (classic only)
 
 ## Installing and running
 
+The one file to hand out is `XPLasma-Setup`, a Windows Installer–style
+wizard with XPLasma packed inside it (a self-extracting archive; nothing of
+Windows ships in it: its look is XPLasma's own Classic drawing, its pictures
+its own). Run, it downloads Windows XP from the Internet Archive (or uses the
+copy already downloaded), takes out what XPLasma uses, installs XPLasma into
+`~/.local`, installs XP's pointer schemes as cursor themes, and offers to
+launch XPLasma. Choosing a look is Display Properties' job, never the
+wizard's. Run again, it repairs or removes XPLasma.
+
+```sh
+./build.sh release && ./package.sh     # build/XPLasma-Setup
+```
+
+From a checkout, for development:
+
 ```sh
 ./install.sh [dev|release] [PREFIX]    # default: dev into ~/.local
 xplasma setup --download-media         # or --media PATH/TO/XP.iso (or its I386 folder)

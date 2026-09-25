@@ -31,6 +31,7 @@ add_library(xplasma-app STATIC
   timezones.cpp
   forks.cpp
   flatpak.cpp
+  install.cpp
   gtk.cpp
   qttarget.cpp
   overrides.cpp
@@ -86,7 +87,14 @@ target_link_libraries(xplasma-edit PRIVATE stdc++ xplasma-app Qt6::Widgets)
 add_test(NAME editor-screenshots COMMAND xplasma-edit --screenshots ${CMAKE_BINARY_DIR}/editor-screenshots)
 set_tests_properties(editor-screenshots PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 
+# The Setup wizard: a program of its own, which carries XPLasma (package.sh
+# appends the release tree to it) and isn't installed with it.
+add_executable(xplasma-setup wizard/main.cpp wizard/art.cpp)
+target_link_libraries(xplasma-setup PRIVATE stdc++ xplasma-app Qt6::Widgets)
+add_test(NAME setup-screenshots COMMAND xplasma-setup --screenshots ${CMAKE_BINARY_DIR}/setup-screenshots)
+set_tests_properties(setup-screenshots PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
+
 # Installed as <prefix>/bin/xplasma{,-edit}, beside lib/xplasma (the style
 # plugins) and the launcher; install.sh points the launcher at the real path.
-install(TARGETS xplasma-cli xplasma-edit RUNTIME DESTINATION bin)
+install(TARGETS xplasma-cli xplasma-edit xplasma-setup RUNTIME DESTINATION bin)
 install(FILES data/fyi.hotsocket.xplasma.desktop data/fyi.hotsocket.xplasma.datetime.desktop DESTINATION share/applications)

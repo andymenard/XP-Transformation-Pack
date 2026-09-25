@@ -18,6 +18,7 @@
 #include "app/flatpak.h"
 #include "app/forks.h"
 #include "app/gtk.h"
+#include "app/install.h"
 #include "app/pointers.h"
 #include "app/timezones.h"
 #include "app/startbutton.h"
@@ -1105,6 +1106,42 @@ private Q_SLOTS:
         session.runtimes.clear();
         QVERIFY(flatpak::install(session, plugin, &log, &error));
         QVERIFY(!QFileInfo::exists(flatpak::extensionRoot()) && !QFileInfo::exists(flatpak::overrideFile()));
+    }
+
+    void installPackage()
+    {
+        // A package (as the Setup wizard unpacks its payload) into a prefix:
+        // the programs, the plugins, the builds of Plasma's widgets, the menu
+        // entries pointed at the installed editor; and out again.
+        const QString src = m_home.filePath(QStringLiteral("pkg-src"));
+        writeFile(src + QLatin1String("/bin/xplasma"), "#!/bin/sh\n");
+        writeFile(src + QLatin1String("/bin/xplasma-edit"), "#!/bin/sh\n");
+        QFile::setPermissions(src + QLatin1String("/bin/xplasma"), QFile::permissions(src + QLatin1String("/bin/xplasma")) | QFile::ExeOwner);
+        QFile::setPermissions(src + QLatin1String("/bin/xplasma-edit"), QFile::permissions(src + QLatin1String("/bin/xplasma-edit")) | QFile::ExeOwner);
+        writeFile(src + QLatin1String("/lib/xplasma/qt6/styles/libxplasma.so"), "plugin");
+        writeFile(src + QLatin1String("/lib/xplasma/forks/6.7/plasma/applets/org.kde.panel.so"), "fork");
+        writeFile(src + QLatin1String("/share/applications/fyi.hotsocket.xplasma.desktop"), "[Desktop Entry]\nName=Display Properties\nExec=xplasma-edit\n");
+        const QString tar = m_home.filePath(QStringLiteral("pkg.tar"));
+        QCOMPARE(QProcess::execute(QStringLiteral("tar"), {QStringLiteral("-C"), src, QStringLiteral("-cf"), tar, QStringLiteral("bin"), QStringLiteral("lib"),
+                                                          QStringLiteral("share")}),
+                 0);
+        const QString pkg = m_home.filePath(QStringLiteral("pkg"));
+        QString error;
+        QVERIFY2(archive::extract(tar, pkg, {}, &error), qPrintable(error));
+        QVERIFY(installer::isPackage(pkg) || QFileInfo::exists(pkg + QLatin1String("/bin/xplasma")));
+        QFile::setPermissions(pkg + QLatin1String("/bin/xplasma"), QFile::permissions(pkg + QLatin1String("/bin/xplasma")) | QFile::ExeOwner);
+        const QString prefix = m_home.filePath(QStringLiteral("prefix"));
+        QVERIFY2(installer::installFiles(pkg, prefix, {}, &error), qPrintable(error));
+        QVERIFY(QFileInfo(prefix + QLatin1String("/bin/xplasma")).isExecutable());
+        QVERIFY(QFileInfo::exists(prefix + QLatin1String("/lib/xplasma/qt6/styles/libxplasma.so")));
+        QVERIFY(QFileInfo::exists(prefix + QLatin1String("/lib/xplasma/forks/6.7/plasma/applets/org.kde.panel.so")));
+        QFile desktop(prefix + QLatin1String("/share/applications/fyi.hotsocket.xplasma.desktop"));
+        QVERIFY(desktop.open(QIODevice::ReadOnly));
+        QVERIFY(desktop.readAll().contains(("Exec=" + prefix + "/bin/xplasma-edit\n").toUtf8()));
+        QCOMPARE(installer::installedPrefix(), prefix);
+        installer::removeFiles(prefix, false, {});
+        QVERIFY(!QFileInfo::exists(prefix + QLatin1String("/bin/xplasma")) && !QFileInfo::exists(prefix + QLatin1String("/lib/xplasma")));
+        QVERIFY(installer::installedPrefix().isEmpty());
     }
 
     void gtkTheme()

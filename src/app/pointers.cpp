@@ -7,6 +7,7 @@
 
 #include <QCryptographicHash>
 #include <QDir>
+#include <QRegularExpression>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -332,6 +333,35 @@ void revert(Session &session, State &state)
         QDir(d.absoluteFilePath()).removeRecursively();
     state.settings.remove(QStringLiteral("pointers"));
     state.settings.remove(QStringLiteral("previousCursor"));
+}
+
+QStringList installSchemes(QString *error)
+{
+    QStringList names;
+    const QList<Scheme> all = schemes(error);
+    if (all.isEmpty())
+        return names;
+    const QString icons = paths::localShare() + QLatin1String("/icons/");
+    for (const Scheme &scheme : all) {
+        QString slug = scheme.name.toLower();
+        slug.replace(QRegularExpression(QStringLiteral("[^a-z0-9]+")), QStringLiteral("-"));
+        while (slug.endsWith(QLatin1Char('-')))
+            slug.chop(1);
+        int size = 0;
+        const QString dir = icons + QLatin1String("xplasma-cursors-") + slug;
+        QDir(dir).removeRecursively();
+        if (!writeTheme(scheme, true, dir, &size, error))
+            return {};
+        names << scheme.name;
+    }
+    return names;
+}
+
+void removeSchemes()
+{
+    const QDir icons(paths::localShare() + QLatin1String("/icons"));
+    for (const QString &dir : icons.entryList({QStringLiteral("xplasma-cursors-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
+        QDir(icons.filePath(dir)).removeRecursively();
 }
 
 } // namespace xpl::pointers

@@ -1,0 +1,178 @@
+#include "app/install.h"
+
+#include "app/paths.h"
+#include "app/state.h"
+
+#include <QCoreApplication>
+#include <QDir>
+#include <QDirIterator>
+#include <QFile>
+#include <QFileInfo>
+#include <QProcess>
+#include <QSaveFile>
+#include <QStandardPaths>
+
+#include <cstdio>
+
+namespace xpl::installer {
+
+namespace {
+
+bool fail(QString *error, const QString &message)
+{
+    if (error)
+        *error = message;
+    return false;
+}
+
+// `from` to `to` under a fresh name, then renamed into place.
+bool copyFile(const QString &from, const QString &to, QString *error)
+{
+    QDir().mkpath(QFileInfo(to).absolutePath());
+    const QString fresh = QFileInfo(to).absolutePath() + QLatin1String("/.") + QFileInfo(to).fileName() + QLatin1String(".new");
+    QFile::remove(fresh);
+    if (!QFile::copy(from, fresh))
+        return fail(error, QStringLiteral("can't copy %1 to %2").arg(from, to));
+    QFile::setPermissions(fresh, QFile(from).permissions());
+    if (std::rename(QFile::encodeName(fresh).constData(), QFile::encodeName(to).constData()) != 0) {
+        QFile::remove(fresh);
+        return fail(error, QStringLiteral("can't put %1 in place").arg(to));
+    }
+    return true;
+}
+
+// A folder's tree copied beside `to`, then swapped in whole.
+bool copyTree(const QString &from, const QString &to, QString *error)
+{
+    const QString fresh = to + QLatin1String(".new");
+    QDir(fresh).removeRecursively();
+    QDirIterator it(from, QDir::Files | QDir::Hidden | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        const QString file = it.next();
+        const QString target = fresh + file.mid(from.size());
+        QDir().mkpath(QFileInfo(target).absolutePath());
+        if (!QFile::copy(file, target)) {
+            QDir(fresh).removeRecursively();
+            return fail(error, QStringLiteral("can't copy %1").arg(file));
+        }
+        QFile::setPermissions(target, QFile(file).permissions());
+    }
+    QDir(to).removeRecursively();
+    if (!QDir().rename(fresh, to))
+        return fail(error, QStringLiteral("can't put %1 in place").arg(to));
+    return true;
+}
+
+// (The Setup wizard is a program of its own, not installed: run again, it
+// repairs or removes, as a Windows Installer package does.)
+const QStringList kPrograms{QStringLiteral("xplasma"), QStringLiteral("xplasma-edit")};
+
+} // namespace
+
+QString packageRoot()
+{
+    return QDir(QCoreApplication::applicationDirPath() + QLatin1String("/..")).absolutePath();
+}
+
+bool isPackage(const QString &root)
+{
+    return QFileInfo(root + QLatin1String("/bin/xplasma")).isExecutable();
+}
+
+QString installedPrefix()
+{
+    const QString recorded = State::load().settings.value(QStringLiteral("installPrefix")).toString();
+    if (!recorded.isEmpty() && QFileInfo(recorded + QLatin1String("/bin/xplasma")).exists())
+        return recorded;
+    const QString local = paths::home() + QLatin1String("/.local");
+    return QFileInfo(local + QLatin1String("/bin/xplasma")).exists() ? local : QString();
+}
+
+QStringList installedPaths()
+{
+    QStringList out;
+    for (const QString &p : kPrograms)
+        out << QLatin1String("bin/") + p;
+    out << QStringLiteral("lib/xplasma") << QStringLiteral("share/applications/fyi.hotsocket.xplasma.desktop")
+        << QStringLiteral("share/applications/fyi.hotsocket.xplasma.datetime.desktop");
+    return out;
+}
+
+bool installFiles(const QString &package, const QString &prefix, const Progress &progress, QString *error)
+{
+    auto say = [&](const QString &line) {
+        if (progress)
+            progress(line);
+    };
+    if (!isPackage(package))
+        return fail(error, QStringLiteral("%1 isn't an XPLasma package (it has no bin/xplasma)").arg(package));
+    say(QStringLiteral("Copying new files"));
+    for (const QString &p : kPrograms) {
+        const QString from = package + QLatin1String("/bin/") + p;
+        if (QFileInfo::exists(from) && !copyFile(from, prefix + QLatin1String("/bin/") + p, error))
+            return false;
+    }
+    for (const int major : {6, 5}) {
+        const QString rel = QStringLiteral("/lib/xplasma/qt%1/styles/libxplasma.so").arg(major);
+        if (QFileInfo::exists(package + rel) && !copyFile(package + rel, prefix + rel, error))
+            return false;
+    }
+    say(QStringLiteral("Copying XPLasma's builds of Plasma's widgets"));
+    if (QFileInfo::exists(package + QLatin1String("/lib/xplasma/forks"))
+        && !copyTree(package + QLatin1String("/lib/xplasma/forks"), prefix + QLatin1String("/lib/xplasma/forks"), error))
+        return false;
+    say(QStringLiteral("Adding XPLasma to the application menu"));
+    const QString apps = prefix + QLatin1String("/share/applications");
+    QDir().mkpath(apps);
+    for (const QFileInfo &desktop : QDir(package + QLatin1String("/share/applications")).entryInfoList({QStringLiteral("*.desktop")}, QDir::Files)) {
+        QFile in(desktop.absoluteFilePath());
+        if (!in.open(QIODevice::ReadOnly))
+            continue;
+        QByteArray text = in.readAll();
+        for (const QString &p : kPrograms)
+            for (const char end : {' ', '\n'}) {
+                const QByteArray from = QByteArray("\nExec=") + p.toUtf8() + end;
+                const QByteArray to = QByteArray("\nExec=") + (prefix + QLatin1String("/bin/") + p).toUtf8() + end;
+                text.replace(from, to);
+            }
+        QSaveFile out(apps + QLatin1Char('/') + desktop.fileName());
+        if (!out.open(QIODevice::WriteOnly) || out.write(text) < 0 || !out.commit())
+            return fail(error, QStringLiteral("%1: %2").arg(out.fileName(), out.errorString()));
+    }
+    if (const QString tool = QStandardPaths::findExecutable(QStringLiteral("update-desktop-database")); !tool.isEmpty())
+        QProcess::execute(tool, {QStringLiteral("-q"), apps});
+    State state = State::load();
+    state.settings.insert(QStringLiteral("installPrefix"), prefix);
+    state.save();
+    return true;
+}
+
+void removeFiles(const QString &prefix, bool data, const Progress &progress)
+{
+    auto say = [&](const QString &line) {
+        if (progress)
+            progress(line);
+    };
+    say(QStringLiteral("Removing XPLasma's files"));
+    for (const QString &rel : installedPaths()) {
+        const QString path = prefix + QLatin1Char('/') + rel;
+        if (QFileInfo(path).isDir())
+            QDir(path).removeRecursively();
+        else
+            QFile::remove(path);
+    }
+    if (const QString tool = QStandardPaths::findExecutable(QStringLiteral("update-desktop-database")); !tool.isEmpty())
+        QProcess::execute(tool, {QStringLiteral("-q"), prefix + QLatin1String("/share/applications")});
+    if (data) {
+        say(QStringLiteral("Removing the Windows XP files and themes XPLasma collected"));
+        QDir(paths::data()).removeRecursively();
+        QDir(paths::cache()).removeRecursively();
+        QFile::remove(paths::config() + QLatin1String("/xplasmarc"));
+        return;
+    }
+    State state = State::load();
+    state.settings.remove(QStringLiteral("installPrefix"));
+    state.save();
+}
+
+} // namespace xpl::installer

@@ -16,10 +16,6 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
   them (the user's idea: a small rock band recording a whole XP sound theme).
 - **Flatpak's Qt 5 apps** (KDE runtime 5.15): the Qt 5 plugin as the same
   kind of extension, if its runtime's extension point takes it.
-- **The installer, redesigned** (PLAN.md §10), as a knock-off of a Windows
-  Installer (MSI) wizard -- not XP's Setup (the user, 2026-09-24): the
-  welcome and finish pages with the tall picture down the left, the pages
-  between with the banner across the top, Back / Next / Cancel.
 - **GTK 2 apps** (a pixmap-engine gtkrc), if any still matter.
 - **A KDecoration plugin** on the same core, in place of Aurorae (optional).
 - **Real rendering in the editor's previews** (`xplasma-render`).
@@ -37,6 +33,11 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Done
 
+- The installer (the user's design): XPLasma-Setup, a Windows Installer
+  wizard that's a self-extracting archive -- downloads XP, takes its files
+  out, installs XPLasma and XP's pointers, launches XPLasma; run again,
+  repairs or removes. No look chosen or applied in it; no XP assets in it
+  (2026-09-25).
 - GTK 3 and GTK 4 apps in the XP look, libadwaita apps' controls too:
   a theme generated from the look, switched to on apply (2026-09-24).
 - The unchecked check box in Plasma's popups as XP's box, and hover on

@@ -65,4 +65,10 @@ bool apply(Session &session, State &state, const Scheme &scheme, bool shadow, QS
 // The user's own pointers back.
 void revert(Session &session, State &state);
 
+// Every XP scheme as a cursor theme of its own, for Plasma's Cursors settings
+// to offer (~/.local/share/icons/xplasma-cursors-<scheme>, "<scheme> (XP)"),
+// none applied -- the Setup wizard's. Their names, or none with *error.
+QStringList installSchemes(QString *error = nullptr);
+void removeSchemes();
+
 } // namespace xpl::pointers
