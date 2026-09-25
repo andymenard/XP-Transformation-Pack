@@ -105,6 +105,8 @@ int main(int argc, char **argv)
     const QCommandLineOption now(QStringLiteral("now"), QStringLiteral("With --check-updates: check even if checked today."));
     parser.addOption(now);
     parser.process(app);
+    if (parser.isSet(checkUpdates) && parser.isSet(screenshots))
+        return xpl::editor::saveUpdateScreenshot(parser.value(screenshots)) ? 0 : 1;
     if (parser.isSet(checkUpdates)) {
         // (at login, unasked: never a dialog -- outside Plasma it just ends)
         QApplication::setApplicationDisplayName(QStringLiteral("XPlasma Updates"));
