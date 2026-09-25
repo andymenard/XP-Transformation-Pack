@@ -96,7 +96,7 @@ Report check(Session &session)
 
     for (const setup::Check &c : setup::preflight())
         if (c.neededToApply)
-            report.requirements.append({QStringLiteral("%1, to %2").arg(c.tool, c.purpose), c.found, c.ok()});
+            report.requirements.append({c.tool, c.found, c.ok()});
     return report;
 }
 
