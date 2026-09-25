@@ -1,5 +1,5 @@
 # Build image for XPLasma's forks of Plasma's compiled widgets for the
-# Plasma 6.7 series, whose libPlasma is .so.8 (see plasma-6.6.Containerfile
+# Plasma 6.7 series, whose libPlasma is .so.7 (see plasma-6.6.Containerfile
 # for the why of it all).
 #
 # Fedora 44's updates carry Plasma 6.7 with its development files -- and

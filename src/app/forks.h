@@ -17,6 +17,7 @@
 #include <QJsonArray>
 #include <QList>
 #include <QString>
+#include <QVersionNumber>
 #include <QStringList>
 
 #include <optional>
@@ -67,6 +68,9 @@ std::optional<int> syncSources(const Series &series, const QString &pristine, co
 // The Plasma installed ("6.6.4": libPlasma's file name, or failing that
 // plasmashell --version); empty if unknown.
 QString runningPlasma(Session &session);
+// The Plasma series a version belongs to: 6.7.5 is 6.7 -- and 6.7.90 and
+// up, KDE's betas of the next, are 6.8.
+QVersionNumber seriesOf(const QString &version);
 
 struct Choice
 {

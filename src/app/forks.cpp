@@ -261,9 +261,19 @@ QString runningPlasma(Session &session)
     return QString();
 }
 
+QVersionNumber seriesOf(const QString &version)
+{
+    const QVersionNumber v = QVersionNumber::fromString(version);
+    if (v.segmentCount() < 2)
+        return v;
+    if (v.segmentCount() >= 3 && v.microVersion() >= 90)
+        return QVersionNumber(v.majorVersion(), v.minorVersion() + 1);
+    return QVersionNumber(v.majorVersion(), v.minorVersion());
+}
+
 std::optional<Choice> choose(const QString &plasma, const QStringList &ids, QString *error)
 {
-    const QVersionNumber running = QVersionNumber::fromString(plasma);
+    const QVersionNumber running = seriesOf(plasma);
     if (running.isNull()) {
         fail(error, QStringLiteral("can't tell which Plasma this is (plasmashell --version)"));
         return std::nullopt;
@@ -347,12 +357,8 @@ Checked check(Session &session, State &state, QString *what)
     const QString plasma = runningPlasma(session);
     if (plasma.isEmpty())
         return Checked::Fine;   // (can't tell: left as it is)
-    auto series = [](const QString &version) {
-        const QVersionNumber v = QVersionNumber::fromString(version);
-        return v.segmentCount() >= 2 ? QVersionNumber(v.majorVersion(), v.minorVersion()) : v;
-    };
     // (the same series as when chosen: nothing to do -- the usual login)
-    if (series(plasma) == series(state.settings.value(QStringLiteral("forkPlasma")).toString()))
+    if (seriesOf(plasma) == seriesOf(state.settings.value(QStringLiteral("forkPlasma")).toString()))
         return Checked::Fine;
     QStringList ids;
     for (const QJsonValue &v : state.settings.value(QStringLiteral("forkPlugins")).toArray())

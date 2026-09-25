@@ -2,7 +2,22 @@
 # setup), and the thin programs over it. Qt 6 only.
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network DBus)
 
-set(XPLASMA_VERSION 0.1.0)
+# The project's settings (project.ini, at the top): its version and its
+# addresses, into app/project.h.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/project.ini)
+file(STRINGS ${PROJECT_SOURCE_DIR}/project.ini project_lines REGEX "^[A-Za-z]+=")
+foreach(line IN LISTS project_lines)
+  string(REGEX MATCH "^([A-Za-z]+)=(.*)$" _ "${line}")
+  set(project_${CMAKE_MATCH_1} "${CMAKE_MATCH_2}")
+endforeach()
+set(XPLASMA_VERSION "${project_Version}")
+set(XPLASMA_ISSUES_URL "${project_IssuesUrl}")
+set(XPLASMA_UPDATES_URL "${project_UpdatesUrl}")
+set(XPLASMA_ARCHIVE_URL "${project_ArchiveUrl}")
+if(NOT XPLASMA_VERSION)
+  message(FATAL_ERROR "project.ini has no Version")
+endif()
+configure_file(project.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/app/project.h @ONLY)
 
 add_library(xplasma-app STATIC
   paths.cpp
@@ -39,8 +54,9 @@ add_library(xplasma-app STATIC
   overrides.cpp
   apply.cpp
   setup.cpp
+  desktop.cpp
 )
-target_include_directories(xplasma-app PUBLIC ${PROJECT_SOURCE_DIR}/src)
+target_include_directories(xplasma-app PUBLIC ${PROJECT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/generated)
 target_compile_definitions(xplasma-app PUBLIC XPLASMA_VERSION="${XPLASMA_VERSION}")
 target_link_libraries(xplasma-app
   PUBLIC xplasma-core Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network Qt6::DBus

@@ -7,6 +7,7 @@
 //   ... --screenshots DIR           every tab drawn to DIR/*.png, then exit
 //                                   (tests; with QT_QPA_PLATFORM=offscreen)
 #include "app/adopt.h"
+#include "app/desktop.h"
 #include "app/editor/datetime.h"
 #include "app/editor/displayproperties.h"
 #include "app/editor/soundsproperties.h"
@@ -15,6 +16,7 @@
 #include <QCommandLineParser>
 #include <QLocalServer>
 #include <QLocalSocket>
+#include <QMessageBox>
 #include <QStandardPaths>
 #include <QTextStream>
 #include <QWidget>
@@ -64,6 +66,18 @@ void serveInstance(const QString &which, QWidget *window)
     });
 }
 
+// A Plasma session XPLasma can dress; else a word on why not, and false.
+bool requirePlasma()
+{
+    xpl::LiveSession session;
+    const xpl::desktop::Report r = xpl::desktop::check(session);
+    if (r.ok())
+        return true;
+    QMessageBox::critical(nullptr, QApplication::applicationDisplayName(),
+                          QStringLiteral("XPLasma is for the KDE Plasma desktop, and it can't dress this one:\n\n%1").arg(r.problems()));
+    return false;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -84,10 +98,14 @@ int main(int argc, char **argv)
     const QCommandLineOption soundsOption(QStringLiteral("sounds"), QStringLiteral("Sounds and Audio Devices Properties."));
     parser.addOption(soundsOption);
     parser.process(app);
+    // (the screenshots, drawn offscreen for the tests, need no desktop)
+    const bool screenshotsOnly = parser.isSet(screenshots);
 
     if (parser.isSet(soundsOption)) {
         QApplication::setApplicationDisplayName(QStringLiteral("Sounds and Audio Devices Properties"));
         QApplication::setDesktopFileName(QStringLiteral("fyi.hotsocket.xplasma.sounds"));
+        if (!screenshotsOnly && !requirePlasma())
+            return 1;
         xpl::editor::SoundsProperties dialog;
         if (parser.isSet(screenshots))
             return dialog.saveScreenshots(parser.value(screenshots)) ? 0 : 1;
@@ -102,6 +120,8 @@ int main(int argc, char **argv)
         QApplication::setApplicationDisplayName(QStringLiteral("Date and Time Properties"));
         // (its own desktop entry: its own name and icon on the taskbar)
         QApplication::setDesktopFileName(QStringLiteral("fyi.hotsocket.xplasma.datetime"));
+        if (!screenshotsOnly && !requirePlasma())
+            return 1;
         xpl::editor::DateTimeProperties dialog;
         if (parser.isSet(screenshots))
             return dialog.saveScreenshots(parser.value(screenshots)) ? 0 : 1;
@@ -112,6 +132,8 @@ int main(int argc, char **argv)
         return app.exec();
     }
 
+    if (!screenshotsOnly && !requirePlasma())
+        return 1;
     for (const QString &line : xpl::adoptLegacy())
         QTextStream(stderr) << line << '\n';
     if (!parser.isSet(screenshots) && raiseRunning(QStringLiteral("display")))

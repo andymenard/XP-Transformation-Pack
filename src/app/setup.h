@@ -45,6 +45,11 @@ struct Imported
 // ("Stonehenge.jpg").
 QHash<QString, QString> wallpaperNames(const QList<QByteArray> &infs);
 
+// Whether `iso` is a disc image of a Windows XP CD that includes Service
+// Pack 3 -- its I386 folder, and the tag file SP3's CDs have at their root
+// (WIN51IP.SP3 for Professional, WIN51IC.SP3 for Home); else why not.
+bool checkMedia(const QString &iso, QString *why = nullptr);
+
 // XP's install media. Cancelled or failed, nothing it added stays. Its
 // wallpapers are XP's own list, by XP's names; files an older XPLasma
 // imported by their 8.3 names are renamed (and what refers to them -- the

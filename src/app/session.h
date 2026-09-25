@@ -7,6 +7,7 @@
 
 #include <QString>
 #include <QStringList>
+#include <QVariant>
 #include <QVariantList>
 
 #include <functional>
@@ -28,6 +29,14 @@ public:
     virtual bool call(const QString &service, const QString &path, const QString &interface, const QString &method,
                       const QVariantList &arguments = {}) = 0;
     virtual void signal(const QString &path, const QString &interface, const QString &name, const QVariantList &arguments = {}) = 0;
+    // A D-Bus method call's reply (its first value), or nothing: no such
+    // service, an error -- or a session that can't ask (the tests').
+    virtual std::optional<QVariant> query(const QString &service, const QString &path, const QString &interface, const QString &method,
+                                          const QVariantList &arguments = {})
+    {
+        Q_UNUSED(service) Q_UNUSED(path) Q_UNUSED(interface) Q_UNUSED(method) Q_UNUSED(arguments)
+        return std::nullopt;
+    }
     // A host program left running on its own: in `environment` (KEY=VALUE
     // lines) if given, else this program's -- either way with this
     // program's QT_PLUGIN_PATH (XPLasma's, or none).
@@ -58,6 +67,8 @@ public:
     bool call(const QString &service, const QString &path, const QString &interface, const QString &method,
               const QVariantList &arguments = {}) override;
     void signal(const QString &path, const QString &interface, const QString &name, const QVariantList &arguments = {}) override;
+    std::optional<QVariant> query(const QString &service, const QString &path, const QString &interface, const QString &method,
+                                  const QVariantList &arguments = {}) override;
     bool startDetached(const QStringList &argv, const QStringList &environment = {}) override;
 };
 

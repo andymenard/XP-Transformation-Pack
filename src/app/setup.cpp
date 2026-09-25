@@ -1,9 +1,11 @@
 #include "app/setup.h"
 
 #include "app/archive.h"
+#include "app/forks.h"
 #include "app/host.h"
 #include "app/inf.h"
 #include "app/paths.h"
+#include "app/project.h"
 #include "app/state.h"
 #include "app/apply.h"
 #include "app/session.h"
@@ -26,6 +28,8 @@
 #include <QSet>
 #include <QTimer>
 #include <QUrl>
+
+#include <unistd.h>
 
 namespace xpl::setup {
 
@@ -285,7 +289,7 @@ void tidyWallpapers(const WallpaperImport &wp, const Progress &say)
 QString archiveBase()
 {
     const QString env = qEnvironmentVariable("XPLASMA_ARCHIVE_URL");
-    return env.isEmpty() ? QStringLiteral("https://archive.org") : env;
+    return env.isEmpty() ? QString::fromUtf8(project::kArchiveUrl) : env;
 }
 
 // A GET, waited for; `bytes` hears of progress, `cancel` stops it.
@@ -351,27 +355,60 @@ std::optional<QByteArray> get(const QUrl &url, const QString &saveTo, const Byte
 
 bool plasmaSession(QString *detail)
 {
+    // The session says what it is -- or, started outside it (a terminal
+    // over SSH, a timer), this user's plasmashell is running. Its version
+    // from libPlasma's file name, not by starting plasmashell (which, in
+    // this program's offscreen platform, Plasma 6.6's crashes).
     const QString desktop = qEnvironmentVariable("XDG_CURRENT_DESKTOP").trimmed();
-    if (!desktop.isEmpty() && !desktop.contains(QLatin1String("KDE"), Qt::CaseInsensitive)) {
+    auto say = [&](const QString &what) {
         if (detail)
-            *detail = desktop;
+            *detail = what;
+    };
+    if (!desktop.isEmpty() && !desktop.contains(QLatin1String("KDE"), Qt::CaseInsensitive)) {
+        say(desktop);
         return false;
     }
-    static const QRegularExpression version(QStringLiteral("(\\d+)\\.(\\d+)(\\.\\d+)?"));
-    for (const QString &program : {QStringLiteral("plasmashell"), QStringLiteral("kwin_wayland"), QStringLiteral("kwin_x11")}) {
-        if (host::which(program).isEmpty())
-            continue;
-        const auto m = version.match(QString::fromUtf8(host::run({program, QStringLiteral("--version")}).out));
-        if (m.hasMatch()) {
-            if (detail)
-                *detail = m.captured(0);
-            return m.captured(1).toInt() >= 6;
-        }
+    if (desktop.isEmpty()
+        && !host::run({QStringLiteral("pgrep"), QStringLiteral("-u"), QString::number(getuid()), QStringLiteral("-x"), QStringLiteral("plasmashell")}).ok()) {
+        say(QStringLiteral("no desktop session found"));
+        return false;
     }
-    // A KDE session whose version couldn't be read is still one.
-    if (detail)
-        *detail = desktop.isEmpty() ? QStringLiteral("no desktop session found") : desktop;
-    return !desktop.isEmpty();
+    LiveSession session;
+    const QString plasma = forks::runningPlasma(session);
+    if (plasma.isEmpty()) {
+        say(desktop.isEmpty() ? QStringLiteral("Plasma, of an unknown version") : desktop);
+        return true;   // (a KDE session whose version couldn't be read is still one)
+    }
+    say(QStringLiteral("Plasma %1").arg(plasma));
+    return plasma.section(QLatin1Char('.'), 0, 0).toInt() >= 6;
+}
+
+bool checkMedia(const QString &iso, QString *why)
+{
+    if (!QFileInfo(iso).isFile())
+        return fail(why, QStringLiteral("There's no file %1.").arg(iso));
+    QString error;
+    const auto entries = archive::list(iso, &error);
+    if (!entries)
+        return fail(why, QStringLiteral("%1 isn't a disc image Setup can read (%2).").arg(QFileInfo(iso).fileName(), error));
+    static const QRegularExpression tag(QStringLiteral("^WIN51[A-Z]{1,2}\\.SP(\\d)$"), QRegularExpression::CaseInsensitiveOption);
+    bool i386 = false;
+    int pack = 0;
+    for (const archive::Entry &e : *entries) {
+        if (e.path.startsWith(QLatin1String("I386/"), Qt::CaseInsensitive))
+            i386 = true;
+        if (const auto m = tag.match(e.path); m.hasMatch())
+            pack = qMax(pack, m.captured(1).toInt());
+    }
+    if (!i386)
+        return fail(why, QStringLiteral("%1 isn't a Windows XP installation CD (it has no I386 folder).").arg(QFileInfo(iso).fileName()));
+    if (pack < 3)
+        return fail(why, pack ? QStringLiteral("%1 is Windows XP with Service Pack %2; XPLasma needs one that includes Service Pack 3.")
+                                    .arg(QFileInfo(iso).fileName())
+                                    .arg(pack)
+                              : QStringLiteral("%1 is a Windows XP CD without a service pack; XPLasma needs one that includes Service Pack 3.")
+                                    .arg(QFileInfo(iso).fileName()));
+    return true;
 }
 
 QList<Check> preflight()
@@ -382,7 +419,7 @@ QList<Check> preflight()
         {"plasma-apply-colorscheme", "apply the colour scheme", true, nullptr},
         {"plasma-apply-desktoptheme", "apply the taskbar's Plasma theme", true, nullptr},
         {"plasma-apply-lookandfeel", "reset to Plasma's default look", false, nullptr},
-        {"systemctl", "restart Plasma's shell", true, nullptr},
+        {"systemctl", "restart Plasma's shell", true, "kquitapp6"},   // (without systemd: quit over D-Bus, started again)
         {"fc-cache", "make the XP fonts visible", false, nullptr},
     };
     QList<Check> out;

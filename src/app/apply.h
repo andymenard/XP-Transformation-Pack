@@ -7,6 +7,7 @@
 // theme, the panel as XP's, the Start button), the wallpaper, the icons.
 // What it installed says so (the X-XPLasma-Generated marker), so reset
 // removes XPLasma's and only XPLasma's.
+#include "app/forks.h"
 #include "app/look.h"
 #include "app/session.h"
 
@@ -36,6 +37,10 @@ struct ApplyOptions
 };
 
 bool applyLook(Session &session, const Look &look, const ApplyOptions &options, QString *error = nullptr);
+// What of the whole XP look this Plasma can't take (empty: all of it) --
+// what applyLook checks before changing anything; and, `taskbar` asked
+// for, the builds of Plasma's widgets it would use.
+QStringList cannotTake(Session &session, bool taskbar = true, std::optional<forks::Choice> *chosen = nullptr);
 // The desktop only: its wallpaper and colour, the look left as it is.
 void applyWallpaper(Session &session, const Wallpaper &wallpaper, const std::function<void(const QString &)> &progress = {});
 // XP's taskbar -- not floating, `height` px, opaque, the full width -- in

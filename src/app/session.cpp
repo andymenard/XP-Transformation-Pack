@@ -166,6 +166,17 @@ bool LiveSession::call(const QString &service, const QString &path, const QStrin
     return QDBusConnection::sessionBus().call(message, QDBus::Block, 30000).type() != QDBusMessage::ErrorMessage;
 }
 
+std::optional<QVariant> LiveSession::query(const QString &service, const QString &path, const QString &interface, const QString &method,
+                                           const QVariantList &arguments)
+{
+    QDBusMessage message = QDBusMessage::createMethodCall(service, path, interface, method);
+    message.setArguments(arguments);
+    const QDBusMessage reply = QDBusConnection::sessionBus().call(message, QDBus::Block, 10000);
+    if (reply.type() != QDBusMessage::ReplyMessage || reply.arguments().isEmpty())
+        return std::nullopt;
+    return reply.arguments().first();
+}
+
 void LiveSession::signal(const QString &path, const QString &interface, const QString &name, const QVariantList &arguments)
 {
     QDBusMessage message = QDBusMessage::createSignal(path, interface, name);

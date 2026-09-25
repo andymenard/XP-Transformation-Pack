@@ -20,6 +20,7 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QDirIterator>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QStandardPaths>
@@ -123,6 +124,27 @@ void applyDecoration(Session &session, const QString &id)
     session.writeConfig(QStringLiteral("kwinrc"), group, QStringLiteral("library"), QStringLiteral("org.kde.kwin.aurorae"));
     session.writeConfig(QStringLiteral("kwinrc"), group, QStringLiteral("theme"), QStringLiteral("__aurorae__svg__") + id);
     session.reconfigureKWin();
+    // Until KWin says it has it: what comes next (the shell's restart, a
+    // look's colours applied again) mustn't catch it half-way -- once, on a
+    // fresh install's first apply, windows came out with their titles but
+    // without borders or buttons (KWin: an Aurorae theme with no SVG), and
+    // applying again mended them.
+    const QString theme = QStringLiteral("Theme: __aurorae__svg__") + id;
+    QElapsedTimer clock;
+    clock.start();
+    while (clock.elapsed() < 10000) {
+        const auto info = session.query(QStringLiteral("org.kde.KWin"), QStringLiteral("/KWin"), QStringLiteral("org.kde.KWin"),
+                                        QStringLiteral("supportInformation"));
+        if (!info)
+            return;   // (no KWin to ask)
+        const QString text = info->toString();
+        const qsizetype at = text.indexOf(theme);
+        if (at >= 0 && (at + theme.size() == text.size() || text.at(at + theme.size()) == QLatin1Char('\n'))) {
+            QThread::msleep(500);   // (and its windows' borders made anew)
+            return;
+        }
+        QThread::msleep(200);
+    }
 }
 
 // KWin rules for XPLasma's own windows that XP gave no minimize or maximize
@@ -420,31 +442,36 @@ void settleTaskbars(Session &session, int height)
     }
 }
 
+QStringList cannotTake(Session &session, bool taskbar, std::optional<forks::Choice> *chosen)
+{
+    // (Widgets this Plasma builds in come from XPLasma's builds of them, if
+    // one for this Plasma loads here.)
+    QStringList cannot;
+    QString why;
+    if (taskbar && !overrides::checkPanelWidgets(share(QStringLiteral("plasma/plasmoids")), &why))
+        cannot << why.split(QLatin1Char('\n'));
+    if (const QStringList builtIn = overrides::builtInPanelWidgets(); taskbar && !builtIn.isEmpty()) {
+        const auto builds = forks::choose(forks::runningPlasma(session), builtIn, &why);
+        if (!builds)
+            cannot << why;
+        if (chosen)
+            *chosen = builds;
+    }
+    if (!overrides::checkDesktopMenu(share(QStringLiteral("plasma/plasmoids")), &why))
+        cannot << why.split(QLatin1Char('\n'));
+    if (!overrides::checkTitleShadows(share(QStringLiteral("kwin/aurorae/aurorae.qml")), &why))
+        cannot << why;
+    return cannot;
+}
+
 bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QString *error)
 {
     // The whole XP look or none of it: what this Plasma can't take is known
     // before anything changes.
-    // (Widgets this Plasma builds in come from XPLasma's builds of them, if
-    // one for this Plasma loads here.)
     std::optional<forks::Choice> builds;
-    {
-        QStringList cannot;
-        QString why;
-        if (o.taskbar && !overrides::checkPanelWidgets(share(QStringLiteral("plasma/plasmoids")), &why))
-            cannot << why.split(QLatin1Char('\n'));
-        if (const QStringList builtIn = overrides::builtInPanelWidgets(); o.taskbar && !builtIn.isEmpty()) {
-            builds = forks::choose(forks::runningPlasma(session), builtIn, &why);
-            if (!builds)
-                cannot << why;
-        }
-        if (!overrides::checkDesktopMenu(share(QStringLiteral("plasma/plasmoids")), &why))
-            cannot << why.split(QLatin1Char('\n'));
-        if (!overrides::checkTitleShadows(share(QStringLiteral("kwin/aurorae/aurorae.qml")), &why))
-            cannot << why;
-        if (!cannot.isEmpty())
-            return fail(error, QStringLiteral("this Plasma can't take the whole XP look yet, so nothing was changed:\n  ")
-                                   + cannot.join(QStringLiteral("\n  ")));
-    }
+    if (const QStringList cannot = cannotTake(session, o.taskbar, &builds); !cannot.isEmpty())
+        return fail(error, QStringLiteral("this Plasma can't take the whole XP look yet, so nothing was changed:\n  ")
+                               + cannot.join(QStringLiteral("\n  ")));
     State state = State::load();
     const QString build = paths::build() + QLatin1Char('/') + look.id;
     QDir(build).removeRecursively();
@@ -537,13 +564,15 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
     if (!xptext::apply(session, state, &why))
         report(o, QStringLiteral("  text stays as it was: %1").arg(why));
     installWindowRules(session);
-    applyDecoration(session, look.id);
     // (Its name forgotten first: plasma-apply-colorscheme won't apply the
     // scheme that's already current -- a look applied again, regenerated.)
     session.writeConfig(QStringLiteral("kdeglobals"), {QStringLiteral("General")}, QStringLiteral("ColorScheme"), QString(), false);
     if (!session.run({QStringLiteral("plasma-apply-colorscheme"), look.id}).ok())
         report(o, QStringLiteral("  plasma-apply-colorscheme failed"));
     applyFonts(session, fontSettings(look.system));
+    // The window borders after the colours and fonts, which have KWin make
+    // every window's anew: its last change, waited for.
+    applyDecoration(session, look.id);
     if (o.widgets) {
         QStringList log;
         if (!qtstyle::apply(session, look, state, &log, &why))

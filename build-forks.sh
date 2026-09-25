@@ -37,7 +37,9 @@ for series in "$@"; do
         tarball="$root/src/$project-$version.tar.xz"
         if [ ! -f "$tarball" ]; then
             echo "fetching $project $version"
-            curl -fsSL -o "$tarball.part" "https://download.kde.org/stable/plasma/$version/$project-$version.tar.xz"
+            # (KDE's betas, x.y.90 and up, are under unstable/)
+            case "$version" in *.9[0-9]) where=unstable ;; *) where=stable ;; esac
+            curl -fsSL -o "$tarball.part" "https://download.kde.org/$where/plasma/$version/$project-$version.tar.xz"
             mv "$tarball.part" "$tarball"
         fi
         echo "$sha  $tarball" | sha256sum -c --quiet - || { echo "build-forks: $tarball doesn't match its checksum" >&2; exit 1; }

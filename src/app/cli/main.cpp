@@ -24,6 +24,7 @@
 #include "app/colors.h"
 #include "app/controls.h"
 #include "app/decoration.h"
+#include "app/desktop.h"
 #include "app/pointers.h"
 #include "app/icons.h"
 #include "app/media.h"
@@ -330,6 +331,54 @@ int soundSchemes(const QString &name, const QString &out)
     return 0;
 }
 
+// A Plasma session XPLasma can dress, for the commands that change the
+// desktop; else why not.
+bool requirePlasma()
+{
+    LiveSession session;
+    const desktop::Report r = desktop::check(session);
+    if (r.ok())
+        return true;
+    err() << "xplasma: this needs a KDE Plasma session it can dress; not here:\n  " << QString(r.problems()).replace(QLatin1Char('\n'), QStringLiteral("\n  "))
+          << Qt::endl;
+    return false;
+}
+
+// Whether this desktop can take XPLasma's whole look -- what apply checks
+// before changing anything -- and, --json, the details (Setup's check).
+int check(bool json)
+{
+    LiveSession session;
+    const desktop::Report r = desktop::check(session);
+    const QStringList cannot = r.ok() ? cannotTake(session) : QStringList();
+    const bool ok = r.ok() && cannot.isEmpty();
+    if (json) {
+        QJsonArray unmet;
+        for (const desktop::Requirement &q : r.requirements)
+            if (!q.met)
+                unmet.append(QJsonObject{{QStringLiteral("what"), q.what}, {QStringLiteral("found"), q.found}});
+        const QString failure = cannot.join(QLatin1Char('\n'));   // (unmet requirements are in the diagnostics already)
+        const QJsonObject o{{QStringLiteral("ok"), ok},
+                            {QStringLiteral("plasma"), r.plasma},
+                            {QStringLiteral("newestKnownPlasma"), desktop::newestKnownPlasma()},
+                            {QStringLiteral("newer"), r.newer},
+                            {QStringLiteral("unmet"), unmet},
+                            {QStringLiteral("cannot"), QJsonArray::fromStringList(cannot)},
+                            {QStringLiteral("diagnostics"), desktop::diagnostics(session, ok ? QString() : failure)}};
+        out() << QJsonDocument(o).toJson(QJsonDocument::Indented);
+        return ok ? 0 : 1;
+    }
+    for (const desktop::Requirement &q : r.requirements)
+        say(QStringLiteral("%1 %2%3").arg(q.met ? QStringLiteral("ok  ") : QStringLiteral("NO  "), q.what,
+                                          q.found.isEmpty() ? QString() : QStringLiteral(" (%1)").arg(q.found)));
+    if (r.newer)
+        say(QStringLiteral("note: Plasma %1 is newer than XPLasma's builds (up to %2)").arg(r.plasma, desktop::newestKnownPlasma()));
+    for (const QString &c : cannot)
+        say(QStringLiteral("NO  %1").arg(c));
+    say(ok ? QStringLiteral("This desktop can take the whole XP look.") : QStringLiteral("This desktop can't take the whole XP look."));
+    return ok ? 0 : 1;
+}
+
 int reset()
 {
     LiveSession session;
@@ -511,7 +560,7 @@ int main(int argc, char **argv)
     parser.setApplicationDescription(QStringLiteral("Windows XP visual styles for KDE Plasma."));
     parser.addHelpOption();
     parser.addVersionOption();
-    parser.addPositionalArgument(QStringLiteral("command"), QStringLiteral("list | apply LOOK | widgets LOOK | pointers [SCHEME] | sounds [SCHEME|off] | reset | setup | build LOOK"));
+    parser.addPositionalArgument(QStringLiteral("command"), QStringLiteral("list | check | apply LOOK | widgets LOOK | pointers [SCHEME] | sounds [SCHEME|off] | reset | setup | build LOOK"));
     parser.addOption(QCommandLineOption(QStringLiteral("media"), QStringLiteral("XP's install media (an ISO, or a folder with I386)."), QStringLiteral("PATH")));
     for (const char *name : {"no-widgets", "no-taskbar", "no-icons", "no-wallpaper", "download-media", "no-packs", "all-packs", "no-shadow"})
         parser.addOption(QCommandLineOption(QString::fromLatin1(name)));
@@ -523,6 +572,15 @@ int main(int argc, char **argv)
 
     const QStringList args = parser.positionalArguments();
     const QString command = args.value(0);
+    // (what changes the desktop needs one it can change; list, setup, build,
+    // check and writing a theme --out don't)
+    const bool changes = command == QLatin1String("apply") || command == QLatin1String("widgets") || command == QLatin1String("reset")
+                         || ((command == QLatin1String("pointers") || command == QLatin1String("sounds")) && args.size() == 2
+                             && !parser.isSet(outOption));
+    if (changes && !requirePlasma())
+        return 1;
+    if (command == QLatin1String("check") && args.size() == 1)
+        return check(parser.isSet(jsonOption));
     if (command == QLatin1String("list"))
         return list(parser.isSet(jsonOption));
     if (command == QLatin1String("apply") && args.size() == 2)

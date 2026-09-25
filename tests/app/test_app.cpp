@@ -1992,6 +1992,16 @@ private Q_SLOTS:
         QVERIFY(!QFileInfo::exists(paths::home() + QLatin1String("/.icons")));   // (its links gone, and it with them)
     }
 
+    void plasmaSeries()
+    {
+        // Point releases are their series; x.y.90 and up, KDE's betas, the next.
+        QCOMPARE(forks::seriesOf(QStringLiteral("6.7.5")), QVersionNumber(6, 7));
+        QCOMPARE(forks::seriesOf(QStringLiteral("6.7.0")), QVersionNumber(6, 7));
+        QCOMPARE(forks::seriesOf(QStringLiteral("6.7.90")), QVersionNumber(6, 8));
+        QCOMPARE(forks::seriesOf(QStringLiteral("6.7.91")), QVersionNumber(6, 8));
+        QCOMPARE(forks::seriesOf(QStringLiteral("6.8")), QVersionNumber(6, 8));
+    }
+
     void removeEmptyDirs()
     {
         // Emptied folders go, up to the top; a folder with anything left
