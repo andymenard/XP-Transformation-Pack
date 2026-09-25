@@ -2,7 +2,7 @@
 //
 //   xplasma --version
 //   xplasma list [--json]      the library: visual styles, themes, Classic schemes
-//   xplasma apply LOOK [--no-widgets] [--no-taskbar] [--no-icons] [--no-wallpaper]
+//   xplasma apply LOOK [--no-widgets] [--no-taskbar] [--no-icons] [--no-sounds] [--no-wallpaper]
 //                              put a look on the running desktop
 //   xplasma widgets LOOK       only Qt apps' widgets
 //   xplasma reset              Plasma's default look back, XPlasma's gone
@@ -40,6 +40,7 @@
 #include "app/setup.h"
 #include "app/sounds.h"
 #include "app/state.h"
+#include "app/xptext.h"
 #include "core/themefile.h"
 
 #include <QCommandLineParser>
@@ -216,6 +217,7 @@ int apply(const QString &name, const QCommandLineParser &parser)
     o.widgets = !parser.isSet(QStringLiteral("no-widgets"));
     o.taskbar = !parser.isSet(QStringLiteral("no-taskbar"));
     o.icons = !parser.isSet(QStringLiteral("no-icons"));
+    o.sounds = !parser.isSet(QStringLiteral("no-sounds"));
     o.progress = say;
     // The wallpaper: a .theme's own, or Windows Classic's desktop colour.
     if (!parser.isSet(QStringLiteral("no-wallpaper"))) {
@@ -303,9 +305,9 @@ int soundSchemes(const QString &name, const QString &out)
     }
     LiveSession session;
     if (name == QLatin1String("off")) {
-        sounds::revert(session, state);
+        sounds::turnOff(session, state);
         state.save();
-        say(QStringLiteral("Sounds: the desktop's own"));
+        say(QStringLiteral("Sounds: the desktop's own (looks applied from now on leave them be)"));
         return 0;
     }
     const auto it = std::find_if(all.begin(), all.end(), [&](const sounds::Scheme &s) { return s.name.compare(name, Qt::CaseInsensitive) == 0; });
@@ -504,6 +506,10 @@ int checkForks()
     qtstyle::refreshFlatpak(session, &flatpakWhat);
     if (!flatpakWhat.isEmpty())
         what += (what.isEmpty() ? QString() : QStringLiteral("\n")) + flatpakWhat;
+    // (And XP's text for the display's scale now, if it changed last session.)
+    if (xptext::refresh(state))
+        what += (what.isEmpty() ? QString() : QStringLiteral("\n"))
+                + QStringLiteral("XP's text: its smoothing for a display at %1x").arg(state.settings.value(QStringLiteral("xpTextScale")).toDouble());
     if (state.settings != before)
         state.save();
     if (!what.isEmpty())
@@ -562,7 +568,7 @@ int main(int argc, char **argv)
     parser.addVersionOption();
     parser.addPositionalArgument(QStringLiteral("command"), QStringLiteral("list | check | apply LOOK | widgets LOOK | pointers [SCHEME] | sounds [SCHEME|off] | reset | setup | build LOOK"));
     parser.addOption(QCommandLineOption(QStringLiteral("media"), QStringLiteral("XP's install media (an ISO, or a folder with I386)."), QStringLiteral("PATH")));
-    for (const char *name : {"no-widgets", "no-taskbar", "no-icons", "no-wallpaper", "download-media", "no-packs", "all-packs", "no-shadow"})
+    for (const char *name : {"no-widgets", "no-taskbar", "no-icons", "no-sounds", "no-wallpaper", "download-media", "no-packs", "all-packs", "no-shadow"})
         parser.addOption(QCommandLineOption(QString::fromLatin1(name)));
     const QCommandLineOption jsonOption(QStringLiteral("json"), QStringLiteral("Machine-readable output."));
     parser.addOption(jsonOption);

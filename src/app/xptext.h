@@ -17,10 +17,27 @@
 
 namespace xpl::xptext {
 
-// The rules for the fonts in `fontsDir` (XP's, as setup imported them).
-QByteArray rules(const QString &fontsDir);
+// The rules for the fonts in `fontsDir` (XP's, as setup imported them), for
+// a display at `scale`. The sizes in a gasp table are the sizes text is
+// drawn at, but fontconfig is asked about a font at its unscaled size (Qt
+// checks Tahoma 11 on a 200% screen as 11 px and draws it at 22): so the
+// sizes are divided by the scale, and the smoothing falls where XP's would
+// on a screen of that many pixels -- as XP's Large Fonts smoothed the bigger
+// text.
+QByteArray rules(const QString &fontsDir, double scale = 1.0);
+
+// The main screen's scale (1, 1.25, 2...): KWin's saved setup for the
+// screens connected now (~/.config/kwinoutputconfig.json and the kernel's
+// connector states), its first-priority screen's. Readable at login, before
+// KWin starts. 1 when it can't tell.
+double displayScale();
+// The same, from that file's contents and the connectors connected ("eDP-1").
+double displayScale(const QByteArray &kwinOutputConfig, const QStringList &connected);
 
 bool apply(Session &session, State &state, QString *error = nullptr);
+// The rules written again for the display's scale now, if it's changed since
+// they were (at login: a scale changed in the last session); whether it was.
+bool refresh(State &state);
 // The user's settings back, and XPlasma's rules gone.
 void revert(Session &session, State &state);
 

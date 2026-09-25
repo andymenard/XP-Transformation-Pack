@@ -660,6 +660,15 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
             session.run({helper, QLatin1String(kIconThemeId)});
     }
 
+    // XP's sounds, as XP had them from the start: the first time, unless
+    // they've been turned off. (A failure there isn't the look's.)
+    if (o.sounds && sounds::wantedWithLook(state)) {
+        if (sounds::apply(session, state, sounds::defaultScheme(), &why))
+            report(o, QStringLiteral("Sounds: Windows Default"));
+        else
+            report(o, QStringLiteral("  XP's sounds stay off: %1").arg(why));
+    }
+
     state.appliedKind = look.classic() ? QStringLiteral("classic") : QStringLiteral("style");
     state.style = look.stylePath;
     state.variant = look.variant;

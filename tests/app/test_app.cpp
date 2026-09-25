@@ -1535,6 +1535,42 @@ private Q_SLOTS:
         }
         QVERIFY2(crisp11, qPrintable(rules));
         QVERIFY(kern);
+
+        // On a 200% screen fontconfig is asked about 11 px, drawn at 22: the
+        // one-bit band (9-16 px drawn) is 4.5-8.5 px asked, so Tahoma 11
+        // is smoothed there, as XP smoothed text that size.
+        const QString doubled = QString::fromUtf8(xptext::rules(m_realFonts, 2.0));
+        bool crisp11At2 = false, crisp7At2 = false;
+        for (const QString &block : doubled.split(QLatin1String("<match target=\"font\">"))) {
+            if (!block.contains(QLatin1String("<string>Tahoma</string>")) || !block.contains(QLatin1String("name=\"antialias\"><bool>false")))
+                continue;
+            const QRegularExpression lo(QStringLiteral("more_eq\"><double>([0-9.]+)")), hi(QStringLiteral("less\"><double>([0-9.]+)"));
+            const auto l = lo.match(block), h = hi.match(block);
+            const double from = l.hasMatch() ? l.captured(1).toDouble() : 0, to = h.hasMatch() ? h.captured(1).toDouble() : 1e9;
+            crisp11At2 |= from <= 11 && 11 < to;
+            crisp7At2 |= from <= 7 && 7 < to;
+        }
+        QVERIFY(!crisp11At2);
+        QVERIFY(crisp7At2);
+    }
+
+    void displayScale()
+    {
+        // KWin's saved setups: the one for the screens connected now, its
+        // first-priority screen's scale.
+        const QByteArray config = R"([
+            {"name": "outputs", "data": [
+                {"connectorName": "eDP-1", "scale": 1},
+                {"connectorName": "DP-1", "scale": 1.5}]},
+            {"name": "setups", "data": [
+                {"outputs": [{"outputIndex": 0, "enabled": false, "priority": -1},
+                             {"outputIndex": 1, "enabled": true, "priority": 0}]},
+                {"outputs": [{"outputIndex": 0, "enabled": true, "priority": 0}]}]}
+        ])";
+        QCOMPARE(xptext::displayScale(config, {QStringLiteral("eDP-1")}), 1.0);
+        QCOMPARE(xptext::displayScale(config, {QStringLiteral("eDP-1"), QStringLiteral("DP-1")}), 1.5);
+        QCOMPARE(xptext::displayScale(config, {QStringLiteral("HDMI-A-1")}), 1.0);   // (no setup for it)
+        QCOMPARE(xptext::displayScale(QByteArray("not json"), {QStringLiteral("eDP-1")}), 1.0);
     }
 
     void xpTextApplyAndRevert()
@@ -2035,6 +2071,7 @@ private Q_SLOTS:
         for (const QString &sound : std::as_const(xp.sounds))
             QVERIFY2(sounds::mediaSounds().contains(sound), qPrintable(sound));
         QCOMPARE(sounds::Scheme::fromJson(xp.toJson()), xp);
+        QVERIFY(sounds::wantedWithLook(State()));   // (a fresh desktop: yes)
         State saved;
         sounds::saveScheme(saved, sounds::Scheme{QStringLiteral("Mine"), {{QStringLiteral(".Default"), QStringLiteral("chord.wav")}}});
         QCOMPARE(sounds::savedSchemes(saved).size(), 1);
@@ -2080,7 +2117,14 @@ private Q_SLOTS:
         QVERIFY(!QFileInfo::exists(stereo));
         QVERIFY(!session.config.contains(QStringLiteral("plasma_workspace.notifyrc|Event/startkde|Action")));
 
+        // A look brings them only while none are applied and they weren't
+        // turned off; turning them off is remembered until a scheme is applied.
+        QVERIFY(!sounds::wantedWithLook(state));
+        sounds::turnOff(session, state);
+        QVERIFY(!sounds::wantedWithLook(state));
+        QVERIFY2(sounds::apply(session, state, xp, &error), qPrintable(error));
         sounds::revert(session, state);
+        QVERIFY(sounds::wantedWithLook(state));
         QCOMPARE(session.config.value(QStringLiteral("kdeglobals|Sounds|Theme")), QStringLiteral("oxygen"));
         QVERIFY(!session.config.contains(QStringLiteral("ksmserver.notifyrc|Event/locked|Action")));
         QVERIFY(!sounds::applied(state));

@@ -356,6 +356,7 @@ bool apply(Session &session, State &state, const Scheme &scheme, QString *error)
         if (d.fileName() != id)
             QDir(d.absoluteFilePath()).removeRecursively();
     state.settings.insert(QStringLiteral("sounds"), scheme.toJson());
+    state.settings.remove(QStringLiteral("soundsOff"));
     return true;
 }
 
@@ -380,6 +381,17 @@ void revert(Session &session, State &state)
     QDir().rmdir(soundsDir());   // (if the user has no themes of their own)
     state.settings.remove(QStringLiteral("sounds"));
     state.settings.remove(QStringLiteral("previousSoundTheme"));
+}
+
+bool wantedWithLook(const State &state)
+{
+    return !applied(state) && !state.settings.value(QStringLiteral("soundsOff")).toBool();
+}
+
+void turnOff(Session &session, State &state)
+{
+    revert(session, state);
+    state.settings.insert(QStringLiteral("soundsOff"), true);
 }
 
 } // namespace xpl::sounds

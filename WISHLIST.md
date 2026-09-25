@@ -37,6 +37,8 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Done
 
+- XP's sounds on with the first look applied, as XP had them from the
+  start; `xplasma sounds off` is remembered (2026-09-25).
 - Sounds and Audio Devices Properties, its Volume tab: the default output's
   name, volume and mute (pactl, else wpctl), the volume icon in the taskbar
   (Plasma's tray); Advanced... opens Plasma's audio settings (2026-09-25).

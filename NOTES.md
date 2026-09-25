@@ -167,6 +167,20 @@ Plasma set up, nothing of XPlasma's, for trying Setup from scratch.
 - ~~**XP's Start button tooltip is "Click here to begin"**~~ (done
   2026-09-24; still drawn in Plasma's tooltip colours, above).
 
+- **XP's text on a scaled screen (2026-09-25).** A font's gasp table names
+  the sizes it's drawn at, but Qt asks fontconfig about a font at its
+  unscaled size and draws it scaled: on a 200% screen Tahoma 11 was checked
+  as 11 px (one-bit) and drawn at 22, jagged, where XP would have smoothed
+  it; Tahoma 7 the other way round. The rules now divide the table's sizes
+  by the main screen's scale (KWin's saved setup for the screens connected,
+  read at login before KWin starts; `check-forks` rewrites them when it
+  changes), so 22 px drawn is smoothed and 14 px drawn isn't -- as XP's
+  Large Fonts smoothed bigger text. Checked with Qt rendering into images
+  at 2x under the rules a 200% Void VM got. Limits: one scale for every
+  screen (the main one's), apps started before a change keep the old rules,
+  and GTK hasn't been checked (if it asks fontconfig at the drawn size, its
+  bands are now off by the scale).
+
 - **The 6.8 series is pinned to Plasma's beta (6.7.91).** Until a
   distribution carries 6.8, its development files come from Arch's
   kde-unstable (containers/plasma-6.8.Containerfile) and its floor is that

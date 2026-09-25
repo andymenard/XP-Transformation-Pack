@@ -31,6 +31,7 @@ struct ApplyOptions
     bool widgets = true;       // Qt apps' widget style
     bool taskbar = true;       // the panel, the Start button, the tray
     bool icons = true;
+    bool sounds = true;        // XP's sounds with the look, as sounds::wantedWithLook says
     std::optional<Wallpaper> wallpaper;
     QString themeFile;         // the .theme the look came from, if any (recorded)
     std::function<void(const QString &)> progress;

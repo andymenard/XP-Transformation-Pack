@@ -92,7 +92,7 @@ xplasma reset                          # back to Plasma's own look
 xplasma-edit                           # Display Properties (also in the app menu)
 xplasma-edit --date-time               # Date and Time Properties (double-click the clock)
 xplasma-edit --sounds                  # Sounds and Audio Devices Properties: volume, XP's sound schemes
-xplasma sounds 'Windows Default'       # or 'No Sounds', a saved scheme, or off (the desktop's own sounds)
+xplasma sounds 'Windows Default'       # or 'No Sounds', a saved scheme, or off (kept off by later applies)
 ```
 
 From Plasma 6.5 on, Plasma builds some of its widgets (the tray,

@@ -76,4 +76,12 @@ bool apply(Session &session, State &state, const Scheme &scheme, QString *error 
 // The sound theme the user had, and Plasma's own log-in and lock sounds.
 void revert(Session &session, State &state);
 
+// Whether a look applied now brings XP's sounds with it (Windows Default),
+// as XP had them on from the start: none applied yet, and the user hasn't
+// turned them off.
+bool wantedWithLook(const State &state);
+// The user's "no XP sounds": revert, and remembered, so looks applied after
+// leave the sounds alone -- until a scheme is applied again.
+void turnOff(Session &session, State &state);
+
 } // namespace xpl::sounds
