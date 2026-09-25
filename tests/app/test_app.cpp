@@ -2168,6 +2168,10 @@ private Q_SLOTS:
         QCOMPARE(session.config.value(QStringLiteral("plasma_workspace.notifyrc|Event/startkde|Action")), QStringLiteral("Sound"));
         QCOMPARE(session.config.value(QStringLiteral("ksmserver.notifyrc|Event/locked|Sound")), QStringLiteral("service-logout"));
         QCOMPARE(sounds::applied(state)->name, QStringLiteral("Windows Default"));
+        // (and the window sounds' events, for the Start button to send)
+        const QByteArray rc = readFile(paths::localShare() + QLatin1String("/knotifications6/xplasma.notifyrc"));
+        QVERIFY(rc.contains("[Event/windowMinimize]") && rc.contains("Sound=window-minimized"));
+        QVERIFY(QFileInfo(stereo + QLatin1String("window-minimized.wav")).size() < 3000);   // (quiet in Windows Default, as XP's)
 
         // Another scheme: its own theme, the last one gone.
         sounds::Scheme mine = xp;
@@ -2190,6 +2194,7 @@ private Q_SLOTS:
         QVERIFY(!session.config.contains(QStringLiteral("ksmserver.notifyrc|Event/locked|Action")));
         QVERIFY(!sounds::applied(state));
         QVERIFY(!QFileInfo::exists(paths::localShare() + QLatin1String("/sounds")));   // (emptied: gone)
+        QVERIFY(!QFileInfo::exists(paths::localShare() + QLatin1String("/knotifications6/xplasma.notifyrc")));
     }
 
     void wallpaperNamesFromInfs()

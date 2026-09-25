@@ -208,6 +208,17 @@ Plasma set up, nothing of XPlasma's, for trying Setup from scratch.
   Fedora 44 (2026-09-25): plasmashell's volume feedback came from the
   scheme (XP's Ding, as PipeWire cached it); the play button plays through
   pw-play, paplay or aplay (vmtools' listen heard it).
+- **Window sounds come from the Start button (2026-09-25).** Plasma has no
+  notification events for windows opening, closing, minimizing or
+  maximizing, so XPlasma's Start plasmoid watches Plasma's task model
+  (every desktop and screen, ungrouped; the first screen's Start button
+  only) and sends events of its own notifyrc (xplasma.notifyrc, written with
+  a scheme), which play the sound theme's window-new, window-minimized...
+  Windows there when the shell starts are learnt quietly. Only windows with
+  a taskbar entry count, as XP's "program" events did. Checked on Fedora:
+  minimize and restore played XP's Minimize and Restore, three runs out of
+  four -- the first restore after an apply stayed silent once, and didn't
+  again.
 - **Plasma's power plug, unplug and password-prompt sounds are silenced**
   under every scheme: XP made no sound for them.
 

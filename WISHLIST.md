@@ -8,10 +8,6 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Wanted
 
-- **Window sounds** (XP's Open program, Close program, Minimize, Maximize,
-  Restore Up/Down, Menu popup): Plasma has no notification event for them.
-  The taskbar's task model sees windows open, close, minimize and maximize;
-  a sound played from there would reach the scheme's names.
 - **Sounds and Audio Devices' other tabs**: Audio, Voice, Hardware.
 - **Other sound schemes** (the user's idea: a small rock band recording a
   whole XP sound theme).
@@ -34,6 +30,10 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Done
 
+- Window sounds: XP's Open program, Close program, Minimize, Maximize,
+  Restore Up and Restore Down, in Sounds and Audio Devices' list, played by
+  XPlasma's Start button from Plasma's task model (quiet in Windows
+  Default, as XP had them) (2026-09-25).
 - XPlasma's own update notifier (the user's idea): XP's Automatic Updates
   globe in the tray and its balloon, "Updates are ready for your computer",
   when project.ini's UpdatesUrl names a newer release; checked once a day at

@@ -58,6 +58,11 @@ PlasmoidItem {
     // The whole height of the panel, as XP's taskbar has its button.
     Plasmoid.constraintHints: Plasmoid.CanFillArea
     Plasmoid.icon: "start-here-kde"
+
+    // XP's window sounds, from the first screen's Start button only.
+    XpWindowSounds {
+        enabled: Plasmoid.containment !== null && Plasmoid.containment.screen === 0
+    }
     // XP's tooltip over Start (not the widget's name and description)
     toolTipMainText: i18n("Click here to begin")
     toolTipSubText: ""

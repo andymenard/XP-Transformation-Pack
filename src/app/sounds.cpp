@@ -84,6 +84,27 @@ QString soundsDir()
     return paths::localShare() + QLatin1String("/sounds");
 }
 
+// XPlasma's own notification events, for the window sounds Plasma has none
+// for: the Start button sends them (XpWindowSounds.qml), each plays its
+// sound theme name.
+QString notifyrcPath()
+{
+    return paths::localShare() + QLatin1String("/knotifications6/xplasma.notifyrc");
+}
+
+QByteArray notifyrc()
+{
+    const std::pair<const char *, const char *> events[] = {
+        {"windowOpen", "window-new"},           {"windowClose", "window-close"},
+        {"windowMinimize", "window-minimized"}, {"windowMaximize", "window-maximized"},
+        {"windowRestoreUp", "window-unminimized"}, {"windowRestoreDown", "window-unmaximized"},
+    };
+    QByteArray out = "# Written by XPlasma with a sound scheme: XP's window sounds.\n[Global]\nIconName=preferences-desktop-sound\nComment=XPlasma\n";
+    for (const auto &[id, sound] : events)
+        out += QByteArray("\n[Event/") + id + "]\nName=" + id + "\nSound=" + sound + "\nAction=Sound\n";
+    return out;
+}
+
 bool write(const QString &path, const QByteArray &bytes)
 {
     QDir().mkpath(QFileInfo(path).absolutePath());
@@ -124,7 +145,10 @@ const QList<Event> &events()
     // battery-caution, critical as battery-low), Plasma's device, trash,
     // log-in and log-out notices, the bell (and the volume's feedback,
     // XP's Default Beep), mail and messages; lock and unlock as XP's
-    // Windows Logoff and Logon (XP played them switching users).
+    // Windows Logoff and Logon (XP played them switching users); and the
+    // windows opening, closing, minimizing, maximizing and restoring, which
+    // Plasma has no events for: XPlasma's Start button plays those
+    // (XpWindowSounds.qml, through xplasma.notifyrc).
     static const QList<Event> list = [] {
         const QString windows = QStringLiteral("Windows");
         const QString explorer = QStringLiteral("Windows Explorer");
@@ -136,6 +160,7 @@ const QList<Event> &events()
         };
         return QList<Event>{
             e("SystemAsterisk", "Asterisk", windows, {"dialog-information"}),
+            e("Close", "Close program", windows, {"window-close"}),
             e("CriticalBatteryAlarm", "Critical Battery Alarm", windows, {"battery-low"}),
             e("SystemHand", "Critical Stop", windows, {"dialog-error-critical", "dialog-error"}),
             e(".Default", "Default Beep", windows, {"bell-window-system", "bell", "audio-volume-change"}),
@@ -145,9 +170,14 @@ const QList<Event> &events()
             e("SystemExclamation", "Exclamation", windows, {"dialog-warning"}),
             e("SystemExit", "Exit Windows", windows, {"desktop-logout"}),
             e("LowBatteryAlarm", "Low Battery Alarm", windows, {"battery-caution"}),
+            e("Maximize", "Maximize", windows, {"window-maximized"}),
+            e("Minimize", "Minimize", windows, {"window-minimized"}),
             e("MailBeep", "New Mail Notification", windows, {"message-new-email"}),
+            e("Open", "Open program", windows, {"window-new"}),
             e("AppGPFault", "Program error", windows, {"dialog-error-serious"}),
             e("SystemQuestion", "Question", windows, {"dialog-question"}),
+            e("RestoreDown", "Restore Down", windows, {"window-unmaximized"}),
+            e("RestoreUp", "Restore Up", windows, {"window-unminimized"}),
             e("SystemStart", "Start Windows", windows, {"desktop-login"}),
             e("SystemNotification", "System Notification", windows, {"message", "message-new-instant"}),
             e("WindowsLogoff", "Windows Logoff", windows, {"service-logout"}),
@@ -355,6 +385,7 @@ bool apply(Session &session, State &state, const Scheme &scheme, QString *error)
     for (const QFileInfo &d : QDir(soundsDir()).entryInfoList({QLatin1String(kThemeId) + QLatin1String("-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
         if (d.fileName() != id)
             QDir(d.absoluteFilePath()).removeRecursively();
+    write(notifyrcPath(), notifyrc());
     state.settings.insert(QStringLiteral("sounds"), scheme.toJson());
     state.settings.remove(QStringLiteral("soundsOff"));
     return true;
@@ -379,6 +410,8 @@ void revert(Session &session, State &state)
     for (const QFileInfo &d : QDir(soundsDir()).entryInfoList({QLatin1String(kThemeId) + QLatin1String("-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
         QDir(d.absoluteFilePath()).removeRecursively();
     QDir().rmdir(soundsDir());   // (if the user has no themes of their own)
+    QFile::remove(notifyrcPath());
+    QDir().rmdir(QFileInfo(notifyrcPath()).absolutePath());
     state.settings.remove(QStringLiteral("sounds"));
     state.settings.remove(QStringLiteral("previousSoundTheme"));
 }
