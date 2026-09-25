@@ -24,13 +24,10 @@
 //   xplasma-setup                     the wizard
 //   xplasma-setup --screenshots DIR   every page drawn into DIR, then exit
 //
-// Its look is XPlasma's own Windows Classic rendering and its pictures its
-// own: nothing of Windows ships in it.
-#include "core/classic.h"
-#include "app/controls.h"
+// It looks like the desktop it runs on (the system's style), before XPlasma
+// is on it; its pictures are its own: nothing of Windows ships in it.
 #include "app/desktop.h"
 #include "app/install.h"
-#include "app/look.h"
 #include "app/overrides.h"
 #include "app/paths.h"
 #include "app/pointers.h"
@@ -873,19 +870,6 @@ private:
     ProgressPage *m_progress;
 };
 
-// XPlasma's Windows Classic, from the package's own plugin, in Tahoma where
-// the machine has it.
-void useClassic(QApplication &app, const QString &package)
-{
-    QCoreApplication::addLibraryPath(package + QLatin1String("/lib/xplasma/qt6"));
-    if (QStyle *style = xpStyle(Look::fromScheme(ClassicScheme()))) {
-        QApplication::setStyle(style);
-        QApplication::setPalette(style->standardPalette());
-    }
-    if (QFontDatabase::hasFamily(QStringLiteral("Tahoma")))
-        app.setFont(QFont(QStringLiteral("Tahoma"), 8));
-}
-
 } // namespace
 
 int main(int argc, char **argv)
@@ -913,7 +897,6 @@ int main(int argc, char **argv)
         QMessageBox::critical(nullptr, QStringLiteral("XPlasma Setup"), error);
         return 1;
     }
-    useClassic(app, plan.package);
     plan.prefix = installer::installedPrefix();
     plan.mode = plan.prefix.isEmpty() ? Mode::Install : Mode::Repair;
     if (plan.prefix.isEmpty())
