@@ -16,7 +16,10 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
   them (the user's idea: a small rock band recording a whole XP sound theme).
 - **Flatpak's Qt 5 apps** (KDE runtime 5.15): the Qt 5 plugin as the same
   kind of extension, if its runtime's extension point takes it.
-- **The installer, redesigned** (PLAN.md §10), as a knock-off of XP's Setup.
+- **The installer, redesigned** (PLAN.md §10), as a knock-off of a Windows
+  Installer (MSI) wizard -- not XP's Setup (the user, 2026-09-24): the
+  welcome and finish pages with the tall picture down the left, the pages
+  between with the banner across the top, Back / Next / Cancel.
 - **GTK**: a real GTK3 generator on the machinery that's already there.
 - **A KDecoration plugin** on the same core, in place of Aurorae (optional).
 - **Real rendering in the editor's previews** (`xplasma-render`).
