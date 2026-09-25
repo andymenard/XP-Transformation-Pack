@@ -181,4 +181,60 @@ void remove(QStringList *log)
         *log << QStringLiteral("Flatpak apps: the style gone");
 }
 
+const QStringList &gtkReadOnlyPaths()
+{
+    static const QStringList paths{QStringLiteral("xdg-config/gtk-4.0:ro"), QStringLiteral("xdg-data/themes:ro")};
+    return paths;
+}
+
+QString gtkExtensionRoot(const QString &name)
+{
+    return paths::localShare() + QLatin1String("/flatpak/extension/org.gtk.Gtk3theme.") + name;
+}
+
+static void removeGtkExtensions(const QString &keep)
+{
+    const QDir root(paths::localShare() + QLatin1String("/flatpak/extension"));
+    for (const QString &dir : root.entryList({QStringLiteral("org.gtk.Gtk3theme.XPLasma-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
+        if (dir != QLatin1String("org.gtk.Gtk3theme.") + keep)
+            QDir(root.filePath(dir)).removeRecursively();
+}
+
+bool installGtk(Session &session, const QString &themeRoot, const QString &name, QStringList *log, QString *error)
+{
+    if (!session.run({QStringLiteral("flatpak"), QStringLiteral("--version")}).ok())
+        return true;
+    const host::Result a = session.run({QStringLiteral("flatpak"), QStringLiteral("--default-arch")});
+    const QString arch = a.ok() && !a.out.trimmed().isEmpty() ? QString::fromUtf8(a.out.trimmed()) : QStringLiteral("x86_64");
+    const QString dir = gtkExtensionRoot(name) + QLatin1Char('/') + arch + QLatin1String("/3.22");
+    QDir(gtkExtensionRoot(name)).removeRecursively();
+    QDir().mkpath(dir + QLatin1String("/assets"));
+    QFile css(themeRoot + QLatin1String("/gtk-3.0/gtk.css"));
+    if (!css.open(QIODevice::ReadOnly))
+        return fail(error, QStringLiteral("%1: %2").arg(css.fileName(), css.errorString()));
+    const QByteArray text = css.readAll().replace("url(\"../assets/", "url(\"assets/");
+    QSaveFile out(dir + QLatin1String("/gtk.css"));
+    if (!out.open(QIODevice::WriteOnly) || out.write(text) < 0 || !out.commit())
+        return fail(error, QStringLiteral("%1: %2").arg(out.fileName(), out.errorString()));
+    for (const QFileInfo &f : QDir(themeRoot + QLatin1String("/assets")).entryInfoList(QDir::Files))
+        if (!QFile::copy(f.absoluteFilePath(), dir + QLatin1String("/assets/") + f.fileName()))
+            return fail(error, QStringLiteral("can't copy %1 into %2").arg(f.fileName(), dir));
+    removeGtkExtensions(name);
+    if (!editFilesystems(gtkReadOnlyPaths(), {}, error))
+        return false;
+    if (log)
+        *log << QStringLiteral("Flatpak apps: the GTK theme too (org.gtk.Gtk3theme.%1)").arg(name);
+    return true;
+}
+
+void removeGtk(QStringList *log)
+{
+    const QDir root(paths::localShare() + QLatin1String("/flatpak/extension"));
+    const bool had = !root.entryList({QStringLiteral("org.gtk.Gtk3theme.XPLasma-*")}, QDir::Dirs | QDir::NoDotAndDotDot).isEmpty();
+    removeGtkExtensions(QString());
+    editFilesystems({}, gtkReadOnlyPaths(), nullptr);
+    if (had && log)
+        *log << QStringLiteral("Flatpak apps: the GTK theme gone");
+}
+
 } // namespace xpl::flatpak

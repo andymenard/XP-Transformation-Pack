@@ -1,6 +1,7 @@
 #include "app/gtk.h"
 
 #include "app/controls.h"
+#include "app/flatpak.h"
 #include "app/paths.h"
 #include "core/render.h"
 #include "core/schema.h"
@@ -997,6 +998,10 @@ bool apply(Session &session, const Look &look, State &state, QStringList *log, Q
     setUserImport(root + QLatin1String("/gtk-4.0/xplasma.css"));
     if (log)
         *log << QStringLiteral("GTK apps: %1 (GTK 3 and 4; libadwaita apps' controls too)").arg(themeName(look));
+    // Flatpak's GTK apps too (a failure there isn't the look's).
+    QString why;
+    if (!flatpak::installGtk(session, root, themeName(look), log, &why) && log)
+        *log << QStringLiteral("Flatpak apps: not the GTK theme (%1)").arg(why);
     return true;
 }
 
@@ -1013,6 +1018,7 @@ void revert(Session &session, State &state, QStringList *log)
     state.settings.remove(QStringLiteral("previousGtkOverlayScrolling"));
     state.settings.remove(QStringLiteral("previousGtkTheme"));
     setUserImport(QString());
+    flatpak::removeGtk(log);
     const bool had = QDir(paths::localShare() + QLatin1String("/themes")).entryList({QStringLiteral("XPLasma-*")}, QDir::Dirs).size() > 0;
     removeThemes(QString());
     if (had && log)

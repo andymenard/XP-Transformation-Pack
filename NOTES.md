@@ -73,6 +73,13 @@ the copy dialog and a failed copy, Start, Date and Time, apply/reset cycles.
     decorations module isn't loaded.
   * GTK 2 isn't done: MATE's apps (Engrampa, Caja, Pluma) are GTK 3 since
     MATE 1.18.
+  * Flatpak GTK apps: GTK 3 themes are an org.gtk.Gtk3theme extension point
+    in every GTK runtime (version 3.22, mounted as the theme's gtk-3.0
+    folder -- so its images go inside it); XPLasma installs the theme there
+    as an unmaintained extension, as the Qt style. Libadwaita apps read the
+    user's GTK 4 stylesheet through a global override
+    (xdg-config/gtk-4.0:ro, which Flatpak shows at the app's own config
+    path, and xdg-data/themes:ro for the layer it imports).
 - **Flatpak: an app's own xplasmarc wins, so stand-ins are cleared.** While
   ~/.config/xplasmarc was shared into sandboxes as a file (the first
   Flatpak attempt), Flatpak left an empty, read-only xplasmarc in each app's

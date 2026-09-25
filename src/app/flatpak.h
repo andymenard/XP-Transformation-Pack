@@ -35,6 +35,17 @@ bool install(Session &session, const QString &plugin, QStringList *log, QString 
 // user's overrides left as they are).
 void remove(QStringList *log = nullptr);
 
+// GTK: the look's GTK 3 theme (`themeRoot`, gtk::writeTheme's, named `name`)
+// as an org.gtk.Gtk3theme extension -- every GTK runtime's, version 3.22,
+// mounted as the theme's gtk-3.0 folder, so its images go inside it and its
+// stylesheet names them there -- and, for libadwaita apps, the user's GTK 4
+// stylesheet and the themes folder readable by every app (the stylesheet
+// imports XPLasma's layer from there). Nothing to do without Flatpak.
+bool installGtk(Session &session, const QString &themeRoot, const QString &name, QStringList *log, QString *error = nullptr);
+void removeGtk(QStringList *log = nullptr);
+const QStringList &gtkReadOnlyPaths();
+QString gtkExtensionRoot(const QString &name);
+
 // Where the extension goes, and the override file (for tests).
 QString extensionRoot();
 QString overrideFile();

@@ -1169,6 +1169,21 @@ private Q_SLOTS:
         };
         QVERIFY2(userText().startsWith(QLatin1String("@import 'colors.css';\n@import url(\"file://")) && userText().contains(QLatin1String("xplasma.css")),
                  qPrintable(userText()));
+        // Flatpak's GTK apps: the theme as an org.gtk.Gtk3theme extension (the
+        // theme's gtk-3.0 folder, its images inside), and the GTK 4 stylesheet
+        // and the themes readable, for libadwaita apps.
+        {
+            const QString ext = flatpak::gtkExtensionRoot(gtk::themeName(*luna)) + QLatin1String("/x86_64/3.22");
+            QFile css(ext + QLatin1String("/gtk.css"));
+            QVERIFY(css.open(QIODevice::ReadOnly));
+            const QByteArray text = css.readAll();
+            QVERIFY(text.contains("url(\"assets/button-normal.png\")") && !text.contains("../assets/"));
+            QVERIFY(QFileInfo::exists(ext + QLatin1String("/assets/button-normal.png")));
+            QFile overrides(flatpak::overrideFile());
+            QVERIFY(overrides.open(QIODevice::ReadOnly));
+            const QByteArray o = overrides.readAll();
+            QVERIFY2(o.contains("xdg-config/gtk-4.0:ro") && o.contains("xdg-data/themes:ro"), o.constData());
+        }
         // Again: one line, not two.
         QVERIFY(gtk::apply(session, *luna, state, &log, &error));
         QCOMPARE(userText().count(QLatin1String("xplasma.css")), 1);
@@ -1177,6 +1192,8 @@ private Q_SLOTS:
         QCOMPARE(userText(), QStringLiteral("@import 'colors.css';\n"));
         QVERIFY(!QFileInfo::exists(paths::localShare() + QLatin1String("/themes/") + gtk::themeName(*luna)));
         QVERIFY(!state.settings.contains(QStringLiteral("previousGtkTheme")));
+        QVERIFY(!QFileInfo::exists(flatpak::gtkExtensionRoot(gtk::themeName(*luna))));
+        QVERIFY(!QFileInfo::exists(flatpak::overrideFile()));
     }
 
     void startButtonExtrasApplied()
