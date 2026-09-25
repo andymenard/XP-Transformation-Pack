@@ -64,8 +64,12 @@ the copy dialog and a failed copy, Start, Date and Time, apply/reset cycles.
   * The scroll bar grip is centred along the thumb by GTK: on a thumb of odd
     length it lands on a half pixel and its 1px ribs blend into a flat square.
     Across the thumb it's placed at a whole pixel.
+  * Switches are XP's check box, as in Plasma's popups: the switch node
+    draws the box (empty or ticked), its slider and GTK 3's i/o icons
+    nothing (the icons' colour transparent even when disabled, which the
+    general disabled rule would grey in).
   * Not XP (yet): libadwaita's own title bars and round window buttons,
-    switches (Adwaita's), level bars, GTK 3's CSD header bars where KDE's
+    level bars, GTK 3's CSD header bars where KDE's
     decorations module isn't loaded.
   * GTK 2 isn't done: MATE's apps (Engrampa, Caja, Pluma) are GTK 3 since
     MATE 1.18.

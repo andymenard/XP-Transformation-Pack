@@ -482,6 +482,29 @@ radio:checked:hover { -gtk-icon-source: ${radio_on_hot}; }
 radio:checked:active { -gtk-icon-source: ${radio_on_pressed}; }
 radio:checked:disabled { -gtk-icon-source: ${radio_on_disabled}; }
 
+/* Switches: XP had none; its check box stands in, as in Plasma's popups --
+   the switch the box, empty or ticked, its slider nothing (GTK sizes a
+   switch from twice its slider: half the box each). */
+switch {
+    min-width: ${check_size}px; min-height: ${check_size}px; padding: 0; margin: 0;
+    border: none; border-image: none; border-radius: 0; box-shadow: none; outline: none;
+    color: transparent;
+    background-image: ${check_off_normal}; background-size: ${check_size}px ${check_size}px;
+    background-position: center; background-repeat: no-repeat; background-color: transparent;
+}
+switch:hover { background-image: ${check_off_hot}; }
+switch:active { background-image: ${check_off_pressed}; }
+switch:disabled { background-image: ${check_off_disabled}; color: transparent; }
+switch:checked { background-image: ${check_on_normal}; }
+switch:checked:hover { background-image: ${check_on_hot}; }
+switch:checked:active { background-image: ${check_on_pressed}; }
+switch:checked:disabled { background-image: ${check_on_disabled}; color: transparent; }
+switch slider, switch image, switch slider:disabled, switch image:disabled {
+    min-width: ${switch_half}px; min-height: ${check_size}px; margin: 0; padding: 0;
+    border: none; border-image: none; border-radius: 0; background: none; box-shadow: none; outline: none;
+    opacity: 0; -gtk-icon-source: none; color: transparent;
+}
+
 /* Text fields: XP's edit border round the window colour. */
 entry, spinbutton:not(.vertical) {
     border-image: ${entry_normal} ${entry_edge} stretch;
@@ -772,6 +795,7 @@ QString writeTheme(const Look &look, const QString &directory, QString *error)
         }
     }
     v.insert(QStringLiteral("check_size"), QString::number(style->pixelMetric(QStyle::PM_IndicatorWidth)));
+    v.insert(QStringLiteral("switch_half"), QString::number((style->pixelMetric(QStyle::PM_IndicatorWidth) + 1) / 2));
     v.insert(QStringLiteral("radio_size"), QString::number(style->pixelMetric(QStyle::PM_ExclusiveIndicatorWidth)));
 
     // Text fields.

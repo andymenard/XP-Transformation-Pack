@@ -21,7 +21,7 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
   welcome and finish pages with the tall picture down the left, the pages
   between with the banner across the top, Back / Next / Cancel.
 - **GTK, further**: XP captions on client-side title bars (libadwaita's and
-  GTK 3's header bars) with XP's window buttons; switches as XP's check box;
+  GTK 3's header bars) with XP's window buttons;
   Flatpak GTK apps (an org.gtk.Gtk3theme extension, as the Qt one); GTK 2
   apps (a pixmap-engine gtkrc), if any still matter.
 - **A KDecoration plugin** on the same core, in place of Aurorae (optional).
