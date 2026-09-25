@@ -992,6 +992,18 @@ private Q_SLOTS:
             QCOMPARE(ticked.size(), QSize(16, 16));
             QCOMPARE(ticked.pixel(0, 0), box.pixel(0, 0));
             QVERIFY(ticked != box);
+            // A switch (XP's check box): the active bar, drawn from the bar's
+            // left to the handle's right edge (Plasma 6.4 even when off), is
+            // one piece and the handle 3px, so off it has no width to draw in.
+            const auto &sw = controls.value(QStringLiteral("switch"));
+            auto swElement = [&](const char *name) {
+                const auto it = std::find_if(sw.begin(), sw.end(), [&](const auto &e) { return e.first == QLatin1String(name); });
+                return it == sw.end() ? QImage() : it->second;
+            };
+            QCOMPARE(swElement("handle").width(), 3);
+            QVERIFY(!swElement("active-center").isNull());
+            QVERIFY(swElement("active-topleft").isNull() && swElement("active-left").isNull());
+            QCOMPARE(swElement("active-center").width(), swElement("hint-bar-size").width() - 3);   // the box (bar less 2) less its left edge
             // Focus (and hover) only what they change of the button: not over
             // a check box's middle, where the tick is.
             QCOMPARE(qAlpha(element("focus-center").pixel(element("focus-center").width() / 2, element("focus-center").height() / 2)), 0);
@@ -1509,6 +1521,18 @@ private Q_SLOTS:
         QVERIFY(QFileInfo::exists(share + QLatin1String("/aurorae/themes/windows-xp-style-silver/decoration.svg")));
         QVERIFY(QFileInfo::exists(share + QLatin1String("/color-schemes/windows-xp-style-silver.colors")));
         QVERIFY(QFileInfo::exists(share + QLatin1String("/plasma/desktoptheme/windows-xp-style-silver-taskbar/widgets/tasks.svg")));
+        {
+            // KSvg's cache primed with the theme's size variants (the check
+            // box's 16px box), stamped with the SVG's own time.
+            const QString button = share + QLatin1String("/plasma/desktoptheme/windows-xp-style-silver-taskbar/widgets/button.svg");
+            QFile cache(paths::home() + QLatin1String("/.cache/ksvg-elements"));
+            QVERIFY(cache.open(QIODevice::ReadOnly));
+            const QString text = QString::fromUtf8(cache.readAll());
+            QVERIFY2(text.contains(QLatin1Char('[') + button + QStringLiteral("]\nLastModified=")
+                                   + QString::number(QFileInfo(button).lastModified().toSecsSinceEpoch())),
+                     qPrintable(text.left(300)));
+            QVERIFY(text.contains(QLatin1String("shadow-center=4x4,16x16,")));
+        }
         {
             // A Plasma 5+ theme, or Plasma gives its colour sets the Button colours.
             QFile meta(share + QLatin1String("/plasma/desktoptheme/windows-xp-style-silver-taskbar/metadata.json"));

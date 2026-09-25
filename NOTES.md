@@ -73,7 +73,21 @@ the copy dialog and a failed copy, Start, Date and Time, apply/reset cycles.
   middle stretched) so no button shows round it. The ticked box is the same
   box with the tick on it. Hover and focus are only what they change of the
   button (the hot rim), so over a check box they're XP's hot rim, not a
-  button hiding the tick. Pressed, the shadow goes (Plasma hides it), so
+  button hiding the tick. KSvg learns size variants only as it parses an
+  SVG, after the first process to draw it has chosen what to draw; after an
+  apply that's the shell, so apply writes the variants into KSvg's cache
+  (~/.cache/ksvg-elements, stamped with each SVG's time) while the shell is
+  down.
+- **Plasma's switches are XP's check box, and 6.4 draws the "on" bar even
+  when off.** SwitchIndicator draws the active bar from the bar's left to
+  the handle's right edge; 6.5+ hides it at position 0, 6.4 doesn't. With
+  a handle as wide as the bar (the first try) the ticked box covered the
+  empty one whatever the state -- on the Deck, "Raise maximum volume"
+  never unticked. The handle is 3px of nothing now, and the active bar one
+  piece (KSvg draws a frame's corners even at no width, mirrored at less):
+  off it has no width; on, it's the ticked box less its left edge, a pixel
+  in from the empty box's, as Plasma insets it. Switches still have no hover
+  (the handle is nothing). Pressed, the shadow goes (Plasma hides it), so
   the button frame shows for the moment the box is held down. At a scale
   factor above 1 the box is drawn larger than 16px and the button shows
   again.

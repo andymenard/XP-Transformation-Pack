@@ -210,9 +210,14 @@ void indicators(QStyle *style, Elements &checkmarks, Elements &radio)
     radio.append({QStringLiteral("hint-size"), canvas(radioSize)});
 }
 
-// widgets/switch.svg: XP had no switch; its check box stands in -- the
-// bar the box, unchecked, and (on) checked over it, the box's own size; the
-// handle nothing.
+// widgets/switch.svg: XP had no switch; its check box stands in -- the bar
+// the box, unchecked; checked, the ticked box over it. Plasma draws the
+// "active" bar from the bar's left to the handle's right edge (6.4 even at
+// position 0, where 6.5+ hides it), so the handle is 3px of nothing: at the
+// left, off, it leaves the active bar no width; at the right, on, the
+// active bar covers the box -- a pixel in from the box's left (Plasma
+// insets it once more than the bar), so it's the ticked box without its
+// left edge, the bar's showing there.
 Elements toggleSwitch(QStyle *style)
 {
     Elements out;
@@ -224,14 +229,16 @@ Elements toggleSwitch(QStyle *style)
         style->drawPrimitive(QStyle::PE_IndicatorCheckBox, &o, &p, nullptr);
         return image;
     };
-    const QMargins m = within(QMargins(3, 3, 3, 3), size);
-    appendFrame(out, QStringLiteral("inactive-"), draw(QStyle::State_Off), m);
-    appendFrame(out, QStringLiteral("active-"), draw(QStyle::State_On), m);
-    // (Plasma insets the bars a pixel each side: the size given, two over.)
-    const QSize bar = size + QSize(2, 0);
-    for (const char *handle : {"handle", "handle-hover", "handle-pressed"})
-        out.append({QLatin1String(handle), canvas(bar)});
-    out.append({QStringLiteral("hint-bar-size"), canvas(bar)});
+    appendFrame(out, QStringLiteral("inactive-"), draw(QStyle::State_Off), within(QMargins(3, 3, 3, 3), size));
+    const QImage ticked = draw(QStyle::State_On);
+    // (One piece, no edges or corners: KSvg draws a frame's corners even at no
+    // width, and mirrored at less.)
+    appendFrame(out, QStringLiteral("active-"), ticked.copy(1, 0, size.width() - 1, size.height()), QMargins());
+    // (Plasma insets the bars a pixel each side: the box's size, two wider.)
+    const QSize handle(3, size.height());
+    for (const char *name : {"handle", "handle-hover", "handle-pressed"})
+        out.append({QLatin1String(name), canvas(handle)});
+    out.append({QStringLiteral("hint-bar-size"), canvas(size + QSize(2, 0))});
     return out;
 }
 

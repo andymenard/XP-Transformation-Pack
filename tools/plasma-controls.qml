@@ -19,7 +19,7 @@ import org.kde.kirigami as Kirigami
 Window {
     id: win
     width: 520
-    height: 360
+    height: 380
     visible: true
     title: "Plasma controls"
     color: "transparent"
@@ -45,7 +45,8 @@ Window {
                 PC3.CheckBox { text: "Partly"; tristate: true; checkState: Qt.PartiallyChecked }
                 PC3.CheckBox { text: "Disabled"; enabled: false; checked: true }
                 PC3.RadioButton { text: "Radio"; checked: true }
-                PC3.Switch { text: "Switch"; checked: true }
+                PC3.Switch { text: "Switch on"; checked: true }
+                PC3.Switch { text: "Switch off" }
                 PC3.SpinBox { value: 42; to: 100 }
                 PC3.SpinBox { value: 7; editable: false }
                 PC3.Button { text: "Button" }

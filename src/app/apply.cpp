@@ -24,6 +24,8 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QMap>
+#include <QRegularExpression>
 #include <QSaveFile>
 #include <QSet>
 #include <QThread>
@@ -290,6 +292,48 @@ QStringList generatedPackages(const QStringList &keep)
     return found;
 }
 
+// KSvg's elements cache (~/.cache/ksvg-elements) started with the size
+// variants ("16-16-shadow-center") of the theme's SVGs in `widgets`: KSvg
+// learns them only as it parses an SVG, after the first process to draw one
+// has already chosen what to draw -- and after an apply that process is the
+// shell (the check box's box, button.svg's 16px shadow, came up without it).
+// Each SVG's group carries its file's time, as KSvg keeps it.
+static void primeSizeHints(const QString &widgets, const QString &cacheFile)
+{
+    static const QRegularExpression element(QStringLiteral("<image id=\"([^\"]+)\"[^>]*? width=\"(\\d+)\" height=\"(\\d+)\""));
+    static const QRegularExpression variant(QStringLiteral("^(\\d+)-(\\d+)-(.+)$"));
+    QString out;
+    for (const QFileInfo &svg : QDir(widgets).entryInfoList({QStringLiteral("*.svg")}, QDir::Files, QDir::Name)) {
+        QFile f(svg.absoluteFilePath());
+        if (!f.open(QIODevice::ReadOnly))
+            continue;
+        const QString text = QString::fromUtf8(f.readAll());
+        QMap<QString, QString> sizes;   // element -> "WxH," for it and each variant
+        QSet<QString> varied;
+        for (auto it = element.globalMatch(text); it.hasNext();) {
+            const auto m = it.next();
+            QString id = m.captured(1);
+            if (const auto v = variant.match(id); v.hasMatch()) {
+                id = v.captured(3);
+                varied << id;
+            }
+            sizes[id] += m.captured(2) + QLatin1Char('x') + m.captured(3) + QLatin1Char(',');
+        }
+        if (varied.isEmpty())
+            continue;
+        out += QLatin1Char('[') + svg.absoluteFilePath() + QStringLiteral("]\nLastModified=")
+               + QString::number(svg.lastModified().toSecsSinceEpoch()) + QLatin1Char('\n');
+        for (const QString &id : std::as_const(varied))
+            out += id + QLatin1Char('=') + sizes.value(id) + QLatin1Char('\n');
+        out += QLatin1Char('\n');
+    }
+    if (out.isEmpty())
+        return;
+    QSaveFile f(cacheFile);
+    if (f.open(QIODevice::WriteOnly) && f.write(out.toUtf8()) >= 0)
+        f.commit();   // (a cache: failing to prime it isn't failing)
+}
+
 bool applyStartButton(Session &session, const Look &look, QString *error)
 {
     const StartButtonExtras extras = StartButtonExtras::fromJson(State::load().settings.value(QLatin1String(kStartButtonKey)).toObject());
@@ -517,6 +561,7 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
             const QString cache = paths::home() + QLatin1String("/.cache/");
             QFile::remove(cache + QLatin1String("plasma_theme_") + panelId + QLatin1String(".kcache"));
             QFile::remove(cache + QLatin1String("ksvg-elements"));
+            primeSizeHints(panelDest + QLatin1String("/widgets"), cache + QLatin1String("ksvg-elements"));
             settleTaskbars(session, panelArt(look).height);
         });
         // (Again through the running shell, for panels it hadn't saved yet.)
