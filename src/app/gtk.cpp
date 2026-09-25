@@ -967,7 +967,7 @@ void setGtkTheme(Session &session, const QString &name)
 void removeThemes(const QString &keep)
 {
     const QDir themes(paths::localShare() + QLatin1String("/themes"));
-    for (const QString &name : themes.entryList({QStringLiteral("XPlasma-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
+    for (const QString &name : themes.entryList({QStringLiteral("XPlasma-*"), QStringLiteral("XPLasma-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
         if (name != keep)
             QDir(themes.filePath(name)).removeRecursively();
 }
@@ -981,7 +981,7 @@ bool apply(Session &session, const Look &look, State &state, QStringList *log, Q
         return false;
     removeThemes(themeName(look));
     const QString current = session.readConfig(QStringLiteral("gtk-3.0/settings.ini"), {QStringLiteral("Settings")}, QStringLiteral("gtk-theme-name"));
-    if (!state.settings.contains(QStringLiteral("previousGtkTheme")) && !current.startsWith(QLatin1String("XPlasma-")))
+    if (!state.settings.contains(QStringLiteral("previousGtkTheme")) && !current.startsWith(QLatin1String("XPlasma-"), Qt::CaseInsensitive))
         state.settings.insert(QStringLiteral("previousGtkTheme"), current.isEmpty() ? QStringLiteral("Breeze") : current);
     setGtkTheme(session, themeName(look));
     // XP's scroll bars always there, with their arrows, not GTK 3's overlaid
@@ -1009,7 +1009,7 @@ void revert(Session &session, State &state, QStringList *log)
 {
     const QString previous = state.settings.value(QStringLiteral("previousGtkTheme")).toString();
     const QString current = session.readConfig(QStringLiteral("gtk-3.0/settings.ini"), {QStringLiteral("Settings")}, QStringLiteral("gtk-theme-name"));
-    if (current.startsWith(QLatin1String("XPlasma-")) || !previous.isEmpty())
+    if (current.startsWith(QLatin1String("XPlasma-"), Qt::CaseInsensitive) || !previous.isEmpty())
         setGtkTheme(session, previous.isEmpty() ? QStringLiteral("Breeze") : previous);
     session.deleteConfig(QStringLiteral("gtk-3.0/settings.ini"), {QStringLiteral("Settings")}, QStringLiteral("gtk-overlay-scrolling"), false);
     if (const QString overlay = state.settings.value(QStringLiteral("previousGtkOverlayScrolling")).toString(); !overlay.isEmpty())
@@ -1019,7 +1019,7 @@ void revert(Session &session, State &state, QStringList *log)
     state.settings.remove(QStringLiteral("previousGtkTheme"));
     setUserImport(QString());
     flatpak::removeGtk(log);
-    const bool had = QDir(paths::localShare() + QLatin1String("/themes")).entryList({QStringLiteral("XPlasma-*")}, QDir::Dirs).size() > 0;
+    const bool had = QDir(paths::localShare() + QLatin1String("/themes")).entryList({QStringLiteral("XPlasma-*"), QStringLiteral("XPLasma-*")}, QDir::Dirs).size() > 0;
     removeThemes(QString());
     if (had && log)
         *log << QStringLiteral("GTK apps: back to %1").arg(previous.isEmpty() ? QStringLiteral("Breeze") : previous);

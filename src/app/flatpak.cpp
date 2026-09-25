@@ -175,6 +175,8 @@ void remove(QStringList *log)
 {
     const bool had = QFileInfo::exists(extensionRoot());
     QDir(extensionRoot()).removeRecursively();
+    // (the extension XPlasma installed while its name had a capital L)
+    QDir(QFileInfo(extensionRoot()).absolutePath() + QLatin1String("/org.kde.KStyle.XPLasma")).removeRecursively();
     editFilesystems({}, readOnlyPaths() + kRetiredPaths, nullptr);
     removeStandIns();
     if (had && log)
@@ -195,7 +197,7 @@ QString gtkExtensionRoot(const QString &name)
 static void removeGtkExtensions(const QString &keep)
 {
     const QDir root(paths::localShare() + QLatin1String("/flatpak/extension"));
-    for (const QString &dir : root.entryList({QStringLiteral("org.gtk.Gtk3theme.XPlasma-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
+    for (const QString &dir : root.entryList({QStringLiteral("org.gtk.Gtk3theme.XPlasma-*"), QStringLiteral("org.gtk.Gtk3theme.XPLasma-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
         if (dir != QLatin1String("org.gtk.Gtk3theme.") + keep)
             QDir(root.filePath(dir)).removeRecursively();
 }
@@ -230,7 +232,7 @@ bool installGtk(Session &session, const QString &themeRoot, const QString &name,
 void removeGtk(QStringList *log)
 {
     const QDir root(paths::localShare() + QLatin1String("/flatpak/extension"));
-    const bool had = !root.entryList({QStringLiteral("org.gtk.Gtk3theme.XPlasma-*")}, QDir::Dirs | QDir::NoDotAndDotDot).isEmpty();
+    const bool had = !root.entryList({QStringLiteral("org.gtk.Gtk3theme.XPlasma-*"), QStringLiteral("org.gtk.Gtk3theme.XPLasma-*")}, QDir::Dirs | QDir::NoDotAndDotDot).isEmpty();
     removeGtkExtensions(QString());
     editFilesystems({}, gtkReadOnlyPaths(), nullptr);
     if (had && log)

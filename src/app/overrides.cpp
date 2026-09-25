@@ -20,7 +20,9 @@ namespace xpl::overrides {
 namespace {
 
 constexpr const char *kMarker = "X-XPlasma-Panel-Override";
-constexpr const char *kLegacyMarker = "X-Xp2plasma-Panel-Override";   // xp2plasma's, and the Python app's
+// Spellings that came before: xp2plasma's (and the Python app's), and
+// XPlasma's own while its name had a capital L.
+constexpr const char *kOldMarkers[] = {"X-Xp2plasma-Panel-Override", "X-XPLasma-Panel-Override"};
 constexpr const char *kShadowMarker = "// xplasma: caption text shadow override";
 constexpr const char *kLegacyShadowMarker = "// xp2plasma: caption text shadow override";
 
@@ -54,7 +56,10 @@ bool ownedWidget(const QString &dir)
     if (!f.open(QIODevice::ReadOnly))
         return false;
     const QJsonObject meta = QJsonDocument::fromJson(f.readAll()).object();
-    return meta.value(QLatin1String(kMarker)).toBool() || meta.value(QLatin1String(kLegacyMarker)).toBool();
+    if (meta.value(QLatin1String(kMarker)).toBool())
+        return true;
+    return std::any_of(std::begin(kOldMarkers), std::end(kOldMarkers),
+                       [&](const char *m) { return meta.value(QLatin1String(m)).toBool(); });
 }
 
 bool copyTree(const QString &from, const QString &to)
