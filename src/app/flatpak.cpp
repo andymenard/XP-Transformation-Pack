@@ -99,6 +99,19 @@ const QStringList &readOnlyPaths()
 // What earlier XPLasmas let apps read, taken back out.
 static const QStringList kRetiredPaths{QStringLiteral("xdg-config/xplasmarc:ro")};
 
+// The empty stand-ins Flatpak made in each app's own config folder
+// (~/.var/app/APP/config/xplasmarc) while ~/.config/xplasmarc was shared
+// into sandboxes: left there, the plugin found them first and no look.
+static void removeStandIns()
+{
+    const QDir apps(paths::home() + QLatin1String("/.var/app"));
+    for (const QString &app : apps.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        const QFileInfo rc(apps.filePath(app) + QLatin1String("/config/xplasmarc"));
+        if (rc.isFile() && rc.size() == 0)
+            QFile::remove(rc.absoluteFilePath());
+    }
+}
+
 QString extensionRoot()
 {
     return paths::localShare() + QLatin1String("/flatpak/extension/") + QLatin1String(kExtensionId);
@@ -152,6 +165,7 @@ bool install(Session &session, const QString &plugin, QStringList *log, QString 
             QDir(root + QLatin1Char('/') + gone).removeRecursively();
     if (!editFilesystems(readOnlyPaths(), kRetiredPaths, error))
         return false;
+    removeStandIns();
     if (log)
         *log << QStringLiteral("Flatpak apps: the style for KDE runtime %1").arg(branches.join(QStringLiteral(", ")));
     return true;
@@ -162,6 +176,7 @@ void remove(QStringList *log)
     const bool had = QFileInfo::exists(extensionRoot());
     QDir(extensionRoot()).removeRecursively();
     editFilesystems({}, readOnlyPaths() + kRetiredPaths, nullptr);
+    removeStandIns();
     if (had && log)
         *log << QStringLiteral("Flatpak apps: the style gone");
 }

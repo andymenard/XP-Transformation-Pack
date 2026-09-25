@@ -66,13 +66,16 @@ int fourState(const QStyleOption *o)
 // xplasmarc: in the config folder -- or, in a Flatpak sandbox, whose config
 // folder is the app's own, the copy XPLasma keeps beside the frozen look
 // (HOST_XDG_DATA_HOME, else ~/.local/share, /xplasma/active), the folder its
-// Flatpak permission shows every app, live.
+// Flatpak permission shows every app, live. That one first there: an
+// xplasmarc in the app's own folder is at most a stand-in Flatpak left.
 QString rcPath()
 {
     const QString own = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QLatin1String("/xplasmarc");
-    if (QFileInfo::exists(own) || !QFileInfo::exists(QStringLiteral("/.flatpak-info")))
+    if (!QFileInfo::exists(QStringLiteral("/.flatpak-info")))
         return own;
-    return qEnvironmentVariable("HOST_XDG_DATA_HOME", QDir::homePath() + QLatin1String("/.local/share")) + QLatin1String("/xplasma/active/xplasmarc");
+    const QString shared = qEnvironmentVariable("HOST_XDG_DATA_HOME", QDir::homePath() + QLatin1String("/.local/share"))
+                           + QLatin1String("/xplasma/active/xplasmarc");
+    return QFileInfo::exists(shared) ? shared : own;
 }
 
 // Where XPLasma's configuration says the style to draw is. XPLASMA_THEME

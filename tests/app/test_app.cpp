@@ -1036,9 +1036,15 @@ private Q_SLOTS:
         writeFile(plugin, "not really a plugin");
         // (With what an earlier XPLasma let apps read, to be taken out.)
         writeFile(flatpak::overrideFile(), "[Context]\nfilesystems=home;xdg-config/xplasmarc:ro;\n\n[Environment]\nFOO=1\n");
+        // (An empty stand-in Flatpak left in an app's own config folder goes;
+        // a real file there stays.)
+        writeFile(paths::home() + QLatin1String("/.var/app/org.example.A/config/xplasmarc"), "");
+        writeFile(paths::home() + QLatin1String("/.var/app/org.example.B/config/xplasmarc"), "[Theme]\n");
         QStringList log;
         QString error;
         QVERIFY2(flatpak::install(session, plugin, &log, &error), qPrintable(error));
+        QVERIFY(!QFileInfo::exists(paths::home() + QLatin1String("/.var/app/org.example.A/config/xplasmarc")));
+        QVERIFY(QFileInfo::exists(paths::home() + QLatin1String("/.var/app/org.example.B/config/xplasmarc")));
         for (const char *branch : {"6.10", "6.9"})
             QVERIFY(QFileInfo::exists(flatpak::extensionRoot() + QLatin1String("/x86_64/") + QLatin1String(branch) + QLatin1String("/styles/libxplasma.so")));
         auto overrides = [] {

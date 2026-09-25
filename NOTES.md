@@ -45,6 +45,18 @@ the copy dialog and a failed copy, Start, Date and Time, apply/reset cycles.
   XPLasma's builds from 6.5. The panel lays the theme's south-active-tab
   behind a widget whose popup is open (tray icons too); XPLasma leaves it
   empty, as XP shows nothing there (XP's pale tab put white on white).
+- **Flatpak: an app's own xplasmarc wins, so stand-ins are cleared.** While
+  ~/.config/xplasmarc was shared into sandboxes as a file (the first
+  Flatpak attempt), Flatpak left an empty, read-only xplasmarc in each app's
+  own config folder (~/.var/app/APP/config); the plugin read that first and
+  found no look, so qBittorrent came up in plain Qt. The plugin now reads
+  the shared copy first when sandboxed, and XPLasma's Flatpak setup removes
+  empty stand-ins. (ghostwriter from Flathub traps offscreen whatever the
+  style -- its web engine -- so it's only checked on a real session.)
+- **One plasmashell crash on quit, Fedora 44 (2026-09-24 18:52):** heap
+  corruption found in KUserFeedback's settings save during `xplasma
+  reset`'s shell restart. Not seen again in two more reset and apply
+  cycles; watch for it.
 - **Plasma's unchecked check box is a small button, not XP's box.**
   Plasma Components' CheckIndicator draws its box with the push button's
   frame (widgets/button, "normal") and lays the tick (widgets/checkmarks)
