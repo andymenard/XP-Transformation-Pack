@@ -611,8 +611,11 @@ private Q_SLOTS:
         QCOMPARE(QFileInfo(xp.style).fileName(), QStringLiteral("luna.msstyles"));
         QCOMPARE(xp.variant, QStringLiteral("NORMALBLUE_INI"));
 
+        // (Luna from the disc; four more where the official packs are fetched.)
         const Library lib = Library::scan({m_realThemes});
-        QVERIFY(lib.styles.size() >= 5);
+        QVERIFY(!lib.styles.isEmpty());
+        if (QFileInfo::exists(m_realThemes + QLatin1String("/Royale Noir")))
+            QVERIFY(lib.styles.size() >= 5);
         QVERIFY(lib.styles.first().official);
     }
 
@@ -638,6 +641,8 @@ private Q_SLOTS:
             QSKIP("no asset library on this machine");
         QFETCH(QString, style);
         QFETCH(QString, variant);
+        if (!QFileInfo::exists(m_realThemes + QLatin1Char('/') + style))
+            QSKIP("its theme pack isn't fetched on this machine");
         QString error;
         const auto look = Look::fromStyle(m_realThemes + QLatin1Char('/') + style, variant, &error);
         QVERIFY2(look, qPrintable(error));
@@ -712,6 +717,8 @@ private Q_SLOTS:
             QSKIP("no asset library on this machine");
         QFETCH(QString, style);
         QFETCH(QString, variant);
+        if (!QFileInfo::exists(m_realThemes + QLatin1Char('/') + style))
+            QSKIP("its theme pack isn't fetched on this machine");
         QString error;
         const auto look = Look::fromStyle(m_realThemes + QLatin1Char('/') + style, variant, &error);
         QVERIFY2(look, qPrintable(error));
