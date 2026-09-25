@@ -51,6 +51,10 @@ QString shippedForks();
 // Where Qt apps find it: ~/.local/lib/qt<N>/plugins.
 QString stylePluginRoot(int qtMajor);
 
+// `dir` and the folders it's in, as long as each is empty, up to (not
+// including) `top` -- what's left of a tree once XPLasma's files are out.
+void removeEmptyDirs(const QString &dir, const QString &top);
+
 // xp2plasma's, adopted once (see adopt.h).
 QString legacyData();    // ~/.local/share/xp2plasma
 QString legacyCache();   // ~/.cache/xp2plasma

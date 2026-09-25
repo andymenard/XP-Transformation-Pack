@@ -140,6 +140,14 @@ QString shippedForks()
     return shipped(QStringLiteral("forks"));
 }
 
+void removeEmptyDirs(const QString &dir, const QString &top)
+{
+    const QString stop = QDir::cleanPath(top);
+    for (QString d = QDir::cleanPath(dir); d.startsWith(stop + QLatin1Char('/')); d = QFileInfo(d).absolutePath())
+        if (!QDir().rmdir(d))
+            break;
+}
+
 QString stylePluginRoot(int qtMajor)
 {
     return home() + QStringLiteral("/.local/lib/qt%1/plugins").arg(qtMajor);

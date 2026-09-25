@@ -1992,6 +1992,21 @@ private Q_SLOTS:
         QVERIFY(!QFileInfo::exists(paths::home() + QLatin1String("/.icons")));   // (its links gone, and it with them)
     }
 
+    void removeEmptyDirs()
+    {
+        // Emptied folders go, up to the top; a folder with anything left
+        // in it stops it, and the top stays.
+        const QString top = m_home.filePath(QStringLiteral(".local"));
+        QVERIFY(QDir().mkpath(top + QLatin1String("/lib/qt6/plugins/styles")));
+        QVERIFY(QDir().mkpath(top + QLatin1String("/lib/qt5/plugins/styles")));
+        paths::removeEmptyDirs(top + QLatin1String("/lib/qt6/plugins/styles"), top);
+        QVERIFY(!QFileInfo::exists(top + QLatin1String("/lib/qt6")));
+        QVERIFY(QFileInfo::exists(top + QLatin1String("/lib/qt5/plugins/styles")));
+        paths::removeEmptyDirs(top + QLatin1String("/lib/qt5/plugins/styles"), top);
+        QVERIFY(!QFileInfo::exists(top + QLatin1String("/lib")));
+        QVERIFY(QFileInfo::exists(top));
+    }
+
     void soundSchemes()
     {
         // Every event under Plasma's names; Windows Default as XP's registry

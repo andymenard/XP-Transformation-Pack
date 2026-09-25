@@ -265,8 +265,11 @@ void revert(Session &session, State &state, QStringList *log)
     state.settings.remove(QStringLiteral("previousWidgetStyle"));
     for (const QString &p : QStringList{envScript(), configPath(), paths::data() + QLatin1String("/widgetstyle-previous.txt")})
         QFile::remove(p);
-    for (const int major : kMajors)
+    const QString local = QFileInfo(paths::localShare()).absolutePath();   // ~/.local (its folders, as they empty)
+    for (const int major : kMajors) {
         QFile::remove(installedPlugin(major));
+        paths::removeEmptyDirs(QFileInfo(installedPlugin(major)).absolutePath(), local);
+    }
     flatpak::remove(log);
     QDir(activeDir()).removeRecursively();
     // Only our roots come out of the path: the rest is someone else's.

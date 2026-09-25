@@ -378,8 +378,11 @@ Checked check(Session &session, State &state, QString *what)
 
 void remove(State &state)
 {
-    for (const QJsonValue &v : state.settings.value(QStringLiteral("forkPlugins")).toArray())
+    const QString local = QFileInfo(paths::localShare()).absolutePath();   // ~/.local (its folders, as they empty)
+    for (const QJsonValue &v : state.settings.value(QStringLiteral("forkPlugins")).toArray()) {
         QFile::remove(v.toString());
+        paths::removeEmptyDirs(QFileInfo(v.toString()).absolutePath(), local);
+    }
     state.settings.remove(QStringLiteral("forkPlugins"));
     state.settings.remove(QStringLiteral("forkSeries"));
     state.settings.remove(QStringLiteral("forkPlasma"));
