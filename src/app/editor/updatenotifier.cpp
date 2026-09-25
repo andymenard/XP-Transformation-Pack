@@ -8,6 +8,9 @@
 #include <QApplication>
 #include <QDesktopServices>
 #include <QCheckBox>
+#include <QDBusConnection>
+#include <QDBusInterface>
+#include <QDBusReply>
 #include <QDir>
 #include <QMenu>
 #include <QMessageBox>
@@ -15,6 +18,8 @@
 #include <QSystemTrayIcon>
 #include <QTimer>
 #include <QUrl>
+
+#include <functional>
 
 namespace xpl::editor {
 
@@ -29,6 +34,22 @@ QIcon globe()
             icon.addPixmap(QPixmap::fromImage(*image));
     return icon.isNull() ? QIcon::fromTheme(QStringLiteral("system-software-update")) : icon;
 }
+
+// A receiver for org.freedesktop.Notifications' ActionInvoked signal.
+class ActionListener : public QObject
+{
+    Q_OBJECT
+public:
+    explicit ActionListener(std::function<void(uint, const QString &)> onInvoked)
+        : m_onInvoked(std::move(onInvoked))
+    {
+    }
+public Q_SLOTS:
+    void invoked(uint id, const QString &key) { m_onInvoked(id, key); }
+
+private:
+    std::function<void(uint, const QString &)> m_onInvoked;
+};
 
 // What the globe or its balloon opens: a message box -- the release, its
 // notes, Download or Remind Me Later, and a box to say no to that version.
@@ -135,6 +156,12 @@ int checkUpdates(bool now)
     });
     QObject::connect(&tray, &QSystemTrayIcon::messageClicked, &tray, showWindow);
 
+    // (the balloon's click, from the notification server)
+    uint balloon = 0;
+    ActionListener clicks([&](uint id, const QString &key) {
+        if (id == balloon && key == QLatin1String("default"))
+            QTimer::singleShot(0, &tray, showWindow);
+    });
     // At login the tray may not be up yet: waited for, a minute at most.
     int tries = 0;
     QTimer wait;
@@ -149,10 +176,31 @@ int checkUpdates(bool now)
         QString text = QStringLiteral("Click here to download these updates.");
         if (!release->notes.isEmpty())
             text = release->notes + QStringLiteral("\n\n") + text;
-        tray.showMessage(QStringLiteral("Updates are ready for your computer"), text, icon, 30000);
+        // The balloon as a notification of our own, with a default action:
+        // Plasma doesn't tell a tray icon its balloon was clicked
+        // (QSystemTrayIcon::messageClicked never comes), and the balloon
+        // says "Click here".
+        // (no icon of its own: a picture there shows as an attachment; XP's
+        // balloon has its own)
+        QDBusInterface notifications(QStringLiteral("org.freedesktop.Notifications"), QStringLiteral("/org/freedesktop/Notifications"),
+                                     QStringLiteral("org.freedesktop.Notifications"));
+        const QDBusReply<uint> id = notifications.call(
+            QStringLiteral("Notify"), QStringLiteral("XPlasma"), 0u, QString(), QStringLiteral("Updates are ready for your computer"), text,
+            QStringList{QStringLiteral("default"), QStringLiteral("View Updates")},
+            QVariantMap{{QStringLiteral("desktop-entry"), QStringLiteral("fyi.hotsocket.xplasma")}}, 30000);
+        if (id.isValid()) {
+            balloon = id.value();
+        } else {
+            tray.showMessage(QStringLiteral("Updates are ready for your computer"), text, icon, 30000);
+        }
     });
+    QDBusConnection::sessionBus().connect(QStringLiteral("org.freedesktop.Notifications"), QStringLiteral("/org/freedesktop/Notifications"),
+                                          QStringLiteral("org.freedesktop.Notifications"), QStringLiteral("ActionInvoked"), &clicks,
+                                          SLOT(invoked(uint, QString)));
     wait.start(1000);
     return QApplication::exec();
 }
 
 } // namespace xpl::editor
+
+#include "updatenotifier.moc"
