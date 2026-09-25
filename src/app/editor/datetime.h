@@ -28,6 +28,10 @@ class QTimer;
 
 namespace xpl::editor {
 
+// The look's 3D colours -- XP's button face, shadow, dark shadow, light and
+// highlight -- for a widget drawing XP's own bevels.
+QPalette bevels(const QWidget *widget);
+
 class CalendarGrid;
 class AnalogClock;
 class WorldMap;

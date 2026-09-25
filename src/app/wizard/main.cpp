@@ -36,6 +36,7 @@
 
 #include <QAbstractButton>
 #include <QApplication>
+#include <QIcon>
 #include <QCheckBox>
 #include <QCommandLineParser>
 #include <QDir>
@@ -594,6 +595,12 @@ int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("xplasma-setup"));
+    // Its boxed product for an icon: it has no desktop entry for the
+    // taskbar to find one by (Wayland's compositors take it from the window).
+    QIcon icon;
+    for (int size : {16, 22, 32, 48, 64})
+        icon.addPixmap(xpl::wizard::bannerIcon(size));
+    QApplication::setWindowIcon(icon);
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("XPLasma's Setup wizard."));
     parser.addHelpOption();

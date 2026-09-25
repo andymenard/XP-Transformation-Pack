@@ -1,5 +1,7 @@
 #include "app/editor/soundsproperties.h"
 
+#include "app/editor/datetime.h"
+
 #include "app/media.h"
 #include "app/session.h"
 #include "app/state.h"
@@ -58,6 +60,26 @@ QIcon glyph(int id)
                 line[x] = 0;
     }
     return QIcon(QPixmap::fromImage(im));
+}
+
+// A bitmap as XP loaded it with LR_LOADMAP3DCOLORS: its greys the dialog's
+// 3D colours (dark grey the shadow, light grey the face, lighter the light).
+QImage mapped3d(QImage image, const QPalette &palette)
+{
+    image = image.convertToFormat(QImage::Format_ARGB32);
+    const std::pair<QRgb, QRgb> map[] = {
+        {qRgb(128, 128, 128), palette.color(QPalette::Dark).rgb()},
+        {qRgb(192, 192, 192), palette.color(QPalette::Button).rgb()},
+        {qRgb(223, 223, 223), palette.color(QPalette::Midlight).rgb()},
+    };
+    for (int y = 0; y < image.height(); ++y) {
+        auto *line = reinterpret_cast<QRgb *>(image.scanLine(y));
+        for (int x = 0; x < image.width(); ++x)
+            for (const auto &[from, to] : map)
+                if ((line[x] & 0xffffff) == (from & 0xffffff))
+                    line[x] = to;
+    }
+    return image;
 }
 
 QIcon icon16(const QString &file, int group)
@@ -202,7 +224,8 @@ QWidget *SoundsProperties::volumeTab()
     place(advanced, du(139, 130, 75, 14));
     auto *speakers = new QGroupBox(QStringLiteral("Speaker settings"));
     place(speakers, du(7, 155, 213, 60));
-    picture(media::bitmap(QStringLiteral("mmsys.cpl"), 4624), du(9, 167, 51, 39));
+    if (const auto bmp = media::bitmap(QStringLiteral("mmsys.cpl"), 4624))
+        picture(mapped3d(*bmp, bevels(this)), du(9, 167, 51, 39));
     auto *text = new QLabel(QStringLiteral("Use the settings below to change individual speaker volume and other settings."));
     text->setWordWrap(true);
     text->setAlignment(Qt::AlignLeft | Qt::AlignTop);
