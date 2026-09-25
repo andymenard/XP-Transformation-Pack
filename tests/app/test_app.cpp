@@ -2074,7 +2074,7 @@ private Q_SLOTS:
         QCOMPARE(session.config.value(QStringLiteral("kdeglobals|Sounds|Theme")), QStringLiteral("oxygen"));
         QVERIFY(!session.config.contains(QStringLiteral("ksmserver.notifyrc|Event/locked|Action")));
         QVERIFY(!sounds::applied(state));
-        QVERIFY(QDir(paths::localShare() + QLatin1String("/sounds")).entryList({QStringLiteral("xplasma-sounds-*")}, QDir::Dirs).isEmpty());
+        QVERIFY(!QFileInfo::exists(paths::localShare() + QLatin1String("/sounds")));   // (emptied: gone)
     }
 
     void wallpaperNamesFromInfs()

@@ -377,6 +377,7 @@ void revert(Session &session, State &state)
     }
     for (const QFileInfo &d : QDir(soundsDir()).entryInfoList({QLatin1String(kThemeId) + QLatin1String("-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
         QDir(d.absoluteFilePath()).removeRecursively();
+    QDir().rmdir(soundsDir());   // (if the user has no themes of their own)
     state.settings.remove(QStringLiteral("sounds"));
     state.settings.remove(QStringLiteral("previousSoundTheme"));
 }
