@@ -1,7 +1,7 @@
 #!/bin/sh
-# XPLasma's builds of Plasma's own widgets, one per Plasma series (see
+# XPlasma's builds of Plasma's own widgets, one per Plasma series (see
 # src/app/forks.h): the tray, notifications, task manager and panel that Plasma
-# 6.5+ builds into its plugins, patched as XPLasma patches the packaged ones.
+# 6.5+ builds into its plugins, patched as XPlasma patches the packaged ones.
 #
 #   ./build-forks.sh SERIES...        e.g. ./build-forks.sh 6.6
 #   JOBS=4 ./build-forks.sh 6.8       compiling at most 4 at a time
@@ -55,7 +55,7 @@ for series in "$@"; do
     # The patched source.
     "$xplasma" fork-sources "$series" "$root/pristine" "$root/work"
 
-    # Only XPLasma's targets, per project.
+    # Only XPlasma's targets, per project.
     for project in $(printf '%s\n' "$info" | awk '$1 == "target" { print $2 }' | sort -u); do
         version="$(printf '%s\n' "$info" | awk -v p="$project" '$1 == "source" && $2 == p { print $3 }')"
         targets="$(printf '%s\n' "$info" | awk -v p="$project" '$1 == "target" && $2 == p { print $3 }' | tr '\n' ' ')"

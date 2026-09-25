@@ -1,5 +1,5 @@
 #pragma once
-// The theme library: everything XPLasma can apply, as XP's Display
+// The theme library: everything XPlasma can apply, as XP's Display
 // Properties presents it.
 //
 //   * Visual styles (.msstyles). Each has colour schemes and font sizes --
@@ -163,7 +163,7 @@ struct Preset
 
 // paths::themes()/Saved/<name>.theme; never replaces a file.
 bool save(const Preset &preset, QString *path = nullptr, QString *error = nullptr);
-// A preset XPLasma saved (and so may delete).
+// A preset XPlasma saved (and so may delete).
 bool owned(const QString &path);
 
 } // namespace presets

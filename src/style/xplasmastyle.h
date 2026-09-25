@@ -11,7 +11,7 @@
 #include <memory>
 #include <optional>
 
-// XPLasma's Qt style.
+// XPlasma's Qt style.
 //
 // A QProxyStyle over Qt's built-in "Windows" style: this mirrors XP itself,
 // where comctl32 asks uxtheme to draw a control and whatever the visual style
@@ -20,12 +20,12 @@
 //
 // Everything themed is drawn by xpl::Renderer straight from the .msstyles --
 // the same renderer the oracle holds pixel-exact against real XP.
-class XPLasmaStyle : public QProxyStyle
+class XPlasmaStyle : public QProxyStyle
 {
     Q_OBJECT
 
 public:
-    XPLasmaStyle();
+    XPlasmaStyle();
 
     void polish(QWidget *widget) override;
     void unpolish(QWidget *widget) override;
@@ -117,9 +117,9 @@ private:
     xpl::PartRef inContext(const xpl::PartRef &ref) const;
     struct ContextScope
     {
-        ContextScope(const XPLasmaStyle *style, const QWidget *widget, const QStyleOption *option);
+        ContextScope(const XPlasmaStyle *style, const QWidget *widget, const QStyleOption *option);
         ~ContextScope();
-        const XPLasmaStyle *m_style;
+        const XPlasmaStyle *m_style;
         QString m_saved;
     };
     mutable QString m_context;

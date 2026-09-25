@@ -23,7 +23,7 @@ for m in 6 5; do
   mkdir -p "$d"
   cp "$from/lib/xplasma/qt$m/styles/libxplasma.so" "$d/.libxplasma.so.new" && mv -f "$d/.libxplasma.so.new" "$d/libxplasma.so"
 done
-# XPLasma's builds of Plasma's widgets, per Plasma series (apply picks one).
+# XPlasma's builds of Plasma's widgets, per Plasma series (apply picks one).
 if [ -d "$from/lib/xplasma/forks" ]; then
   rm -rf "$prefix/lib/xplasma/forks.new"
   cp -r "$from/lib/xplasma/forks" "$prefix/lib/xplasma/forks.new"

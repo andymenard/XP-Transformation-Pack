@@ -1,4 +1,4 @@
-    // XPLasma: something dragged out of XPLasma's Start menu lands as a
+    // XPlasma: something dragged out of XPlasma's Start menu lands as a
     // shortcut, as XP's did -- a link to its launcher (Plasma shows it with
     // the shortcut arrow; it runs as the installed one does, and follows it)
     // -- without KIO's Move/Copy/Link menu (Ctrl+Shift at the drop means

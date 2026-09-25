@@ -1,4 +1,4 @@
-# XPLasma — game plan
+# XPlasma — game plan
 
 *Draft 1 · 2026-09-23 · sequel to xp2plasma*
 
@@ -7,7 +7,7 @@
 > names Python modules (`msstyles_parse`, `widget_style.py`, `app/…`), read
 > them as history. What they learned is in Appendix A and in `src/app/`.
 
-XPLasma keeps everything that already works in xp2plasma (the Display
+XPlasma keeps everything that already works in xp2plasma (the Display
 Properties editor, window decorations, Start menu, taskbar, tray, icons, fonts,
 wallpapers) and replaces the one piece that has been fighting us: the Kvantum
 widget style. In its place goes **a native Qt style that reads the `.msstyles`
@@ -24,7 +24,7 @@ and *graceful*. GTK is not in this round, but the structure leaves a slot for it
 | What renders straight from `.msstyles`? | The Qt widget style. Decorations, Start menu, taskbar, tray and so on are lifted from xp2plasma unchanged. |
 | "Context awareness" means | **Widget context** (a button in a toolbar is not a dialog button), **live session awareness** (theme changes reach running apps), **graceful degradation** (missing art never draws wrong). *Not* per-application rules. |
 | Toolkits | Qt 6 and Qt 5 now. The shape leaves room for GTK later. |
-| Codebase | New repo in `XPLasma/`, carrying xp2plasma's code over. **The installer is left behind.** Its flow was good, but it had flaws of its own; it gets redesigned later, separately. |
+| Codebase | New repo in `XPlasma/`, carrying xp2plasma's code over. **The installer is left behind.** Its flow was good, but it had flaws of its own; it gets redesigned later, separately. |
 
 ---
 
@@ -60,7 +60,7 @@ A native style removes all five problems at their root.
 ## 3. Target architecture
 
 ```
-                       ┌──────────────────────── XPLasma (Python, carried over) ───────────────────────┐
+                       ┌──────────────────────── XPlasma (Python, carried over) ───────────────────────┐
                        │ appearance_editor · theme_index · setup_assets · aurorae_gen · plasmatheme_gen │
                        │ panel_* · start_applet · xp_icons · fonts_gen · colorscheme_gen · classic_gen  │
                        │                                                                                │
@@ -452,7 +452,7 @@ plugin on the same core; real rendering in the editor's previews via
 ## Appendix A — Hard-won facts from xp2plasma that must survive
 
 These were measured the hard way, and in xp2plasma they live as Kvantum patches
-or generator comments. In XPLasma each becomes plain behaviour with a test.
+or generator comments. In XPlasma each becomes plain behaviour with a test.
 
 - **Push buttons.** SIZINGMARGINS are *visual slices only*; layout padding is
   CONTENTMARGINS (Luna: 8,8,9,9 vs 3,3,3,3). DEFAULTED (frame 5) is a complete
@@ -496,7 +496,7 @@ or generator comments. In XPLasma each becomes plain behaviour with a test.
 
 **0.1 — done.** Two commits: a verbatim import, then the adaptation. The
 carried suites pass as they did in xp2plasma (119/119 editor checks; the only
-failing suite, `test_tray_click`, failed identically before). XPLasma adopts
+failing suite, `test_tray_click`, failed identically before). XPlasma adopts
 xp2plasma's asset library, schemes and 647 MB of downloads in place.
 
 **0.3 — D1 holds on the host side.** The spike plugin (`native/`, a
@@ -504,8 +504,8 @@ xp2plasma's asset library, schemes and 647 MB of downloads in place.
 
 | Loaded into | Qt | Result |
 | --- | --- | --- |
-| Host probe (Qt 6 build) | 6.9.1 | ✔ drawn by XPLasma |
-| Host probe (Qt 5 build) | 5.15.17 | ✔ drawn by XPLasma |
+| Host probe (Qt 6 build) | 6.9.1 | ✔ drawn by XPlasma |
+| Host probe (Qt 5 build) | 5.15.17 | ✔ drawn by XPlasma |
 | **Editor's pip PySide6** | **6.11.2** | ✔ created and drawn: this is what `xp_style.py` and `system_qt.py` existed to work around, and it's gone |
 
 The plugin needs only `Qt_6` symbols plus the `Qt_6.9` build-floor tag, and
@@ -529,7 +529,7 @@ at all. `native/build.sh release` is the one command.
 
 **0.5 — KDE re-creates the style on every StyleChanged, even when the name is
 unchanged.** Measured with a probe on its own `XDG_CONFIG_HOME`: unchanged
-XPLasma → new instance; Fusion → Fusion; XPLasma → new instance; unchanged →
+XPlasma → new instance; Fusion → Fusion; XPlasma → new instance; unchanged →
 new instance. So in KDE apps, a live theme switch needs only an updated
 `xplasmarc` plus the broadcast xp2plasma already sends. That gives a fresh
 style, full re-polish and relayout for free. The plugin's own config watcher
@@ -687,7 +687,7 @@ oracle tooling (`refharness/`, `tests/oracle/`) stays Python, dev-only
   `.theme` files), and the generators: colours and fonts, the Aurorae
   decoration, the panel theme, the Start button and its StartPanel art, icons,
   the tray and clock overrides, title shadows.
-- **The Start menu** is XPLasma's own plasmoid, `fyi.hotsocket.xplasma.start`:
+- **The Start menu** is XPlasma's own plasmoid, `fyi.hotsocket.xplasma.start`:
   a complete package, not a patched Kickoff (Plasma's stock launcher). Only
   its data (`theme.json`, the images) changes per look. The Start flag comes
   from `explorer.exe` (bitmap 143; 176 for Classic), and a pill built without
@@ -701,7 +701,7 @@ oracle tooling (`refharness/`, `tests/oracle/`) stays Python, dev-only
   come from the application palette (`Window.palette` has the tooltip
   pair; `SystemPalette` doesn't), not Kirigami's, which are the panel's.
 - **`xplasma`** (CLI) and **`xplasma-edit`** (Display Properties, Qt Widgets
-  in the system's own widget style; only the samples are drawn by XPLasma).
+  in the system's own widget style; only the samples are drawn by XPlasma).
 - **Date and Time Properties** (`xplasma-edit --date-time`, the clock's
   double-click): laid out from timedate.cpl's own templates in dialog units,
   its zones from HIVESFT.INF (75, each mapped to a Linux zone by Qt's

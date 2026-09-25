@@ -1,8 +1,8 @@
 /*
-    XPLasma's Start button and Start menu: a launcher of its own, on Plasma's
+    XPlasma's Start button and Start menu: a launcher of its own, on Plasma's
     application models (the ones Kickoff, Plasma's standard launcher, uses).
 
-    The look is data: XPLasma writes it into the "theme" setting when it
+    The look is data: XPlasma writes it into the "theme" setting when it
     applies a look -- the button's normal / hot / pressed images, and the
     Start menu's art, colours, fonts and layout. Nothing here changes per
     look.

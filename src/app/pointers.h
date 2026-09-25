@@ -5,7 +5,7 @@
 // own. XP's schemes come from its setup INFs (OPTIONAL.INF's Windows Black,
 // Inverted, large and extra large; ACCESSOR.INF's 3D-White, Dinosaur,
 // Hands, ...), their cursors from the media -- all read from it as needed
-// (media::systemFile), nothing kept of Microsoft's in XPLasma.
+// (media::systemFile), nothing kept of Microsoft's in XPlasma.
 //
 // Applying one writes an Xcursor theme (~/.local/share/icons/xplasma-pointers)
 // with each role under every name X and Wayland apps ask for, and switches

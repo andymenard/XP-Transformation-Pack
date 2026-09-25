@@ -1,7 +1,7 @@
 #pragma once
 // Plasma's own controls -- the buttons, check boxes, radio buttons, text
 // fields, list highlights, progress bars, sliders, scroll bars and tabs in
-// its popups -- as XP draws them. Each is drawn by XPLasma's Qt style for
+// its popups -- as XP draws them. Each is drawn by XPlasma's Qt style for
 // the look, in the states Plasma shows, and cut into the frames its theme's
 // SVGs hold (widgets/button.svg and the rest); the Plasma theme carries
 // them beside the taskbar.
@@ -17,7 +17,7 @@ class QStyle;
 
 namespace xpl {
 
-// XPLasma's Qt style drawing `look` (one instance per look, kept), or null:
+// XPlasma's Qt style drawing `look` (one instance per look, kept), or null:
 // it needs its plugin and a QApplication.
 QStyle *xpStyle(const Look &look);
 

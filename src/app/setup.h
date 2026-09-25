@@ -1,6 +1,6 @@
 #pragma once
-// First-run setup: what XPLasma needs on this machine. None of it ships with
-// XPLasma -- XP's media, its styles and fonts are Microsoft's -- so it's taken
+// First-run setup: what XPlasma needs on this machine. None of it ships with
+// XPlasma -- XP's media, its styles and fonts are Microsoft's -- so it's taken
 // from media the user has, or fetched from archive.org:
 //
 //   * XP's install media (an ISO, or a folder holding I386): the fonts, the
@@ -51,7 +51,7 @@ QHash<QString, QString> wallpaperNames(const QList<QByteArray> &infs);
 bool checkMedia(const QString &iso, QString *why = nullptr);
 
 // XP's install media. Cancelled or failed, nothing it added stays. Its
-// wallpapers are XP's own list, by XP's names; files an older XPLasma
+// wallpapers are XP's own list, by XP's names; files an older XPlasma
 // imported by their 8.3 names are renamed (and what refers to them -- the
 // desktop, saved themes -- follows), or removed if XP never listed them.
 bool importMedia(const QString &path, Imported *counts, const Progress &progress, const std::atomic_bool *cancel = nullptr,

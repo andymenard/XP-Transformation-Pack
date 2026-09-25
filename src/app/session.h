@@ -39,7 +39,7 @@ public:
     }
     // A host program left running on its own: in `environment` (KEY=VALUE
     // lines) if given, else this program's -- either way with this
-    // program's QT_PLUGIN_PATH (XPLasma's, or none).
+    // program's QT_PLUGIN_PATH (XPlasma's, or none).
     virtual bool startDetached(const QStringList &argv, const QStringList &environment = {}) = 0;
 
     // Conveniences over those.

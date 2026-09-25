@@ -481,7 +481,7 @@ QStyle *xpStyle(const Look &look)
         return nullptr;
     static bool pathsAdded = false;
     if (!pathsAdded) {
-        // The plugin this XPLasma ships, and wherever it's installed.
+        // The plugin this XPlasma ships, and wherever it's installed.
         const QString shipped = paths::shippedStylePlugin(6);
         if (!shipped.isEmpty())
             QCoreApplication::addLibraryPath(QFileInfo(shipped).dir().absolutePath() + QLatin1String("/.."));

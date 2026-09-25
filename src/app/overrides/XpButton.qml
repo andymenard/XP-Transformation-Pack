@@ -1,4 +1,4 @@
-// XPLasma: a push button in the look's own art (widgets/xp-notify), 75px
+// XPlasma: a push button in the look's own art (widgets/xp-notify), 75px
 // wide at least and 23 tall, as XP's dialogs have them.
 import QtQuick
 

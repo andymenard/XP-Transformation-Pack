@@ -56,14 +56,14 @@ std::optional<QByteArray> readFile(const QString &path)
 // adds registered with the widget's QML module.
 QByteArray cmakeEdited(const QByteArray &original, const Widget &w)
 {
-    QByteArray out = "# --- XPLasma: this widget's QML kept as source (code compiled ahead from it\n"
+    QByteArray out = "# --- XPlasma: this widget's QML kept as source (code compiled ahead from it\n"
                      "# calls Qt's private API, which would tie the build to one exact Qt).\n"
                      "file(GLOB_RECURSE _xplasma_qml RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS *.qml *.js)\n"
                      "set_source_files_properties(${_xplasma_qml} PROPERTIES QT_QML_SKIP_CACHEGEN TRUE)\n"
                      "# ---\n\n";
     out += original;
     if (!w.registered.isEmpty()) {
-        out += "\n# --- XPLasma: the files it adds.\n";
+        out += "\n# --- XPlasma: the files it adds.\n";
         QStringList paths = w.registered.keys();
         paths.sort();
         for (const QString &path : std::as_const(paths)) {
@@ -167,7 +167,7 @@ std::optional<int> syncSources(const Series &series, const QString &pristine, co
                 else
                     problems << QStringLiteral("%1: %2 isn't in the source").arg(w.id, base + it.value());
             }
-            // (XPLasma's own files too, where the series has rules for them:
+            // (XPlasma's own files too, where the series has rules for them:
             // "extra/<file>" -- an import that moved, say.)
             for (auto it = w.extras.cbegin(); it != w.extras.cend(); ++it) {
                 QString text = overrides::resourceText(it.key());
@@ -309,8 +309,8 @@ std::optional<Choice> choose(const QString &plasma, const QStringList &ids, QStr
             return choice;
         why << QStringLiteral("the %1 build: %2").arg(name, problem);
     }
-    fail(error, why.isEmpty() ? QStringLiteral("XPLasma has no build of Plasma's %1 for Plasma %2").arg(ids.join(QStringLiteral(", ")), plasma)
-                              : QStringLiteral("none of XPLasma's builds of Plasma's widgets loads in Plasma %1 (%2)").arg(plasma, why.join(QStringLiteral("; "))));
+    fail(error, why.isEmpty() ? QStringLiteral("XPlasma has no build of Plasma's %1 for Plasma %2").arg(ids.join(QStringLiteral(", ")), plasma)
+                              : QStringLiteral("none of XPlasma's builds of Plasma's widgets loads in Plasma %1 (%2)").arg(plasma, why.join(QStringLiteral("; "))));
     return std::nullopt;
 }
 
@@ -371,14 +371,14 @@ Checked check(Session &session, State &state, QString *what)
         }
         if (install(session, *choice, state, &why)) {
             if (what)
-                *what = QStringLiteral("Plasma %1: XPLasma's %2 build of its widgets installed").arg(plasma, choice->series);
+                *what = QStringLiteral("Plasma %1: XPlasma's %2 build of its widgets installed").arg(plasma, choice->series);
             return Checked::Replaced;
         }
     }
     remove(state);
     state.settings.insert(QStringLiteral("forkLost"), plasma);
     if (what)
-        *what = QStringLiteral("Plasma %1: XPLasma's builds of its widgets taken off, Plasma's own back (%2)").arg(plasma, why);
+        *what = QStringLiteral("Plasma %1: XPlasma's builds of its widgets taken off, Plasma's own back (%2)").arg(plasma, why);
     return Checked::Removed;
 }
 

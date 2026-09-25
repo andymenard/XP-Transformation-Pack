@@ -112,12 +112,12 @@ void setWidgetStyle(Session &session, const QString &style)
 
 bool ensurePluginPath(Session &session, QString *error)
 {
-    // XPLasma's plugin roots: Qt 6's always (the style's, and Plasma's
-    // widgets as XPLasma builds them), Qt 5's where its style is installed.
+    // XPlasma's plugin roots: Qt 6's always (the style's, and Plasma's
+    // widgets as XPlasma builds them), Qt 5's where its style is installed.
     QStringList roots{paths::stylePluginRoot(6)};
     if (QFileInfo::exists(installedPlugin(5)))
         roots << paths::stylePluginRoot(5);
-    // And, before Plasma's shell starts, XPLasma's builds of its widgets
+    // And, before Plasma's shell starts, XPlasma's builds of its widgets
     // checked against the Plasma there is (an upgrade to another series
     // would leave the panel without them).
     QByteArray check;
@@ -127,7 +127,7 @@ bool ensurePluginPath(Session &session, QString *error)
         check = "[ -x '" + quoted + "' ] && '" + quoted + "' check-forks >/dev/null 2>&1\n";
     }
     if (!writeAtomically(envScript(),
-                         QByteArray("# Written by XPLasma: lets Qt find XPLasma's user-local plugins first.\n"
+                         QByteArray("# Written by XPlasma: lets Qt find XPlasma's user-local plugins first.\n"
                                     "export QT_PLUGIN_PATH=\"")
                              + roots.join(QLatin1Char(':')).toUtf8() + "${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}\"\n" + check,
                          error))
@@ -184,7 +184,7 @@ bool apply(Session &session, const Look &look, State &state, QStringList *log, Q
     }
     if (roots.isEmpty()) {
         if (error)
-            *error = QStringLiteral("no XPLasma style plugin to install (a checkout builds them with ./build.sh)");
+            *error = QStringLiteral("no XPlasma style plugin to install (a checkout builds them with ./build.sh)");
         return false;
     }
     if (!ensurePluginPath(session, error))
@@ -215,7 +215,7 @@ bool apply(Session &session, const Look &look, State &state, QStringList *log, Q
     if (!state.settings.contains(QStringLiteral("previousWidgetStyle")) && current.compare(QLatin1String(kStyleKey), Qt::CaseInsensitive) != 0)
         state.settings.insert(QStringLiteral("previousWidgetStyle"), current.isEmpty() ? QStringLiteral("Breeze") : current);
     setWidgetStyle(session, QLatin1String(kStyleKey));
-    *log << QStringLiteral("widget style: XPLasma (%1)").arg(look.name);
+    *log << QStringLiteral("widget style: XPlasma (%1)").arg(look.name);
     // Flatpak's Qt apps too (a failure there isn't the look's).
     QString why;
     if (const QString plugin = paths::shippedStylePlugin(6); !plugin.isEmpty() && !flatpak::install(session, plugin, log, &why))

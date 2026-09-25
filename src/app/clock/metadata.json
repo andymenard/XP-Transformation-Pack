@@ -1,7 +1,7 @@
 {
     "KPackageStructure": "Plasma/Applet",
     "KPlugin": {
-        "Authors": [{"Name": "XPLasma"}],
+        "Authors": [{"Name": "XPlasma"}],
         "Category": "Date and Time",
         "Description": "The Windows XP taskbar clock: double-click for Date and Time Properties",
         "EnabledByDefault": true,
@@ -13,5 +13,5 @@
         "Version": "1.0"
     },
     "X-Plasma-API-Minimum-Version": "6.0",
-    "X-XPLasma-Generated": true
+    "X-XPlasma-Generated": true
 }

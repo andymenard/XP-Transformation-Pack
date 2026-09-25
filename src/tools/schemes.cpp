@@ -1,5 +1,5 @@
 // xplasma-schemes: XP's stock Windows Classic schemes, from the install ISO
-// (or an HIVEDEF.INF), as the .theme files XPLasma ships.
+// (or an HIVEDEF.INF), as the .theme files XPlasma ships.
 //
 //   xplasma-schemes XP.iso|HIVEDEF.INF OUTDIR
 //

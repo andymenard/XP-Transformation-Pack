@@ -217,7 +217,7 @@ std::optional<StartButtonArt> classicButton(const Look &look, QImage flag, const
 std::optional<StartButtonArt> startButton(const Look &look, const QImage &flag, const QString &label, QString *error)
 {
     if (flag.isNull()) {
-        fail(error, QStringLiteral("no Start flag: XPLasma needs the Windows XP media for it"));
+        fail(error, QStringLiteral("no Start flag: XPlasma needs the Windows XP media for it"));
         return std::nullopt;
     }
     const QImage premultiplied = flag.convertToFormat(QImage::Format_ARGB32_Premultiplied);
@@ -227,7 +227,7 @@ std::optional<StartButtonArt> startButton(const Look &look, const QImage &flag, 
 std::optional<StartButtonArt> startButton(const Look &look, const QImage &flag, const StartButtonExtras &extras, QString *error)
 {
     if (flag.isNull()) {
-        fail(error, QStringLiteral("no Start flag: XPLasma needs the Windows XP media for it"));
+        fail(error, QStringLiteral("no Start flag: XPlasma needs the Windows XP media for it"));
         return std::nullopt;
     }
     QImage logo = flag.convertToFormat(QImage::Format_ARGB32_Premultiplied);

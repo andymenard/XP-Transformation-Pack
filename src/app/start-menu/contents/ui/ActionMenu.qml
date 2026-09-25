@@ -1,7 +1,7 @@
 /*
     The Start menu's right-click menu: an item's actions, as Plasma's
     application models offer them, in a real (QMenu) menu -- so it's drawn by
-    the widget style, XPLasma's included. XpBackend decides what's in it.
+    the widget style, XPlasma's included. XpBackend decides what's in it.
 
     SPDX-License-Identifier: GPL-2.0-or-later
 */

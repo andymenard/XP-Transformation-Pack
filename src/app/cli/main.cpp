@@ -5,13 +5,13 @@
 //   xplasma apply LOOK [--no-widgets] [--no-taskbar] [--no-icons] [--no-wallpaper]
 //                              put a look on the running desktop
 //   xplasma widgets LOOK       only Qt apps' widgets
-//   xplasma reset              Plasma's default look back, XPLasma's gone
+//   xplasma reset              Plasma's default look back, XPlasma's gone
 //   xplasma setup [--media PATH | --download-media] [--no-packs] [--all-packs]
 //                              XP's media and the official theme packs
 //   xplasma pointers [SCHEME [--no-shadow] [--out DIR]]
 //                              XP's pointer schemes; one applied (or, --out,
 //                              written as a cursor theme there)
-//   xplasma check-forks        (at login) XPLasma's builds of Plasma's widgets
+//   xplasma check-forks        (at login) XPlasma's builds of Plasma's widgets
 //                              matched to the Plasma there is, after an upgrade
 //   xplasma build LOOK [--out DIR]
 //                              generate the Plasma packages for a look without
@@ -331,7 +331,7 @@ int soundSchemes(const QString &name, const QString &out)
     return 0;
 }
 
-// A Plasma session XPLasma can dress, for the commands that change the
+// A Plasma session XPlasma can dress, for the commands that change the
 // desktop; else why not.
 bool requirePlasma()
 {
@@ -344,7 +344,7 @@ bool requirePlasma()
     return false;
 }
 
-// Whether this desktop can take XPLasma's whole look -- what apply checks
+// Whether this desktop can take XPlasma's whole look -- what apply checks
 // before changing anything -- and, --json, the details (Setup's check).
 int check(bool json)
 {
@@ -372,7 +372,7 @@ int check(bool json)
         say(QStringLiteral("%1 %2%3").arg(q.met ? QStringLiteral("ok  ") : QStringLiteral("NO  "), q.what,
                                           q.found.isEmpty() ? QString() : QStringLiteral(" (%1)").arg(q.found)));
     if (r.newer)
-        say(QStringLiteral("note: Plasma %1 is newer than XPLasma's builds (up to %2)").arg(r.plasma, desktop::newestKnownPlasma()));
+        say(QStringLiteral("note: Plasma %1 is newer than XPlasma's builds (up to %2)").arg(r.plasma, desktop::newestKnownPlasma()));
     for (const QString &c : cannot)
         say(QStringLiteral("NO  %1").arg(c));
     say(ok ? QStringLiteral("This desktop can take the whole XP look.") : QStringLiteral("This desktop can't take the whole XP look."));
@@ -489,7 +489,7 @@ int build(const QString &name, QString dir)
 }
 
 // Building Plasma's widgets (build-forks.sh): a series' image, Qt floor,
-// At login (XPLasma's plasma-workspace env script): XPLasma's builds of
+// At login (XPlasma's plasma-workspace env script): XPlasma's builds of
 // Plasma's widgets still right for the Plasma there is, after an upgrade.
 // Says what it changed, if anything.
 int checkForks()
@@ -548,7 +548,7 @@ int forkSources(const QString &name, const QString &pristine, const QString &wor
 
 int main(int argc, char **argv)
 {
-    // (A widgets application for fonts, painting and XPLasma's style, which
+    // (A widgets application for fonts, painting and XPlasma's style, which
     // draws the Plasma theme's controls; it never shows anything.)
     if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM"))
         qputenv("QT_QPA_PLATFORM", "offscreen");

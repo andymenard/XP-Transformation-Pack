@@ -1,5 +1,5 @@
 #!/bin/sh
-# Build XPLasma -- the app, its editor and the style plugins -- and install it
+# Build XPlasma -- the app, its editor and the style plugins -- and install it
 # into build/<mode>/ (bin/, lib/xplasma/qt{6,5}/styles/, share/applications/).
 #
 #   ./build.sh dev       host-matched toolchain and Qt; fastest iteration
@@ -27,7 +27,7 @@ for m in 6 5; do
   cmake --build build/$mode-qt\$m
   cmake --install build/$mode-qt\$m >/dev/null
 done"
-# Plasma's widgets as XPLasma builds them (./build-forks.sh), per Plasma series.
+# Plasma's widgets as XPlasma builds them (./build-forks.sh), per Plasma series.
 rm -rf "$root/build/$mode/lib/xplasma/forks"
 for out in "$root"/build/plasma/*/out; do
   [ -d "$out/plasma/applets" ] || continue

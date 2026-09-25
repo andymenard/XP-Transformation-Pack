@@ -474,7 +474,7 @@ Library Library::scan(const QStringList &roots)
 
 QString resolveAsset(const QString &themeFile, const QString &windowsPath, const QStringList &preferred)
 {
-    // A preset XPLasma saved names files exactly: never reduce that to a
+    // A preset XPlasma saved names files exactly: never reduce that to a
     // name and pick up some other file.
     if (QDir::isAbsolutePath(windowsPath) && !windowsPath.contains(QLatin1Char('\\')))
         return QFileInfo(windowsPath).isFile() ? windowsPath : QString();
@@ -769,7 +769,7 @@ bool save(const Preset &preset, QString *path, QString *error)
             }
     }
     file.setValue(u"Theme", u"DisplayName", preset.name);
-    file.setValue(u"XPLasma", u"Saved", QStringLiteral("1"));
+    file.setValue(u"XPlasma", u"Saved", QStringLiteral("1"));
     if (preset.style.isEmpty()) {
         file.removeSection(u"VisualStyles");
         preset.scheme.writeTo(file);
@@ -809,7 +809,7 @@ bool owned(const QString &path)
         || fi.suffix().compare(QLatin1String("theme"), Qt::CaseInsensitive) != 0)
         return false;
     const auto file = ThemeFile::load(path);
-    return file && file->value(u"XPLasma", u"Saved") == QLatin1String("1");
+    return file && file->value(u"XPlasma", u"Saved") == QLatin1String("1");
 }
 
 } // namespace presets

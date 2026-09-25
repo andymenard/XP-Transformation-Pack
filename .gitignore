@@ -20,7 +20,7 @@ __pycache__/
 
 # Local state
 refharness/share/
-# (.theme files XPLasma writes itself: a test scheme, and XP's stock Classic
+# (.theme files XPlasma writes itself: a test scheme, and XP's stock Classic
 # schemes, decoded from HIVEDEF.INF by xplasma-schemes.)
 !tests/oracle/schemes/*.theme
 !src/app/data/schemes/*.theme

@@ -104,12 +104,12 @@ QString diagnostics(Session &session, const QString &failure)
 {
     const Report r = check(session);
     QStringList lines;
-    lines << QStringLiteral("XPLasma: %1 (builds of Plasma's widgets for %2)")
+    lines << QStringLiteral("XPlasma: %1 (builds of Plasma's widgets for %2)")
                  .arg(QLatin1String(project::kVersion), forks::seriesNames().join(QStringLiteral(", ")));
     lines << QStringLiteral("Plasma: %1").arg(r.plasma.isEmpty() ? QStringLiteral("unknown") : r.plasma);
     const QString kf = libraryVersion(QStringLiteral("libKF6CoreAddons"));
     lines << QStringLiteral("KDE Frameworks: %1").arg(kf.isEmpty() ? QStringLiteral("unknown") : kf);
-    lines << QStringLiteral("Qt: %1 (XPLasma built with %2)").arg(QLatin1String(qVersion()), QLatin1String(QT_VERSION_STR));
+    lines << QStringLiteral("Qt: %1 (XPlasma built with %2)").arg(QLatin1String(qVersion()), QLatin1String(QT_VERSION_STR));
     lines << QStringLiteral("Distribution: %1").arg(distribution());
     lines << QStringLiteral("Session: %1, %2")
                  .arg(qEnvironmentVariable("XDG_CURRENT_DESKTOP", QStringLiteral("no desktop")),

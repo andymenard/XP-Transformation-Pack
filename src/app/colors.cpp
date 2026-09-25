@@ -46,7 +46,7 @@ QByteArray colorScheme(const ClassicScheme &s, const QString &name, const std::p
                .arg(rgb(s.colour(u"ActiveTitle")), rgb(s.colour(u"GradientActiveTitle")), rgb(s.colour(u"TitleText")));
     out += QStringLiteral("inactiveBackground=%1\ninactiveBlend=%2\ninactiveForeground=%3\n\n")
                .arg(rgb(s.colour(u"InactiveTitle")), rgb(s.colour(u"GradientInactiveTitle")), rgb(s.colour(u"InactiveTitleText")));
-    out += QStringLiteral("[%1]\nScheme=%2\n").arg(QLatin1String("X-XPLasma-Generated"), name);
+    out += QStringLiteral("[%1]\nScheme=%2\n").arg(QLatin1String("X-XPlasma-Generated"), name);
     return out.toUtf8();
 }
 

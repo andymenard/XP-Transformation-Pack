@@ -1,7 +1,7 @@
-# Build image for XPLasma's forks of Plasma's compiled widgets (the tray,
+# Build image for XPlasma's forks of Plasma's compiled widgets (the tray,
 # the task manager, notifications) for one Plasma series: here 6.6, whose
 # libPlasma is .so.7 -- from Plasma 6.6 on, each release bumps it, so each
-# series gets its own image, its own build, and XPLasma installs the one
+# series gets its own image, its own build, and XPlasma installs the one
 # matching the running Plasma.
 #
 # Fedora 44 ships Plasma 6.6 with its development files, so building its

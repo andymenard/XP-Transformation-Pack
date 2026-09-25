@@ -16,7 +16,7 @@ from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, Q
 from PySide6.QtCore import Qt, QTimer, QEventLoop, QEvent
 from PySide6.QtGui import QKeyEvent
 app = QApplication([])
-app.setStyle(QStyleFactory.create("XPLasma"))
+app.setStyle(QStyleFactory.create("XPlasma"))
 w = QWidget(); v = QVBoxLayout(w)
 a = QPushButton("&Open"); b = QPushButton("&Save"); v.addWidget(a); v.addWidget(b)
 w.resize(160, 90); w.show(); w.activateWindow()

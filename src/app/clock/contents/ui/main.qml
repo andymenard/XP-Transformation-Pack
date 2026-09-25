@@ -1,5 +1,5 @@
 /*
-    XPLasma's taskbar clock: XP's -- the time alone, in the look's clock font
+    XPlasma's taskbar clock: XP's -- the time alone, in the look's clock font
     at XP's 96 dpi and its clock colour, on the look's tray art (xp-tray's
     "clock" frame, which carries on from the notification area to the
     panel's right edge). The long date as its tooltip. A click does nothing;

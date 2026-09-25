@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ask real Windows XP to draw visual-style parts: XPLasma's pixel oracle.
+"""Ask real Windows XP to draw visual-style parts: XPlasma's pixel oracle.
 
     oracle.py JOB OUTDIR [--style FILE.msstyles ...]
 

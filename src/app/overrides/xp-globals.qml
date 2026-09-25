@@ -1,5 +1,5 @@
 
-    // XPLasma: XP's balloons in place of Plasma's popups, when the look
+    // XPlasma: XP's balloons in place of Plasma's popups, when the look
     // brings their art (widgets/xp-notify). One balloon at a time, oldest
     // first; the rest wait as icons in the tray (xpQueue), and a balloon that
     // timed out unread leaves its icon behind, blinking, to show it again.

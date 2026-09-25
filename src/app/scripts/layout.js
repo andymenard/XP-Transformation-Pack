@@ -2,12 +2,12 @@
 //
 //   [Start] [Quick Launch] [labelled task buttons ...] [tray] [clock]
 //
-// Idempotent. The Start button is XPLasma's plasmoid, given the look's data;
+// Idempotent. The Start button is XPlasma's plasmoid, given the look's data;
 // it takes over the favourites and settings of whatever launcher had the
 // slot (Kickoff, or xp2plasma's), which goes. Launchers pinned to an
 // icons-only task manager move to Quick Launch; the task manager is the
 // labelled one, never grouping; the pager and show-desktop go (XP had
-// neither); the clock is XPLasma's, in place of Plasma's, given the look's
+// neither); the clock is XPlasma's, in place of Plasma's, given the look's
 // font and colour. The order it wants is printed;
 // Plasma's scripting can't reorder, so the caller writes it.
 var START = ${START};
@@ -81,7 +81,7 @@ panels().forEach(function (p) {
     // an empty one only shows Plasma's "add launchers" placeholder.)
     var quick = (byType['org.kde.plasma.quicklaunch'] || [])[0];
     if (quick) {
-        // (one XPLasma set up with the task manager's URLs: in its own)
+        // (one XPlasma set up with the task manager's URLs: in its own)
         quick.currentConfigGroup = ['General'];
         var q = quick.readConfig('launcherUrls', '');
         q = (typeof q === 'string') ? (q.length ? q.split(',') : []) : q;
@@ -119,7 +119,7 @@ panels().forEach(function (p) {
         (byType[t] || []).forEach(function (w) { drop(w, t); });
     });
 
-    // 5. The clock: XPLasma's, where Plasma's was (last, if there was none),
+    // 5. The clock: XPlasma's, where Plasma's was (last, if there was none),
     // in XP's clock font and colour.
     (byType['org.kde.plasma.digitalclock'] || []).forEach(function (w) { drop(w, 'Plasma\'s clock'); });
     var clock = (byType[CLOCK] || [])[0];

@@ -24,7 +24,7 @@
 int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
-    QString styleName = QStringLiteral("XPLasma");
+    QString styleName = QStringLiteral("XPlasma");
     QString out;
     int watch = 0;
     const QStringList args = app.arguments();

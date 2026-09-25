@@ -106,7 +106,7 @@ target_link_libraries(xplasma-edit PRIVATE stdc++ xplasma-app Qt6::Widgets)
 add_test(NAME editor-screenshots COMMAND xplasma-edit --screenshots ${CMAKE_BINARY_DIR}/editor-screenshots)
 set_tests_properties(editor-screenshots PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 
-# The Setup wizard: a program of its own, which carries XPLasma (package.sh
+# The Setup wizard: a program of its own, which carries XPlasma (package.sh
 # appends the release tree to it) and isn't installed with it.
 add_executable(xplasma-setup wizard/main.cpp wizard/art.cpp)
 target_link_libraries(xplasma-setup PRIVATE stdc++ xplasma-app Qt6::Widgets)

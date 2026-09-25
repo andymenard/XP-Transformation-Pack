@@ -18,10 +18,10 @@ namespace xpl::editor {
 SetupDialog::SetupDialog(QWidget *parent)
     : QDialog(parent)
 {
-    setWindowTitle(QStringLiteral("XPLasma Setup"));
+    setWindowTitle(QStringLiteral("XPlasma Setup"));
     auto *layout = new QVBoxLayout(this);
     auto *blurb = new QLabel(QStringLiteral(
-        "XPLasma themes Plasma from Windows XP's own files, which it can't carry itself: point it at your XP install "
+        "XPlasma themes Plasma from Windows XP's own files, which it can't carry itself: point it at your XP install "
         "media, or fetch it and the official theme packs from archive.org."));
     blurb->setWordWrap(true);
     layout->addWidget(blurb);

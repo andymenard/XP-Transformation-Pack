@@ -1,5 +1,5 @@
 #pragma once
-// XPLasma's builds of Plasma's own widgets, for the Plasmas that build them
+// XPlasma's builds of Plasma's own widgets, for the Plasmas that build them
 // into their plugins (from 6.5 on) and so can't be patched from the home
 // folder: each series' upstream source (pinned tarballs), patched with the
 // same rules as the packaged widgets (overrides/patches.json) -- or the
@@ -90,7 +90,7 @@ bool install(Session &session, const Choice &choice, State &state, QString *erro
 bool installed(const State &state);
 void remove(State &state);
 
-// At login, before Plasma's shell starts (XPLasma's env script runs it): the
+// At login, before Plasma's shell starts (XPlasma's env script runs it): the
 // builds installed still fit the Plasma there is -- or, after an upgrade to
 // another series, the build for that one instead, or none (Plasma's own
 // widgets back: a build that doesn't load leaves the panel without them).

@@ -147,7 +147,7 @@ void applyDecoration(Session &session, const QString &id)
     }
 }
 
-// KWin rules for XPLasma's own windows that XP gave no minimize or maximize
+// KWin rules for XPlasma's own windows that XP gave no minimize or maximize
 // box: the copy dialog (plasmashell's, titled "Copying..." and the like) and
 // the editor (Display Properties and its dialogs, and Date and Time
 // Properties, property sheets on XP).
@@ -166,14 +166,14 @@ const Rule kNoBoxes{
 };
 const QList<std::pair<QString, Rule>> kRules{
     {QStringLiteral("xplasma-copy-dialog"),
-     Rule{{QStringLiteral("Description"), QStringLiteral("XPLasma: XP's copy dialog (Close only)")},
+     Rule{{QStringLiteral("Description"), QStringLiteral("XPlasma: XP's copy dialog (Close only)")},
           {QStringLiteral("wmclass"), QStringLiteral("org.kde.plasmashell")},
           {QStringLiteral("wmclassmatch"), QStringLiteral("1")},      // exact
           {QStringLiteral("title"), QStringLiteral("\\.\\.\\.$")},
           {QStringLiteral("titlematch"), QStringLiteral("3")}}        // regular expression
          + kNoBoxes},
     {QStringLiteral("xplasma-display-properties"),
-     Rule{{QStringLiteral("Description"), QStringLiteral("XPLasma: Display Properties, Date and Time Properties (Close only)")},
+     Rule{{QStringLiteral("Description"), QStringLiteral("XPlasma: Display Properties, Date and Time Properties (Close only)")},
           {QStringLiteral("wmclass"), QStringLiteral("^fyi\\.hotsocket\\.xplasma(\\.datetime)?$")},
           {QStringLiteral("wmclassmatch"), QStringLiteral("3")}}      // regular expression
          + kNoBoxes},
@@ -224,7 +224,7 @@ void applyFonts(Session &session, const QList<ConfigValue> &fonts)
     session.reconfigureKWin();
 }
 
-// This XPLasma's editor (Display Properties, Date and Time Properties),
+// This XPlasma's editor (Display Properties, Date and Time Properties),
 // beside this program; or whichever is on the PATH.
 QString editorPath()
 {
@@ -444,7 +444,7 @@ void settleTaskbars(Session &session, int height)
 
 QStringList cannotTake(Session &session, bool taskbar, std::optional<forks::Choice> *chosen)
 {
-    // (Widgets this Plasma builds in come from XPLasma's builds of them, if
+    // (Widgets this Plasma builds in come from XPlasma's builds of them, if
     // one for this Plasma loads here.)
     QStringList cannot;
     QString why;
@@ -533,7 +533,7 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
         if (builds) {
             if (!forks::install(session, *builds, state, error))
                 return false;
-            report(o, QStringLiteral("  Plasma's %1 as XPLasma builds them (Plasma %2)")
+            report(o, QStringLiteral("  Plasma's %1 as XPlasma builds them (Plasma %2)")
                           .arg(QStringList(builds->plugins.keys()).join(QStringLiteral(", ")), builds->series));
         } else {
             forks::remove(state);   // (none wanted: an older Plasma's, if any, go)
@@ -542,7 +542,7 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
     if (!iconTheme.isEmpty() && !install(iconTheme, iconsDest, error))
         return false;
     QString why;
-    // XP's Properties on the desktop's menu: this XPLasma's editor.
+    // XP's Properties on the desktop's menu: this XPlasma's editor.
     const QString editor = QCoreApplication::applicationDirPath() + QLatin1String("/xplasma-edit");
     if (!QFileInfo(editor).isExecutable())
         report(o, QStringLiteral("  no XP Properties on the desktop: %1 isn't there").arg(editor));
@@ -688,7 +688,7 @@ bool resetDesktop(Session &session, const std::function<void(const QString &)> &
     };
     State state = State::load();
     QStringList log;
-    say(QStringLiteral("Taking XPLasma's widget style off ..."));
+    say(QStringLiteral("Taking XPlasma's widget style off ..."));
     qtstyle::revert(session, state, &log);
     gtk::revert(session, state, &log);
     for (const QString &line : std::as_const(log))
@@ -696,7 +696,7 @@ bool resetDesktop(Session &session, const std::function<void(const QString &)> &
     overrides::removeTitleShadows(share(QStringLiteral("kwin/aurorae/aurorae.qml")));
     removeWindowRules(session);
     // Plasma's own widgets back, in a shell of their own, before Plasma's
-    // layout is: the running shell has XPLasma's loaded, and given the
+    // layout is: the running shell has XPlasma's loaded, and given the
     // default panel it would load Plasma's beside them -- with builds of
     // them, the same QML module registered twice, which Qt won't survive.
     session.restartPlasmaShell([&] {
@@ -750,7 +750,7 @@ bool resetDesktop(Session &session, const std::function<void(const QString &)> &
         session.run({helper, previousIcons});
     state.settings.remove(QStringLiteral("previousIconTheme"));
 
-    say(QStringLiteral("Removing XPLasma's packages ..."));
+    say(QStringLiteral("Removing XPlasma's packages ..."));
     const QStringList packages = generatedPackages();
     for (const QString &p : packages) {
         if (QFileInfo(p).isDir())

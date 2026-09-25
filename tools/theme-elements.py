@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """theme-elements.py SVG OUT.png [PREFIX] [--zoom N] [--cols N]
 
-The pieces of one of XPLasma's generated Plasma theme SVGs (its <image>
+The pieces of one of XPlasma's generated Plasma theme SVGs (its <image>
 elements, the PNGs they embed), each zoomed and labelled with its id, over a
 checkerboard so transparency shows. With PREFIX, only the ids starting so.
 A developer's tool: needs Pillow.

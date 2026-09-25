@@ -5,13 +5,13 @@
 //
 //   * The notification area (org.kde.plasma.systemtray) over the panel
 //     theme's xp-tray art, with XP's show-hidden-icons button and 16px
-//     icons. (The clock is XPLasma's own plasmoid.)
+//     icons. (The clock is XPlasma's own plasmoid.)
 //   * The task manager (org.kde.plasma.taskmanager), with XP's task button
 //     layout when the panel theme marks its buttons as XP's TaskBand
 //     (hint-xplasma-taskband): one every 160px at most, 2px apart, a 16px
 //     icon 10px in and the label 3px after it.
 //   * The panel (org.kde.panel), whose widgets all take the taskbar's
-//     colours when the panel theme is XPLasma's (hint-xplasma-colours) --
+//     colours when the panel theme is XPlasma's (hint-xplasma-colours) --
 //     Plasma's own too, a clock or the keyboard layout's label.
 //   * Notifications (org.kde.plasma.notifications), as XP's balloons when
 //     the panel theme has their art (widgets/xp-notify): one at a time from
@@ -40,7 +40,7 @@
 namespace xpl::overrides {
 
 // The panel widgets this Plasma builds into their plugins (from 6.5 on) and
-// so can't be patched: XPLasma's own builds of them stand in (forks.h).
+// so can't be patched: XPlasma's own builds of them stand in (forks.h).
 QStringList builtInPanelWidgets();
 // The rest, which it has as packages, patched.
 bool installPanelWidgets(const QString &plasmoids, QString *error = nullptr);

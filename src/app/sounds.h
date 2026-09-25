@@ -4,7 +4,7 @@
 // Connect, ..., Windows Logon), or none. XP's own scheme, Windows Default,
 // is its registry's defaults (HIVEUSD.INF); its sounds are the WAVs setup
 // copied into WINDOWS\Media, read from the media as needed
-// (media::systemFile) -- nothing kept of Microsoft's in XPLasma.
+// (media::systemFile) -- nothing kept of Microsoft's in XPlasma.
 //
 // Plasma plays a sound for an event by a freedesktop sound theme's names
 // (dialog-information, device-added, desktop-login...), from the theme

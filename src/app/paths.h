@@ -1,10 +1,10 @@
 #pragma once
-// Where XPLasma keeps its files, and where the session looks for what it
+// Where XPlasma keeps its files, and where the session looks for what it
 // writes.
 //
 // Every path is built from the home directory, never from XDG_* variables:
 // what matters is where the *running Plasma session* reads (~/.local/share,
-// ~/.config), and it doesn't consult the environment XPLasma was started
+// ~/.config), and it doesn't consult the environment XPlasma was started
 // with. Tests move HOME to a scratch directory.
 #include <QString>
 #include <QStringList>
@@ -13,7 +13,7 @@ namespace xpl::paths {
 
 QString home();
 
-// XPLasma's own files.
+// XPlasma's own files.
 QString data();          // ~/.local/share/xplasma
 QString assets();        // data()/assets: the imported library
 QString themes();        //   .../themes: .msstyles and .theme files
@@ -40,11 +40,11 @@ QStringList systemData();
 // "icons/breeze"), as a full path; empty if none does.
 QString findSystemData(const QString &relative);
 
-// The prebuilt XPLasma style plugin for a Qt major, as this copy of XPLasma
+// The prebuilt XPlasma style plugin for a Qt major, as this copy of XPlasma
 // ships it: <prefix>/lib/xplasma, beside bin/ (in a checkout, build.sh's
 // build/<mode>); empty if there isn't one.
 QString shippedStylePlugin(int qtMajor);
-// Plasma's widgets as XPLasma builds them for the Plasmas that build them in
+// Plasma's widgets as XPlasma builds them for the Plasmas that build them in
 // (build-forks.sh): <prefix>/lib/xplasma/forks/<series>/plasma/applets/
 // <id>.so; empty if this copy has none.
 QString shippedForks();
@@ -52,7 +52,7 @@ QString shippedForks();
 QString stylePluginRoot(int qtMajor);
 
 // `dir` and the folders it's in, as long as each is empty, up to (not
-// including) `top` -- what's left of a tree once XPLasma's files are out.
+// including) `top` -- what's left of a tree once XPlasma's files are out.
 void removeEmptyDirs(const QString &dir, const QString &top);
 
 // xp2plasma's, adopted once (see adopt.h).

@@ -5,8 +5,8 @@
 // ~/.local/share, and switches the session to them: KWin's window borders,
 // the colour scheme and fonts, Qt's widget style, the taskbar (its Plasma
 // theme, the panel as XP's, the Start button), the wallpaper, the icons.
-// What it installed says so (the X-XPLasma-Generated marker), so reset
-// removes XPLasma's and only XPLasma's.
+// What it installed says so (the X-XPlasma-Generated marker), so reset
+// removes XPlasma's and only XPlasma's.
 #include "app/forks.h"
 #include "app/look.h"
 #include "app/session.h"
@@ -55,14 +55,14 @@ bool applyStartButton(Session &session, const Look &look, QString *error = nullp
 // Qt apps' widgets only.
 bool applyWidgets(Session &session, const Look &look, const std::function<void(const QString &)> &progress, QString *error = nullptr);
 // Plasma's default look back (Breeze, the default panel and wallpaper), and
-// everything XPLasma added gone.
+// everything XPlasma added gone.
 bool resetDesktop(Session &session, const std::function<void(const QString &)> &progress, QString *error = nullptr);
 
 // What a template script (src/app/scripts/NAME.js) says with its ${KEY}s
 // filled in (values are JSON).
 QString scriptFrom(const QString &name, const QVariantMap &values);
 
-// The generated packages XPLasma (or xp2plasma) left under ~/.local/share,
+// The generated packages XPlasma (or xp2plasma) left under ~/.local/share,
 // except those named in `keep`.
 QStringList generatedPackages(const QStringList &keep = {});
 

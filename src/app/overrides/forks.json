@@ -89,7 +89,7 @@
     },
     {
      "find": "    readonly property bool inHiddenLayout: effectiveStatus === PlasmaCore.Types.PassiveStatus\n    readonly property bool inVisibleLayout: effectiveStatus === PlasmaCore.Types.ActiveStatus\n",
-     "replace": "    // XPLasma: a hidden item shown in the tray while it's expanded, XP-style.\n    readonly property int xpEffectiveStatus: effectiveStatus === PlasmaCore.Types.PassiveStatus && root.xpRevealHidden(itemId)\n        ? PlasmaCore.Types.ActiveStatus : effectiveStatus\n    readonly property bool inHiddenLayout: xpEffectiveStatus === PlasmaCore.Types.PassiveStatus\n    readonly property bool inVisibleLayout: xpEffectiveStatus === PlasmaCore.Types.ActiveStatus\n"
+     "replace": "    // XPlasma: a hidden item shown in the tray while it's expanded, XP-style.\n    readonly property int xpEffectiveStatus: effectiveStatus === PlasmaCore.Types.PassiveStatus && root.xpRevealHidden(itemId)\n        ? PlasmaCore.Types.ActiveStatus : effectiveStatus\n    readonly property bool inHiddenLayout: xpEffectiveStatus === PlasmaCore.Types.PassiveStatus\n    readonly property bool inVisibleLayout: xpEffectiveStatus === PlasmaCore.Types.ActiveStatus\n"
     }
    ],
    "notifications/global/Globals.qml": [
@@ -117,11 +117,11 @@
    "notifications/main.qml": [
     {
      "find": "    id: root\n",
-     "replace": "    id: root\n\n    // XPLasma: the balloons' queue, for the system tray to draw.\n    readonly property var xpQueue: Notifications.Globals.xpBalloons ? Notifications.Globals.xpQueue : []\n    readonly property int xpCurrentId: Notifications.Globals.xpCurrentId\n    function xpRegisterIcon(id, item) { Notifications.Globals.xpRegisterIcon(id, item); }\n    function xpUnregisterIcon(id, item) { Notifications.Globals.xpUnregisterIcon(id, item); }\n    function xpIconClicked(id) { Notifications.Globals.xpRecall(id); }\n"
+     "replace": "    id: root\n\n    // XPlasma: the balloons' queue, for the system tray to draw.\n    readonly property var xpQueue: Notifications.Globals.xpBalloons ? Notifications.Globals.xpQueue : []\n    readonly property int xpCurrentId: Notifications.Globals.xpCurrentId\n    function xpRegisterIcon(id, item) { Notifications.Globals.xpRegisterIcon(id, item); }\n    function xpUnregisterIcon(id, item) { Notifications.Globals.xpUnregisterIcon(id, item); }\n    function xpIconClicked(id) { Notifications.Globals.xpRecall(id); }\n"
     },
     {
      "find": "    readonly property int effectiveStatus: historyModel.activeJobsCount > 0\n",
-     "replace": "    // XPLasma: with XP's balloons, no icon of its own but Do Not Disturb's -- XP's\n    // tray had none; the balloons' icons and the copy dialog show the rest.\n    readonly property int effectiveStatus: Notifications.Globals.xpBalloons\n                     ? (Notifications.Globals.inhibited ? PlasmaCore.Types.ActiveStatus : PlasmaCore.Types.PassiveStatus)\n                     : historyModel.activeJobsCount > 0\n"
+     "replace": "    // XPlasma: with XP's balloons, no icon of its own but Do Not Disturb's -- XP's\n    // tray had none; the balloons' icons and the copy dialog show the rest.\n    readonly property int effectiveStatus: Notifications.Globals.xpBalloons\n                     ? (Notifications.Globals.inhibited ? PlasmaCore.Types.ActiveStatus : PlasmaCore.Types.PassiveStatus)\n                     : historyModel.activeJobsCount > 0\n"
     }
    ],
    "extra/XpPopup.qml": [
@@ -143,11 +143,11 @@
    "taskmanager/Task.qml": [
     {
      "find": "            rightMargin: ((task.inPopup || task.tasksRoot.vertical) && taskList.columns > 1) ? TaskManagerApplet.LayoutMetrics.iconMargin : 0\n",
-     "replace": "            rightMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 2 : ((task.inPopup || task.tasksRoot.vertical) && taskList.columns > 1) ? TaskManagerApplet.LayoutMetrics.iconMargin : 0   // XPLasma: XP's 2px between buttons\n"
+     "replace": "            rightMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 2 : ((task.inPopup || task.tasksRoot.vertical) && taskList.columns > 1) ? TaskManagerApplet.LayoutMetrics.iconMargin : 0   // XPlasma: XP's 2px between buttons\n"
     },
     {
      "find": "            leftMargin: adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))",
-     "replace": "            // XPLasma: XP's 16px icon, 10px in, centred.\n            leftMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 10 : adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: task.tasksRoot.xpTaskband && !task.inPopup ? Math.round((parent.height - 16) / 2) : adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: task.tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: task.tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))"
+     "replace": "            // XPlasma: XP's 16px icon, 10px in, centred.\n            leftMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 10 : adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: task.tasksRoot.xpTaskband && !task.inPopup ? Math.round((parent.height - 16) / 2) : adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: task.tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: task.tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))"
     },
     {
      "find": "                    iconBox.width: Math.min(task.parent.minimumWidth, tasksRoot.height)\n",
@@ -155,11 +155,11 @@
     },
     {
      "find": "            leftMargin: taskFrame.margins.left + iconBox.width + TaskManagerApplet.LayoutMetrics.labelMargin\n",
-     "replace": "            leftMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 10 + 16 + 3 : taskFrame.margins.left + iconBox.width + TaskManagerApplet.LayoutMetrics.labelMargin   // XPLasma\n"
+     "replace": "            leftMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 10 + 16 + 3 : taskFrame.margins.left + iconBox.width + TaskManagerApplet.LayoutMetrics.labelMargin   // XPlasma\n"
     },
     {
      "find": "            topMargin: taskFrame.margins.top\n            rightMargin: taskFrame.margins.right + (task.audioStreamIcon",
-     "replace": "            topMargin: taskFrame.margins.top - (task.tasksRoot.xpTaskband && !task.inPopup ? 1 : 0)   // XPLasma: XP's baseline, 1px higher\n            rightMargin: taskFrame.margins.right + (task.audioStreamIcon"
+     "replace": "            topMargin: taskFrame.margins.top - (task.tasksRoot.xpTaskband && !task.inPopup ? 1 : 0)   // XPlasma: XP's baseline, 1px higher\n            rightMargin: taskFrame.margins.right + (task.audioStreamIcon"
     },
     {
      "find": "            bottomMargin: taskFrame.margins.bottom\n        }\n\n        wrapMode",
@@ -258,7 +258,7 @@
     },
     {
      "find": "    readonly property bool inHiddenLayout: effectiveStatus === PlasmaCore.Types.PassiveStatus\n    readonly property bool inVisibleLayout: effectiveStatus === PlasmaCore.Types.ActiveStatus\n",
-     "replace": "    // XPLasma: a hidden item shown in the tray while it's expanded, XP-style.\n    readonly property int xpEffectiveStatus: effectiveStatus === PlasmaCore.Types.PassiveStatus && root.xpRevealHidden(itemId)\n        ? PlasmaCore.Types.ActiveStatus : effectiveStatus\n    readonly property bool inHiddenLayout: xpEffectiveStatus === PlasmaCore.Types.PassiveStatus\n    readonly property bool inVisibleLayout: xpEffectiveStatus === PlasmaCore.Types.ActiveStatus\n"
+     "replace": "    // XPlasma: a hidden item shown in the tray while it's expanded, XP-style.\n    readonly property int xpEffectiveStatus: effectiveStatus === PlasmaCore.Types.PassiveStatus && root.xpRevealHidden(itemId)\n        ? PlasmaCore.Types.ActiveStatus : effectiveStatus\n    readonly property bool inHiddenLayout: xpEffectiveStatus === PlasmaCore.Types.PassiveStatus\n    readonly property bool inVisibleLayout: xpEffectiveStatus === PlasmaCore.Types.ActiveStatus\n"
     }
    ],
    "notifications/global/Globals.qml": [
@@ -286,11 +286,11 @@
    "notifications/main.qml": [
     {
      "find": "    id: root\n",
-     "replace": "    id: root\n\n    // XPLasma: the balloons' queue, for the system tray to draw.\n    readonly property var xpQueue: Notifications.Globals.xpBalloons ? Notifications.Globals.xpQueue : []\n    readonly property int xpCurrentId: Notifications.Globals.xpCurrentId\n    function xpRegisterIcon(id, item) { Notifications.Globals.xpRegisterIcon(id, item); }\n    function xpUnregisterIcon(id, item) { Notifications.Globals.xpUnregisterIcon(id, item); }\n    function xpIconClicked(id) { Notifications.Globals.xpRecall(id); }\n"
+     "replace": "    id: root\n\n    // XPlasma: the balloons' queue, for the system tray to draw.\n    readonly property var xpQueue: Notifications.Globals.xpBalloons ? Notifications.Globals.xpQueue : []\n    readonly property int xpCurrentId: Notifications.Globals.xpCurrentId\n    function xpRegisterIcon(id, item) { Notifications.Globals.xpRegisterIcon(id, item); }\n    function xpUnregisterIcon(id, item) { Notifications.Globals.xpUnregisterIcon(id, item); }\n    function xpIconClicked(id) { Notifications.Globals.xpRecall(id); }\n"
     },
     {
      "find": "    readonly property int effectiveStatus: historyModel.activeJobsCount > 0\n",
-     "replace": "    // XPLasma: with XP's balloons, no icon of its own but Do Not Disturb's -- XP's\n    // tray had none; the balloons' icons and the copy dialog show the rest.\n    readonly property int effectiveStatus: Notifications.Globals.xpBalloons\n                     ? (Notifications.Globals.inhibited ? PlasmaCore.Types.ActiveStatus : PlasmaCore.Types.PassiveStatus)\n                     : historyModel.activeJobsCount > 0\n"
+     "replace": "    // XPlasma: with XP's balloons, no icon of its own but Do Not Disturb's -- XP's\n    // tray had none; the balloons' icons and the copy dialog show the rest.\n    readonly property int effectiveStatus: Notifications.Globals.xpBalloons\n                     ? (Notifications.Globals.inhibited ? PlasmaCore.Types.ActiveStatus : PlasmaCore.Types.PassiveStatus)\n                     : historyModel.activeJobsCount > 0\n"
     }
    ],
    "extra/XpPopup.qml": [
@@ -312,11 +312,11 @@
    "taskmanager/Task.qml": [
     {
      "find": "            rightMargin: ((task.inPopup || task.tasksRoot.vertical) && taskList.columns > 1) ? TaskManagerApplet.LayoutMetrics.iconMargin : 0\n",
-     "replace": "            rightMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 2 : ((task.inPopup || task.tasksRoot.vertical) && taskList.columns > 1) ? TaskManagerApplet.LayoutMetrics.iconMargin : 0   // XPLasma: XP's 2px between buttons\n"
+     "replace": "            rightMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 2 : ((task.inPopup || task.tasksRoot.vertical) && taskList.columns > 1) ? TaskManagerApplet.LayoutMetrics.iconMargin : 0   // XPlasma: XP's 2px between buttons\n"
     },
     {
      "find": "            leftMargin: adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))",
-     "replace": "            // XPLasma: XP's 16px icon, 10px in, centred.\n            leftMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 10 : adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: task.tasksRoot.xpTaskband && !task.inPopup ? Math.round((parent.height - 16) / 2) : adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: task.tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: task.tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))"
+     "replace": "            // XPlasma: XP's 16px icon, 10px in, centred.\n            leftMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 10 : adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: task.tasksRoot.xpTaskband && !task.inPopup ? Math.round((parent.height - 16) / 2) : adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: task.tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: task.tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))"
     },
     {
      "find": "                    iconBox.width: Math.min(task.parent.minimumWidth, tasksRoot.height)\n",
@@ -324,11 +324,11 @@
     },
     {
      "find": "            leftMargin: taskFrame.margins.left + iconBox.width + TaskManagerApplet.LayoutMetrics.labelMargin\n",
-     "replace": "            leftMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 10 + 16 + 3 : taskFrame.margins.left + iconBox.width + TaskManagerApplet.LayoutMetrics.labelMargin   // XPLasma\n"
+     "replace": "            leftMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 10 + 16 + 3 : taskFrame.margins.left + iconBox.width + TaskManagerApplet.LayoutMetrics.labelMargin   // XPlasma\n"
     },
     {
      "find": "            topMargin: taskFrame.margins.top\n            rightMargin: taskFrame.margins.right + (task.audioStreamIcon",
-     "replace": "            topMargin: taskFrame.margins.top - (task.tasksRoot.xpTaskband && !task.inPopup ? 1 : 0)   // XPLasma: XP's baseline, 1px higher\n            rightMargin: taskFrame.margins.right + (task.audioStreamIcon"
+     "replace": "            topMargin: taskFrame.margins.top - (task.tasksRoot.xpTaskband && !task.inPopup ? 1 : 0)   // XPlasma: XP's baseline, 1px higher\n            rightMargin: taskFrame.margins.right + (task.audioStreamIcon"
     },
     {
      "find": "            bottomMargin: taskFrame.margins.bottom\n        }\n\n        wrapMode",
@@ -427,7 +427,7 @@
     },
     {
      "find": "    readonly property bool inHiddenLayout: effectiveStatus === PlasmaCore.Types.PassiveStatus\n    readonly property bool inVisibleLayout: effectiveStatus === PlasmaCore.Types.ActiveStatus\n",
-     "replace": "    // XPLasma: a hidden item shown in the tray while it's expanded, XP-style.\n    readonly property int xpEffectiveStatus: effectiveStatus === PlasmaCore.Types.PassiveStatus && root.xpRevealHidden(itemId)\n        ? PlasmaCore.Types.ActiveStatus : effectiveStatus\n    readonly property bool inHiddenLayout: xpEffectiveStatus === PlasmaCore.Types.PassiveStatus\n    readonly property bool inVisibleLayout: xpEffectiveStatus === PlasmaCore.Types.ActiveStatus\n"
+     "replace": "    // XPlasma: a hidden item shown in the tray while it's expanded, XP-style.\n    readonly property int xpEffectiveStatus: effectiveStatus === PlasmaCore.Types.PassiveStatus && root.xpRevealHidden(itemId)\n        ? PlasmaCore.Types.ActiveStatus : effectiveStatus\n    readonly property bool inHiddenLayout: xpEffectiveStatus === PlasmaCore.Types.PassiveStatus\n    readonly property bool inVisibleLayout: xpEffectiveStatus === PlasmaCore.Types.ActiveStatus\n"
     }
    ],
    "notifications/global/Globals.qml": [
@@ -455,11 +455,11 @@
    "notifications/main.qml": [
     {
      "find": "    id: root\n",
-     "replace": "    id: root\n\n    // XPLasma: the balloons' queue, for the system tray to draw.\n    readonly property var xpQueue: Notifications.Globals.xpBalloons ? Notifications.Globals.xpQueue : []\n    readonly property int xpCurrentId: Notifications.Globals.xpCurrentId\n    function xpRegisterIcon(id, item) { Notifications.Globals.xpRegisterIcon(id, item); }\n    function xpUnregisterIcon(id, item) { Notifications.Globals.xpUnregisterIcon(id, item); }\n    function xpIconClicked(id) { Notifications.Globals.xpRecall(id); }\n"
+     "replace": "    id: root\n\n    // XPlasma: the balloons' queue, for the system tray to draw.\n    readonly property var xpQueue: Notifications.Globals.xpBalloons ? Notifications.Globals.xpQueue : []\n    readonly property int xpCurrentId: Notifications.Globals.xpCurrentId\n    function xpRegisterIcon(id, item) { Notifications.Globals.xpRegisterIcon(id, item); }\n    function xpUnregisterIcon(id, item) { Notifications.Globals.xpUnregisterIcon(id, item); }\n    function xpIconClicked(id) { Notifications.Globals.xpRecall(id); }\n"
     },
     {
      "find": "    readonly property int effectiveStatus: historyModel.activeJobsCount > 0\n",
-     "replace": "    // XPLasma: with XP's balloons, no icon of its own but Do Not Disturb's -- XP's\n    // tray had none; the balloons' icons and the copy dialog show the rest.\n    readonly property int effectiveStatus: Notifications.Globals.xpBalloons\n                     ? (Notifications.Globals.inhibited ? PlasmaCore.Types.ActiveStatus : PlasmaCore.Types.PassiveStatus)\n                     : historyModel.activeJobsCount > 0\n"
+     "replace": "    // XPlasma: with XP's balloons, no icon of its own but Do Not Disturb's -- XP's\n    // tray had none; the balloons' icons and the copy dialog show the rest.\n    readonly property int effectiveStatus: Notifications.Globals.xpBalloons\n                     ? (Notifications.Globals.inhibited ? PlasmaCore.Types.ActiveStatus : PlasmaCore.Types.PassiveStatus)\n                     : historyModel.activeJobsCount > 0\n"
     }
    ],
    "extra/XpPopup.qml": [
@@ -481,11 +481,11 @@
    "taskmanager/Task.qml": [
     {
      "find": "            rightMargin: ((task.inPopup || task.tasksRoot.vertical) && taskList.columns > 1) ? TaskManagerApplet.LayoutMetrics.iconMargin : 0\n",
-     "replace": "            rightMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 2 : ((task.inPopup || task.tasksRoot.vertical) && taskList.columns > 1) ? TaskManagerApplet.LayoutMetrics.iconMargin : 0   // XPLasma: XP's 2px between buttons\n"
+     "replace": "            rightMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 2 : ((task.inPopup || task.tasksRoot.vertical) && taskList.columns > 1) ? TaskManagerApplet.LayoutMetrics.iconMargin : 0   // XPlasma: XP's 2px between buttons\n"
     },
     {
      "find": "            leftMargin: adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))",
-     "replace": "            // XPLasma: XP's 16px icon, 10px in, centred.\n            leftMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 10 : adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: task.tasksRoot.xpTaskband && !task.inPopup ? Math.round((parent.height - 16) / 2) : adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: task.tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: task.tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))"
+     "replace": "            // XPlasma: XP's 16px icon, 10px in, centred.\n            leftMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 10 : adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: task.tasksRoot.xpTaskband && !task.inPopup ? Math.round((parent.height - 16) / 2) : adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: task.tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: task.tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))"
     },
     {
      "find": "                    iconBox.width: Math.min(task.parent.minimumWidth, tasksRoot.height)\n",
@@ -493,11 +493,11 @@
     },
     {
      "find": "            leftMargin: taskFrame.margins.left + iconBox.width + TaskManagerApplet.LayoutMetrics.labelMargin\n",
-     "replace": "            leftMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 10 + 16 + 3 : taskFrame.margins.left + iconBox.width + TaskManagerApplet.LayoutMetrics.labelMargin   // XPLasma\n"
+     "replace": "            leftMargin: task.tasksRoot.xpTaskband && !task.inPopup ? 10 + 16 + 3 : taskFrame.margins.left + iconBox.width + TaskManagerApplet.LayoutMetrics.labelMargin   // XPlasma\n"
     },
     {
      "find": "            topMargin: taskFrame.margins.top\n            rightMargin: taskFrame.margins.right + (task.audioStreamIcon",
-     "replace": "            topMargin: taskFrame.margins.top - (task.tasksRoot.xpTaskband && !task.inPopup ? 1 : 0)   // XPLasma: XP's baseline, 1px higher\n            rightMargin: taskFrame.margins.right + (task.audioStreamIcon"
+     "replace": "            topMargin: taskFrame.margins.top - (task.tasksRoot.xpTaskband && !task.inPopup ? 1 : 0)   // XPlasma: XP's baseline, 1px higher\n            rightMargin: taskFrame.margins.right + (task.audioStreamIcon"
     },
     {
      "find": "            bottomMargin: taskFrame.margins.bottom\n        }\n\n        wrapMode",

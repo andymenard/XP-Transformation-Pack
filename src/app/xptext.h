@@ -8,7 +8,7 @@
 // (fontconfig/xplasma-xp-text.conf), included at the end of the user's
 // fonts.conf so it's read after KDE's own settings there; the matching Xft
 // settings in kdeglobals (KDE's Fonts settings, and GTK through them). Qt
-// can't be told not to kern through fontconfig: the XPLasma style does that.
+// can't be told not to kern through fontconfig: the XPlasma style does that.
 #include "app/session.h"
 #include "app/state.h"
 
@@ -21,7 +21,7 @@ namespace xpl::xptext {
 QByteArray rules(const QString &fontsDir);
 
 bool apply(Session &session, State &state, QString *error = nullptr);
-// The user's settings back, and XPLasma's rules gone.
+// The user's settings back, and XPlasma's rules gone.
 void revert(Session &session, State &state);
 
 } // namespace xpl::xptext

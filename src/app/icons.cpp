@@ -111,7 +111,7 @@ const Mapping kMap[] = {
     {"netshell.dll", 196, "Status", "network-wired-activated-limited"},
     // Discover's update notifier: Automatic Updates' shields -- green with
     // nothing to do, yellow with updates waiting or a restart to finish them.
-    // (XP's globe, wuauclt's, is kept for XPLasma's own updates.)
+    // (XP's globe, wuauclt's, is kept for XPlasma's own updates.)
     {"wuaucpl.cpl", 3, "Status", "update-none"},
     {"wuaucpl.cpl", 4, "Status", "update-low update-medium update-high system-reboot-update"},
     // Brightness, which XP had no icon for: Power Options' monitor with a
@@ -442,7 +442,7 @@ QString writeIconTheme(const QString &directory, const QString &inheritFrom, con
         fallbacks.insert(name, entry.path);
     }
 
-    QString index = QStringLiteral("[Icon Theme]\nName=Windows XP\nComment=Windows XP's own icons, taken from your XP media by XPLasma\n"
+    QString index = QStringLiteral("[Icon Theme]\nName=Windows XP\nComment=Windows XP's own icons, taken from your XP media by XPlasma\n"
                                    "Inherits=%1,hicolor\nDirectories=%2\n")
                         .arg(inherit, QStringList(directories.keys()).join(QLatin1Char(',')));
     for (const auto &[folder, spec] : directories.asKeyValueRange())

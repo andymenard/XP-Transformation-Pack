@@ -1,5 +1,5 @@
 #pragma once
-// A look: what XPLasma turns into Plasma packages -- a visual style at one of
+// A look: what XPlasma turns into Plasma packages -- a visual style at one of
 // its variants, or Windows Classic in one colour scheme. Either way it has
 // the system appearance XP would set (colours, fonts, frame and caption
 // sizes: a style's [SysMetrics], a scheme's own), and a style also has its

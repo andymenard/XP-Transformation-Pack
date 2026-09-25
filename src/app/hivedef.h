@@ -4,7 +4,7 @@
 // HKCU\Control Panel\Appearance\Schemes values are SCHEMEDATA blobs named
 // through its [Strings] section ("%BRICK%" -> "Brick").
 //
-// XPLasma ships these as .theme files (src/app/data/schemes, made by
+// XPlasma ships these as .theme files (src/app/data/schemes, made by
 // xplasma-schemes from the XP ISO), so Classic works with no XP media; the
 // app tests check the shipped files against the ISO when it's present.
 #include "core/classic.h"

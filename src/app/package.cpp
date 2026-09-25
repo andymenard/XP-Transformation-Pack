@@ -93,7 +93,7 @@ QJsonObject pluginMetadata(const QString &id, const QString &name, const QString
         {QStringLiteral("KPlugin"), QJsonObject{{QStringLiteral("Id"), id},
                                                 {QStringLiteral("Name"), name},
                                                 {QStringLiteral("Description"), description},
-                                                {QStringLiteral("Authors"), QJsonArray{QJsonObject{{QStringLiteral("Name"), QStringLiteral("XPLasma")}}}},
+                                                {QStringLiteral("Authors"), QJsonArray{QJsonObject{{QStringLiteral("Name"), QStringLiteral("XPlasma")}}}},
                                                 {QStringLiteral("Version"), QStringLiteral("1.0")},
                                                 {QStringLiteral("License"), QStringLiteral("Unknown")}}},
         {QLatin1String(kGeneratedKey), true},

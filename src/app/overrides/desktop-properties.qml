@@ -1,4 +1,4 @@
-    // XPLasma: XP's desktop menu ends with Properties -- Display Properties.
+    // XPlasma: XP's desktop menu ends with Properties -- Display Properties.
     // Started as its own systemd unit, not the shell's child: applying a
     // look restarts the shell, which would take a child with it.
     P5Support.DataSource {

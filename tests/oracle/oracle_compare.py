@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Put XPLasma's renderer next to real uxtheme, pixel for pixel.
+"""Put XPlasma's renderer next to real uxtheme, pixel for pixel.
 
     oracle_compare.py STYLE.msstyles [--job JOB] [--out DIR] [--cached]
 

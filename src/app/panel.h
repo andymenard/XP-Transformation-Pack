@@ -42,7 +42,7 @@ PanelArt panelArt(const Look &look);
 
 // FrameSvg's nine pieces of `image` for `prefix`, cut at `margins`: its
 // middle stretched (hint-stretch-borders) or, `tilePeriod` > 0, tiled; the
-// content hint margins where given. (How all XPLasma's frames are cut.)
+// content hint margins where given. (How all XPlasma's frames are cut.)
 void appendFrame(QList<std::pair<QString, QImage>> &out, const QString &prefix, const QImage &image, QMargins margins,
                  int tilePeriod = 0, const QMargins &content = QMargins());
 

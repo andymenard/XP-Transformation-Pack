@@ -7,7 +7,7 @@
 // available anyway and rebuilds everything.
 //
 // The dialog is drawn in whatever widget style the system has (never forced
-// to XPLasma); only its samples are drawn by XPLasma, in the look they show.
+// to XPlasma); only its samples are drawn by XPlasma, in the look they show.
 #include "app/apply.h"
 #include "app/editor/preview.h"
 #include "app/library.h"

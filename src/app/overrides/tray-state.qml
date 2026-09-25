@@ -48,7 +48,7 @@
             root.xpCountExpandable();
         }
     }
-    // XPLasma: the taskbar's colours, the theme's Complementary set (its
+    // XPlasma: the taskbar's colours, the theme's Complementary set (its
     // Window set is XP's dialog colours, for Plasma's popups).
     Kirigami.Theme.colorSet: root.xpTrayAvailable ? Kirigami.Theme.Complementary : Kirigami.Theme.Window
     Kirigami.Theme.inherit: !root.xpTrayAvailable

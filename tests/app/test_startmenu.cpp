@@ -1,5 +1,5 @@
 // The Start menu's presentation (StartMenu.qml, pure Qt Quick) drawn
-// offscreen from look data XPLasma generated: every part where the layout
+// offscreen from look data XPlasma generated: every part where the layout
 // puts it, for a visual style and for Windows Classic.
 //
 //   test-startmenu [OUTDIR]   OUTDIR (or $XPLASMA_SHEETS) keeps the renders
@@ -130,7 +130,7 @@ private Q_SLOTS:
 
     void balloonsCompile()
     {
-        // XPLasma's QML inside KDE's notifications and tray, installed as
+        // XPlasma's QML inside KDE's notifications and tray, installed as
         // Plasma would load it, compiles (as far as the imports here reach).
         if (!QFileInfo::exists(QStringLiteral("/usr/share/plasma/plasmoids/org.kde.plasma.notifications")))
             QSKIP("no Plasma here");

@@ -382,7 +382,7 @@ QString fill(QString css, const QHash<QString, QString> &values)
 
 // Shared by GTK 3 and GTK 4: the look's colours and the controls both have.
 const char *const kCommonCss = R"css(
-/* XPLasma: ${NAME}. Generated -- a new apply writes it again. */
+/* XPlasma: ${NAME}. Generated -- a new apply writes it again. */
 
 @define-color theme_bg_color ${ButtonFace};
 @define-color theme_fg_color ${ButtonText};
@@ -746,14 +746,14 @@ QString boosted(const QString &css)
 
 QString themeName(const Look &look)
 {
-    return QStringLiteral("XPLasma-") + look.id;
+    return QStringLiteral("XPlasma-") + look.id;
 }
 
 QString writeTheme(const Look &look, const QString &directory, QString *error)
 {
     QStyle *style = xpStyle(look);
     if (!style) {
-        fail(error, QStringLiteral("XPLasma's style plugin isn't installed: the GTK theme's controls can't be drawn"));
+        fail(error, QStringLiteral("XPlasma's style plugin isn't installed: the GTK theme's controls can't be drawn"));
         return QString();
     }
     const QString root = QDir(directory).filePath(themeName(look));
@@ -911,7 +911,7 @@ QString writeTheme(const Look &look, const QString &directory, QString *error)
     // the theme but take the user's ~/.config/gtk-4.0/gtk.css).
     const QString layer4 = common + boosted(fill(QString::fromUtf8(kGtk4Css), v));
     const QString gtk4 = QStringLiteral("@import url(\"resource:///org/gtk/libgtk/theme/Default/Default-light.css\");\n@import url(\"xplasma.css\");\n");
-    const QString index = QStringLiteral("[Desktop Entry]\nType=X-GNOME-Metatheme\nName=%1\nComment=The Windows XP look \"%2\", made by XPLasma\n"
+    const QString index = QStringLiteral("[Desktop Entry]\nType=X-GNOME-Metatheme\nName=%1\nComment=The Windows XP look \"%2\", made by XPlasma\n"
                                          "Encoding=UTF-8\n\n[X-GNOME-Metatheme]\nGtkTheme=%1\n")
                               .arg(themeName(look), look.name);
     if (!writeText(root + QLatin1String("/gtk-3.0/gtk.css"), gtk3, error) || !writeText(root + QLatin1String("/gtk-4.0/xplasma.css"), layer4, error)
@@ -922,7 +922,7 @@ QString writeTheme(const Look &look, const QString &directory, QString *error)
 
 namespace {
 
-const QString kImportMarker = QStringLiteral("/* XPLasma */");
+const QString kImportMarker = QStringLiteral("/* XPlasma */");
 
 QString userCss()
 {
@@ -930,7 +930,7 @@ QString userCss()
 }
 
 // Libadwaita apps ignore the GTK theme but load ~/.config/gtk-4.0/gtk.css,
-// which KDE's GTK settings also write (their colours' import): XPLasma's
+// which KDE's GTK settings also write (their colours' import): XPlasma's
 // line added to it, or taken out, and the rest left as it is.
 void setUserImport(const QString &layer)
 {
@@ -945,7 +945,7 @@ void setUserImport(const QString &layer)
         lines << QStringLiteral("@import url(\"file://%1\"); %2").arg(layer, kImportMarker);
     const QString out = lines.join(QLatin1Char('\n'));
     if (out.trimmed().isEmpty()) {
-        // (Nothing left but what XPLasma added: no file, as before.)
+        // (Nothing left but what XPlasma added: no file, as before.)
         if (!text.isEmpty() && text.contains(kImportMarker))
             QFile::remove(userCss());
         return;
@@ -967,7 +967,7 @@ void setGtkTheme(Session &session, const QString &name)
 void removeThemes(const QString &keep)
 {
     const QDir themes(paths::localShare() + QLatin1String("/themes"));
-    for (const QString &name : themes.entryList({QStringLiteral("XPLasma-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
+    for (const QString &name : themes.entryList({QStringLiteral("XPlasma-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
         if (name != keep)
             QDir(themes.filePath(name)).removeRecursively();
 }
@@ -981,7 +981,7 @@ bool apply(Session &session, const Look &look, State &state, QStringList *log, Q
         return false;
     removeThemes(themeName(look));
     const QString current = session.readConfig(QStringLiteral("gtk-3.0/settings.ini"), {QStringLiteral("Settings")}, QStringLiteral("gtk-theme-name"));
-    if (!state.settings.contains(QStringLiteral("previousGtkTheme")) && !current.startsWith(QLatin1String("XPLasma-")))
+    if (!state.settings.contains(QStringLiteral("previousGtkTheme")) && !current.startsWith(QLatin1String("XPlasma-")))
         state.settings.insert(QStringLiteral("previousGtkTheme"), current.isEmpty() ? QStringLiteral("Breeze") : current);
     setGtkTheme(session, themeName(look));
     // XP's scroll bars always there, with their arrows, not GTK 3's overlaid
@@ -1009,7 +1009,7 @@ void revert(Session &session, State &state, QStringList *log)
 {
     const QString previous = state.settings.value(QStringLiteral("previousGtkTheme")).toString();
     const QString current = session.readConfig(QStringLiteral("gtk-3.0/settings.ini"), {QStringLiteral("Settings")}, QStringLiteral("gtk-theme-name"));
-    if (current.startsWith(QLatin1String("XPLasma-")) || !previous.isEmpty())
+    if (current.startsWith(QLatin1String("XPlasma-")) || !previous.isEmpty())
         setGtkTheme(session, previous.isEmpty() ? QStringLiteral("Breeze") : previous);
     session.deleteConfig(QStringLiteral("gtk-3.0/settings.ini"), {QStringLiteral("Settings")}, QStringLiteral("gtk-overlay-scrolling"), false);
     if (const QString overlay = state.settings.value(QStringLiteral("previousGtkOverlayScrolling")).toString(); !overlay.isEmpty())
@@ -1019,7 +1019,7 @@ void revert(Session &session, State &state, QStringList *log)
     state.settings.remove(QStringLiteral("previousGtkTheme"));
     setUserImport(QString());
     flatpak::removeGtk(log);
-    const bool had = QDir(paths::localShare() + QLatin1String("/themes")).entryList({QStringLiteral("XPLasma-*")}, QDir::Dirs).size() > 0;
+    const bool had = QDir(paths::localShare() + QLatin1String("/themes")).entryList({QStringLiteral("XPlasma-*")}, QDir::Dirs).size() > 0;
     removeThemes(QString());
     if (had && log)
         *log << QStringLiteral("GTK apps: back to %1").arg(previous.isEmpty() ? QStringLiteral("Breeze") : previous);

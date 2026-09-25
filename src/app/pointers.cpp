@@ -43,7 +43,7 @@ QString iconsDir()
 
 // ~/.icons: in every Xcursor library's search path, where the XDG folder
 // isn't always (Gentoo builds libXcursor without it -- Plasma's cursor
-// settings, going by it, didn't see XPLasma's themes). Each of XPLasma's
+// settings, going by it, didn't see XPlasma's themes). Each of XPlasma's
 // themes is linked in there too; the links go with them.
 QString legacyIconsDir()
 {
@@ -58,7 +58,7 @@ void linkLegacy(const QString &name)
     QFile::link(iconsDir() + QLatin1Char('/') + name, link);
 }
 
-// XPLasma's links whose themes are gone, and ~/.icons if that empties it.
+// XPlasma's links whose themes are gone, and ~/.icons if that empties it.
 void pruneLegacy()
 {
     const QDir legacy(legacyIconsDir());
@@ -289,7 +289,7 @@ bool writeTheme(const Scheme &scheme, bool shadow, const QString &dir, int *size
     }
     const QString inherits = !paths::findSystemData(QStringLiteral("icons/breeze_cursors")).isEmpty() ? QStringLiteral("breeze_cursors")
                                                                                                   : QStringLiteral("default");
-    const QByteArray index = "[Icon Theme]\nName=" + scheme.name.toUtf8() + " (XP)\nComment=Windows XP's pointers, written by XPLasma\nInherits="
+    const QByteArray index = "[Icon Theme]\nName=" + scheme.name.toUtf8() + " (XP)\nComment=Windows XP's pointers, written by XPlasma\nInherits="
                              + inherits.toUtf8() + "\n" + kGeneratedKey + "=true\n";
     if (!write(dir + QLatin1String("/index.theme"), index)) {
         if (error)

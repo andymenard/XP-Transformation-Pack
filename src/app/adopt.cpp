@@ -19,7 +19,7 @@ QStringList adoptLegacy()
         QDir().mkpath(QFileInfo(to).absolutePath());
         // A link is left behind: the running desktop still names files in
         // there (the wallpaper, xplasmarc's Source=, the Start menu's art)
-        // until XPLasma next applies.
+        // until XPlasma next applies.
         if (QDir().rename(from, to)) {
             QFile::link(to, from);
             log << QStringLiteral("adopted xp2plasma's %1 (%2)").arg(what, to);
@@ -30,7 +30,7 @@ QStringList adoptLegacy()
     };
     move(paths::legacyData() + QLatin1String("/assets"), paths::assets(), QStringLiteral("asset library"));
     if (move(paths::legacyData() + QLatin1String("/schemes"), paths::schemes(), QStringLiteral("saved schemes"))) {
-        // xp2plasma kept them as JSON in schemes/user/; XPLasma's are .theme
+        // xp2plasma kept them as JSON in schemes/user/; XPlasma's are .theme
         // files. (The JSON stays, for the Python app until it's retired.)
         const QDir user(paths::schemes() + QLatin1String("/user"));
         for (const QString &f : user.entryList({QStringLiteral("*.json")}, QDir::Files)) {

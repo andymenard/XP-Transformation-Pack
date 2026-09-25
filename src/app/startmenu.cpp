@@ -38,7 +38,7 @@ bool installPackage(const QString &resource, const QString &plasmoids, const cha
 
 // XP gave every new account one of its pictures (All Users\Application
 // Data\Microsoft\User Account Pictures\Default Pictures), which the Start
-// menu shows; this is the one XPLasma's shows for a user with no picture of
+// menu shows; this is the one XPlasma's shows for a user with no picture of
 // their own. Which one: from the user's name, so it stays theirs.
 const char *const kUserPictures[] = {"AIRPLANE", "ASTRO", "BEACH", "BUTTERFL", "CAR", "CAT", "CHESS", "DIRTBIKE",
                                      "DOG", "DRIP", "DUCK", "FISH", "FROG", "GUITAR", "HORSES", "KICK", "LIFTOFF",

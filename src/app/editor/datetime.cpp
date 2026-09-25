@@ -130,7 +130,7 @@ QByteArray standardOnly(const QByteArray &iana)
 
 // The look's 3D colours -- XP's button face, shadow, dark shadow, light and
 // highlight. In a Plasma session an app's palette is KDE's colour scheme,
-// whose shades are its own; XPLasma's style knows XP's (its standard
+// whose shades are its own; XPlasma's style knows XP's (its standard
 // palette), so under it they're taken from there.
 QPalette bevels(const QWidget *widget)
 {
@@ -490,7 +490,7 @@ DateTimeProperties::DateTimeProperties(QWidget *parent)
     int zone = -1;
     bool daylight = true;
     if (m_appliedZone.startsWith("Etc/GMT")) {
-        // A standard time all year: the zone XPLasma set it for, or the first
+        // A standard time all year: the zone XPlasma set it for, or the first
         // with that standard time.
         daylight = false;
         const QString remembered = State::load().settings.value(QStringLiteral("dateTimeZone")).toString();

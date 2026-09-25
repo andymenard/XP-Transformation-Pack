@@ -34,7 +34,7 @@ constexpr QRect kMonitorScreen{15, 17, 153, 114};
 
 Previewer::Previewer()
 {
-    // The style plugin: the one this XPLasma ships, and wherever it's installed.
+    // The style plugin: the one this XPlasma ships, and wherever it's installed.
     const QString shipped = paths::shippedStylePlugin(6);
     if (!shipped.isEmpty())
         QCoreApplication::addLibraryPath(QFileInfo(shipped).dir().absolutePath() + QLatin1String("/.."));

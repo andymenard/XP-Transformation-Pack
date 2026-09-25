@@ -359,12 +359,12 @@ QString writeDecoration(const Look &look, const QString &directory, QString *err
     rc.set(QLatin1String(kGeneratedKey), QStringLiteral("Look"), look.name);
     pkg.write(id + QLatin1String("rc"), rc.text());
 
-    QJsonObject meta = pluginMetadata(id, look.name, QStringLiteral("Window borders from the Windows XP look \"%1\", made by XPLasma").arg(look.name));
+    QJsonObject meta = pluginMetadata(id, look.name, QStringLiteral("Window borders from the Windows XP look \"%1\", made by XPlasma").arg(look.name));
     meta.insert(QStringLiteral("KPackageStructure"), QStringLiteral("Aurorae"));   // as KWin lists them
     pkg.writeJson(QStringLiteral("metadata.json"), meta);
     pkg.write(QStringLiteral("metadata.desktop"),
-              QStringLiteral("[Desktop Entry]\nName=%1\nComment=Window borders from the Windows XP look \"%1\", made by XPLasma\n"
-                             "X-KDE-PluginInfo-Name=%2\nX-KDE-PluginInfo-Author=XPLasma\nX-KDE-PluginInfo-Version=1.0\n"
+              QStringLiteral("[Desktop Entry]\nName=%1\nComment=Window borders from the Windows XP look \"%1\", made by XPlasma\n"
+                             "X-KDE-PluginInfo-Name=%2\nX-KDE-PluginInfo-Author=XPlasma\nX-KDE-PluginInfo-Version=1.0\n"
                              "X-KDE-PluginInfo-License=Unknown\n%3=true\n")
                   .arg(look.name, id, QLatin1String(kGeneratedKey)).toUtf8());
     if (!pkg.ok()) {

@@ -183,7 +183,7 @@ DisplayProperties::DisplayProperties(QWidget *parent)
         if (m_themes->itemData(i).toString() == state.themeFile)
             m_themes->setCurrentIndex(i);
     m_loading = false;
-    // What's applied: the look XPLasma recorded, if the dialog could show it,
+    // What's applied: the look XPlasma recorded, if the dialog could show it,
     // and the desktop as the dialog shows it.
     QString applied;
     if (state.appliedKind == QLatin1String("style"))
@@ -194,7 +194,7 @@ DisplayProperties::DisplayProperties(QWidget *parent)
     m_appliedLook = applied == lookKey(look()) ? applied : QString();
     m_appliedDesktop = wallpaper();
     m_appliedThemeFile = state.themeFile;
-    // Pointers: what XPLasma applied, or "(None)" (Plasma's own).
+    // Pointers: what XPlasma applied, or "(None)" (Plasma's own).
     m_pointerSchemes = pointers::schemes();
     m_appliedPointers = pointers::applied(state);
     if (m_appliedPointers) {
@@ -204,7 +204,7 @@ DisplayProperties::DisplayProperties(QWidget *parent)
     fillPointerSchemes();
     showPointers();
     m_appliedStartExtras = m_startExtras = StartButtonExtras::fromJson(state.settings.value(QLatin1String(kStartButtonKey)).toObject());
-    // First start -- nothing of XPLasma's on the desktop yet: the "Windows
+    // First start -- nothing of XPlasma's on the desktop yet: the "Windows
     // XP" theme chosen, as if picked (Luna, Bliss...), with XP's own
     // pointers, and Apply ready -- so Apply alone gives XP's desktop.
     if (state.appliedKind.isEmpty() && !m_appliedPointers) {
@@ -221,7 +221,7 @@ DisplayProperties::DisplayProperties(QWidget *parent)
     }
     updateApply();
     if (!m_previewer.styleAvailable())
-        m_appearanceSample->setToolTip(QStringLiteral("XPLasma's style plugin isn't installed: the samples can't be drawn"));
+        m_appearanceSample->setToolTip(QStringLiteral("XPlasma's style plugin isn't installed: the samples can't be drawn"));
     renderThemes();
     renderDesktop();
     renderAppearance();
@@ -315,7 +315,7 @@ QWidget *DisplayProperties::appearanceTab()
     m_colour = new QComboBox;
     m_size = new QComboBox;
     m_advanced = new QPushButton(QStringLiteral("Advanced"));
-    // (Where XP had Effects...: XPLasma's own, the Start button's label and logo.)
+    // (Where XP had Effects...: XPlasma's own, the Start button's label and logo.)
     m_extras = new QPushButton(QStringLiteral("Extras..."));
     grid->addWidget(new QLabel(QStringLiteral("Windows and buttons:")), 0, 0);
     grid->addWidget(m_style, 1, 0);

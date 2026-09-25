@@ -111,7 +111,7 @@ bool write(const QString &path, const QByteArray &bytes)
 struct WallpaperImport
 {
     QHash<QString, QString> names;   // wallpaperNames()
-    QSet<QString> onMedia;           // every image on the media, as an older XPLasma named it
+    QSet<QString> onMedia;           // every image on the media, as an older XPlasma named it
 };
 
 bool doImport(const QString &path, Imported &n, WallpaperImport &wp, const Progress &say, const std::atomic_bool *cancel,
@@ -231,7 +231,7 @@ bool doImport(const QString &path, Imported &n, WallpaperImport &wp, const Progr
     return true;
 }
 
-// An older XPLasma imported wallpapers by their 8.3 names, and some that
+// An older XPlasma imported wallpapers by their 8.3 names, and some that
 // aren't wallpapers: those go, or become XP's names, and the desktop and
 // saved themes that name them follow.
 void tidyWallpapers(const WallpaperImport &wp, const Progress &say)
@@ -298,7 +298,7 @@ std::optional<QByteArray> get(const QUrl &url, const QString &saveTo, const Byte
 {
     QNetworkAccessManager manager;
     QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("XPLasma (KDE theme converter)"));
+    request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("XPlasma (KDE theme converter)"));
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
     QNetworkReply *reply = manager.get(request);
     QFile out(saveTo + QLatin1String(".part"));
@@ -403,10 +403,10 @@ bool checkMedia(const QString &iso, QString *why)
     if (!i386)
         return fail(why, QStringLiteral("%1 isn't a Windows XP installation CD (it has no I386 folder).").arg(QFileInfo(iso).fileName()));
     if (pack < 3)
-        return fail(why, pack ? QStringLiteral("%1 is Windows XP with Service Pack %2; XPLasma needs one that includes Service Pack 3.")
+        return fail(why, pack ? QStringLiteral("%1 is Windows XP with Service Pack %2; XPlasma needs one that includes Service Pack 3.")
                                     .arg(QFileInfo(iso).fileName())
                                     .arg(pack)
-                              : QStringLiteral("%1 is a Windows XP CD without a service pack; XPLasma needs one that includes Service Pack 3.")
+                              : QStringLiteral("%1 is a Windows XP CD without a service pack; XPlasma needs one that includes Service Pack 3.")
                                     .arg(QFileInfo(iso).fileName()));
     return true;
 }

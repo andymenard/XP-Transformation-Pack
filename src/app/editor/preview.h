@@ -2,12 +2,12 @@
 // The editor's samples, drawn by what they preview:
 //
 //   * Appearance: an inactive window, an active one, and a message box -- XP's
-//     Appearance sample -- as real Qt widgets drawn offscreen by XPLasma's own
+//     Appearance sample -- as real Qt widgets drawn offscreen by XPlasma's own
 //     style plugin in that look, which is what Qt apps will be drawn with;
 //   * Desktop: XP's monitor (themeui.dll's bitmap 126) with the wallpaper
 //     where it would sit;
 //   * Themes: the wallpaper, the windows, and the look's taskbar and Start
-//     button, as XPLasma generates them.
+//     button, as XPlasma generates them.
 #include "app/apply.h"
 #include "app/look.h"
 #include "app/startbutton.h"
@@ -33,7 +33,7 @@ public:
     QImage theme(const Look &look, const Wallpaper &desktop, QSize size, const StartButtonExtras &start = {});
     QImage desktop(const Wallpaper &wallpaper, QSize size);
 
-    // Whether XPLasma's style plugin could be loaded (the samples need it).
+    // Whether XPlasma's style plugin could be loaded (the samples need it).
     bool styleAvailable() const;
 
 private:

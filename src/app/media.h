@@ -1,10 +1,10 @@
 #pragma once
-// Windows XP's own files, from the install media the user pointed XPLasma at
+// Windows XP's own files, from the install media the user pointed XPlasma at
 // (State::media: the ISO, or a folder holding I386/). Some of the look lives
 // in XP's programs rather than in the visual style -- the Start button's
 // flag is explorer.exe's bitmap 143, Display Properties' monitor is
 // themeui.dll's bitmap 126 -- so they are taken out once and kept in
-// paths::extracted(). Nothing of Microsoft's ships with XPLasma.
+// paths::extracted(). Nothing of Microsoft's ships with XPlasma.
 #include <QByteArray>
 #include <QImage>
 #include <QList>

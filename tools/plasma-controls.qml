@@ -1,6 +1,6 @@
 /*
  * plasma-controls.qml: Plasma's popup controls (Plasma Components 3), drawn
- * by the Plasma theme in use, on a popup background -- to see XPLasma's
+ * by the Plasma theme in use, on a popup background -- to see XPlasma's
  * theme without hunting for a popup that happens to have each control.
  *
  *   qml6 tools/plasma-controls.qml                  a window

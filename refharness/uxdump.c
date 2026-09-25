@@ -1,4 +1,4 @@
-/* uxdump -- what real uxtheme draws, for XPLasma's pixel oracle.
+/* uxdump -- what real uxtheme draws, for XPlasma's pixel oracle.
  *
  *   uxdump.exe <job.txt> <outdir>
  *

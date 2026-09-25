@@ -1,4 +1,4 @@
-// XPLasma: a file transfer as XP's "Copying..." dialog -- measured on XP's
+// XPlasma: a file transfer as XP's "Copying..." dialog -- measured on XP's
 // own (Luna, 96 dpi): shell32's animation (paper flying between folders:
 // 161 copying, 160 moving, 162 deleting) across the top, the file and
 // "From 'here' to 'there'" under it, the progress bar with Cancel beside it,

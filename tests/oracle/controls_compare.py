@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hold XPLasma's Qt widgets against real XP controls of the same size.
+"""Hold XPlasma's Qt widgets against real XP controls of the same size.
 
     controls_compare.py XP_DIR QT_DIR [SHEET.png]
 

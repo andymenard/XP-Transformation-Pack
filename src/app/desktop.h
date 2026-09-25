@@ -1,8 +1,8 @@
 #pragma once
-// Whether this is a desktop XPLasma can dress: a KDE Plasma session, a Plasma
-// from the oldest XPLasma is tested on, the programs applying a look runs.
+// Whether this is a desktop XPlasma can dress: a KDE Plasma session, a Plasma
+// from the oldest XPlasma is tested on, the programs applying a look runs.
 // Setup checks it before installing, xplasma and xplasma-edit before
-// changing anything; a Plasma newer than XPLasma's newest build of Plasma's
+// changing anything; a Plasma newer than XPlasma's newest build of Plasma's
 // widgets is let through (it may well take them), but marked, so a failure
 // there asks for a bug report, with diagnostics() to paste in it.
 #include "app/session.h"
@@ -12,9 +12,9 @@
 
 namespace xpl::desktop {
 
-// The oldest Plasma XPLasma runs on (the oldest tested: Debian 13's).
+// The oldest Plasma XPlasma runs on (the oldest tested: Debian 13's).
 inline constexpr const char *kOldestPlasma = "6.3";
-// The newest Plasma series XPLasma has builds of Plasma's widgets for
+// The newest Plasma series XPlasma has builds of Plasma's widgets for
 // (overrides/forks.json): "6.7".
 QString newestKnownPlasma();
 
@@ -38,7 +38,7 @@ struct Report
 // This session, as it is.
 Report check(Session &session);
 
-// What a bug report needs: XPLasma's version and builds, Plasma, KDE
+// What a bug report needs: XPlasma's version and builds, Plasma, KDE
 // Frameworks, Qt, the distribution, the session, the kernel -- and, if
 // given, what failed.
 QString diagnostics(Session &session, const QString &failure = QString());

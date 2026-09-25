@@ -1,5 +1,5 @@
 /*
-    The Start button: XPLasma's images of the look's own button -- normal,
+    The Start button: XPlasma's images of the look's own button -- normal,
     hot, and pressed while the menu is open -- at their size, the panel's
     height. Without a look applied, Plasma's launcher icon.
 

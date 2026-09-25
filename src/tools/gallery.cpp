@@ -1,4 +1,4 @@
-// xplasma-gallery: every control XPLasma themes, in its interesting states.
+// xplasma-gallery: every control XPlasma themes, in its interesting states.
 //
 //   xplasma-gallery [--style NAME] [--out FILE.png]
 //   xplasma-gallery --controls JOB OUTDIR [--style NAME]
@@ -489,7 +489,7 @@ static int controls(const QString &jobPath, const QString &outdir)
 int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
-    QString styleName = QStringLiteral("XPLasma"), out, controlsJob, controlsOut;
+    QString styleName = QStringLiteral("XPlasma"), out, controlsJob, controlsOut;
     const QStringList args = app.arguments();
     for (int i = 1; i + 1 < args.size(); ++i) {
         if (args[i] == QLatin1String("--style"))
@@ -516,7 +516,7 @@ int main(int argc, char **argv)
         return controls(controlsJob, controlsOut);
 
     QWidget window;
-    window.setWindowTitle(QStringLiteral("XPLasma gallery"));
+    window.setWindowTitle(QStringLiteral("XPlasma gallery"));
     auto *root = new QVBoxLayout(&window);
 
     auto *toolbar = new QToolBar;

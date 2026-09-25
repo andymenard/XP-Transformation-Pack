@@ -64,7 +64,7 @@ int fourState(const QStyleOption *o)
 }
 
 // xplasmarc: in the config folder -- or, in a Flatpak sandbox, whose config
-// folder is the app's own, the copy XPLasma keeps beside the frozen look
+// folder is the app's own, the copy XPlasma keeps beside the frozen look
 // (HOST_XDG_DATA_HOME, else ~/.local/share, /xplasma/active), the folder its
 // Flatpak permission shows every app, live. That one first there: an
 // xplasmarc in the app's own folder is at most a stand-in Flatpak left.
@@ -78,7 +78,7 @@ QString rcPath()
     return QFileInfo::exists(shared) ? shared : own;
 }
 
-// Where XPLasma's configuration says the style to draw is. XPLASMA_THEME
+// Where XPlasma's configuration says the style to draw is. XPLASMA_THEME
 // ("/path/Luna.msstyles" or "/path/Luna.msstyles:NORMALMETALLIC_INI")
 // overrides it per process, for tests and previews.
 std::pair<QString, QString> configuredTheme()
@@ -95,7 +95,7 @@ std::pair<QString, QString> configuredTheme()
     return {settings.value(QStringLiteral("Path")).toString(), settings.value(QStringLiteral("Variant")).toString()};
 }
 
-// Windows Classic: the colour scheme a .theme holds. [XPLasma] ScrollWidth
+// Windows Classic: the colour scheme a .theme holds. [XPlasma] ScrollWidth
 // overrides NonclientMetrics' scroll bar size (what the Python app writes).
 std::optional<xpl::ClassicScheme> loadScheme(const QString &path)
 {
@@ -104,17 +104,17 @@ std::optional<xpl::ClassicScheme> loadScheme(const QString &path)
         return std::nullopt;
     xpl::ClassicScheme scheme = xpl::ClassicScheme::fromThemeFile(*file);
     bool ok = false;
-    if (const int v = file->value(u"XPLasma", u"ScrollWidth").toInt(&ok); ok && v > 0 && v < 512)
+    if (const int v = file->value(u"XPlasma", u"ScrollWidth").toInt(&ok); ok && v > 0 && v < 512)
         scheme.metrics.scrollWidth = scheme.metrics.scrollHeight = v;
     return scheme;
 }
 
 } // namespace
 
-XPLasmaStyle::XPLasmaStyle()
+XPlasmaStyle::XPlasmaStyle()
     : QProxyStyle(QStyleFactory::create(QStringLiteral("Windows")))
 {
-    setObjectName(QStringLiteral("XPLasma"));
+    setObjectName(QStringLiteral("XPlasma"));
     m_safe = qEnvironmentVariableIntValue("XPLASMA_SAFE") != 0;
     m_cache.setMaxCost(16 * 1024 * 1024);   // bytes of rendered parts
     if (m_safe)
@@ -158,14 +158,14 @@ XPLasmaStyle::XPLasmaStyle()
                 m_watcher->addPath(m_configPath);
             m_reloadTimer->start();
         });
-        connect(m_reloadTimer, &QTimer::timeout, this, &XPLasmaStyle::reloadIfChanged);
+        connect(m_reloadTimer, &QTimer::timeout, this, &XPlasmaStyle::reloadIfChanged);
     }
 }
 
 // xplasmarc changed: when it names another theme, load it, drop what was
 // rendered from the old one, and repolish every widget so metrics, palettes
 // and pixels all follow -- no app restart.
-void XPLasmaStyle::reloadIfChanged()
+void XPlasmaStyle::reloadIfChanged()
 {
     if (QFileInfo::exists(m_configPath) && !m_watcher->files().contains(m_configPath))
         m_watcher->addPath(m_configPath);
@@ -193,7 +193,7 @@ void XPLasmaStyle::reloadIfChanged()
     }
 }
 
-void XPLasmaStyle::loadTheme()
+void XPlasmaStyle::loadTheme()
 {
     const auto [path, variant] = configuredTheme();
     if (path.isEmpty())
@@ -202,14 +202,14 @@ void XPLasmaStyle::loadTheme()
         // Windows Classic: no visual style, a colour scheme.
         m_scheme = loadScheme(path);
         if (!m_scheme)
-            qWarning("XPLasma: no [Control Panel\\Colors] in %s", qPrintable(path));
+            qWarning("XPlasma: no [Control Panel\\Colors] in %s", qPrintable(path));
         return;
     }
     QString error;
     if (auto theme = xpl::Theme::load(path, variant, &error))
         m_renderer = std::make_unique<xpl::Renderer>(theme);
     else
-        qWarning("XPLasma: can't load %s (%s); drawing classic", qPrintable(path), qPrintable(error));
+        qWarning("XPlasma: can't load %s (%s); drawing classic", qPrintable(path), qPrintable(error));
 }
 
 // --- drawing parts -----------------------------------------------------------
@@ -222,7 +222,7 @@ void XPLasmaStyle::loadTheme()
 // the option's style object or its parents (where QML can declare it as
 // `xplasmaClass`). Parts the theme has no [Sub::Class] section for fall
 // back to the plain class, as in uxtheme.
-QString XPLasmaStyle::contextClass(const QWidget *widget, const QStyleOption *option) const
+QString XPlasmaStyle::contextClass(const QWidget *widget, const QStyleOption *option) const
 {
     // (Widgets only once some widget has set the property: the walk costs
     // a meta-object lookup per ancestor on every call.)
@@ -238,7 +238,7 @@ QString XPLasmaStyle::contextClass(const QWidget *widget, const QStyleOption *op
     return QString();
 }
 
-PartRef XPLasmaStyle::inContext(const PartRef &ref) const
+PartRef XPlasmaStyle::inContext(const PartRef &ref) const
 {
     if (!ref.sub.isEmpty() || m_context.isEmpty())
         return ref;
@@ -247,23 +247,23 @@ PartRef XPLasmaStyle::inContext(const PartRef &ref) const
     return r;
 }
 
-XPLasmaStyle::ContextScope::ContextScope(const XPLasmaStyle *style, const QWidget *widget, const QStyleOption *option)
+XPlasmaStyle::ContextScope::ContextScope(const XPlasmaStyle *style, const QWidget *widget, const QStyleOption *option)
     : m_style(style), m_saved(style->m_context)
 {
     style->m_context = style->m_renderer ? style->contextClass(widget, option) : QString();
 }
 
-XPLasmaStyle::ContextScope::~ContextScope()
+XPlasmaStyle::ContextScope::~ContextScope()
 {
     m_style->m_context = m_saved;
 }
 
-bool XPLasmaStyle::hasPart(const PartRef &ref) const
+bool XPlasmaStyle::hasPart(const PartRef &ref) const
 {
     return m_renderer && m_renderer->hasPart(inContext(ref));
 }
 
-bool XPLasmaStyle::drawPart(QPainter *painter, const PartRef &ref, const QRect &rect) const
+bool XPlasmaStyle::drawPart(QPainter *painter, const PartRef &ref, const QRect &rect) const
 {
     if (!hasPart(ref) || rect.isEmpty())
         return false;
@@ -276,7 +276,7 @@ bool XPLasmaStyle::drawPart(QPainter *painter, const PartRef &ref, const QRect &
 }
 
 // `ref` rendered at `size` (device-independent), cached.
-const QImage *XPLasmaStyle::partImage(const PartRef &ref, QSize logical, qreal dpr) const
+const QImage *XPlasmaStyle::partImage(const PartRef &ref, QSize logical, qreal dpr) const
 {
     const QSize size = (QSizeF(logical) * dpr).toSize();
     const int dpi = qRound(96 * dpr);
@@ -293,12 +293,12 @@ const QImage *XPLasmaStyle::partImage(const PartRef &ref, QSize logical, qreal d
     return image;
 }
 
-QSize XPLasmaStyle::trueSize(const PartRef &ref) const
+QSize XPlasmaStyle::trueSize(const PartRef &ref) const
 {
     return m_renderer ? m_renderer->partSize(inContext(ref), xpl::PartSize::True) : QSize();
 }
 
-QColor XPLasmaStyle::themeColour(const PartRef &ref, QStringView property, const QColor &fallback) const
+QColor XPlasmaStyle::themeColour(const PartRef &ref, QStringView property, const QColor &fallback) const
 {
     QRgb rgb;
     if (m_renderer && xpl::parseColour(m_renderer->property(inContext(ref), property).value_or(QString()), &rgb))
@@ -306,7 +306,7 @@ QColor XPLasmaStyle::themeColour(const PartRef &ref, QStringView property, const
     return fallback;
 }
 
-QColor XPLasmaStyle::sysColour(QStringView name, const QColor &fallback) const
+QColor XPlasmaStyle::sysColour(QStringView name, const QColor &fallback) const
 {
     if (classic())
         return xpl::ClassicScheme::colourIndex(name) >= 0 ? m_scheme->colour(name) : fallback;
@@ -335,7 +335,7 @@ static QFont fontFromMetric(const QString &spec, const QFont &fallback)
 }
 
 // A SysMetrics font ("captionfont"...): the style's, or the scheme's.
-QFont XPLasmaStyle::sysFont(QStringView name, const QFont &fallback) const
+QFont XPlasmaStyle::sysFont(QStringView name, const QFont &fallback) const
 {
     if (classic()) {
         const xpl::NonClientMetrics &m = m_scheme->metrics;
@@ -359,7 +359,7 @@ QFont XPLasmaStyle::sysFont(QStringView name, const QFont &fallback) const
     return fontFromMetric(spec, fallback);
 }
 
-int XPLasmaStyle::sysMetric(QStringView name, int fallback) const
+int XPlasmaStyle::sysMetric(QStringView name, int fallback) const
 {
     if (classic()) {
         const xpl::NonClientMetrics &m = m_scheme->metrics;
@@ -382,12 +382,12 @@ int XPLasmaStyle::sysMetric(QStringView name, int fallback) const
 
 // --- palette and polish -----------------------------------------------------------
 
-QPalette XPLasmaStyle::standardPalette() const
+QPalette XPlasmaStyle::standardPalette() const
 {
     if (!m_renderer && !m_scheme)
         return QProxyStyle::standardPalette();
     // XP's system colours from the style. (In a Plasma session the colour
-    // scheme XPLasma generates from the same SysMetrics is what apps use.)
+    // scheme XPlasma generates from the same SysMetrics is what apps use.)
     const QColor face = sysColour(u"btnface", QColor(236, 233, 216));
     const QColor window = sysColour(u"window", Qt::white);
     const QColor text = sysColour(u"windowtext", Qt::black);
@@ -411,12 +411,12 @@ QPalette XPLasmaStyle::standardPalette() const
     return pal;
 }
 
-void XPLasmaStyle::polish(QPalette &palette)
+void XPlasmaStyle::polish(QPalette &palette)
 {
     QProxyStyle::polish(palette);
 }
 
-void XPLasmaStyle::polish(QWidget *widget)
+void XPlasmaStyle::polish(QWidget *widget)
 {
     QProxyStyle::polish(widget);
     // Hot tracking, as XP had: these controls redraw on hover.
@@ -457,18 +457,18 @@ void XPLasmaStyle::polish(QWidget *widget)
 // XP's keyboard cues: mnemonic underlines stay hidden until Alt is pressed
 // (SPI_GETKEYBOARDCUES off, XP's default); focus rectangles until focus moves
 // by keyboard (Qt's State_KeyboardFocusChange).
-void XPLasmaStyle::polish(QApplication *app)
+void XPlasmaStyle::polish(QApplication *app)
 {
     QProxyStyle::polish(app);
     app->installEventFilter(this);
     unkern(app);
 }
 
-// XP's text (xplasmarc [Text] Kerning=false, which XPLasma's apply writes):
+// XP's text (xplasmarc [Text] Kerning=false, which XPlasma's apply writes):
 // GDI never kerned, and fontconfig, which sets the rest of XP's text up,
 // can't tell Qt not to. The application font goes unkerned -- again after
 // the platform theme hands out new fonts.
-void XPLasmaStyle::unkern(QApplication *app)
+void XPlasmaStyle::unkern(QApplication *app)
 {
     if (QSettings(rcPath(), QSettings::IniFormat).value(QStringLiteral("Text/Kerning"), true).toBool())
         return;
@@ -479,13 +479,13 @@ void XPLasmaStyle::unkern(QApplication *app)
     app->setFont(font);
 }
 
-void XPLasmaStyle::unpolish(QApplication *app)
+void XPlasmaStyle::unpolish(QApplication *app)
 {
     app->removeEventFilter(this);
     QProxyStyle::unpolish(app);
 }
 
-bool XPLasmaStyle::eventFilter(QObject *watched, QEvent *event)
+bool XPlasmaStyle::eventFilter(QObject *watched, QEvent *event)
 {
     if (event->type() == QEvent::ApplicationFontChange && watched == qApp)
         QTimer::singleShot(0, this, [this] { unkern(qApp); });
@@ -564,7 +564,7 @@ bool XPLasmaStyle::eventFilter(QObject *watched, QEvent *event)
 
 // A page of a tab widget inside a dialog (and not one that fills its own
 // background): what XP's property sheets texture with the tab body.
-bool XPLasmaStyle::isTabBody(const QWidget *page) const
+bool XPlasmaStyle::isTabBody(const QWidget *page) const
 {
     const QWidget *stack = page->parentWidget();
     if (!stack || page->autoFillBackground() || !qobject_cast<const QStackedWidget *>(stack))
@@ -581,7 +581,7 @@ bool XPLasmaStyle::isTabBody(const QWidget *page) const
 // A file dialog's places panel (KDE's KFilePlacesView, Qt's own QSidebar):
 // what XP's Open and Save dialogs show as the Places bar, a toolbar themed
 // PlacesBar::Toolbar.
-bool XPLasmaStyle::isPlacesBar(const QWidget *view) const
+bool XPlasmaStyle::isPlacesBar(const QWidget *view) const
 {
     if (!view || !m_renderer || !(view->inherits("KFilePlacesView") || view->inherits("QSidebar")))
         return false;
@@ -591,7 +591,7 @@ bool XPLasmaStyle::isPlacesBar(const QWidget *view) const
     return false;
 }
 
-void XPLasmaStyle::unpolish(QWidget *widget)
+void XPlasmaStyle::unpolish(QWidget *widget)
 {
     if (qobject_cast<QStatusBar *>(widget)) {
         widget->removeEventFilter(this);
@@ -632,7 +632,7 @@ static bool inComboPopup(const QWidget *widget)
     return false;
 }
 
-void XPLasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter,
+void XPlasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter,
                                  const QWidget *widget) const
 {
     const ContextScope context(this, widget, option);
@@ -1126,7 +1126,7 @@ static bool drawnEnabled(const QWidget *widget)
     return widget->inherits("QHeaderView") && widget->parentWidget() && widget->parentWidget()->inherits("QAbstractItemView");
 }
 
-void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *option, QPainter *painter,
+void XPlasmaStyle::drawControl(ControlElement element, const QStyleOption *option, QPainter *painter,
                                const QWidget *widget) const
 {
     const ContextScope context(this, widget, option);
@@ -1453,7 +1453,7 @@ void XPLasmaStyle::drawControl(ControlElement element, const QStyleOption *optio
     QProxyStyle::drawControl(element, option, painter, widget);
 }
 
-void XPLasmaStyle::drawProgressChunks(const QStyleOptionProgressBar *bar, QPainter *painter, const QWidget *) const
+void XPlasmaStyle::drawProgressChunks(const QStyleOptionProgressBar *bar, QPainter *painter, const QWidget *) const
 {
     // comctl32's progress bar, measured against XP (Luna, 14 values x 3
     // widths): the filled length is value x the *whole* control's length;
@@ -1490,7 +1490,7 @@ void XPLasmaStyle::drawProgressChunks(const QStyleOptionProgressBar *bar, QPaint
 
 // --- complex controls -----------------------------------------------------------
 
-void XPLasmaStyle::drawComplexControl(ComplexControl control, const QStyleOptionComplex *option, QPainter *painter,
+void XPlasmaStyle::drawComplexControl(ComplexControl control, const QStyleOptionComplex *option, QPainter *painter,
                                       const QWidget *widget) const
 {
     const ContextScope context(this, widget, option);
@@ -1673,7 +1673,7 @@ static QRect titleBarWhole(const QStyleOptionTitleBar *bar, const QWidget *widge
 // SM_CXSIZE - 4 square, 2px below the top frame and 2px apart, the close
 // button 2px in from the right frame; the icon 16px, 2px in from the left
 // frame, centred in the caption.
-QRect XPLasmaStyle::xpTitleBarRect(const QStyleOptionTitleBar *bar, SubControl sub, const QWidget *widget) const
+QRect XPlasmaStyle::xpTitleBarRect(const QStyleOptionTitleBar *bar, SubControl sub, const QWidget *widget) const
 {
     const int fw = widget && widget->inherits("QMdiSubWindow") ? proxy()->pixelMetric(PM_MdiSubWindowFrameWidth, bar, widget) : 0;
     const QRect whole = titleBarWhole(bar, widget, fw);
@@ -1722,7 +1722,7 @@ QRect XPLasmaStyle::xpTitleBarRect(const QStyleOptionTitleBar *bar, SubControl s
 }
 
 
-void XPLasmaStyle::drawTitleBar(const QStyleOptionTitleBar *bar, QPainter *painter, const QWidget *widget) const
+void XPlasmaStyle::drawTitleBar(const QStyleOptionTitleBar *bar, QPainter *painter, const QWidget *widget) const
 {
     const bool active = bar->state & State_Active;
     const int fw = widget && widget->inherits("QMdiSubWindow") ? proxy()->pixelMetric(PM_MdiSubWindowFrameWidth, bar, widget) : 0;
@@ -1782,7 +1782,7 @@ void XPLasmaStyle::drawTitleBar(const QStyleOptionTitleBar *bar, QPainter *paint
 // A maximized MDI child's buttons in the menu bar: the style's WP_MDIMIN /
 // MDIRESTORE / MDICLOSEBUTTON; in Classic, DrawFrameControl's raised
 // edges and Marlett's glyphs at the 16 x 15 button (measured).
-void XPLasmaStyle::drawMdiControls(const QStyleOptionComplex *option, QPainter *painter, const QWidget *widget) const
+void XPlasmaStyle::drawMdiControls(const QStyleOptionComplex *option, QPainter *painter, const QWidget *widget) const
 {
     if (m_renderer && hasPart({QStringLiteral("window"), 20, 1, {}})) {
         const struct { SubControl sub; int part; } parts[] = {
@@ -1836,7 +1836,7 @@ void XPLasmaStyle::drawMdiControls(const QStyleOptionComplex *option, QPainter *
 // metrics): the start colour behind the icon, GradientFill from 2px past
 // the icon to 2px short of the first button, the end colour after; a face
 // row under it; DFC_CAPTION buttons with Marlett's glyphs.
-void XPLasmaStyle::drawClassicTitleBar(const QStyleOptionTitleBar *bar, QPainter *painter, const QWidget *widget) const
+void XPlasmaStyle::drawClassicTitleBar(const QStyleOptionTitleBar *bar, QPainter *painter, const QWidget *widget) const
 {
     const bool active = bar->state & State_Active;
     const int fw = widget && widget->inherits("QMdiSubWindow") ? proxy()->pixelMetric(PM_MdiSubWindowFrameWidth, bar, widget) : 0;
@@ -1895,7 +1895,7 @@ void XPLasmaStyle::drawClassicTitleBar(const QStyleOptionTitleBar *bar, QPainter
     }
 }
 
-void XPLasmaStyle::drawScrollBar(const QStyleOptionSlider *bar, QPainter *painter, const QWidget *widget) const
+void XPlasmaStyle::drawScrollBar(const QStyleOptionSlider *bar, QPainter *painter, const QWidget *widget) const
 {
     const bool horizontal = bar->orientation == Qt::Horizontal;
     const bool on = enabled(bar) && bar->maximum > bar->minimum;
@@ -1942,7 +1942,7 @@ void XPLasmaStyle::drawScrollBar(const QStyleOptionSlider *bar, QPainter *painte
 
 // --- metrics ---------------------------------------------------------------------------
 
-int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, const QWidget *widget) const
+int XPlasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, const QWidget *widget) const
 {
     const ContextScope context(this, widget, option);
     if (metric == PM_DefaultFrameWidth && (m_renderer || classic()) && widget && widget->inherits("QComboBoxPrivateContainer"))
@@ -2141,7 +2141,7 @@ int XPLasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
 // separators 9; the label 17px in, 19px of room on the right (the submenu
 // arrow's), and 8px before the accelerator column when the menu has one
 // (QMenu adds the column itself).
-QSize XPLasmaStyle::xpMenuItemSize(const QStyleOptionMenuItem *item, const QSize &size, const QWidget *widget) const
+QSize XPlasmaStyle::xpMenuItemSize(const QStyleOptionMenuItem *item, const QSize &size, const QWidget *widget) const
 {
     if (item->menuItemType == QStyleOptionMenuItem::Separator)
         return QSize(1, 9);
@@ -2156,7 +2156,7 @@ QSize XPLasmaStyle::xpMenuItemSize(const QStyleOptionMenuItem *item, const QSize
 // XP's row heights follow the text height (13 for Tahoma 8): list box 13,
 // report list view 14, tree view 16 (LB_GETITEMHEIGHT, LVM_GETITEMRECT,
 // TVM_GETITEMHEIGHT) -- comctl32's, themed or not.
-QSize XPLasmaStyle::xpItemSize(const QStyleOption *option, const QSize &size, const QWidget *widget) const
+QSize XPlasmaStyle::xpItemSize(const QStyleOption *option, const QSize &size, const QWidget *widget) const
 {
     const int extra = itemRowExtra(widget);
     QSize s = QProxyStyle::sizeFromContents(CT_ItemViewItem, option, size, widget);
@@ -2173,7 +2173,7 @@ QSize XPLasmaStyle::xpItemSize(const QStyleOption *option, const QSize &size, co
     return s;
 }
 
-QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *option, const QSize &size,
+QSize XPlasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *option, const QSize &size,
                                      const QWidget *widget) const
 {
     const ContextScope context(this, widget, option);
@@ -2278,7 +2278,7 @@ QSize XPLasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
     return QProxyStyle::sizeFromContents(type, option, size, widget);
 }
 
-QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *option, const QWidget *widget) const
+QRect XPlasmaStyle::subElementRect(SubElement element, const QStyleOption *option, const QWidget *widget) const
 {
     const ContextScope context(this, widget, option);
     if (classic() && (element == SE_CheckBoxFocusRect || element == SE_RadioButtonFocusRect))
@@ -2392,7 +2392,7 @@ QRect XPLasmaStyle::subElementRect(SubElement element, const QStyleOption *optio
 // How much taller than the text XP's rows are in this item view: a tree
 // view (decorated root) +3, a report-style list (a QTreeView without root
 // decoration, or a table) +1, a plain list box 0; -1 when unknown.
-int XPLasmaStyle::itemRowExtra(const QWidget *widget) const
+int XPlasmaStyle::itemRowExtra(const QWidget *widget) const
 {
     for (const QWidget *w = widget; w; w = w->parentWidget()) {
         if (w->inherits("QTreeView"))
@@ -2409,7 +2409,7 @@ int XPLasmaStyle::itemRowExtra(const QWidget *widget) const
 
 // The theme class that frames `widget`'s client edge, or empty for the
 // classic edge. (Phase 4 grows this into the full context resolver.)
-QString XPLasmaStyle::frameClass(const QWidget *widget) const
+QString XPlasmaStyle::frameClass(const QWidget *widget) const
 {
     if (!widget || !m_renderer)
         return QString();
@@ -2437,7 +2437,7 @@ QString XPLasmaStyle::frameClass(const QWidget *widget) const
 // right of the centre; the vertical runs down to a next sibling and up to a
 // previous item -- never above the first root. The expand box is TVP_GLYPH,
 // centred on the branch.
-void XPLasmaStyle::drawTreeBranch(const QStyleOption *option, QPainter *painter, const QWidget *widget) const
+void XPlasmaStyle::drawTreeBranch(const QStyleOption *option, QPainter *painter, const QWidget *widget) const
 {
     const QRect r = option->rect;
     const int cx = r.width() >= 19 ? r.left() + 12 : r.center().x();
@@ -2508,7 +2508,7 @@ void XPLasmaStyle::drawTreeBranch(const QStyleOption *option, QPainter *painter,
 // (Tahoma 8 at 96 DPI: 11 + 2 = 13). Neither Qt's metrics will do: Qt 5
 // rounds the descent up (14) even for an unhinted QRawFont, while Qt 6
 // happens to agree (13).
-int XPLasmaStyle::xpTextHeight(const QFont &font) const
+int XPlasmaStyle::xpTextHeight(const QFont &font) const
 {
     const QRawFont raw = QRawFont::fromFont(font);
     const QByteArray os2 = raw.isValid() ? raw.fontTable("OS/2") : QByteArray();
@@ -2528,7 +2528,7 @@ int XPLasmaStyle::xpTextHeight(const QFont &font) const
 // rises into; the first tab 2px wider for XP's left inset, the last 2px
 // wider on the right where the selected tab's inflation lands. comctl32's,
 // themed or Classic.
-QSize XPLasmaStyle::xpTabSize(const QStyleOptionTab *tab, const QSize &size, const QWidget *widget) const
+QSize XPlasmaStyle::xpTabSize(const QStyleOptionTab *tab, const QSize &size, const QWidget *widget) const
 {
     QSize s = size;
     if (tab->position == QStyleOptionTab::Beginning || tab->position == QStyleOptionTab::OnlyOneTab)
@@ -2544,7 +2544,7 @@ QSize XPLasmaStyle::xpTabSize(const QStyleOptionTab *tab, const QSize &size, con
 // A north tab's label where XP puts it: centred in the (unselected) tab
 // rect, riding up 2px with the selected tab; the focus rect rings that rect
 // 1px in, XORed with the button face.
-void XPLasmaStyle::drawXpTabLabel(const QStyleOptionTab *tab, QPainter *painter, const QWidget *widget) const
+void XPlasmaStyle::drawXpTabLabel(const QStyleOptionTab *tab, QPainter *painter, const QWidget *widget) const
 {
     QStyleOptionTab copy(*tab);
     copy.rect = xpTabRect(tab);
@@ -2563,7 +2563,7 @@ void XPLasmaStyle::drawXpTabLabel(const QStyleOptionTab *tab, QPainter *painter,
 // text-only button is the text + 11 by text + 6 (Back: 33 x 19); an icon
 // button is the icon + 7 by + 6 (23 x 22). QToolButton hands in the text
 // with a space either side.
-QSize XPLasmaStyle::xpToolButtonSize(const QStyleOptionToolButton *button, const QSize &size) const
+QSize XPlasmaStyle::xpToolButtonSize(const QStyleOptionToolButton *button, const QSize &size) const
 {
     QSize s;
     if (button->toolButtonStyle == Qt::ToolButtonTextOnly) {
@@ -2590,7 +2590,7 @@ QSize XPLasmaStyle::xpToolButtonSize(const QStyleOptionToolButton *button, const
 // A toolbar button with a menu, drawn as XP's drop-down buttons: a split
 // button (MenuButtonPopup: TP_SPLITBUTTON and TP_SPLITBUTTONDROPDOWN) or a
 // whole drop-down (TP_DROPDOWNBUTTON; Qt's instant and delayed popups).
-bool XPLasmaStyle::xpDropDown(const QStyleOptionToolButton *button) const
+bool XPlasmaStyle::xpDropDown(const QStyleOptionToolButton *button) const
 {
     return (button->features & (QStyleOptionToolButton::HasMenu | QStyleOptionToolButton::MenuButtonPopup))
            && (button->state & State_AutoRaise) && button->arrowType == Qt::NoArrow
@@ -2604,7 +2604,7 @@ static void drawDropArrow(QPainter *painter, QPoint at, const QColor &colour)
         painter->fillRect(at.x() + i, at.y() + i, 5 - 2 * i, 1, colour);
 }
 
-void XPLasmaStyle::drawXpDropDownButton(const QStyleOptionToolButton *button, QPainter *painter, const QWidget *widget) const
+void XPlasmaStyle::drawXpDropDownButton(const QStyleOptionToolButton *button, QPainter *painter, const QWidget *widget) const
 {
     const bool split = button->features & QStyleOptionToolButton::MenuButtonPopup;
     const bool on = enabled(button);
@@ -2717,7 +2717,7 @@ void XPLasmaStyle::drawXpDropDownButton(const QStyleOptionToolButton *button, QP
 
 // XP presses a toolbar button's contents 1px down and right; TBSTYLE_LIST
 // text sits 2px into the button, centred vertically. True when drawn.
-bool XPLasmaStyle::drawXpToolButtonLabel(const QStyleOptionToolButton *button, QPainter *painter, const QWidget *widget) const
+bool XPlasmaStyle::drawXpToolButtonLabel(const QStyleOptionToolButton *button, QPainter *painter, const QWidget *widget) const
 {
     const bool down = (button->state & (State_Sunken | State_On)) && enabled(button);
     // A button held down takes the class-level [Toolbar(Pressed)] TextColor
@@ -2759,7 +2759,7 @@ bool XPLasmaStyle::drawXpToolButtonLabel(const QStyleOptionToolButton *button, Q
 // 9px past the label, centred in the item's content rect, pointing up for an
 // ascending sort (HDF_SORTUP; Qt calls ascending SortDown). A sorted label
 // moves right by the item's left content margin (Luna 3, Royale 0).
-void XPLasmaStyle::drawXpHeader(const QStyleOptionHeader *header, QPainter *painter, const QWidget *widget) const
+void XPlasmaStyle::drawXpHeader(const QStyleOptionHeader *header, QPainter *painter, const QWidget *widget) const
 {
     painter->save();
     painter->setClipRect(header->rect, Qt::IntersectClip);
@@ -2794,7 +2794,7 @@ void XPLasmaStyle::drawXpHeader(const QStyleOptionHeader *header, QPainter *pain
 // A north tab's rect as XP lays it out, inside Qt's: 2px down (the tab bar
 // is 20px tall), and for the first tab 2px in from the left (Qt's first tab
 // is 2px wider to make room, so every later tab lands where XP puts it).
-QRect XPLasmaStyle::xpTabRect(const QStyleOptionTab *tab) const
+QRect XPlasmaStyle::xpTabRect(const QStyleOptionTab *tab) const
 {
     // The bar is 22px: 2px headroom, the 18px tab, and two rows over the
     // pane's top, which only the selected tab covers.
@@ -2806,7 +2806,7 @@ QRect XPLasmaStyle::xpTabRect(const QStyleOptionTab *tab) const
     return r;
 }
 
-bool XPLasmaStyle::flatMenus() const
+bool XPlasmaStyle::flatMenus() const
 {
     return m_renderer && xpl::parseBool(m_renderer->theme().property(u"sysmetrics", u"", u"", u"flatmenus").value_or(QString()));
 }
@@ -2814,7 +2814,7 @@ bool XPLasmaStyle::flatMenus() const
 
 // A flat menu item, as XP draws them with SPI_GETFLATMENU on (every XP
 // visual style sets FlatMenus): measured against Luna Silver.
-void XPLasmaStyle::drawMenuItem(const QStyleOptionMenuItem *item, QPainter *painter, const QWidget *widget) const
+void XPlasmaStyle::drawMenuItem(const QStyleOptionMenuItem *item, QPainter *painter, const QWidget *widget) const
 {
     const QRect r = item->rect;
     const bool flat = !classic();
@@ -2898,7 +2898,7 @@ void XPLasmaStyle::drawMenuItem(const QStyleOptionMenuItem *item, QPainter *pain
 
 // A menu bar title: flat, and when hot or open, the menu highlight inside
 // a 1px highlight frame.
-void XPLasmaStyle::drawMenuBarItem(const QStyleOptionMenuItem *item, QPainter *painter, const QWidget *widget) const
+void XPlasmaStyle::drawMenuBarItem(const QStyleOptionMenuItem *item, QPainter *painter, const QWidget *widget) const
 {
     // (The item's last row is the menu-coloured line under the bar.)
     const QRect r = item->rect.adjusted(0, 0, 0, -1);
@@ -2945,7 +2945,7 @@ static void classicArrow(QPainter *p, const QRect &r, Qt::ArrowType dir, const Q
 
 // Windows Classic (visual styles off), control by control against XP's own
 // classic controls in the scheme's colours. True when drawn.
-bool XPLasmaStyle::drawClassicControl(ControlElement element, const QStyleOption *option, QPainter *painter,
+bool XPlasmaStyle::drawClassicControl(ControlElement element, const QStyleOption *option, QPainter *painter,
                                       const QWidget *widget) const
 {
     switch (element) {
@@ -3360,7 +3360,7 @@ static void classicArrow(QPainter *p, const QRect &r, Qt::ArrowType dir, const Q
     }
 }
 
-bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOptionComplex *option, QPainter *painter,
+bool XPlasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOptionComplex *option, QPainter *painter,
                                       const QWidget *widget) const
 {
     switch (control) {
@@ -3554,7 +3554,7 @@ bool XPLasmaStyle::drawClassicComplex(ComplexControl control, const QStyleOption
 // The DC colours a control's DrawFocusRect XORs with (background for the
 // odd phase, text for the even), as XP's controls set them -- measured with
 // a scheme giving every colour its own value.
-std::pair<QColor, QColor> XPLasmaStyle::focusColours(const QWidget *widget) const
+std::pair<QColor, QColor> XPlasmaStyle::focusColours(const QWidget *widget) const
 {
     const QColor face = sysColour(u"btnface", QColor(236, 233, 216));
     if (qobject_cast<const QCheckBox *>(widget) || qobject_cast<const QRadioButton *>(widget))
@@ -3569,7 +3569,7 @@ std::pair<QColor, QColor> XPLasmaStyle::focusColours(const QWidget *widget) cons
     return {Qt::white, Qt::black};
 }
 
-void XPLasmaStyle::drawFocusDots(QPainter *painter, const QRect &r, const QColor &odd, const QColor &even) const
+void XPlasmaStyle::drawFocusDots(QPainter *painter, const QRect &r, const QColor &odd, const QColor &even) const
 {
     if (r.width() < 1 || r.height() < 1)
         return;
@@ -3602,7 +3602,7 @@ void XPLasmaStyle::drawFocusDots(QPainter *painter, const QRect &r, const QColor
 // (list view) past it, the full row tall; in the button face while the
 // view hasn't focus (as TVS_/LVS_SHOWSELALWAYS apps -- Explorer, regedit
 // -- show it). The focus rect rings the highlight. Measured on XP.
-bool XPLasmaStyle::drawXpViewItem(const QStyleOptionViewItem *item, QPainter *painter, const QWidget *widget) const
+bool XPlasmaStyle::drawXpViewItem(const QStyleOptionViewItem *item, QPainter *painter, const QWidget *widget) const
 {
     const int extra = itemRowExtra(widget);
     if ((extra != 1 && extra != 3) || !(classic() || hasPart({QStringLiteral("listview"), 0, Normal, {}})))
@@ -3645,7 +3645,7 @@ bool XPLasmaStyle::drawXpViewItem(const QStyleOptionViewItem *item, QPainter *pa
 
 // TKP_THUMB*: the pointed thumb faces its tick marks; TKP_THUMB(VERT) when
 // there are ticks on both sides or none.
-int XPLasmaStyle::sliderThumbPart(const QStyleOptionSlider *slider) const
+int XPlasmaStyle::sliderThumbPart(const QStyleOptionSlider *slider) const
 {
     const bool horizontal = slider->orientation == Qt::Horizontal;
     if (horizontal)
@@ -3657,7 +3657,7 @@ int XPLasmaStyle::sliderThumbPart(const QStyleOptionSlider *slider) const
 // the scroll bar thickness across, half that along (Luna: 22 x 11 around an
 // 11 x 21 image), shrinking to the client's size - 6 when that is smaller
 // (a 21px-tall trackbar gets a 7 x 15 thumb). The image is drawn inside.
-QSize XPLasmaStyle::sliderThumbSize(const QStyleOptionSlider *slider) const
+QSize XPlasmaStyle::sliderThumbSize(const QStyleOptionSlider *slider) const
 {
     const bool horizontal = slider->orientation == Qt::Horizontal;
     int across = sysMetric(horizontal ? u"scrollbarheight" : u"scrollbarwidth", 17) * 4 / 3;
@@ -3698,7 +3698,7 @@ static QRect sliderLayout(const QStyleOptionSlider *slider, QSize thumb, QRect *
     return QRect(r.left() + crossStart, r.top() + inset + (length - along) - offset, thumb.width(), thumb.height());
 }
 
-void XPLasmaStyle::drawSliderTicks(const QStyleOptionSlider *slider, const QRect &channel, const QRect &handle,
+void XPlasmaStyle::drawSliderTicks(const QStyleOptionSlider *slider, const QRect &channel, const QRect &handle,
                                    QPainter *painter) const
 {
     // In the Tics part's colour; the two end ticks 4px long, the rest 3,
@@ -3730,7 +3730,7 @@ void XPLasmaStyle::drawSliderTicks(const QStyleOptionSlider *slider, const QRect
     }
 }
 
-QRect XPLasmaStyle::subControlRect(ComplexControl control, const QStyleOptionComplex *option, SubControl sub,
+QRect XPlasmaStyle::subControlRect(ComplexControl control, const QStyleOptionComplex *option, SubControl sub,
                                    const QWidget *widget) const
 {
     const ContextScope context(this, widget, option);
@@ -3944,7 +3944,7 @@ QRect XPLasmaStyle::subControlRect(ComplexControl control, const QStyleOptionCom
     return QProxyStyle::subControlRect(control, option, sub, widget);
 }
 
-int XPLasmaStyle::styleHint(StyleHint hint, const QStyleOption *option, const QWidget *widget,
+int XPlasmaStyle::styleHint(StyleHint hint, const QStyleOption *option, const QWidget *widget,
                             QStyleHintReturn *returnData) const
 {
     switch (hint) {

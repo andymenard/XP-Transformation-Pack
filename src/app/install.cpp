@@ -106,7 +106,7 @@ bool installFiles(const QString &package, const QString &prefix, const Progress 
             progress(line);
     };
     if (!isPackage(package))
-        return fail(error, QStringLiteral("%1 isn't an XPLasma package (it has no bin/xplasma)").arg(package));
+        return fail(error, QStringLiteral("%1 isn't an XPlasma package (it has no bin/xplasma)").arg(package));
     say(QStringLiteral("Copying new files"));
     for (const QString &p : kPrograms) {
         const QString from = package + QLatin1String("/bin/") + p;
@@ -118,11 +118,11 @@ bool installFiles(const QString &package, const QString &prefix, const Progress 
         if (QFileInfo::exists(package + rel) && !copyFile(package + rel, prefix + rel, error))
             return false;
     }
-    say(QStringLiteral("Copying XPLasma's builds of Plasma's widgets"));
+    say(QStringLiteral("Copying XPlasma's builds of Plasma's widgets"));
     if (QFileInfo::exists(package + QLatin1String("/lib/xplasma/forks"))
         && !copyTree(package + QLatin1String("/lib/xplasma/forks"), prefix + QLatin1String("/lib/xplasma/forks"), error))
         return false;
-    say(QStringLiteral("Adding XPLasma to the application menu"));
+    say(QStringLiteral("Adding XPlasma to the application menu"));
     const QString apps = prefix + QLatin1String("/share/applications");
     QDir().mkpath(apps);
     for (const QFileInfo &desktop : QDir(package + QLatin1String("/share/applications")).entryInfoList({QStringLiteral("*.desktop")}, QDir::Files)) {
@@ -154,7 +154,7 @@ void removeFiles(const QString &prefix, bool extracted, bool downloads, const Pr
         if (progress)
             progress(line);
     };
-    say(QStringLiteral("Removing XPLasma's files"));
+    say(QStringLiteral("Removing XPlasma's files"));
     for (const QString &rel : installedPaths()) {
         const QString path = prefix + QLatin1Char('/') + rel;
         if (QFileInfo(path).isDir())
@@ -170,7 +170,7 @@ void removeFiles(const QString &prefix, bool extracted, bool downloads, const Pr
         QDir(paths::downloads()).removeRecursively();
     }
     if (extracted) {
-        say(QStringLiteral("Removing the Windows XP files XPLasma took out"));
+        say(QStringLiteral("Removing the Windows XP files XPlasma took out"));
         QDir(paths::data()).removeRecursively();
         QDir(paths::xpFonts()).removeRecursively();
         // (Its cache, less the downloads when they stay.)

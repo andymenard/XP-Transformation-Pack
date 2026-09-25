@@ -1,6 +1,6 @@
 # refharness/
 
-The pixel oracle: real Windows XP draws visual-style parts, and XPLasma's
+The pixel oracle: real Windows XP draws visual-style parts, and XPlasma's
 renderer has to match what comes back. PLAN.md §7.
 
 | File | Runs on | What |

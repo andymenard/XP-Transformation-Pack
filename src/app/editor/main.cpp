@@ -66,7 +66,7 @@ void serveInstance(const QString &which, QWidget *window)
     });
 }
 
-// A Plasma session XPLasma can dress; else a word on why not, and false.
+// A Plasma session XPlasma can dress; else a word on why not, and false.
 bool requirePlasma()
 {
     xpl::LiveSession session;
@@ -74,7 +74,7 @@ bool requirePlasma()
     if (r.ok())
         return true;
     QMessageBox::critical(nullptr, QApplication::applicationDisplayName(),
-                          QStringLiteral("XPLasma is for the KDE Plasma desktop, and it can't dress this one:\n\n%1").arg(r.problems()));
+                          QStringLiteral("XPlasma is for the KDE Plasma desktop, and it can't dress this one:\n\n%1").arg(r.problems()));
     return false;
 }
 

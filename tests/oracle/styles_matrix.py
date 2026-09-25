@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Every control job under every visual style: real XP against XPLasma.
+"""Every control job under every visual style: real XP against XPlasma.
 
     styles_matrix.py OUTDIR [--styles DIR] [--only LABEL ...] [--cached] [--qt 5|6]
 

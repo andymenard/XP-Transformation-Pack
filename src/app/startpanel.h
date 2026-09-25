@@ -1,5 +1,5 @@
 #pragma once
-// The Start menu's art and measures for XPLasma's Start plasmoid: every
+// The Start menu's art and measures for XPlasma's Start plasmoid: every
 // StartPanel part (and its hot state) as uxtheme keys it, with its sizing
 // and content margins and pane size; the text colours and fonts; and the
 // menu's layout. Only data changes from look to look; the plasmoid's code

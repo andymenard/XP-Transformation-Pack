@@ -71,7 +71,7 @@ QByteArray rules(const QString &fontsDir)
 
     QString out = QStringLiteral(
         "<?xml version=\"1.0\"?>\n<!DOCTYPE fontconfig SYSTEM \"urn:fontconfig:fonts.dtd\">\n"
-        "<!-- Written by XPLasma: text as Windows XP's \"Standard\" font smoothing drew it.\n"
+        "<!-- Written by XPlasma: text as Windows XP's \"Standard\" font smoothing drew it.\n"
         "     Every font fully hinted, without colour; XP's own fonts unkerned, and smoothed\n"
         "     only where their gasp tables allow. `xplasma reset` takes it away. -->\n"
         "<fontconfig>\n"

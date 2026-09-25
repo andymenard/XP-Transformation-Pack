@@ -107,7 +107,7 @@ QString legacyCache()
     return home() + QLatin1String("/.cache/xp2plasma");
 }
 
-// Something this copy of XPLasma ships under <prefix>/lib/xplasma, beside
+// Something this copy of XPlasma ships under <prefix>/lib/xplasma, beside
 // bin/ -- in a checkout, build.sh's build/<mode>; empty if it isn't there.
 static QString shipped(const QString &relative)
 {

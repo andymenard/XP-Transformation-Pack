@@ -16,7 +16,7 @@ namespace xpl {
 // dialog face -- XP's ButtonFace -- and its View group the document area,
 // XP's Window colour.
 // (`complementary`: the taskbar's background and text, for the Complementary
-// set -- XPLasma's taskbar widgets take it, and Plasma up to 6.3 reads it
+// set -- XPlasma's taskbar widgets take it, and Plasma up to 6.3 reads it
 // from here, not from the Plasma theme; the button face's otherwise.)
 QByteArray colorScheme(const ClassicScheme &system, const QString &name,
                        const std::pair<QColor, QColor> &complementary = {});

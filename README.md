@@ -1,4 +1,4 @@
-# XPLasma
+# XPlasma
 
 Windows XP visual styles, natively, on KDE Plasma. The sequel to xp2plasma.
 
@@ -20,7 +20,7 @@ xp2plasma carried.
 | `src/core/` | The `.msstyles` reader (PE, DIB, INI cascade, schema) and the renderer, pixel-exact against XP; `.theme` files and Windows Classic schemes (NONCLIENTMETRICS, LOGFONT). |
 | `src/style/` | The Qt 5/6 style plugin, drawing every widget from the core. |
 | `src/app/` | The app: the library under everything (archives, host programs, state, the theme library, the generators, apply and reset, setup), the `xplasma` CLI and the `xplasma-edit` editor (`editor/`). `data/schemes/` holds XP's 36 stock Classic schemes, decoded from its `HIVEDEF.INF` by `xplasma-schemes`. |
-| `src/app/start-menu/` | XPLasma's Start plasmoid (`fyi.hotsocket.xplasma.start`): the Start button and XP's menu on Plasma's own application models. Only its data changes with the look. |
+| `src/app/start-menu/` | XPlasma's Start plasmoid (`fyi.hotsocket.xplasma.start`): the Start button and XP's menu on Plasma's own application models. Only its data changes with the look. |
 | `src/third_party/` | libarchive, built static and linked in (ZIP, RAR, 7z, TAR, XP's CAB-compressed files). |
 | `src/tools/` | `xplasma-render` (oracle renders, `--export`), `xplasma-dump`, `xplasma-gallery`, `xplasma-probe`. |
 | `tests/core/` | The core's unit test and fuzz targets, with their vectors. |
@@ -28,7 +28,7 @@ xp2plasma carried.
 | `tests/oracle/` | Dev tooling (Python) that holds the style against the Windows XP reference VM (`styles_matrix.py`, …). |
 | `refharness/` | The programs that run inside the XP VM and dump what real uxtheme draws. |
 | `containers/` | Build containers: the dev image (host-matched toolchain), the release image (oldest supported Qt), and one per Plasma series for `build-forks.sh`. |
-| `project.ini` | The project's own settings: its version, its issue tracker, where it checks for a newer XPLasma, and the Internet Archive. The build writes them into `app/project.h`. |
+| `project.ini` | The project's own settings: its version, its issue tracker, where it checks for a newer XPlasma, and the Internet Archive. The build writes them into `app/project.h`. |
 | `docs/xp2plasma/` | xp2plasma's README and visual notes, kept for reference. |
 
 ## Building
@@ -48,7 +48,7 @@ Each installs into `build/<mode>/`: `bin/xplasma` (the CLI), `bin/xplasma-edit`
 the launcher in `share/applications/`. The app is Qt 6 only; the style is built
 for both majors. Nothing else is needed on the host: archives (the XP ISO, its
 CAB-compressed files, the theme packs' ZIPs) are read by the linked-in
-libarchive and XPLasma's own ISO 9660 reader.
+libarchive and XPlasma's own ISO 9660 reader.
 
 A plugin built against Qt *6.N* loads into every Qt ≥ *6.N*, **provided** it
 uses only public Qt API and binds nothing else to Qt (the 6.6.3 build runs on
@@ -60,23 +60,23 @@ entry points exported, glibc no newer than 2.34.
 
 ```sh
 QT_PLUGIN_PATH=$PWD/build/dev/lib/xplasma/qt6 build/dev-qt6/xplasma-probe --out /tmp/probe.png
-QT_PLUGIN_PATH=$PWD/build/dev/lib/xplasma/qt6 dolphin -style XPLasma
+QT_PLUGIN_PATH=$PWD/build/dev/lib/xplasma/qt6 dolphin -style XPlasma
 XPLASMA_SAFE=1 …    # the plugin draws nothing of its own (classic only)
 ```
 
 ## Installing and running
 
-The one file to hand out is `XPLasma-Setup`, a Windows Installer–style
-wizard with XPLasma packed inside it (a self-extracting archive; nothing of
-Windows ships in it: its look is XPLasma's own Classic drawing, its pictures
+The one file to hand out is `XPlasma-Setup`, a Windows Installer–style
+wizard with XPlasma packed inside it (a self-extracting archive; nothing of
+Windows ships in it: its look is XPlasma's own Classic drawing, its pictures
 its own). Run, it downloads Windows XP from the Internet Archive (or uses the
-copy already downloaded), takes out what XPLasma uses, installs XPLasma into
+copy already downloaded), takes out what XPlasma uses, installs XPlasma into
 `~/.local`, installs XP's pointer schemes as cursor themes, and offers to
-launch XPLasma. Choosing a look is Display Properties' job, never the
-wizard's. Run again, it repairs or removes XPLasma.
+launch XPlasma. Choosing a look is Display Properties' job, never the
+wizard's. Run again, it repairs or removes XPlasma.
 
 ```sh
-./build.sh release && ./package.sh     # build/XPLasma-Setup
+./build.sh release && ./package.sh     # build/XPlasma-Setup
 ```
 
 From a checkout, for development:
@@ -97,7 +97,7 @@ xplasma sounds 'Windows Default'       # or 'No Sounds', a saved scheme, or off 
 
 From Plasma 6.5 on, Plasma builds some of its widgets (the tray,
 notifications, the task manager) into their plugins, where a home-folder copy
-can't stand in for them. XPLasma builds its own of those from Plasma's source,
+can't stand in for them. XPlasma builds its own of those from Plasma's source,
 one per Plasma series, in that series' container:
 
 ```sh
@@ -106,25 +106,25 @@ one per Plasma series, in that series' container:
 
 Apply installs the build that loads in the running Plasma, or refuses the
 whole look if none does. After a Plasma upgrade to another series, a check at
-login (`xplasma check-forks`, from XPLasma's plasma-workspace env script)
-swaps in that series' build, or takes XPLasma's off so Plasma's own widgets
+login (`xplasma check-forks`, from XPlasma's plasma-workspace env script)
+swaps in that series' build, or takes XPlasma's off so Plasma's own widgets
 come back, before Plasma's shell starts.
 
 Flatpak's Qt 6 apps are styled too: apply puts the style plugin into each
-installed KDE runtime (6.x) as an `org.kde.KStyle.XPLasma` extension --
+installed KDE runtime (6.x) as an `org.kde.KStyle.XPlasma` extension --
 a plain folder under `~/.local/share/flatpak/extension`, nothing to build or
 download -- and lets every app read the look (`~/.local/share/xplasma/active`,
 read-only, through the user's global Flatpak override). A runtime installed
 later gets it at the next login; reset takes both back out
 (`src/app/flatpak.cpp`).
 
-GTK 3 and GTK 4 apps get a generated theme (`~/.local/share/themes/XPLasma-*`,
-on GTK's own Adwaita, with XP's controls as images XPLasma's Qt style draws),
+GTK 3 and GTK 4 apps get a generated theme (`~/.local/share/themes/XPlasma-*`,
+on GTK's own Adwaita, with XP's controls as images XPlasma's Qt style draws),
 switched to through Plasma's GTK settings; libadwaita apps, which ignore
 themes, get the XP layer through `~/.config/gtk-4.0/gtk.css`
 (`src/app/gtk.cpp`).
 
-XPLasma adopts what xp2plasma already imported on a machine (the asset
+XPlasma adopts what xp2plasma already imported on a machine (the asset
 library, saved schemes, the downloaded XP media) instead of fetching it again:
 it moves them into its own places on first run, leaving symlinks behind
 (`src/app/adopt.cpp`). Nothing Microsoft-copyrighted is in this repository.

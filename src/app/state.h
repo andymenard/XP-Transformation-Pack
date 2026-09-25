@@ -1,7 +1,7 @@
 #pragma once
-// XPLasma's own state, in one versioned file (paths::statePath()): what is
+// XPlasma's own state, in one versioned file (paths::statePath()): what is
 // applied, where the XP media is, and settings. Written atomically; unknown
-// keys (a newer XPLasma's) survive a load and save.
+// keys (a newer XPlasma's) survive a load and save.
 #include <QJsonObject>
 #include <QString>
 
@@ -12,7 +12,7 @@ struct State
     static constexpr int kVersion = 1;
 
     // What the desktop wears now. kind is "style" (a visual style), "classic"
-    // (a Windows Classic scheme) or empty (nothing applied by XPLasma).
+    // (a Windows Classic scheme) or empty (nothing applied by XPlasma).
     QString appliedKind;
     QString style;         // the .msstyles, for kind "style"
     QString variant;       // its layout INI ("NORMALBLUE_INI")

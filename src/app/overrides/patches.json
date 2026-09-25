@@ -57,11 +57,11 @@
   },
   {
    "find": "            ExpanderArrow {\n",
-   "replace": "            // XPLasma: notifications' own icons, for their balloons.\n            XpNotificationIcons {\n                id: xpNotificationIcons\n                Layout.row: root.vertical ? 1 : 0\n                Layout.column: root.vertical ? 0 : 1\n                Layout.alignment: Qt.AlignCenter\n                Layout.leftMargin: root.xpTrayAvailable && !root.vertical && !expander.visible\n                    ? xpTrayBackground.margins.left : 0\n                Layout.rightMargin: root.vertical ? 0 : 2\n                trayModel: activeModel\n                trayView: tasksGrid\n                vertical: root.vertical\n                thickness: root.vertical ? root.width : root.height\n            }\n\n            ExpanderArrow {\n"
+   "replace": "            // XPlasma: notifications' own icons, for their balloons.\n            XpNotificationIcons {\n                id: xpNotificationIcons\n                Layout.row: root.vertical ? 1 : 0\n                Layout.column: root.vertical ? 0 : 1\n                Layout.alignment: Qt.AlignCenter\n                Layout.leftMargin: root.xpTrayAvailable && !root.vertical && !expander.visible\n                    ? xpTrayBackground.margins.left : 0\n                Layout.rightMargin: root.vertical ? 0 : 2\n                trayModel: activeModel\n                trayView: tasksGrid\n                vertical: root.vertical\n                thickness: root.vertical ? root.width : root.height\n            }\n\n            ExpanderArrow {\n"
   },
   {
    "find": "            mainItem: ExpandedRepresentation {\n                id: expandedRepresentation\n",
-   "replace": "            mainItem: ExpandedRepresentation {\n                id: expandedRepresentation\n                // XPLasma: the popup in XP's dialog colours, not the taskbar's\n                // the tray takes (a popup declared in it inherits them).\n                Kirigami.Theme.colorSet: Kirigami.Theme.Window\n                Kirigami.Theme.inherit: false\n",
+   "replace": "            mainItem: ExpandedRepresentation {\n                id: expandedRepresentation\n                // XPlasma: the popup in XP's dialog colours, not the taskbar's\n                // the tray takes (a popup declared in it inherits them).\n                Kirigami.Theme.colorSet: Kirigami.Theme.Window\n                Kirigami.Theme.inherit: false\n",
    "optional": true
   }
  ],
@@ -82,33 +82,33 @@
  "taskmanager/main.qml": [
   {
    "find": "    readonly property bool shouldShrinkToZero: tasksModel.count === 0\n",
-   "replace": "    // XPLasma: an XP taskbar's panel theme marks its task buttons, laid out\n    // as XP's TaskBand lays them out.\n    KSvg.Svg { id: xpTasksSvg; imagePath: \"widgets/tasks\" }\n    readonly property bool xpTaskband: xpTasksSvg.hasElement(\"hint-xplasma-taskband\") && !vertical\n    // ...and every XPLasma taskbar its colours: the theme's Complementary\n    // set (its Window set is XP's dialog colours, for Plasma's popups).\n    readonly property bool xpColours: xpTasksSvg.hasElement(\"hint-xplasma-colours\")\n    Kirigami.Theme.colorSet: xpColours ? Kirigami.Theme.Complementary : Kirigami.Theme.Window\n    Kirigami.Theme.inherit: !xpColours\n    readonly property bool shouldShrinkToZero: tasksModel.count === 0\n"
+   "replace": "    // XPlasma: an XP taskbar's panel theme marks its task buttons, laid out\n    // as XP's TaskBand lays them out.\n    KSvg.Svg { id: xpTasksSvg; imagePath: \"widgets/tasks\" }\n    readonly property bool xpTaskband: xpTasksSvg.hasElement(\"hint-xplasma-taskband\") && !vertical\n    // ...and every XPlasma taskbar its colours: the theme's Complementary\n    // set (its Window set is XP's dialog colours, for Plasma's popups).\n    readonly property bool xpColours: xpTasksSvg.hasElement(\"hint-xplasma-colours\")\n    Kirigami.Theme.colorSet: xpColours ? Kirigami.Theme.Complementary : Kirigami.Theme.Window\n    Kirigami.Theme.inherit: !xpColours\n    readonly property bool shouldShrinkToZero: tasksModel.count === 0\n"
   },
   {
    "find": "        ToolTipDelegate {\n            id: openWindowToolTipDelegate\n",
-   "replace": "        ToolTipDelegate {\n            id: openWindowToolTipDelegate\n            // XPLasma: in XP's tooltip colours, not the taskbar's the task\n            // manager takes (the tooltip, declared in it, inherits them).\n            Kirigami.Theme.colorSet: Kirigami.Theme.Window\n            Kirigami.Theme.inherit: false\n",
+   "replace": "        ToolTipDelegate {\n            id: openWindowToolTipDelegate\n            // XPlasma: in XP's tooltip colours, not the taskbar's the task\n            // manager takes (the tooltip, declared in it, inherits them).\n            Kirigami.Theme.colorSet: Kirigami.Theme.Window\n            Kirigami.Theme.inherit: false\n",
    "optional": true
   },
   {
    "find": "        ToolTipDelegate {\n            id: pinnedAppToolTipDelegate\n",
-   "replace": "        ToolTipDelegate {\n            id: pinnedAppToolTipDelegate\n            // XPLasma: in XP's tooltip colours, not the taskbar's the task\n            // manager takes (the tooltip, declared in it, inherits them).\n            Kirigami.Theme.colorSet: Kirigami.Theme.Window\n            Kirigami.Theme.inherit: false\n",
+   "replace": "        ToolTipDelegate {\n            id: pinnedAppToolTipDelegate\n            // XPlasma: in XP's tooltip colours, not the taskbar's the task\n            // manager takes (the tooltip, declared in it, inherits them).\n            Kirigami.Theme.colorSet: Kirigami.Theme.Window\n            Kirigami.Theme.inherit: false\n",
    "optional": true
   }
  ],
  "taskmanager/code/layoutmetrics.js": [
   {
    "find": "function preferredMaxWidth() {\n    if (tasks.iconsOnly) {",
-   "replace": "function preferredMaxWidth() {\n    // XPLasma: XP's task buttons, one every 160px at most.\n    if (tasks.xpTaskband) {\n        return 160;\n    }\n    if (tasks.iconsOnly) {"
+   "replace": "function preferredMaxWidth() {\n    // XPlasma: XP's task buttons, one every 160px at most.\n    if (tasks.xpTaskband) {\n        return 160;\n    }\n    if (tasks.iconsOnly) {"
   }
  ],
  "taskmanager/Task.qml": [
   {
    "find": "            rightMargin: ((inPopup || tasksRoot.vertical) && taskList.columns > 1) ? LayoutMetrics.iconMargin : 0\n        }\n\n        imagePath: \"widgets/tasks\"",
-   "replace": "            rightMargin: tasksRoot.xpTaskband && !inPopup ? 2 : ((inPopup || tasksRoot.vertical) && taskList.columns > 1) ? LayoutMetrics.iconMargin : 0   // XPLasma: XP's 2px between buttons\n        }\n\n        imagePath: \"widgets/tasks\""
+   "replace": "            rightMargin: tasksRoot.xpTaskband && !inPopup ? 2 : ((inPopup || tasksRoot.vertical) && taskList.columns > 1) ? LayoutMetrics.iconMargin : 0   // XPlasma: XP's 2px between buttons\n        }\n\n        imagePath: \"widgets/tasks\""
   },
   {
    "find": "            leftMargin: adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))",
-   "replace": "            // XPLasma: XP's 16px icon, 10px in, centred.\n            leftMargin: tasksRoot.xpTaskband && !task.inPopup ? 10 : adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: tasksRoot.xpTaskband && !task.inPopup ? Math.round((parent.height - 16) / 2) : adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))"
+   "replace": "            // XPlasma: XP's 16px icon, 10px in, centred.\n            leftMargin: tasksRoot.xpTaskband && !task.inPopup ? 10 : adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: tasksRoot.xpTaskband && !task.inPopup ? Math.round((parent.height - 16) / 2) : adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))"
   },
   {
    "find": "                    width: Math.min(task.parent.minimumWidth, tasks.height)\n",
@@ -116,11 +116,11 @@
   },
   {
    "find": "            leftMargin: taskFrame.margins.left + iconBox.width + LayoutMetrics.labelMargin\n",
-   "replace": "            leftMargin: tasksRoot.xpTaskband && !inPopup ? 10 + 16 + 3 : taskFrame.margins.left + iconBox.width + LayoutMetrics.labelMargin   // XPLasma\n"
+   "replace": "            leftMargin: tasksRoot.xpTaskband && !inPopup ? 10 + 16 + 3 : taskFrame.margins.left + iconBox.width + LayoutMetrics.labelMargin   // XPlasma\n"
   },
   {
    "find": "            topMargin: taskFrame.margins.top\n            rightMargin: taskFrame.margins.right + (audioStreamIcon",
-   "replace": "            topMargin: taskFrame.margins.top - (tasksRoot.xpTaskband && !inPopup ? 1 : 0)   // XPLasma: XP's baseline, 1px higher\n            rightMargin: taskFrame.margins.right + (audioStreamIcon"
+   "replace": "            topMargin: taskFrame.margins.top - (tasksRoot.xpTaskband && !inPopup ? 1 : 0)   // XPlasma: XP's baseline, 1px higher\n            rightMargin: taskFrame.margins.right + (audioStreamIcon"
   },
   {
    "find": "            bottomMargin: taskFrame.margins.bottom\n        }\n\n        wrapMode",
@@ -139,7 +139,7 @@
   },
   {
    "find": "        Plasmoid.contextualActions.push(actionSeparator);\n",
-   "replace": "        Plasmoid.contextualActions.push(actionSeparator);\n        if (isContainment)\n            Plasmoid.contextualActions.push(xpPropertiesAction);   // XPLasma\n"
+   "replace": "        Plasmoid.contextualActions.push(actionSeparator);\n        if (isContainment)\n            Plasmoid.contextualActions.push(xpPropertiesAction);   // XPlasma\n"
   }
  ],
  "notifications/global/Globals.qml": [
@@ -167,11 +167,11 @@
  "notifications/main.qml": [
   {
    "find": "    id: root\n",
-   "replace": "    id: root\n\n    // XPLasma: the balloons' queue, for the system tray to draw.\n    readonly property var xpQueue: Globals.xpBalloons ? Globals.xpQueue : []\n    readonly property int xpCurrentId: Globals.xpCurrentId\n    function xpRegisterIcon(id, item) { Globals.xpRegisterIcon(id, item); }\n    function xpUnregisterIcon(id, item) { Globals.xpUnregisterIcon(id, item); }\n    function xpIconClicked(id) { Globals.xpRecall(id); }\n"
+   "replace": "    id: root\n\n    // XPlasma: the balloons' queue, for the system tray to draw.\n    readonly property var xpQueue: Globals.xpBalloons ? Globals.xpQueue : []\n    readonly property int xpCurrentId: Globals.xpCurrentId\n    function xpRegisterIcon(id, item) { Globals.xpRegisterIcon(id, item); }\n    function xpUnregisterIcon(id, item) { Globals.xpUnregisterIcon(id, item); }\n    function xpIconClicked(id) { Globals.xpRecall(id); }\n"
   },
   {
    "find": "    readonly property int effectiveStatus: historyModel.activeJobsCount > 0\n",
-   "replace": "    // XPLasma: with XP's balloons, no icon of its own but Do Not Disturb's -- XP's\n    // tray had none; the balloons' icons and the copy dialog show the rest.\n    readonly property int effectiveStatus: Globals.xpBalloons\n                     ? (Globals.inhibited ? PlasmaCore.Types.ActiveStatus : PlasmaCore.Types.PassiveStatus)\n                     : historyModel.activeJobsCount > 0\n"
+   "replace": "    // XPlasma: with XP's balloons, no icon of its own but Do Not Disturb's -- XP's\n    // tray had none; the balloons' icons and the copy dialog show the rest.\n    readonly property int effectiveStatus: Globals.xpBalloons\n                     ? (Globals.inhibited ? PlasmaCore.Types.ActiveStatus : PlasmaCore.Types.PassiveStatus)\n                     : historyModel.activeJobsCount > 0\n"
   }
  ],
  "desktopcontainment/FolderView.qml": [
@@ -187,7 +187,7 @@
  "panel/main.qml": [
   {
    "find": "ContainmentItem {\n    id: root\n",
-   "replace": "ContainmentItem {\n    id: root\n    // XPLasma: an XPLasma taskbar's colours -- the theme's Complementary\n    // set; its Window set is XP's dialog colours, for Plasma's popups -- for\n    // every widget on it (Plasma's own clock, the keyboard layout's label).\n    KSvg.Svg { id: xpTasksSvg; imagePath: \"widgets/tasks\" }\n    readonly property bool xpColours: xpTasksSvg.hasElement(\"hint-xplasma-colours\")\n    Kirigami.Theme.colorSet: xpColours ? Kirigami.Theme.Complementary : Kirigami.Theme.Window\n    Kirigami.Theme.inherit: !xpColours\n"
+   "replace": "ContainmentItem {\n    id: root\n    // XPlasma: an XPlasma taskbar's colours -- the theme's Complementary\n    // set; its Window set is XP's dialog colours, for Plasma's popups -- for\n    // every widget on it (Plasma's own clock, the keyboard layout's label).\n    KSvg.Svg { id: xpTasksSvg; imagePath: \"widgets/tasks\" }\n    readonly property bool xpColours: xpTasksSvg.hasElement(\"hint-xplasma-colours\")\n    Kirigami.Theme.colorSet: xpColours ? Kirigami.Theme.Complementary : Kirigami.Theme.Window\n    Kirigami.Theme.inherit: !xpColours\n"
   }
  ]
 }

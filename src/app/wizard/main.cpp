@@ -1,30 +1,30 @@
-// xplasma-setup: XPLasma's Setup wizard, a program of its own -- a souped-up
+// xplasma-setup: XPlasma's Setup wizard, a program of its own -- a souped-up
 // self-extracting archive, in the shape of a Windows Installer wizard. It
-// carries XPLasma (its release tree, appended to this file as a tar) and
+// carries XPlasma (its release tree, appended to this file as a tar) and
 // puts it on the machine:
 //
-//   * first, whether this is a desktop XPLasma can dress (desktop.h: a KDE
+//   * first, whether this is a desktop XPlasma can dress (desktop.h: a KDE
 //     Plasma session, a Plasma it knows, the programs applying runs);
 //   * Windows XP's install media -- a disc image of an SP3 CD the user has,
 //     or downloaded from the Internet Archive (or the copy already
-//     downloaded) -- and what XPLasma uses taken out of it into XPLasma's
+//     downloaded) -- and what XPlasma uses taken out of it into XPlasma's
 //     data folder: fonts, styles, .theme presets, wallpapers;
-//   * XPLasma itself (its programs, style plugins, builds of Plasma's
+//   * XPlasma itself (its programs, style plugins, builds of Plasma's
 //     widgets, application menu entries) into ~/.local;
 //   * XP's pointer schemes as cursor themes Plasma's settings offer;
-//   * last, the installed XPLasma asked whether this Plasma can take its look
+//   * last, the installed XPlasma asked whether this Plasma can take its look
 //     (xplasma check: what Apply checks first). If it can't, the install is
-//     undone -- and on a Plasma newer than XPLasma's builds, the user is
+//     undone -- and on a Plasma newer than XPlasma's builds, the user is
 //     asked to report it, with what to paste in the report.
 //
-// Choosing and applying a look is XPLasma's own business (Display
-// Properties), never the wizard's. Run again once XPLasma is installed, it
+// Choosing and applying a look is XPlasma's own business (Display
+// Properties), never the wizard's. Run again once XPlasma is installed, it
 // repairs or removes it, as a Windows Installer package does.
 //
 //   xplasma-setup                     the wizard
 //   xplasma-setup --screenshots DIR   every page drawn into DIR, then exit
 //
-// Its look is XPLasma's own Windows Classic rendering and its pictures its
+// Its look is XPlasma's own Windows Classic rendering and its pictures its
 // own: nothing of Windows ships in it.
 #include "core/classic.h"
 #include "app/controls.h"
@@ -107,14 +107,14 @@ QString unpackPayload(const QString &scratch, QString *error)
             const QString tar = scratch + QLatin1String("/payload.tar");
             QFile out(tar);
             if (!out.open(QIODevice::WriteOnly) || !self.seek(offset)) {
-                *error = QStringLiteral("can't unpack XPLasma out of the Setup program");
+                *error = QStringLiteral("can't unpack XPlasma out of the Setup program");
                 return QString();
             }
             qint64 left = self.size() - 16 - offset;
             while (left > 0) {
                 const QByteArray chunk = self.read(qMin<qint64>(left, 1 << 20));
                 if (chunk.isEmpty() || out.write(chunk) != chunk.size()) {
-                    *error = QStringLiteral("can't unpack XPLasma out of the Setup program");
+                    *error = QStringLiteral("can't unpack XPlasma out of the Setup program");
                     return QString();
                 }
                 left -= chunk.size();
@@ -136,7 +136,7 @@ QString unpackPayload(const QString &scratch, QString *error)
     const QString here = installer::packageRoot();
     if (installer::isPackage(here))
         return here;
-    *error = QStringLiteral("this Setup program has no XPLasma in it");
+    *error = QStringLiteral("this Setup program has no XPlasma in it");
     return QString();
 }
 
@@ -182,7 +182,7 @@ private:
     bool install(QString *error)
     {
         // Windows XP: the copy already recorded, or downloaded (the downloads
-        // cache kept), and what XPLasma uses taken out.
+        // cache kept), and what XPlasma uses taken out.
         const State state = State::load();
         const QString given = !m_plan.media.isEmpty() ? m_plan.media : QFileInfo::exists(state.media) ? state.media : QString();
         if (given.isEmpty()) {
@@ -218,8 +218,8 @@ private:
             return false;
         Q_EMIT status(QStringLiteral("Installing Windows XP's pointers"));
         Q_EMIT percent(90);
-        pointers::installSchemes(error);   // (none is no failure: XPLasma can do without)
-        Q_EMIT status(QStringLiteral("Checking that this desktop can take XPLasma's look"));
+        pointers::installSchemes(error);   // (none is no failure: XPlasma can do without)
+        Q_EMIT status(QStringLiteral("Checking that this desktop can take XPlasma's look"));
         Q_EMIT percent(95);
         if (!checkDesktop(error)) {
             // (A fresh install undone, Windows XP's files kept for next time;
@@ -235,18 +235,18 @@ private:
         return true;
     }
 
-    // The installed XPLasma's own word on this desktop (xplasma check --json).
+    // The installed XPlasma's own word on this desktop (xplasma check --json).
     bool checkDesktop(QString *error)
     {
         QProcess check;
         check.start(m_plan.prefix + QLatin1String("/bin/xplasma"), {QStringLiteral("check"), QStringLiteral("--json")});
         if (!check.waitForFinished(120000)) {
             check.kill();
-            return fail(error, QStringLiteral("XPLasma couldn't check this desktop: %1").arg(check.errorString()));
+            return fail(error, QStringLiteral("XPlasma couldn't check this desktop: %1").arg(check.errorString()));
         }
         m_report = QJsonDocument::fromJson(check.readAllStandardOutput()).object();
         if (m_report.isEmpty())
-            return fail(error, QStringLiteral("XPLasma couldn't check this desktop: %1").arg(QString::fromUtf8(check.readAllStandardError()).trimmed()));
+            return fail(error, QStringLiteral("XPlasma couldn't check this desktop: %1").arg(QString::fromUtf8(check.readAllStandardError()).trimmed()));
         if (m_report.value(QLatin1String("ok")).toBool())
             return true;
         QStringList why;
@@ -254,7 +254,7 @@ private:
             why << u.toObject().value(QLatin1String("what")).toString();
         for (const QJsonValue &c : m_report.value(QLatin1String("cannot")).toArray())
             why << c.toString();
-        return fail(error, QStringLiteral("This desktop can't take XPLasma's look:\n") + why.join(QLatin1Char('\n')));
+        return fail(error, QStringLiteral("This desktop can't take XPlasma's look:\n") + why.join(QLatin1Char('\n')));
     }
 
     bool remove(QString *error)
@@ -336,13 +336,13 @@ public:
     }
     void initializePage() override
     {
-        m_title->setText(QStringLiteral("Welcome to the XPLasma Setup Wizard"));
+        m_title->setText(QStringLiteral("Welcome to the XPlasma Setup Wizard"));
         m_text->setText(m_plan->mode == Mode::Install
-                            ? QStringLiteral("The Setup Wizard will install XPLasma on your computer. XPLasma draws its looks from "
-                                             "Windows XP's own files, so Setup takes what XPLasma uses out of a Windows XP CD image: "
+                            ? QStringLiteral("The Setup Wizard will install XPlasma on your computer. XPlasma draws its looks from "
+                                             "Windows XP's own files, so Setup takes what XPlasma uses out of a Windows XP CD image: "
                                              "one you have, or one it downloads from the Internet Archive.\n\nClick Next to continue "
                                              "or Cancel to exit the Setup Wizard.")
-                            : QStringLiteral("The Setup Wizard allows you to repair XPLasma or remove it from your computer.\n\n"
+                            : QStringLiteral("The Setup Wizard allows you to repair XPlasma or remove it from your computer.\n\n"
                                              "Click Next to continue or Cancel to exit the Setup Wizard."));
     }
     int nextId() const override { return m_plan->mode == Mode::Install ? Requirements : Maintenance; }
@@ -369,7 +369,7 @@ QPixmap mark(bool ok)
     return pm;
 }
 
-// What this computer has of what XPLasma needs (desktop.h), and room for
+// What this computer has of what XPlasma needs (desktop.h), and room for
 // Windows XP; Next only when it has it all.
 class RequirementsPage : public QWizardPage
 {
@@ -379,7 +379,7 @@ public:
         , m_dryRun(dryRun)
     {
         setTitle(QStringLiteral("System requirements"));
-        setSubTitle(QStringLiteral("Setup is checking that XPLasma can run on this computer."));
+        setSubTitle(QStringLiteral("Setup is checking that XPlasma can run on this computer."));
         auto *layout = new QVBoxLayout(this);
         m_grid = new QGridLayout;
         m_grid->setColumnStretch(1, 1);
@@ -405,7 +405,7 @@ public:
             LiveSession session;
             report = desktop::check(session);
         }
-        // Room for Windows XP's image and what's taken out of it, and XPLasma.
+        // Room for Windows XP's image and what's taken out of it, and XPlasma.
         const qint64 free = QStorageInfo(paths::home()).bytesAvailable();
         report.requirements.append({QStringLiteral("1 GB free in your home folder"), QStringLiteral("%1 MB free").arg(free / 1048576),
                                     m_dryRun || free >= (qint64(1) << 30)});
@@ -428,11 +428,11 @@ public:
             ++row;
         }
         m_ok = report.ok();
-        QString summary = m_ok ? QStringLiteral("This computer has what XPLasma needs. Click Next to continue.")
-                               : QStringLiteral("XPLasma can't be installed on this computer until it has everything above.");
+        QString summary = m_ok ? QStringLiteral("This computer has what XPlasma needs. Click Next to continue.")
+                               : QStringLiteral("XPlasma can't be installed on this computer until it has everything above.");
         if (m_ok && report.newer)
             summary += QStringLiteral("\n\nThis Plasma, %1, is newer than the ones this Setup was built for (up to %2). Setup will "
-                                      "check that it can take XPLasma's look once XPLasma is installed.")
+                                      "check that it can take XPlasma's look once XPlasma is installed.")
                            .arg(report.plasma, desktop::newestKnownPlasma());
         m_summary->setText(summary);
         Q_EMIT completeChanged();
@@ -565,9 +565,9 @@ public:
             layout->addSpacing(10);
         };
         option(QStringLiteral("Repair"),
-               QStringLiteral("Downloads Windows XP again if it's gone, takes its files out again, and puts back XPLasma's own files."),
+               QStringLiteral("Downloads Windows XP again if it's gone, takes its files out again, and puts back XPlasma's own files."),
                QStyle::SP_BrowserReload, Mode::Repair);
-        option(QStringLiteral("Remove"), QStringLiteral("Puts Plasma's own look back and removes XPLasma from your computer."), QStyle::SP_TrashIcon,
+        option(QStringLiteral("Remove"), QStringLiteral("Puts Plasma's own look back and removes XPlasma from your computer."), QStyle::SP_TrashIcon,
                Mode::Remove);
         layout->addStretch(1);
     }
@@ -588,7 +588,7 @@ public:
         auto *layout = new QVBoxLayout(this);
         m_text = wrapped(QString());
         layout->addWidget(m_text);
-        m_extracted = new QCheckBox(QStringLiteral("Also delete what XPLasma took out of Windows XP (its fonts, styles, themes)"));
+        m_extracted = new QCheckBox(QStringLiteral("Also delete what XPlasma took out of Windows XP (its fonts, styles, themes)"));
         m_downloads = new QCheckBox;
         layout->addSpacing(8);
         layout->addWidget(m_extracted);
@@ -600,20 +600,20 @@ public:
     {
         const bool remove = m_plan->mode == Mode::Remove;
         const QString what = m_plan->mode == Mode::Install ? QStringLiteral("install") : remove ? QStringLiteral("remove") : QStringLiteral("repair");
-        setTitle(QStringLiteral("Ready to %1 XPLasma").arg(what));
-        setSubTitle(remove ? QStringLiteral("You have chosen to remove XPLasma from your computer.")
+        setTitle(QStringLiteral("Ready to %1 XPlasma").arg(what));
+        setSubTitle(remove ? QStringLiteral("You have chosen to remove XPlasma from your computer.")
                            : QStringLiteral("The Setup Wizard is ready to begin."));
         m_text->setText(
             m_plan->mode == Mode::Install
-                ? QStringLiteral("Click Install to begin the installation. Setup %1, then installs XPLasma in %2.\n\nIf you want "
+                ? QStringLiteral("Click Install to begin the installation. Setup %1, then installs XPlasma in %2.\n\nIf you want "
                                  "to review or change any of your installation settings, click Back. Click Cancel to exit the wizard.")
                       .arg(m_plan->media.isEmpty() ? QStringLiteral("downloads Windows XP from the Internet Archive (about 600 MB)")
-                                                   : QStringLiteral("takes what XPLasma uses out of %1").arg(QFileInfo(m_plan->media).fileName()),
+                                                   : QStringLiteral("takes what XPlasma uses out of %1").arg(QFileInfo(m_plan->media).fileName()),
                            m_plan->prefix)
-            : remove ? QStringLiteral("Click Remove to remove XPLasma from your computer. Your desktop goes back to Plasma's own look.\n\n"
+            : remove ? QStringLiteral("Click Remove to remove XPlasma from your computer. Your desktop goes back to Plasma's own look.\n\n"
                                       "If you want to review or change any of your installation settings, click Back. Click Cancel "
                                       "to exit the wizard.")
-                     : QStringLiteral("Click Repair to repair the installation of XPLasma.\n\nIf you want to review or change any of "
+                     : QStringLiteral("Click Repair to repair the installation of XPlasma.\n\nIf you want to review or change any of "
                                       "your installation settings, click Back. Click Cancel to exit the wizard."));
         m_extracted->setVisible(remove);
         const qint64 downloaded = installer::downloadsSize();
@@ -666,14 +666,14 @@ public:
     void initializePage() override
     {
         const bool remove = m_plan->mode == Mode::Remove;
-        setTitle(m_plan->mode == Mode::Install ? QStringLiteral("Installing XPLasma")
-                 : remove                     ? QStringLiteral("Removing XPLasma")
-                                              : QStringLiteral("Repairing XPLasma"));
-        setSubTitle(remove                          ? QStringLiteral("XPLasma is being removed.")
-                    : m_plan->mode == Mode::Repair ? QStringLiteral("XPLasma is being repaired.")
-                                                   : QStringLiteral("XPLasma is being installed."));
-        m_text->setText(remove ? QStringLiteral("Please wait while the Setup Wizard removes XPLasma. This may take a moment.")
-                               : QStringLiteral("Please wait while the Setup Wizard installs XPLasma. This may take several minutes."));
+        setTitle(m_plan->mode == Mode::Install ? QStringLiteral("Installing XPlasma")
+                 : remove                     ? QStringLiteral("Removing XPlasma")
+                                              : QStringLiteral("Repairing XPlasma"));
+        setSubTitle(remove                          ? QStringLiteral("XPlasma is being removed.")
+                    : m_plan->mode == Mode::Repair ? QStringLiteral("XPlasma is being repaired.")
+                                                   : QStringLiteral("XPlasma is being installed."));
+        m_text->setText(remove ? QStringLiteral("Please wait while the Setup Wizard removes XPlasma. This may take a moment.")
+                               : QStringLiteral("Please wait while the Setup Wizard installs XPlasma. This may take several minutes."));
         m_done = false;
         if (m_dryRun) {
             m_status->setText(QStringLiteral("Status: Downloading Windows XP from the Internet Archive"));
@@ -730,10 +730,10 @@ public:
         m_text = wrapped(QString());
         layout->addWidget(m_text);
         layout->addSpacing(12);
-        m_launch = new QCheckBox(QStringLiteral("Launch XPLasma"));
+        m_launch = new QCheckBox(QStringLiteral("Launch XPlasma"));
         m_launch->setChecked(true);
         layout->addWidget(m_launch);
-        // (a failure on a Plasma newer than XPLasma's builds: what to report)
+        // (a failure on a Plasma newer than XPlasma's builds: what to report)
         m_diagnostics = new QPlainTextEdit;
         m_diagnostics->setReadOnly(true);
         m_diagnostics->setLineWrapMode(QPlainTextEdit::NoWrap);
@@ -750,17 +750,17 @@ public:
         const bool ok = m_dryRun ? !m_plan->demoNewerPlasma : m_progress->ok();
         const bool remove = m_plan->mode == Mode::Remove;
         if (ok) {
-            m_title->setText(QStringLiteral("Completing the XPLasma Setup Wizard"));
-            m_text->setText(remove ? QStringLiteral("XPLasma has been removed from your computer.\n\nClick the Finish button to exit the Setup Wizard.")
+            m_title->setText(QStringLiteral("Completing the XPlasma Setup Wizard"));
+            m_text->setText(remove ? QStringLiteral("XPlasma has been removed from your computer.\n\nClick the Finish button to exit the Setup Wizard.")
                             : m_plan->mode == Mode::Repair
-                                ? QStringLiteral("XPLasma has been repaired.\n\nClick the Finish button to exit the Setup Wizard.")
-                                : QStringLiteral("XPLasma has been installed. Choose your look in Display Properties.\n\nClick the Finish "
+                                ? QStringLiteral("XPlasma has been repaired.\n\nClick the Finish button to exit the Setup Wizard.")
+                                : QStringLiteral("XPlasma has been installed. Choose your look in Display Properties.\n\nClick the Finish "
                                                  "button to exit the Setup Wizard."));
         } else if (const QJsonObject report = demoReport(); report.value(QLatin1String("newer")).toBool()) {
-            // Installing on a Plasma newer than XPLasma's builds, which didn't
+            // Installing on a Plasma newer than XPlasma's builds, which didn't
             // take its look: a bug report, and what to put in it.
             const QString url = QString::fromUtf8(project::kIssuesUrl);
-            m_title->setText(QStringLiteral("Installation of XPLasma has failed"));
+            m_title->setText(QStringLiteral("Installation of XPlasma has failed"));
             m_text->setTextFormat(Qt::RichText);
             m_text->setOpenExternalLinks(true);
             m_text->setText(QStringLiteral("Your current version of KDE Plasma, %1, is newer than the latest version this installer is built "
@@ -770,8 +770,8 @@ public:
                                                    : QStringLiteral("<a href=\"%1\">the issue tracker</a>").arg(url.toHtmlEscaped())));
             m_diagnostics->setPlainText(report.value(QLatin1String("diagnostics")).toString());
         } else {
-            m_title->setText(QStringLiteral("XPLasma Setup Wizard ended prematurely"));
-            m_text->setText(QStringLiteral("XPLasma Setup Wizard ended prematurely because of an error. Your system has not been "
+            m_title->setText(QStringLiteral("XPlasma Setup Wizard ended prematurely"));
+            m_text->setText(QStringLiteral("XPlasma Setup Wizard ended prematurely because of an error. Your system has not been "
                                            "modified; to install this program at a later time, run the Setup Wizard again.\n\n")
                             + m_progress->error()
                             + QStringLiteral("\n\nClick the Finish button to exit the Setup Wizard."));
@@ -784,7 +784,7 @@ public:
     }
     bool validatePage() override
     {
-        // (In a transient unit of its own, as XPLasma launches things: it
+        // (In a transient unit of its own, as XPlasma launches things: it
         // outlives the wizard whatever started it.)
         if (!m_dryRun && m_launch->isVisible() && m_launch->isChecked())
             QProcess::startDetached(QStringLiteral("/bin/sh"),
@@ -804,9 +804,9 @@ private:
         return QJsonObject{{QStringLiteral("newer"), true},
                            {QStringLiteral("plasma"), QStringLiteral("6.9.0")},
                            {QStringLiteral("diagnostics"),
-                            QStringLiteral("XPLasma: %1 (builds of Plasma's widgets for 6.6, 6.7)\nPlasma: 6.9.0\nKDE Frameworks: 6.24.0\n"
-                                           "Qt: 6.12.0 (XPLasma built with 6.10.0)\nDistribution: Arch Linux\nSession: KDE, wayland\n\n"
-                                           "What failed:\nnone of XPLasma's builds of Plasma's widgets loads in Plasma 6.9.0")
+                            QStringLiteral("XPlasma: %1 (builds of Plasma's widgets for 6.6, 6.7)\nPlasma: 6.9.0\nKDE Frameworks: 6.24.0\n"
+                                           "Qt: 6.12.0 (XPlasma built with 6.10.0)\nDistribution: Arch Linux\nSession: KDE, wayland\n\n"
+                                           "What failed:\nnone of XPlasma's builds of Plasma's widgets loads in Plasma 6.9.0")
                                 .arg(QLatin1String(project::kVersion))}};
     }
 
@@ -822,7 +822,7 @@ class Wizard : public QWizard
 public:
     Wizard(Plan *plan, bool dryRun, int start = Welcome)
     {
-        setWindowTitle(QStringLiteral("XPLasma Setup"));
+        setWindowTitle(QStringLiteral("XPlasma Setup"));
         setWizardStyle(QWizard::ModernStyle);
         setPixmap(QWizard::LogoPixmap, wizard::bannerIcon(48));
         setOption(QWizard::NoBackButtonOnLastPage);
@@ -859,7 +859,7 @@ public:
             QWizard::reject();
             return;
         }
-        if (QMessageBox::question(this, windowTitle(), QStringLiteral("Are you sure you want to cancel XPLasma installation?"))
+        if (QMessageBox::question(this, windowTitle(), QStringLiteral("Are you sure you want to cancel XPlasma installation?"))
             != QMessageBox::Yes)
             return;
         if (m_progress->running()) {
@@ -873,7 +873,7 @@ private:
     ProgressPage *m_progress;
 };
 
-// XPLasma's Windows Classic, from the package's own plugin, in Tahoma where
+// XPlasma's Windows Classic, from the package's own plugin, in Tahoma where
 // the machine has it.
 void useClassic(QApplication &app, const QString &package)
 {
@@ -899,7 +899,7 @@ int main(int argc, char **argv)
         icon.addPixmap(xpl::wizard::bannerIcon(size));
     QApplication::setWindowIcon(icon);
     QCommandLineParser parser;
-    parser.setApplicationDescription(QStringLiteral("XPLasma's Setup wizard."));
+    parser.setApplicationDescription(QStringLiteral("XPlasma's Setup wizard."));
     parser.addHelpOption();
     const QCommandLineOption screenshots(QStringLiteral("screenshots"), QStringLiteral("Draw every page into DIR and exit."), QStringLiteral("DIR"));
     parser.addOption(screenshots);
@@ -910,7 +910,7 @@ int main(int argc, char **argv)
     Plan plan;
     plan.package = unpackPayload(scratch.path(), &error);
     if (plan.package.isEmpty()) {
-        QMessageBox::critical(nullptr, QStringLiteral("XPLasma Setup"), error);
+        QMessageBox::critical(nullptr, QStringLiteral("XPlasma Setup"), error);
         return 1;
     }
     useClassic(app, plan.package);

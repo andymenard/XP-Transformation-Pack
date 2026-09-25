@@ -23,7 +23,7 @@ import os, sys
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QProgressBar, QCheckBox, QStyleFactory
 from PySide6.QtCore import QTimer, QEventLoop
 app = QApplication([])
-app.setStyle(QStyleFactory.create("XPLasma"))
+app.setStyle(QStyleFactory.create("XPlasma"))
 w = QWidget(); v = QVBoxLayout(w)
 for x in (QPushButton("OK"), QCheckBox("Show window contents")): v.addWidget(x)
 p = QProgressBar(); p.setValue(60); p.setTextVisible(False); v.addWidget(p)

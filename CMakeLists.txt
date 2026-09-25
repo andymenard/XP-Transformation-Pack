@@ -1,4 +1,4 @@
-# XPLasma: the msstyles core, renderer, Qt style plugin and tools.
+# XPlasma: the msstyles core, renderer, Qt style plugin and tools.
 #
 # One source tree, built once per Qt major (build.sh does this in podman):
 #   cmake -S . -B build/dev-qt6 -G Ninja -DQT_MAJOR=6

@@ -1,6 +1,6 @@
 #pragma once
 // Writing generated packages: the files, the SVGs Plasma reads art from, and
-// the marker that tells XPLasma's own packages from anyone else's.
+// the marker that tells XPlasma's own packages from anyone else's.
 #include <QByteArray>
 #include <QImage>
 #include <QJsonObject>
@@ -10,10 +10,10 @@
 
 namespace xpl {
 
-// Every package XPLasma generates says so, in its metadata.json (as a key)
+// Every package XPlasma generates says so, in its metadata.json (as a key)
 // and its INI files (as a comment-free group), so reset only ever removes
-// XPLasma's own.
-constexpr const char *kGeneratedKey = "X-XPLasma-Generated";
+// XPlasma's own.
+constexpr const char *kGeneratedKey = "X-XPlasma-Generated";
 
 // An SVG of named bitmap elements, the way KSvg / FrameSvg / Aurorae want
 // them: each element an <image> (PNG) with its id; KSvg finds an element by id
@@ -51,7 +51,7 @@ private:
     QString m_error;
 };
 
-// KPlugin metadata.json for a package XPLasma made.
+// KPlugin metadata.json for a package XPlasma made.
 QJsonObject pluginMetadata(const QString &id, const QString &name, const QString &description);
 
 } // namespace xpl

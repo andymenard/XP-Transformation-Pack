@@ -1,4 +1,4 @@
-// xplasma-render: XPLasma's renderer, driven by the same job files as uxdump.
+// xplasma-render: XPlasma's renderer, driven by the same job files as uxdump.
 //
 //   xplasma-render JOB OUTDIR --style NAME=PATH [--style ...]
 //   xplasma-render --plan PATH NAME      print a job covering the whole style

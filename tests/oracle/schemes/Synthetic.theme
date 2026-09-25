@@ -1,7 +1,7 @@
 ; A synthetic Classic colour scheme for native/tests/styles_matrix.py: every
 ; role its own colour, so a control drawn in the wrong role can't match XP.
 [Theme]
-DisplayName=XPLasma synthetic scheme
+DisplayName=XPlasma synthetic scheme
 
 [Control Panel\Colors]
 Scrollbar=200 180 150
@@ -36,7 +36,7 @@ GradientInactiveTitle=190 190 210
 MenuHilight=160 60 30
 MenuBar=215 205 180
 
-; Windows Standard's window metrics (NONCLIENTMETRICSA, as XPLasma's
+; Windows Standard's window metrics (NONCLIENTMETRICSA, as XPlasma's
 ; classic_gen serializes a scheme), which Display Properties applies with a
 ; scheme: 16px scroll bars, 18px captions and menus, Tahoma 8.
 [Metrics]

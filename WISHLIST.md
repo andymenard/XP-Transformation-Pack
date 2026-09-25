@@ -1,6 +1,6 @@
 # Wishlist
 
-What we'd like XPLasma to have, in one place. Add to it freely; move an item
+What we'd like XPlasma to have, in one place. Add to it freely; move an item
 to **Done** (with the date) when it lands. Bugs and measured differences from
 XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
@@ -8,8 +8,8 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Wanted
 
-- **XPLasma's own update notifier** (from the user): a tray icon when a new
-  XPLasma is out, as XP's Automatic Updates globe (wuauclt.exe's icon 1) --
+- **XPlasma's own update notifier** (from the user): a tray icon when a new
+  XPlasma is out, as XP's Automatic Updates globe (wuauclt.exe's icon 1) --
   kept for it, not used for the system's updates.
 - **Window sounds** (XP's Open program, Close program, Minimize, Maximize,
   Restore Up/Down, Menu popup): Plasma has no notification event for them.
@@ -32,7 +32,7 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
   libadwaita's or GTK's own title bars, no reshaping of libadwaita's rounded
   cards and spacing. GTK stays at XP's controls and colours: going further
   fights libadwaita's own design and comes out uglier.
-- **Dark mode** (the user, 2026-09-24): XPLasma doesn't try to follow
+- **Dark mode** (the user, 2026-09-24): XPlasma doesn't try to follow
   Plasma's dark mode or its switch; XP had none.
 
 ## Done
@@ -46,16 +46,16 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
   or a file, played with the play button; applied as Plasma's sound theme,
   with the log-in, log-out, lock and unlock sounds turned on. First opened,
   Windows Default with Apply ready (2026-09-25).
-- The installer (the user's design): XPLasma-Setup, a Windows Installer
+- The installer (the user's design): XPlasma-Setup, a Windows Installer
   wizard that's a self-extracting archive -- downloads XP, takes its files
-  out, installs XPLasma and XP's pointers, launches XPLasma; run again,
+  out, installs XPlasma and XP's pointers, launches XPlasma; run again,
   repairs or removes. No look chosen or applied in it; no XP assets in it
   (2026-09-25).
 - GTK 3 and GTK 4 apps in the XP look, libadwaita apps' controls too:
   a theme generated from the look, switched to on apply (2026-09-24).
 - The unchecked check box in Plasma's popups as XP's box, and hover on
   check boxes as XP's hot rim (2026-09-24).
-- Flatpak's Qt 6 apps in the XP style: an org.kde.KStyle.XPLasma extension
+- Flatpak's Qt 6 apps in the XP style: an org.kde.KStyle.XPlasma extension
   per KDE runtime, installed by apply; a new look reaches running apps
   (qBittorrent, Prism Launcher, Elisa, DeckTuner checked) (2026-09-24).
 - Extras... in Display Properties (the user's idea): the Start button's

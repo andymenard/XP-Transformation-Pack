@@ -1,4 +1,4 @@
-// Every XPLasma Start button, given the look's data.
+// Every XPlasma Start button, given the look's data.
 var n = 0;
 panels().forEach(function (p) {
     p.widgets(${START}).forEach(function (w) {

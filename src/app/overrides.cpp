@@ -19,7 +19,7 @@ namespace xpl::overrides {
 
 namespace {
 
-constexpr const char *kMarker = "X-XPLasma-Panel-Override";
+constexpr const char *kMarker = "X-XPlasma-Panel-Override";
 constexpr const char *kLegacyMarker = "X-Xp2plasma-Panel-Override";   // xp2plasma's, and the Python app's
 constexpr const char *kShadowMarker = "// xplasma: caption text shadow override";
 constexpr const char *kLegacyShadowMarker = "// xp2plasma: caption text shadow override";
@@ -103,7 +103,7 @@ std::optional<QString> patched(const QString &file, const QString &source, QStri
         if (rule.value(QStringLiteral("optional")).toBool() && !text.contains(find))
             continue;
         if (text.count(find) != 1) {
-            fail(error, QStringLiteral("this Plasma's %1 isn't laid out as XPLasma expects (\"%2\"); not patching it")
+            fail(error, QStringLiteral("this Plasma's %1 isn't laid out as XPlasma expects (\"%2\"); not patching it")
                             .arg(file, find.left(60).trimmed()));
             return std::nullopt;
         }
@@ -137,15 +137,15 @@ const QList<Widget> kPanelWidgets{
     {QStringLiteral("org.kde.plasma.taskmanager"), QStringLiteral("taskmanager"),
      {QStringLiteral("main.qml"), QStringLiteral("Task.qml"), QStringLiteral("code/layoutmetrics.js")}, {}, {}},
     // The panel itself (a containment): the taskbar's colours for every
-    // widget on it, not only those XPLasma patches.
+    // widget on it, not only those XPlasma patches.
     {QStringLiteral("org.kde.panel"), QStringLiteral("panel"), {QStringLiteral("main.qml")}, {}, {}},
     // XP's balloons (when the look has their art; Plasma's popups otherwise).
     {QStringLiteral("org.kde.plasma.notifications"), QStringLiteral("notifications"),
      {QStringLiteral("main.qml"), QStringLiteral("global/Globals.qml")}, {},
      {QStringLiteral("XpPopup.qml"), QStringLiteral("XpBalloon.qml"), QStringLiteral("XpCopyDialog.qml"), QStringLiteral("XpButton.qml")}},
 };
-// Widgets XPLasma once patched and doesn't any more: a copy of ours goes.
-// (The clock is XPLasma's own now: fyi.hotsocket.xplasma.clock.)
+// Widgets XPlasma once patched and doesn't any more: a copy of ours goes.
+// (The clock is XPlasma's own now: fyi.hotsocket.xplasma.clock.)
 const QStringList kRetiredWidgets{QStringLiteral("org.kde.plasma.digitalclock")};
 // (org.kde.plasma.folder, the desktop, is this package under another name.)
 const QString kDesktopId = QStringLiteral("org.kde.desktopcontainment");
@@ -310,7 +310,7 @@ static QList<Widget> packagedPanelWidgets()
 bool installPanelWidgets(const QString &plasmoids, QString *error)
 {
     // (Copies of ours from an earlier Plasma, of widgets it has since built
-    // in or XPLasma no longer patches, go.)
+    // in or XPlasma no longer patches, go.)
     removeWidgets(plasmoids, kRetiredWidgets + builtInPanelWidgets());
     return installWidgets(plasmoids, packagedPanelWidgets(), error);
 }
@@ -356,7 +356,7 @@ const QString kCaptionAnchor = QStringLiteral("    Text {\n        id: caption")
 const QStringList kButtonLists{QStringLiteral("buttons: options.titleButtonsLeft"), QStringLiteral("buttons: options.titleButtonsRight")};
 
 // KWin's own aurorae.qml, if it's there, ours to override and laid out as
-// XPLasma expects.
+// XPlasma expects.
 std::optional<QString> auroraeSource(const QString &target, QString *error)
 {
     const QString existing = readText(target);
@@ -372,7 +372,7 @@ std::optional<QString> auroraeSource(const QString &target, QString *error)
     }
     if (source.count(kCaptionAnchor) != 1 || source.count(QLatin1String("    id: root")) != 1
         || source.count(kButtonLists.at(0)) != 1 || source.count(kButtonLists.at(1)) != 1) {
-        fail(error, QStringLiteral("this KWin's aurorae.qml isn't laid out as XPLasma expects"));
+        fail(error, QStringLiteral("this KWin's aurorae.qml isn't laid out as XPlasma expects"));
         return std::nullopt;
     }
     return source;
@@ -393,14 +393,14 @@ bool installTitleShadows(const QString &themes, const QString &target, QString *
     QString source = *checked;
     const QString system = systemDir(QStringLiteral("kwin/aurorae"));
 
-    // Which themes are XPLasma's, and which of those want a shadow, from
+    // Which themes are XPlasma's, and which of those want a shadow, from
     // their rc files.
     QJsonObject shadows;
     QJsonArray ours;
     for (const QFileInfo &pkg : QDir(themes).entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot)) {
         const QString rcPath = pkg.filePath() + QLatin1Char('/') + pkg.fileName() + QLatin1String("rc");
         QSettings rc(rcPath, QSettings::IniFormat);
-        if (!rc.contains(QLatin1String(kGeneratedKey) + QLatin1String("/Look")) && !readText(pkg.filePath() + QLatin1String("/metadata.desktop")).contains(QLatin1String("XPLasma")))
+        if (!rc.contains(QLatin1String(kGeneratedKey) + QLatin1String("/Look")) && !readText(pkg.filePath() + QLatin1String("/metadata.desktop")).contains(QLatin1String("XPlasma")))
             continue;
         ours.append(pkg.fileName());
         // (QSettings reads an INI file's [General] keys as top-level ones.)

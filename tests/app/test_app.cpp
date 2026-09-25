@@ -1,7 +1,7 @@
 // QtTest for the app library: archives, host programs, state, adoption.
 //
 // Every test runs with HOME moved to a scratch directory. The XP install ISO,
-// when xp2plasma or XPLasma downloaded one on this machine, is used for the
+// when xp2plasma or XPlasma downloaded one on this machine, is used for the
 // real-media tests (skipped otherwise).
 #include "app/adopt.h"
 #include "app/apply.h"
@@ -935,7 +935,7 @@ private Q_SLOTS:
 
     void startPlasmoid()
     {
-        // The package ships inside XPLasma; installing replaces what had the
+        // The package ships inside XPlasma; installing replaces what had the
         // id (xp2plasma's Kickoff fork) entirely.
         const QString plasmoids = m_home.filePath(QStringLiteral("plasmoids"));
         writeFile(plasmoids + QLatin1String("/fyi.hotsocket.xplasma.start/contents/ui/Kickoff-leftover.qml"), "x");
@@ -950,19 +950,19 @@ private Q_SLOTS:
         QVERIFY(meta.open(QIODevice::ReadOnly));
         const QJsonObject json = QJsonDocument::fromJson(meta.readAll()).object();
         QCOMPARE(json.value(QStringLiteral("KPlugin")).toObject().value(QStringLiteral("Id")).toString(), QStringLiteral("fyi.hotsocket.xplasma.start"));
-        QVERIFY(json.value(QStringLiteral("X-XPLasma-Generated")).toBool());
+        QVERIFY(json.value(QStringLiteral("X-XPlasma-Generated")).toBool());
     }
 
     void plasmaControlsDrawn()
     {
-        // Plasma's popup controls, drawn by XPLasma's style: every SVG, for a
+        // Plasma's popup controls, drawn by XPlasma's style: every SVG, for a
         // visual style and for Classic, with the states Plasma lays over.
         if (m_realThemes.isEmpty())
             QSKIP("needs the asset library");
         const auto luna = Look::fromStyle(m_realThemes + QLatin1String("/Luna/luna.msstyles"));
         QVERIFY(luna);
         if (!xpStyle(*luna))
-            QSKIP("XPLasma's style plugin isn't where this test can load it");
+            QSKIP("XPlasma's style plugin isn't where this test can load it");
         const auto classic = Look::fromScheme(ClassicScheme());
         for (const Look *look : {&*luna, &classic}) {
             const auto controls = plasmaControls(*look);
@@ -1079,7 +1079,7 @@ private Q_SLOTS:
         QCOMPARE(flatpak::qtRuntimes(session), (QStringList{QStringLiteral("6.10"), QStringLiteral("6.9")}));
         const QString plugin = m_home.filePath(QStringLiteral("libxplasma.so"));
         writeFile(plugin, "not really a plugin");
-        // (With what an earlier XPLasma let apps read, to be taken out.)
+        // (With what an earlier XPlasma let apps read, to be taken out.)
         writeFile(flatpak::overrideFile(), "[Context]\nfilesystems=home;xdg-config/xplasmarc:ro;\n\n[Environment]\nFOO=1\n");
         // (An empty stand-in Flatpak left in an app's own config folder goes;
         // a real file there stays.)
@@ -1181,7 +1181,7 @@ private Q_SLOTS:
         const auto luna = Look::fromStyle(m_realThemes + QLatin1String("/Luna/luna.msstyles"));
         QVERIFY(luna);
         if (!xpStyle(*luna))
-            QSKIP("XPLasma's style plugin isn't where this test can load it");
+            QSKIP("XPlasma's style plugin isn't where this test can load it");
         const Look classic = Look::fromScheme(ClassicScheme());
         for (const Look *look : {&*luna, &classic}) {
             QString error;
@@ -1303,9 +1303,9 @@ private Q_SLOTS:
             QSKIP("no Plasma here");
         const QString plasmoids = m_home.filePath(QStringLiteral("plasmoids"));
         QString error;
-        // A copy of the Plasma clock XPLasma once patched goes: the clock is
-        // XPLasma's own now.
-        writeFile(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/metadata.json"), "{\"X-XPLasma-Panel-Override\": true}");
+        // A copy of the Plasma clock XPlasma once patched goes: the clock is
+        // XPlasma's own now.
+        writeFile(plasmoids + QLatin1String("/org.kde.plasma.digitalclock/metadata.json"), "{\"X-XPlasma-Panel-Override\": true}");
         QVERIFY2(overrides::installPanelWidgets(plasmoids, &error), qPrintable(error));
         QVERIFY(!QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.digitalclock")));
         // What the clock runs on a double-click: the editor, quoted, as its own unit.
@@ -1359,7 +1359,7 @@ private Q_SLOTS:
     void overridesAllOrNothing()
     {
         // A Plasma that builds some widgets into their plugins (6.5 on): those
-        // are the ones XPLasma's own builds stand in for; the rest are
+        // are the ones XPlasma's own builds stand in for; the rest are
         // patched, all or nothing, and a copy of ours of a built-in one goes.
         const QString tray = QStringLiteral("/usr/share/plasma/plasmoids/org.kde.plasma.systemtray");
         if (!QFileInfo::exists(tray))
@@ -1370,7 +1370,7 @@ private Q_SLOTS:
         const QByteArray saved = qgetenv("XDG_DATA_DIRS");
         qputenv("XDG_DATA_DIRS", system.toUtf8());
         const QString plasmoids = m_home.filePath(QStringLiteral("plasmoids-6.6"));
-        writeFile(plasmoids + QLatin1String("/org.kde.plasma.taskmanager/metadata.json"), "{\"X-XPLasma-Panel-Override\": true}");
+        writeFile(plasmoids + QLatin1String("/org.kde.plasma.taskmanager/metadata.json"), "{\"X-XPlasma-Panel-Override\": true}");
         const QStringList builtIn = overrides::builtInPanelWidgets();
         QString checked, installed;
         const bool can = overrides::checkPanelWidgets(plasmoids, &checked);
@@ -1436,7 +1436,7 @@ private Q_SLOTS:
     {
         // A session without systemd (Slackware's): no user unit to stop and
         // start, so plasmashell is asked to quit and started again, in this
-        // program's environment (XPLasma's plugin path in it).
+        // program's environment (XPlasma's plugin path in it).
         RecordingSession session;
         session.systemd = false;
         bool stopped = false;
@@ -1629,14 +1629,14 @@ private Q_SLOTS:
         // As decoration.cpp writes it: the shadow keys are in [General].
         writeFile(themes + QLatin1String("/xp-blue/xp-bluerc"),
                   "[General]\nUseTextShadow=true\nActiveTextShadowColor=10,24,131,255\nInactiveTextShadowColor=10,24,131,255\n"
-                  "TextShadowOffsetX=1\nTextShadowOffsetY=1\n\n[X-XPLasma-Generated]\nLook=Windows XP style (Default (blue))\n");
+                  "TextShadowOffsetX=1\nTextShadowOffsetY=1\n\n[X-XPlasma-Generated]\nLook=Windows XP style (Default (blue))\n");
         writeFile(themes + QLatin1String("/plain/plainrc"),
-                  "[General]\nUseTextShadow=false\n\n[X-XPLasma-Generated]\nLook=Windows Standard\n");
+                  "[General]\nUseTextShadow=false\n\n[X-XPlasma-Generated]\nLook=Windows Standard\n");
         QVERIFY2(overrides::installTitleShadows(themes, target, &error), qPrintable(error));
         QVERIFY2(read().contains(QLatin1String(
                      R"(property var xpTitleShadows: ({"xp-blue":{"active":"#ff0a1883","inactive":"#ff0a1883","x":1,"y":1}}))")),
                  qPrintable(read().section(QLatin1String("xpTitleShadows"), 1, 1).left(200)));
-        // XP's title buttons, for XPLasma's themes (shadowed or not).
+        // XP's title buttons, for XPlasma's themes (shadowed or not).
         QVERIFY(read().contains(QLatin1String(R"(property var xpThemes: ["plain","xp-blue"])")));
         QVERIFY(read().contains(QLatin1String("buttons: root.xpButtons(options.titleButtonsLeft)"))
                 && read().contains(QLatin1String("buttons: root.xpButtons(options.titleButtonsRight)"))
@@ -1652,7 +1652,7 @@ private Q_SLOTS:
         QVERIFY(state.save());
         const QString share = paths::localShare();
         // Another look's package, and one of the user's own.
-        writeFile(share + QLatin1String("/aurorae/themes/old-look/metadata.json"), "{\"X-XPLasma-Generated\": true}");
+        writeFile(share + QLatin1String("/aurorae/themes/old-look/metadata.json"), "{\"X-XPlasma-Generated\": true}");
         writeFile(share + QLatin1String("/aurorae/themes/Mine/metadata.json"), "{\"KPlugin\": {\"Name\": \"Mine\"}}");
         const auto look = Look::fromStyle(m_realThemes + QLatin1String("/Luna/luna.msstyles"), QStringLiteral("NORMALMETALLIC_INI"));
         QVERIFY(look);
@@ -1702,7 +1702,7 @@ private Q_SLOTS:
         QCOMPARE(session.config.value(QStringLiteral("kwinrulesrc|xplasma-display-properties|wmclass")),
                  QStringLiteral("^fyi\\.hotsocket\\.xplasma(\\.datetime)?$"));
         QCOMPARE(session.config.value(QStringLiteral("kwinrulesrc|xplasma-copy-dialog|minimizerule")), QStringLiteral("2"));
-        QCOMPARE(session.config.value(QStringLiteral("kdeglobals|KDE|widgetStyle")), QStringLiteral("XPLasma"));
+        QCOMPARE(session.config.value(QStringLiteral("kdeglobals|KDE|widgetStyle")), QStringLiteral("XPlasma"));
         QVERIFY(session.config.value(QStringLiteral("kdeglobals|WM|activeFont")).startsWith(QLatin1String("Trebuchet MS,10")));
         QVERIFY(session.ran(QStringLiteral("plasma-apply-colorscheme")));
         // (The current scheme's name forgotten just before: plasma-apply-colorscheme
@@ -1766,7 +1766,7 @@ private Q_SLOTS:
 
     void resetUnloadsForksFirst()
     {
-        // XPLasma's builds of Plasma's widgets go with the shell down, and
+        // XPlasma's builds of Plasma's widgets go with the shell down, and
         // the shell's back without them before Plasma's layout is -- given
         // the default panel, a shell that had them loaded would load
         // Plasma's own beside them, and die of the module registered twice.
@@ -2272,7 +2272,7 @@ private Q_SLOTS:
         writeFile(paths::legacyData() + QLatin1String("/schemes/user/mine.json"), "{}");
         writeFile(paths::legacyCache() + QLatin1String("/downloads/small.iso"), "x");
         writeFile(paths::legacyCache() + QLatin1String("/downloads/xp.iso"), QByteArray(4096, 'x'));
-        // Something XPLasma already has isn't replaced.
+        // Something XPlasma already has isn't replaced.
         writeFile(paths::schemes() + QLatin1String("/keep.theme"), "[x]");
 
         const QStringList log = adoptLegacy();
@@ -2295,7 +2295,7 @@ int main(int argc, char **argv)
 {
     // (Fonts need a GUI application; an offscreen one shows nothing.)
     qputenv("QT_QPA_PLATFORM", "offscreen");
-    QApplication app(argc, argv);   // (XPLasma's style draws the Plasma theme's controls)
+    QApplication app(argc, argv);   // (XPlasma's style draws the Plasma theme's controls)
     // (Loaded now, while HOME is the real one: the XP fonts live there.)
     QFontDatabase::families();
     TestApp test;

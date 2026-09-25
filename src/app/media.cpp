@@ -73,7 +73,7 @@ std::optional<QByteArray> systemFile(const QString &name, QString *error)
 
     const QString media = State::load().media;
     if (media.isEmpty() || !QFileInfo::exists(media)) {
-        fail(error, QStringLiteral("no Windows XP media (run setup, or point XPLasma at the XP ISO)"));
+        fail(error, QStringLiteral("no Windows XP media (run setup, or point XPlasma at the XP ISO)"));
         return std::nullopt;
     }
     QString why;

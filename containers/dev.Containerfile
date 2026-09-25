@@ -1,4 +1,4 @@
-# XPLasma dev image: the host's own toolchain and Qt, for fast iteration.
+# XPlasma dev image: the host's own toolchain and Qt, for fast iteration.
 #
 # Based on xp2plasma's kvantum build image, which is Arch re-pointed at only
 # Valve's core-/extra-<release> repos -- so gcc, glibc and Qt 6 match this

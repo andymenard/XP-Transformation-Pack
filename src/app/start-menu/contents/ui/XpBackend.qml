@@ -23,7 +23,7 @@ Item {
     onRecentLimitChanged: Qt.callLater(refresh)
     property var allApps: null
     readonly property string userName: user.fullName || user.loginName
-    // The user's own picture, or else the XP one XPLasma gave them (as XP
+    // The user's own picture, or else the XP one XPlasma gave them (as XP
     // gave every account one of its own).
     readonly property url userPicture: user.faceIconUrl.toString() !== "" ? user.faceIconUrl
                                                                            : (launcher.themeData?.userPicture ?? "")

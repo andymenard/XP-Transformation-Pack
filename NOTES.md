@@ -8,7 +8,7 @@ Each says where it came from, so it can be picked up without re-deriving it.
 Test VMs from `~/clod/vmtools` (its README): apply, balloons and their queue,
 the copy dialog and a failed copy, Start, Date and Time, apply/reset cycles.
 Gentoo's and Void's keep a `pre-install` state (`snap VM load pre-install`):
-Plasma set up, nothing of XPLasma's, for trying Setup from scratch.
+Plasma set up, nothing of XPlasma's, for trying Setup from scratch.
 
 | Distribution | Plasma / Qt | Widgets from | Result |
 |---|---|---|---|
@@ -21,21 +21,21 @@ Plasma set up, nothing of XPLasma's, for trying Setup from scratch.
 | openSUSE Tumbleweed | 6.7.5 / 6.11.2 | 6.7 build | all pass (its default favourites pinned Firefox twice: fixed) |
 | Slackware64-current (no systemd) | 6.7.5 / 6.11 | 6.7 build | all pass: shell restarted with kquitapp6 in its own environment; Date and Time through pkexec |
 | Gentoo (23.0 no-multilib + Plasma, systemd; 2026-09-25) | 6.7.5 / 6.11.2 | 6.7 build | Setup: install (downloading XP), apply, Remove keeping and deleting XP's files, all clean -- after two fixes: cursor themes linked into ~/.icons (its libXcursor doesn't look in ~/.local/share/icons, so the pointers didn't apply), and reset/Remove taking the folders they empty |
-| CachyOS on Plasma 6.8 Beta 2 (2026-09-25) | 6.7.91 / 6.12.0rc1 | 6.8 build | all pass: XPLasma's patches applied to 6.7.91's source unchanged, so the 6.8 series is 6.7's with its own pinned sources. Its libPlasma is .so.8 (6.7's is .so.7), so the 6.7 build doesn't load there and XPLasma took it off at login, as it should |
+| CachyOS on Plasma 6.8 Beta 2 (2026-09-25) | 6.7.91 / 6.12.0rc1 | 6.8 build | all pass: XPlasma's patches applied to 6.7.91's source unchanged, so the 6.8 series is 6.7's with its own pinned sources. Its libPlasma is .so.8 (6.7's is .so.7), so the 6.7 build doesn't load there and XPlasma took it off at login, as it should |
 | Void (glibc, runit; 2026-09-25) | 6.7.5 / 6.11.2 | 6.7 build | Setup: install, apply (one click on first start), Sounds and Audio Devices (its tray icon on and off), Remove -- clean. Setup again with a disc image of the user's: its requirements page, the image checked for SP3, installed in a minute with no download, applied |
 
 ## Open
 
 - ~~**Plasma's tooltips and tray popups are the taskbar's blue**~~ (done
-  2026-09-24): XPLasma's Plasma theme now has XP's colours in its Window,
+  2026-09-24): XPlasma's Plasma theme now has XP's colours in its Window,
   Header, Button and View sets, a tooltip (InfoWindow in a 1px window-frame
   line) and a popup frame (the button face in XP's menu frame: flat
   button-shadow line, or Classic's raised edge); the taskbar's colours moved
-  to the Complementary set, which XPLasma's tray and task manager take
+  to the Complementary set, which XPlasma's tray and task manager take
   (marked `hint-xplasma-colours` in tasks.svg). Plasma up to 6.3 reads
   Complementary from the colour scheme, not the Plasma theme, so the scheme
   has them too. The controls inside popups are XP's too (controls.cpp:
-  drawn by XPLasma's style, in-process -- the CLI is a QApplication for it
+  drawn by XPlasma's style, in-process -- the CLI is a QApplication for it
   -- and cut into Plasma's widget SVGs). Still Plasma's: DefaultToolTip's
   padding and heading size. The theme's metadata must say `X-Plasma-API`
   (6.0): without it Plasma takes the theme for a Plasma 4 one and gives
@@ -47,15 +47,15 @@ Plasma set up, nothing of XPLasma's, for trying Setup from scratch.
   Plasma's other widgets on the taskbar (its own clock, the keyboard
   layout's "us") take the Complementary set from the panel containment
   (org.kde.panel), patched like the tray: a package up to 6.4, in
-  XPLasma's builds from 6.5. The panel lays the theme's south-active-tab
-  behind a widget whose popup is open (tray icons too); XPLasma leaves it
+  XPlasma's builds from 6.5. The panel lays the theme's south-active-tab
+  behind a widget whose popup is open (tray icons too); XPlasma leaves it
   empty, as XP shows nothing there (XP's pale tab put white on white).
 - **GTK 3 and 4 (2026-09-24): a generated theme, and what it can't do.**
-  `~/.local/share/themes/XPLasma-<look>`: gtk-3.0/gtk.css on GTK's Adwaita,
+  `~/.local/share/themes/XPlasma-<look>`: gtk-3.0/gtk.css on GTK's Adwaita,
   gtk-4.0/gtk.css on GTK 4's Default, and gtk-4.0/xplasma.css (the XP layer
   alone), which an import line in ~/.config/gtk-4.0/gtk.css gives libadwaita
   apps (they ignore the theme but take the user's CSS; KDE's GTK settings
-  keep other lines in that file). The controls are images XPLasma's Qt style
+  keep other lines in that file). The controls are images XPlasma's Qt style
   draws. Learned doing it:
   * GTK's CSS has no !important and Adwaita's selectors are long, so every
     XP rule's selector gets four `:not(.xp-N)` (gtk::boosted).
@@ -80,7 +80,7 @@ Plasma set up, nothing of XPLasma's, for trying Setup from scratch.
     MATE 1.18.
   * Flatpak GTK apps: GTK 3 themes are an org.gtk.Gtk3theme extension point
     in every GTK runtime (version 3.22, mounted as the theme's gtk-3.0
-    folder -- so its images go inside it); XPLasma installs the theme there
+    folder -- so its images go inside it); XPlasma installs the theme there
     as an unmaintained extension, as the Qt style. Libadwaita apps read the
     user's GTK 4 stylesheet through a global override
     (xdg-config/gtk-4.0:ro, which Flatpak shows at the app's own config
@@ -90,12 +90,12 @@ Plasma set up, nothing of XPLasma's, for trying Setup from scratch.
   Flatpak attempt), Flatpak left an empty, read-only xplasmarc in each app's
   own config folder (~/.var/app/APP/config); the plugin read that first and
   found no look, so qBittorrent came up in plain Qt. The plugin now reads
-  the shared copy first when sandboxed, and XPLasma's Flatpak setup removes
+  the shared copy first when sandboxed, and XPlasma's Flatpak setup removes
   empty stand-ins. (ghostwriter from Flathub traps offscreen whatever the
   style -- its web engine -- so it's only checked on a real session.)
 - **Invisible window decorations once, after a fresh install (the Deck,
-  2026-09-25).** The user removed XPLasma (with its XP files) and installed
-  it again with XPLasma-Setup; the first apply after left windows with their
+  2026-09-25).** The user removed XPlasma (with its XP files) and installed
+  it again with XPlasma-Setup; the first apply after left windows with their
   title text but no borders or buttons, and a second apply fixed it. KWin's
   log at the first apply: "QFSFileEngine::open: No file name specified" and
   KSvg NaturalSize "-1,-1" -- it looked the Aurorae theme's SVGs up and found
@@ -142,7 +142,7 @@ Plasma set up, nothing of XPLasma's, for trying Setup from scratch.
   again.
 - **Plasma's spin box is "- value +", not XP's up-down.** Its buttons ask
   for the icons value-decrease and value-increase (nothing else of Plasma's
-  does), so XPLasma's icon theme has the arrows of XP's up-down on its side
+  does), so XPlasma's icon theme has the arrows of XP's up-down on its side
   there -- left and right, as XP's tab rows have it; the glyph alone
   (SpinLeftGlyph.bmp and the like), unscaled, at every size 12 to 24 and
   32 (a label's height: 13 under XP's 8pt Tahoma). XP's button behind the
@@ -171,7 +171,7 @@ Plasma set up, nothing of XPLasma's, for trying Setup from scratch.
   distribution carries 6.8, its development files come from Arch's
   kde-unstable (containers/plasma-6.8.Containerfile) and its floor is that
   repository's Qt, 6.12 -- so the build won't load on a 6.8 with an older
-  Qt, and XPLasma says so rather than applying half a look. Build it again
+  Qt, and XPlasma says so rather than applying half a look. Build it again
   against 6.8.0 when it lands (14 October 2026): bump forks.json's sources
   and checksums, `./build-forks.sh 6.8`.
 
@@ -201,7 +201,7 @@ Plasma set up, nothing of XPLasma's, for trying Setup from scratch.
   synchronization; the last sync's date isn't reported by timedated.
 
 - ~~**Royale's clock is white on its light tray**~~ (resolved 2026-09-24:
-  XPLasma's own clock takes the style's clock colour). (2026-09-23) Plasma draws
+  XPlasma's own clock takes the style's clock colour). (2026-09-23) Plasma draws
   the clock, like the task buttons, in the panel theme's one text colour
   (the taskbar's: white); the style's clock text is black (Clock TEXTCOLOR,
   now in PanelArt::trayTextColour, which the tray's fallback icons use).
@@ -222,7 +222,7 @@ Plasma set up, nothing of XPLasma's, for trying Setup from scratch.
 - **Inactive selections follow SHOWSELALWAYS, deliberately.** Plain XP
   list and tree views hide the selection while unfocused; nearly every real
   XP app (Explorer, regedit, MMC) sets LVS_/TVS_SHOWSELALWAYS, which shows
-  it in the button face. XPLasma draws the latter (controls-2.job holds
+  it in the button face. XPlasma draws the latter (controls-2.job holds
   listview:3 / treeview:6; listview:2 / treeview:5 unfocused would differ).
 - **Report views highlight the label only**, as XP does without
   LVS_EX_FULLROWSELECT -- a candidate for a per-app/context option later.
@@ -327,8 +327,8 @@ Plasma set up, nothing of XPLasma's, for trying Setup from scratch.
   the C++ app's QML tests (`test-startmenu`, `plasmoid_smoke.sh`) run under
   the host's Qt, where KDE's modules are.
 - ~~**Generated packages still say `xp2plasma`**~~ (resolved 2026-09-23): the
-  C++ app generates XPLasma's names (`fyi.hotsocket.xplasma.start`,
-  `xplasma-icons`, the `X-XPLasma-*` markers), and reset still recognises
+  C++ app generates XPlasma's names (`fyi.hotsocket.xplasma.start`,
+  `xplasma-icons`, the `X-XPlasma-*` markers), and reset still recognises
   xp2plasma's.
 - ~~**`test_native_buttons`, `test_native_combos` and `test_native_startmenu`
   still target kvantum-xp.**~~ (moot 2026-09-23: the Python tests are gone;
@@ -336,7 +336,7 @@ Plasma set up, nothing of XPLasma's, for trying Setup from scratch.
 - **Screenshots of the live desktop failed while the user was away**
   (2026-09-23): `spectacle -b -n -f -o FILE` exits 0 and writes nothing,
   although the session isn't locked and the panel output is enabled. It
-  worked at 01:44 the same day. Live-app checks (Dolphin with the XPLasma
+  worked at 01:44 the same day. Live-app checks (Dolphin with the XPlasma
   style) wait for the user, or for a headless nested KWin; the gallery and
   the control oracle cover the style meanwhile.
 - ~~**XP-style text rendering**~~ (done 2026-09-23, `src/app/xptext.cpp`):
@@ -366,7 +366,7 @@ Plasma set up, nothing of XPLasma's, for trying Setup from scratch.
 - **A newly installed style plugin isn't visible to running apps**
   (2026-09-23, first live switch). Qt's plugin loader scans the plugin
   directories once per process, so after `libxplasma.so` first appears,
-  KDE's StyleChanged broadcast makes running apps ask for "XPLasma", fail,
+  KDE's StyleChanged broadcast makes running apps ask for "XPlasma", fail,
   and keep their current style (they all stayed on kvantum-xp; none
   crashed). Apps started afterwards load it. Once the plugin is in a
   process, switching .msstyles themes is live. The installer should

@@ -1,18 +1,18 @@
 #!/bin/sh
-# XPLasma-Setup: the one file to download. The Setup wizard (xplasma-setup)
-# with XPLasma appended to it -- a tar of the release tree's programs, style
+# XPlasma-Setup: the one file to download. The Setup wizard (xplasma-setup)
+# with XPlasma appended to it -- a tar of the release tree's programs, style
 # plugins, builds of Plasma's widgets and application menu entries -- then
 # the tar's offset (8 bytes, little-endian) and "XPLSETUP". The wizard finds
 # it there and unpacks it (src/app/wizard/main.cpp).
 #
-#   ./package.sh [release|dev]      writes build/XPLasma-Setup
+#   ./package.sh [release|dev]      writes build/XPlasma-Setup
 #
 # Build first (./build.sh release, and ./build-forks.sh for Plasma's widgets).
 set -eu
 mode="${1:-release}"
 root="$(cd "$(dirname "$0")" && pwd)"
 from="$root/build/$mode"
-out="$root/build/XPLasma-Setup"
+out="$root/build/XPlasma-Setup"
 for f in bin/xplasma bin/xplasma-edit bin/xplasma-setup; do
   [ -x "$from/$f" ] || { echo "no $f in $from: run ./build.sh $mode first" >&2; exit 1; }
 done
@@ -33,4 +33,4 @@ done
 printf 'XPLSETUP' >> "$out.new"
 chmod +x "$out.new"
 mv "$out.new" "$out"
-echo "$out ($(du -h "$out" | cut -f1)), XPLasma from $from"
+echo "$out ($(du -h "$out" | cut -f1)), XPlasma from $from"

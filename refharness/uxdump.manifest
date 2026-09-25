@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-  <assemblyIdentity version="1.0.0.0" processorArchitecture="X86" name="XPLasma.uxdump" type="win32"/>
-  <description>XPLasma pixel oracle</description>
+  <assemblyIdentity version="1.0.0.0" processorArchitecture="X86" name="XPlasma.uxdump" type="win32"/>
+  <description>XPlasma pixel oracle</description>
   <!-- comctl32 v6: without it XP draws common controls classic, unthemed. -->
   <dependency>
     <dependentAssembly>
