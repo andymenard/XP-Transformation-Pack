@@ -20,9 +20,7 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
   Installer (MSI) wizard -- not XP's Setup (the user, 2026-09-24): the
   welcome and finish pages with the tall picture down the left, the pages
   between with the banner across the top, Back / Next / Cancel.
-- **GTK, further**: XP captions on client-side title bars (libadwaita's and
-  GTK 3's header bars) with XP's window buttons; GTK 2
-  apps (a pixmap-engine gtkrc), if any still matter.
+- **GTK 2 apps** (a pixmap-engine gtkrc), if any still matter.
 - **A KDecoration plugin** on the same core, in place of Aurorae (optional).
 - **Real rendering in the editor's previews** (`xplasma-render`).
 - **Plasma 6.5 builds**, if a distribution still ships 6.5.
@@ -30,6 +28,10 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Not wanted
 
+- **Pushing GTK further** (the user, 2026-09-25): no XP captions on
+  libadwaita's or GTK's own title bars, no reshaping of libadwaita's rounded
+  cards and spacing. GTK stays at XP's controls and colours: going further
+  fights libadwaita's own design and comes out uglier.
 - **Dark mode** (the user, 2026-09-24): XPLasma doesn't try to follow
   Plasma's dark mode or its switch; XP had none.
 
