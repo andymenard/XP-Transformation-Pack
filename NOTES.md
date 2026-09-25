@@ -45,6 +45,30 @@ the copy dialog and a failed copy, Start, Date and Time, apply/reset cycles.
   XPLasma's builds from 6.5. The panel lays the theme's south-active-tab
   behind a widget whose popup is open (tray icons too); XPLasma leaves it
   empty, as XP shows nothing there (XP's pale tab put white on white).
+- **GTK 3 and 4 (2026-09-24): a generated theme, and what it can't do.**
+  `~/.local/share/themes/XPLasma-<look>`: gtk-3.0/gtk.css on GTK's Adwaita,
+  gtk-4.0/gtk.css on GTK 4's Default, and gtk-4.0/xplasma.css (the XP layer
+  alone), which an import line in ~/.config/gtk-4.0/gtk.css gives libadwaita
+  apps (they ignore the theme but take the user's CSS; KDE's GTK settings
+  keep other lines in that file). The controls are images XPLasma's Qt style
+  draws. Learned doing it:
+  * GTK's CSS has no !important and Adwaita's selectors are long, so every
+    XP rule's selector gets four `:not(.xp-N)` (gtk::boosted).
+  * GTK 3 draws a border-image's edges, not its middle: each framed image's
+    middle goes in as the background (NAME-fill.png), inside the border.
+  * The border-images are cut 3px in, not at XP's sizing margins (Luna's
+    button's 8/9 would make GTK's buttons 31px tall, not 23).
+  * Overlay scroll bars: GTK 3 on Wayland reads GSettings
+    (org.gnome.desktop.interface overlay-scrolling), not settings.ini; apply
+    sets both and reset puts the old value back.
+  * The scroll bar grip is centred along the thumb by GTK: on a thumb of odd
+    length it lands on a half pixel and its 1px ribs blend into a flat square.
+    Across the thumb it's placed at a whole pixel.
+  * Not XP (yet): libadwaita's own title bars and round window buttons,
+    switches (Adwaita's), level bars, GTK 3's CSD header bars where KDE's
+    decorations module isn't loaded.
+  * GTK 2 isn't done: MATE's apps (Engrampa, Caja, Pluma) are GTK 3 since
+    MATE 1.18.
 - **Flatpak: an app's own xplasmarc wins, so stand-ins are cleared.** While
   ~/.config/xplasmarc was shared into sandboxes as a file (the first
   Flatpak attempt), Flatpak left an empty, read-only xplasmarc in each app's

@@ -4,6 +4,7 @@
 #include "app/controls.h"
 #include "app/decoration.h"
 #include "app/forks.h"
+#include "app/gtk.h"
 #include "app/icons.h"
 #include "app/overrides.h"
 #include "app/panel.h"
@@ -546,6 +547,9 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
         QStringList log;
         if (!qtstyle::apply(session, look, state, &log, &why))
             report(o, QStringLiteral("  Qt apps keep their style: %1").arg(why));
+        // (GTK's too: a failure there isn't the look's.)
+        if (!gtk::apply(session, look, state, &log, &why))
+            report(o, QStringLiteral("  GTK apps keep their theme: %1").arg(why));
         for (const QString &line : std::as_const(log))
             report(o, QStringLiteral("  ") + line);
     }
@@ -656,6 +660,7 @@ bool resetDesktop(Session &session, const std::function<void(const QString &)> &
     QStringList log;
     say(QStringLiteral("Taking XPLasma's widget style off ..."));
     qtstyle::revert(session, state, &log);
+    gtk::revert(session, state, &log);
     for (const QString &line : std::as_const(log))
         say(QStringLiteral("  ") + line);
     overrides::removeTitleShadows(share(QStringLiteral("kwin/aurorae/aurorae.qml")));

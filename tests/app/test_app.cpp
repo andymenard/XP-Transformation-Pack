@@ -17,6 +17,7 @@
 #include "app/panel.h"
 #include "app/flatpak.h"
 #include "app/forks.h"
+#include "app/gtk.h"
 #include "app/pointers.h"
 #include "app/timezones.h"
 #include "app/startbutton.h"
@@ -1104,6 +1105,78 @@ private Q_SLOTS:
         session.runtimes.clear();
         QVERIFY(flatpak::install(session, plugin, &log, &error));
         QVERIFY(!QFileInfo::exists(flatpak::extensionRoot()) && !QFileInfo::exists(flatpak::overrideFile()));
+    }
+
+    void gtkTheme()
+    {
+        // The booster: every selector's subject outranks Adwaita's; @-rules
+        // and comments as they were.
+        const QString css = gtk::boosted(QStringLiteral("@define-color a #fff;\n/* note */\nbutton, notebook > header tab:checked { x: 1; }\n"));
+        QVERIFY2(css.contains(QLatin1String("@define-color a #fff;")) && css.contains(QLatin1String("/* note */")), qPrintable(css));
+        QVERIFY2(css.contains(QLatin1String("button:not(.xp-1):not(.xp-2):not(.xp-3):not(.xp-4),\nnotebook > header tab:checked:not(.xp-1)")),
+                 qPrintable(css));
+
+        if (m_realThemes.isEmpty())
+            QSKIP("needs the asset library");
+        const auto luna = Look::fromStyle(m_realThemes + QLatin1String("/Luna/luna.msstyles"));
+        QVERIFY(luna);
+        if (!xpStyle(*luna))
+            QSKIP("XPLasma's style plugin isn't where this test can load it");
+        const Look classic = Look::fromScheme(ClassicScheme());
+        for (const Look *look : {&*luna, &classic}) {
+            QString error;
+            const QString root = gtk::writeTheme(*look, m_home.filePath(QStringLiteral("gtk-out")), &error);
+            QVERIFY2(!root.isEmpty(), qPrintable(error));
+            QFile gtk3(root + QLatin1String("/gtk-3.0/gtk.css")), layer(root + QLatin1String("/gtk-4.0/xplasma.css")), gtk4(root + QLatin1String("/gtk-4.0/gtk.css"));
+            QVERIFY(gtk3.open(QIODevice::ReadOnly) && layer.open(QIODevice::ReadOnly) && gtk4.open(QIODevice::ReadOnly));
+            const QString text3 = QString::fromUtf8(gtk3.readAll()), text4 = QString::fromUtf8(layer.readAll());
+            // On Adwaita, every placeholder filled, every image there.
+            QVERIFY(text3.startsWith(QLatin1String("@import url(\"resource:///org/gtk/libgtk/theme/Adwaita/gtk-contained.css\");")));
+            QVERIFY(QString::fromUtf8(gtk4.readAll()).contains(QLatin1String("@import url(\"xplasma.css\");")));
+            for (const QString &t : {text3, text4}) {
+                QVERIFY2(!t.contains(QLatin1String("${")), qPrintable(t.mid(t.indexOf(QLatin1String("${")) - 40, 80)));
+                static const QRegularExpression url(QStringLiteral("url\\(\"\\.\\./assets/([^\"]+)\"\\)"));
+                for (auto it = url.globalMatch(t); it.hasNext();) {
+                    const QString file = it.next().captured(1);
+                    QVERIFY2(QFileInfo::exists(root + QLatin1String("/assets/") + file), qPrintable(file));
+                }
+            }
+            // XP's scroll bar arrows in GTK 3 (steppers), none asked of GTK 4.
+            QVERIFY(text3.contains(QLatin1String("-GtkScrollbar-has-backward-stepper: true")));
+            QVERIFY(!text4.contains(QLatin1String("Stepper")));
+            // A button's middle as the background (GTK 3 leaves a border-image's undrawn).
+            QVERIFY(QFileInfo::exists(root + QLatin1String("/assets/button-normal-fill.png")));
+        }
+
+        // Applied: GTK switched, overlay scroll bars off, the libadwaita line
+        // added after KDE's own; reset takes back exactly that.
+        RecordingSession session;
+        session.config.insert(QStringLiteral("gtk-3.0/settings.ini|Settings|gtk-theme-name"), QStringLiteral("Breeze"));
+        const QString user = paths::config() + QLatin1String("/gtk-4.0/gtk.css");
+        writeFile(user, "@import 'colors.css';");
+        State state;
+        QStringList log;
+        QString error;
+        QVERIFY2(gtk::apply(session, *luna, state, &log, &error), qPrintable(error));
+        QCOMPARE(session.config.value(QStringLiteral("gtk-3.0/settings.ini|Settings|gtk-theme-name")), gtk::themeName(*luna));
+        QCOMPARE(session.config.value(QStringLiteral("gtk-4.0/settings.ini|Settings|gtk-theme-name")), gtk::themeName(*luna));
+        QVERIFY(session.calls.join(QLatin1Char(' ')).contains(QLatin1String("setGtkTheme")));
+        QCOMPARE(state.settings.value(QStringLiteral("previousGtkTheme")).toString(), QStringLiteral("Breeze"));
+        QVERIFY(QFileInfo::exists(paths::localShare() + QLatin1String("/themes/") + gtk::themeName(*luna) + QLatin1String("/gtk-3.0/gtk.css")));
+        auto userText = [&] {
+            QFile f(user);
+            return f.open(QIODevice::ReadOnly) ? QString::fromUtf8(f.readAll()) : QString();
+        };
+        QVERIFY2(userText().startsWith(QLatin1String("@import 'colors.css';\n@import url(\"file://")) && userText().contains(QLatin1String("xplasma.css")),
+                 qPrintable(userText()));
+        // Again: one line, not two.
+        QVERIFY(gtk::apply(session, *luna, state, &log, &error));
+        QCOMPARE(userText().count(QLatin1String("xplasma.css")), 1);
+        gtk::revert(session, state, &log);
+        QCOMPARE(session.config.value(QStringLiteral("gtk-3.0/settings.ini|Settings|gtk-theme-name")), QStringLiteral("Breeze"));
+        QCOMPARE(userText(), QStringLiteral("@import 'colors.css';\n"));
+        QVERIFY(!QFileInfo::exists(paths::localShare() + QLatin1String("/themes/") + gtk::themeName(*luna)));
+        QVERIFY(!state.settings.contains(QStringLiteral("previousGtkTheme")));
     }
 
     void startButtonExtrasApplied()

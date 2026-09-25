@@ -28,6 +28,7 @@
 #include "app/icons.h"
 #include "app/media.h"
 #include "app/forks.h"
+#include "app/gtk.h"
 #include "app/panel.h"
 #include "app/qttarget.h"
 #include "app/startbutton.h"
@@ -384,6 +385,12 @@ int build(const QString &name, QString dir)
         return 1;
     }
     out() << "  icons       " << icons << '\n';
+    const QString gtkTheme = gtk::writeTheme(*look, dir + QLatin1String("/themes"), &error);
+    if (gtkTheme.isEmpty()) {
+        err() << "xplasma: the GTK theme: " << error << Qt::endl;
+        return 1;
+    }
+    out() << "  gtk         " << gtkTheme << '\n';
     for (const ConfigValue &v : fontSettings(look->system))
         out() << "  font        " << v.file << " [" << v.group << "] " << v.key << '=' << v.value << '\n';
     out().flush();

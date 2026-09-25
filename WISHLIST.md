@@ -20,7 +20,10 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
   Installer (MSI) wizard -- not XP's Setup (the user, 2026-09-24): the
   welcome and finish pages with the tall picture down the left, the pages
   between with the banner across the top, Back / Next / Cancel.
-- **GTK**: a real GTK3 generator on the machinery that's already there.
+- **GTK, further**: XP captions on client-side title bars (libadwaita's and
+  GTK 3's header bars) with XP's window buttons; switches as XP's check box;
+  Flatpak GTK apps (an org.gtk.Gtk3theme extension, as the Qt one); GTK 2
+  apps (a pixmap-engine gtkrc), if any still matter.
 - **A KDecoration plugin** on the same core, in place of Aurorae (optional).
 - **Real rendering in the editor's previews** (`xplasma-render`).
 - **Plasma 6.5 builds**, if a distribution still ships 6.5.
@@ -33,6 +36,8 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Done
 
+- GTK 3 and GTK 4 apps in the XP look, libadwaita apps' controls too:
+  a theme generated from the look, switched to on apply (2026-09-24).
 - The unchecked check box in Plasma's popups as XP's box, and hover on
   check boxes as XP's hot rim (2026-09-24).
 - Flatpak's Qt 6 apps in the XP style: an org.kde.KStyle.XPLasma extension

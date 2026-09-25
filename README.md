@@ -99,6 +99,12 @@ read-only, through the user's global Flatpak override). A runtime installed
 later gets it at the next login; reset takes both back out
 (`src/app/flatpak.cpp`).
 
+GTK 3 and GTK 4 apps get a generated theme (`~/.local/share/themes/XPLasma-*`,
+on GTK's own Adwaita, with XP's controls as images XPLasma's Qt style draws),
+switched to through Plasma's GTK settings; libadwaita apps, which ignore
+themes, get the XP layer through `~/.config/gtk-4.0/gtk.css`
+(`src/app/gtk.cpp`).
+
 XPLasma adopts what xp2plasma already imported on a machine (the asset
 library, saved schemes, the downloaded XP media) instead of fetching it again:
 it moves them into its own places on first run, leaving symlinks behind
