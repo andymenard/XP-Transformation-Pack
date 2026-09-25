@@ -21,6 +21,7 @@ Plasma set up, nothing of XPLasma's, for trying Setup from scratch.
 | openSUSE Tumbleweed | 6.7.5 / 6.11.2 | 6.7 build | all pass (its default favourites pinned Firefox twice: fixed) |
 | Slackware64-current (no systemd) | 6.7.5 / 6.11 | 6.7 build | all pass: shell restarted with kquitapp6 in its own environment; Date and Time through pkexec |
 | Gentoo (23.0 no-multilib + Plasma, systemd; 2026-09-25) | 6.7.5 / 6.11.2 | 6.7 build | Setup: install (downloading XP), apply, Remove keeping and deleting XP's files, all clean -- after two fixes: cursor themes linked into ~/.icons (its libXcursor doesn't look in ~/.local/share/icons, so the pointers didn't apply), and reset/Remove taking the folders they empty |
+| CachyOS on Plasma 6.8 Beta 2 (2026-09-25) | 6.7.91 / 6.12.0rc1 | 6.8 build | all pass: XPLasma's patches applied to 6.7.91's source unchanged, so the 6.8 series is 6.7's with its own pinned sources. Its libPlasma is .so.8 (6.7's is .so.7), so the 6.7 build doesn't load there and XPLasma took it off at login, as it should |
 | Void (glibc, runit; 2026-09-25) | 6.7.5 / 6.11.2 | 6.7 build | Setup: install, apply (one click on first start), Sounds and Audio Devices (its tray icon on and off), Remove -- clean |
 
 ## Open
@@ -165,6 +166,14 @@ Plasma set up, nothing of XPLasma's, for trying Setup from scratch.
   user name, shown when KDE has none for the user; theirs isn't touched).
 - ~~**XP's Start button tooltip is "Click here to begin"**~~ (done
   2026-09-24; still drawn in Plasma's tooltip colours, above).
+
+- **The 6.8 series is pinned to Plasma's beta (6.7.91).** Until a
+  distribution carries 6.8, its development files come from Arch's
+  kde-unstable (containers/plasma-6.8.Containerfile) and its floor is that
+  repository's Qt, 6.12 -- so the build won't load on a 6.8 with an older
+  Qt, and XPLasma says so rather than applying half a look. Build it again
+  against 6.8.0 when it lands (14 October 2026): bump forks.json's sources
+  and checksums, `./build-forks.sh 6.8`.
 
 - **Sounds: only XP's events Plasma makes a sound for.** A scheme is written
   as a freedesktop sound theme (Plasma plays notifications by those names)

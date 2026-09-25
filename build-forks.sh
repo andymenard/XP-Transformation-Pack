@@ -4,6 +4,7 @@
 # 6.5+ builds into its plugins, patched as XPLasma patches the packaged ones.
 #
 #   ./build-forks.sh SERIES...        e.g. ./build-forks.sh 6.6
+#   JOBS=4 ./build-forks.sh 6.8       compiling at most 4 at a time
 #
 # For each series, under build/plasma/SERIES/:
 #   src/       the pinned upstream tarballs, downloaded once, checked against
@@ -21,6 +22,11 @@
 # incremental), since the patches it applies are built into it.
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
+# Compiling Plasma takes about a gigabyte a job: as many as this machine's
+# memory allows, never more than its processors (JOBS overrides).
+jobs="${JOBS:-$(awk '/MemAvailable/ { print int($2 / 1100000) }' /proc/meminfo)}"
+[ "${jobs:-0}" -ge 1 ] || jobs=1
+[ "$jobs" -le "$(nproc)" ] || jobs=$(nproc)
 xplasma="$here/build/dev/bin/xplasma"
 [ $# -gt 0 ] || { echo "usage: $0 SERIES..." >&2; exit 2; }
 "$here/build.sh" dev >/dev/null || { echo "build-forks: the dev build failed (./build.sh dev)" >&2; exit 1; }
@@ -61,7 +67,7 @@ for series in "$@"; do
                       -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache > build/$project.configure.log 2>&1 \
                     || { tail -30 build/$project.configure.log; exit 1; }
             fi
-            cmake --build build/$project --target $targets"
+            cmake --build build/$project --target $targets -- -j$jobs"
         for target in $targets; do
             cp -p "$root/build/$project/bin/plasma/applets/$target.so" "$root/out/plasma/applets/"
         done
