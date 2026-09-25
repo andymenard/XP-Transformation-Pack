@@ -204,6 +204,21 @@ DisplayProperties::DisplayProperties(QWidget *parent)
     fillPointerSchemes();
     showPointers();
     m_appliedStartExtras = m_startExtras = StartButtonExtras::fromJson(state.settings.value(QLatin1String(kStartButtonKey)).toObject());
+    // First start -- nothing of XPLasma's on the desktop yet: the "Windows
+    // XP" theme chosen, as if picked (Luna, Bliss...), with XP's own
+    // pointers, and Apply ready -- so Apply alone gives XP's desktop.
+    if (state.appliedKind.isEmpty() && !m_appliedPointers) {
+        if (const int xp = m_themes->findText(QStringLiteral("Windows XP")); xp >= 0) {
+            m_themes->setCurrentIndex(xp);
+            themePicked(xp);
+        }
+        if (!m_pointerSchemes.isEmpty()) {
+            m_pointers = pointers::defaultScheme();
+            m_pointerShadow = true;
+            fillPointerSchemes();
+            showPointers();
+        }
+    }
     updateApply();
     if (!m_previewer.styleAvailable())
         m_appearanceSample->setToolTip(QStringLiteral("XPLasma's style plugin isn't installed: the samples can't be drawn"));
