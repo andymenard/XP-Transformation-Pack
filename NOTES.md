@@ -53,20 +53,30 @@ the copy dialog and a failed copy, Start, Date and Time, apply/reset cycles.
   the shared copy first when sandboxed, and XPLasma's Flatpak setup removes
   empty stand-ins. (ghostwriter from Flathub traps offscreen whatever the
   style -- its web engine -- so it's only checked on a real session.)
+- **KRunner crashed as the Plasma theme changed, Fedora 44 (2026-09-24
+  21:40):** SIGSEGV in KSvg::SvgPrivate::eraseRenderer from
+  ImageSet::imageSetChanged, during back-to-back reset and apply cycles.
+  KSvg's, it seems (a theme switch under a running KRunner); watch for it.
 - **One plasmashell crash on quit, Fedora 44 (2026-09-24 18:52):** heap
   corruption found in KUserFeedback's settings save during `xplasma
   reset`'s shell restart. Not seen again in two more reset and apply
   cycles; watch for it.
-- **Plasma's unchecked check box is a small button, not XP's box.**
-  Plasma Components' CheckIndicator draws its box with the push button's
-  frame (widgets/button, "normal") and lays the tick (widgets/checkmarks)
-  over it only when checked; a theme can't tell a 16px check box from a
-  button (KSvg's size-hinted elements don't reach a frame's corners, which
-  are all a 16px frame is). Checked boxes are XP's whole box and tick.
-  Left so for now, though popups do have them: the volume popup's "Raise
-  maximum volume" (plasma-pa), the brightness popup's "Dark Mode"
-  (powerdevil). Fixing it would take a copy of org.kde.plasma.components
-  per Plasma series laid over Plasma's.
+- ~~**Plasma's unchecked check box is a small button, not XP's box.**~~
+  (done 2026-09-24) Plasma Components' CheckIndicator draws its box as the
+  push button's frame (widgets/button, "normal") with the button's shadow
+  laid over it, and the tick (widgets/checkmarks) over both when checked.
+  Buttons draw their shadow under their face, and combo boxes (which also
+  lay it over) are far bigger than a check box's 16px; so the shadow is
+  empty, but its size-hinted variant "16-16-shadow-center" -- KSvg's pick
+  for a piece drawn 16px or smaller, and a borderless frame's one piece is
+  the whole frame -- is XP's empty box, grown to fill 16px (edges kept, the
+  middle stretched) so no button shows round it. The ticked box is the same
+  box with the tick on it. Hover and focus are only what they change of the
+  button (the hot rim), so over a check box they're XP's hot rim, not a
+  button hiding the tick. Pressed, the shadow goes (Plasma hides it), so
+  the button frame shows for the moment the box is held down. At a scale
+  factor above 1 the box is drawn larger than 16px and the button shows
+  again.
 - **Plasma's spin box is "- value +", not XP's up-down.** Its buttons ask
   for the icons value-decrease and value-increase (nothing else of Plasma's
   does), so XPLasma's icon theme has the arrows of XP's up-down on its side

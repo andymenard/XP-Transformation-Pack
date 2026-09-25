@@ -30,6 +30,8 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Done
 
+- The unchecked check box in Plasma's popups as XP's box, and hover on
+  check boxes as XP's hot rim (2026-09-24).
 - Flatpak's Qt 6 apps in the XP style: an org.kde.KStyle.XPLasma extension
   per KDE runtime, installed by apply; a new look reaches running apps
   (qBittorrent, Prism Launcher, Elisa, DeckTuner checked) (2026-09-24).

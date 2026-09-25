@@ -98,6 +98,36 @@ QMargins within(const QMargins &m, QSize size)
     return QMargins(qMin(m.left(), w), qMin(m.top(), h), qMin(m.right(), w), qMin(m.bottom(), h));
 }
 
+// XP's check box as Plasma shows one, filling 16px square (Kirigami's small
+// icon size) -- for its box is drawn over a button frame that must not show
+// round it: XP's box grown to 16px with its edges kept (only its middle
+// stretched), and, checked, the tick on it at its own size.
+QImage checkBox(QStyle *style, QStyle::State state)
+{
+    const QSize size(style->pixelMetric(QStyle::PM_IndicatorWidth), style->pixelMetric(QStyle::PM_IndicatorHeight));
+    auto draw = [&](QStyle::State s) {
+        auto o = option<QStyleOptionButton>(style, size, s);
+        QImage image = canvas(size);
+        QPainter p(&image);
+        style->drawPrimitive(QStyle::PE_IndicatorCheckBox, &o, &p, nullptr);
+        return image;
+    };
+    const QImage empty = draw(QStyle::State_Off);
+    constexpr int kSide = 16, kEdge = 2;
+    QImage out = canvas(QSize(kSide, kSide));
+    QPainter p(&out);
+    const int w = empty.width(), h = empty.height(), in = kSide - kEdge;
+    const int xs[] = {0, kEdge, w - kEdge}, ws[] = {kEdge, w - 2 * kEdge, kEdge};
+    const int ys[] = {0, kEdge, h - kEdge}, hs[] = {kEdge, h - 2 * kEdge, kEdge};
+    const int tx[] = {0, kEdge, in}, tw[] = {kEdge, in - kEdge, kEdge};
+    for (int row = 0; row < 3; ++row)
+        for (int col = 0; col < 3; ++col)
+            p.drawImage(QRect(tx[col], tx[row], tw[col], tw[row]), empty, QRect(xs[col], ys[row], ws[col], hs[row]));
+    if (state & QStyle::State_On)
+        p.drawImage((kSide - w) / 2, (kSide - h) / 2, difference(draw(QStyle::State_On), empty));
+    return out;
+}
+
 // widgets/button.svg: push buttons (normal, pressed; hot and default laid
 // over them), and the toolbar buttons Plasma's flat buttons are.
 Elements buttons(QStyle *style, const Look &look)
@@ -122,11 +152,22 @@ Elements buttons(QStyle *style, const Look &look)
     const QMargins content(6, 3, 6, 3);
     appendFrame(out, QStringLiteral("normal-"), bevel(QStyle::State_Raised, false), m, 0, content);
     appendFrame(out, QStringLiteral("pressed-"), bevel(QStyle::State_Sunken, false), m, 0, content);
+    // Hot and focused: only what they change of the normal button, laid over
+    // it -- over a check box's box too (below), where a whole button would
+    // hide the tick.
+    const QImage plain = padded(bevel(QStyle::State_Raised, false), 1);
     if (!look.classic())   // (Classic's don't light up)
-        appendFrame(out, QStringLiteral("hover-"), padded(bevel(QStyle::State_Raised | QStyle::State_MouseOver, false), 1), grow(m, 1), 0,
-                    QMargins(1, 1, 1, 1));
-    appendFrame(out, QStringLiteral("focus-"), padded(bevel(QStyle::State_Raised | QStyle::State_HasFocus, true), 1), grow(m, 1), 0,
-                QMargins(1, 1, 1, 1));
+        appendFrame(out, QStringLiteral("hover-"), difference(padded(bevel(QStyle::State_Raised | QStyle::State_MouseOver, false), 1), plain),
+                    grow(m, 1), 0, QMargins(1, 1, 1, 1));
+    appendFrame(out, QStringLiteral("focus-"), difference(padded(bevel(QStyle::State_Raised | QStyle::State_HasFocus, true), 1), plain),
+                grow(m, 1), 0, QMargins(1, 1, 1, 1));
+    // The shadow: none -- but a check box is a button frame (16px square) with
+    // the shadow over it, where buttons and combo boxes have it under theirs
+    // or are far bigger; so drawn 16px square or smaller (KSvg's size-hinted
+    // "16-16-" variant of its one piece), the shadow is XP's empty check box.
+    out.append({QStringLiteral("shadow-center"), canvas(QSize(4, 4))});
+    out.append({QStringLiteral("shadow-hint-stretch-borders"), QImage()});
+    out.append({QStringLiteral("16-16-shadow-center"), checkBox(style, QStyle::State_Off)});
 
     auto tool = [&](QStyle::State state) {
         auto o = option<QStyleOption>(style, QSize(24, 22), state);
@@ -150,7 +191,6 @@ Elements buttons(QStyle *style, const Look &look)
 // the mark is XP's whole checked box, covering it.)
 void indicators(QStyle *style, Elements &checkmarks, Elements &radio)
 {
-    const QSize size(style->pixelMetric(QStyle::PM_IndicatorWidth), style->pixelMetric(QStyle::PM_IndicatorHeight));
     const QSize radioSize(style->pixelMetric(QStyle::PM_ExclusiveIndicatorWidth), style->pixelMetric(QStyle::PM_ExclusiveIndicatorHeight));
     auto draw = [&](QStyle::PrimitiveElement element, QSize s, QStyle::State state) {
         auto o = option<QStyleOptionButton>(style, s, state);
@@ -161,7 +201,8 @@ void indicators(QStyle *style, Elements &checkmarks, Elements &radio)
     };
     const QImage radioOff = draw(QStyle::PE_IndicatorRadioButton, radioSize, QStyle::State_Off);
     const QImage radioOn = draw(QStyle::PE_IndicatorRadioButton, radioSize, QStyle::State_On);
-    checkmarks.append({QStringLiteral("checkbox"), draw(QStyle::PE_IndicatorCheckBox, size, QStyle::State_On)});
+    // (The same 16px square as the empty box under it: button.svg's shadow.)
+    checkmarks.append({QStringLiteral("checkbox"), checkBox(style, QStyle::State_On)});
     checkmarks.append({QStringLiteral("radiobutton"), difference(radioOn, radioOff)});
     radio.append({QStringLiteral("normal"), radioOff});
     radio.append({QStringLiteral("hover"), draw(QStyle::PE_IndicatorRadioButton, radioSize, QStyle::State_Off | QStyle::State_MouseOver)});

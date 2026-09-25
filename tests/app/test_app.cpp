@@ -975,6 +975,26 @@ private Q_SLOTS:
                 return std::find_if(button.begin(), button.end(), [&](const auto &e) { return e.first == QLatin1String(name); })->second;
             };
             QVERIFY(element("normal-topleft") != element("pressed-topleft"));
+            // A check box's empty box: the button shadow's 16px variant only
+            // (Plasma draws a check box as a button frame, the shadow over
+            // it); the shadow itself nothing, under buttons and combo boxes.
+            const QImage box = element("16-16-shadow-center");
+            QCOMPARE(box.size(), QSize(16, 16));
+            QCOMPARE(qAlpha(box.pixel(0, 0)), 255);   // square, filling it: no button frame round it
+            QCOMPARE(qAlpha(box.pixel(15, 15)), 255);
+            const QImage none = element("shadow-center");
+            for (int y = 0; y < none.height(); ++y)
+                for (int x = 0; x < none.width(); ++x)
+                    QCOMPARE(qAlpha(none.pixel(x, y)), 0);
+            // The ticked box on it: the same box, the tick added.
+            const auto &marks = controls.value(QStringLiteral("checkmarks"));
+            const QImage ticked = std::find_if(marks.begin(), marks.end(), [](const auto &e) { return e.first == QLatin1String("checkbox"); })->second;
+            QCOMPARE(ticked.size(), QSize(16, 16));
+            QCOMPARE(ticked.pixel(0, 0), box.pixel(0, 0));
+            QVERIFY(ticked != box);
+            // Focus (and hover) only what they change of the button: not over
+            // a check box's middle, where the tick is.
+            QCOMPARE(qAlpha(element("focus-center").pixel(element("focus-center").width() / 2, element("focus-center").height() / 2)), 0);
 
             // The spin box's buttons, XP's up-down on its side: each size a
             // label might ask for, drawn at that size, left unlike right.
