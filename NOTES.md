@@ -3,10 +3,12 @@
 Findings made along the way that are real but out of the current step's scope.
 Each says where it came from, so it can be picked up without re-deriving it.
 
-## Tested distributions (2026-09-24)
+## Tested distributions (2026-09-24, Gentoo and Void 2026-09-25)
 
 Test VMs from `~/clod/vmtools` (its README): apply, balloons and their queue,
 the copy dialog and a failed copy, Start, Date and Time, apply/reset cycles.
+Gentoo's and Void's keep a `pre-install` state (`snap VM load pre-install`):
+Plasma set up, nothing of XPLasma's, for trying Setup from scratch.
 
 | Distribution | Plasma / Qt | Widgets from | Result |
 |---|---|---|---|
@@ -18,6 +20,8 @@ the copy dialog and a failed copy, Start, Date and Time, apply/reset cycles.
 | CachyOS (Arch + CachyOS repos) | 6.7.5 / 6.11.2 | 6.7 build | all pass (its pinned launchers found the Quick Launch bug: fixed) |
 | openSUSE Tumbleweed | 6.7.5 / 6.11.2 | 6.7 build | all pass (its default favourites pinned Firefox twice: fixed) |
 | Slackware64-current (no systemd) | 6.7.5 / 6.11 | 6.7 build | all pass: shell restarted with kquitapp6 in its own environment; Date and Time through pkexec |
+| Gentoo (23.0 no-multilib + Plasma, systemd; 2026-09-25) | 6.7.5 / 6.11.2 | 6.7 build | Setup: install (downloading XP), apply, Remove keeping and deleting XP's files, all clean -- after two fixes: cursor themes linked into ~/.icons (its libXcursor doesn't look in ~/.local/share/icons, so the pointers didn't apply), and reset/Remove taking the folders they empty |
+| Void (glibc, runit; 2026-09-25) | 6.7.5 / 6.11.2 | 6.7 build | Setup: install, apply (one click on first start), Sounds and Audio Devices (its tray icon on and off), Remove -- clean |
 
 ## Open
 
