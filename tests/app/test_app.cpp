@@ -1156,6 +1156,8 @@ private Q_SLOTS:
         installer::removeFiles(prefix, false, false, {});
         QVERIFY(QFileInfo::exists(paths::downloads() + QLatin1String("/xp.iso")));
         QVERIFY(!QFileInfo::exists(prefix + QLatin1String("/bin/xplasma")) && !QFileInfo::exists(prefix + QLatin1String("/lib/xplasma")));
+        QVERIFY(!QFileInfo::exists(prefix + QLatin1String("/lib")));   // (its folders too, emptied)
+        QVERIFY(QFileInfo::exists(prefix));
         QVERIFY(installer::installedPrefix().isEmpty());
         // What was taken out gone, the image kept; then the image too.
         writeFile(paths::xpFonts() + QLatin1String("/tahoma.ttf"), "font");

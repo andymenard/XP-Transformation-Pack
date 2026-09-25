@@ -154,6 +154,13 @@ void removeFiles(const QString &prefix, bool extracted, bool downloads, const Pr
         if (progress)
             progress(line);
     };
+    // The folders a path was in, as they empty, up to (not) `top`.
+    auto prune = [](const QString &path, const QString &top) {
+        const QString stop = QDir::cleanPath(top);
+        for (QString dir = QFileInfo(path).absolutePath(); dir.startsWith(stop + QLatin1Char('/')); dir = QFileInfo(dir).absolutePath())
+            if (!QDir().rmdir(dir))
+                break;
+    };
     say(QStringLiteral("Removing XPLasma's files"));
     for (const QString &rel : installedPaths()) {
         const QString path = prefix + QLatin1Char('/') + rel;
@@ -161,6 +168,7 @@ void removeFiles(const QString &prefix, bool extracted, bool downloads, const Pr
             QDir(path).removeRecursively();
         else
             QFile::remove(path);
+        prune(path, prefix);
     }
     if (const QString tool = QStandardPaths::findExecutable(QStringLiteral("update-desktop-database")); !tool.isEmpty())
         QProcess::execute(tool, {QStringLiteral("-q"), prefix + QLatin1String("/share/applications")});
@@ -182,6 +190,7 @@ void removeFiles(const QString &prefix, bool extracted, bool downloads, const Pr
                 QFile::remove(f.absoluteFilePath());
         }
         QFile::remove(paths::config() + QLatin1String("/xplasmarc"));
+        QDir().rmdir(paths::cache());   // (if the downloads went too)
         return;
     }
     State state = State::load();
