@@ -156,7 +156,7 @@ tests, Plasma's widgets (`ci/forks.sh`), `./package.sh`, then
 
 | Push | Goes to |
 |------|---------|
-| main | `builds/COMMIT/XPlasma-Setup`, `builds/main/XPlasma-Setup` |
+| trunk | `builds/COMMIT/XPlasma-Setup`, `builds/trunk/XPlasma-Setup` |
 | tag `vN` | `releases/N/XPlasma-Setup` and `SHA256SUMS`, `latest/XPlasma-Setup`, `latest.json` |
 
 A tag has to be `v` and project.ini's `Version`, not yet released; its

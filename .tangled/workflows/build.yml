@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # XPlasma-Setup built, tested and put in a public Tigris bucket (ci/):
 #
-#   a push to main   builds/COMMIT/ and builds/main/XPlasma-Setup
+#   a push to trunk  builds/COMMIT/ and builds/trunk/XPlasma-Setup
 #   a tag vN         release N (N = project.ini's Version): releases/N/,
 #                    latest/XPlasma-Setup, and latest.json -- what XPlasma's
 #                    update check reads (project.ini's UpdatesUrl)
@@ -16,7 +16,7 @@
 
 when:
   - event: ["push", "manual"]
-    branch: ["main"]
+    branch: ["trunk"]
   - event: ["push"]
     tag: ["v*"]
 

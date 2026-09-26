@@ -3,7 +3,7 @@
 # build/XPlasma-Setup into the Tigris bucket (public: every object has an
 # address, https://BUCKET.t3.storage.dev/KEY).
 #
-#   a push to main   builds/COMMIT/XPlasma-Setup, and builds/main/XPlasma-Setup
+#   a push to trunk  builds/COMMIT/XPlasma-Setup, and builds/trunk/XPlasma-Setup
 #                    (the newest)
 #   a tag vN         release N -- N must be project.ini's Version, not yet
 #                    released: releases/N/XPlasma-Setup and its SHA256SUMS,
@@ -43,6 +43,6 @@ case "${TANGLED_REF_TYPE:-}:${TANGLED_REF_NAME:-}" in
     *)
         echo "build ${TANGLED_SHA:-local}:"
         put "$setup" "builds/${TANGLED_SHA:-local}/XPlasma-Setup" 'public, max-age=31536000, immutable'
-        put "$setup" builds/main/XPlasma-Setup 'public, max-age=300'
+        put "$setup" builds/trunk/XPlasma-Setup 'public, max-age=300'
         ;;
 esac
