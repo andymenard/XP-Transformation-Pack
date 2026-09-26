@@ -553,10 +553,10 @@ public:
         setTitle(update ? QStringLiteral("Update or remove installation") : QStringLiteral("Repair or remove installation"));
         setSubTitle(QStringLiteral("Select the operation you wish to perform."));
         auto *layout = new QVBoxLayout(this);
-        auto option = [&](const QString &name, const QString &text, QStyle::StandardPixmap icon, Mode mode) {
+        auto option = [&](const QString &name, const QString &text, const QIcon &icon, Mode mode) {
             auto *row = new QHBoxLayout;
             auto *button = new QToolButton;
-            button->setIcon(style()->standardIcon(icon));
+            button->setIcon(icon);
             button->setIconSize(QSize(32, 32));
             button->setAutoRaise(false);
             connect(button, &QToolButton::clicked, this, [this, mode] {
@@ -575,19 +575,19 @@ public:
         if (update)
             option(QStringLiteral("Update"),
                    QStringLiteral("Replaces %1 with XPlasma %2, keeping your look and settings.").arg(installedName(*m_plan)).arg(project::kVersion),
-                   QStyle::SP_ArrowUp, Mode::Update);
+                   QIcon::fromTheme(QStringLiteral("system-software-update"), style()->standardIcon(QStyle::SP_ArrowUp)), Mode::Update);
         else if (m_plan->installed > project::kVersion)
             option(QStringLiteral("Replace with XPlasma %1").arg(project::kVersion),
                    QStringLiteral("XPlasma %1, newer than this Setup's, is installed. Puts this Setup's older XPlasma %2 in its place.")
                        .arg(m_plan->installed)
                        .arg(project::kVersion),
-                   QStyle::SP_BrowserReload, Mode::Repair);
+                   style()->standardIcon(QStyle::SP_BrowserReload), Mode::Repair);
         else
             option(QStringLiteral("Repair"),
                    QStringLiteral("Downloads Windows XP again if it's gone, takes its files out again, and puts back XPlasma's own files."),
-                   QStyle::SP_BrowserReload, Mode::Repair);
-        option(QStringLiteral("Remove"), QStringLiteral("Puts Plasma's own look back and removes XPlasma from your computer."), QStyle::SP_TrashIcon,
-               Mode::Remove);
+                   style()->standardIcon(QStyle::SP_BrowserReload), Mode::Repair);
+        option(QStringLiteral("Remove"), QStringLiteral("Puts Plasma's own look back and removes XPlasma from your computer."),
+               style()->standardIcon(QStyle::SP_TrashIcon), Mode::Remove);
         layout->addStretch(1);
     }
     // (The buttons choose and go on; Next alone would be ambiguous.)

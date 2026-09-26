@@ -396,9 +396,11 @@ QString writeIconTheme(const QString &directory, const QString &inheritFrom, con
         "|input-keyboard-virtual|battery)[a-z0-9-]*-symbolic"
         "|update-(none|low|medium|high)|system-software-update|system-reboot-update)$"));
     // The file for each: from the nearest theme along the inheritance
-    // (breeze last), in the size nearest 16 (16, larger, then smaller).
+    // (breeze last), in the size nearest 16 (16, larger, then smaller). A
+    // theme's own full-colour copy at 32 and up (Breeze's update icon, an
+    // app's) is kept too, for those sizes: the glyph is the tray's alone.
     struct Found { int theme; int distance; QString path; };
-    QMap<QString, Found> found;
+    QMap<QString, Found> found, large;
     QStringList themes{inherit};
     for (int t = 0; t < themes.size(); ++t) {
         const QString theme = themes.at(t);
@@ -418,10 +420,14 @@ QString writeIconTheme(const QString &directory, const QString &inheritFrom, con
                     const QString name = file.completeBaseName();
                     if (!pinned.contains(name) && !(trayGlyphs.isValid() && !map.contains(name) && trayName.match(name).hasMatch()))
                         continue;
-                    const auto have = found.constFind(name);
-                    if (have != found.cend() && (have->theme < t || (have->theme == t && have->distance <= distance)))
-                        continue;
-                    found.insert(name, {t, distance, file.filePath()});
+                    auto keep = [&](QMap<QString, Found> &into, int d) {
+                        const auto have = into.constFind(name);
+                        if (have == into.cend() || have->theme > t || (have->theme == t && have->distance > d))
+                            into.insert(name, {t, d, file.filePath()});
+                    };
+                    keep(found, distance);
+                    if (size >= 32 && trayGlyphs.isValid())
+                        keep(large, qAbs(size - 48));
                 }
             }
         }
@@ -434,10 +440,14 @@ QString writeIconTheme(const QString &directory, const QString &inheritFrom, con
         if (!f.open(QIODevice::ReadOnly))
             continue;
         const QByteArray bytes = trayGlyphs.isValid() ? recolouredSvg(f.readAll(), trayGlyphs) : f.readAll();
+        QByteArray big = bytes;
+        if (const auto l = large.constFind(name); l != large.cend() && l->theme <= entry.theme)
+            if (QFile b(l->path); b.open(QIODevice::ReadOnly))
+                big = b.readAll();
         for (const int size : {16, 22, 24, 32, 48}) {
             const QString folder = QStringLiteral("%1x%1/status").arg(size);
             directories.insert(folder, {size, QStringLiteral("Status")});
-            pkg.write(folder + QLatin1Char('/') + name + QLatin1String(".svg"), bytes);
+            pkg.write(folder + QLatin1Char('/') + name + QLatin1String(".svg"), size >= 32 ? big : bytes);
         }
         fallbacks.insert(name, entry.path);
     }

@@ -904,6 +904,17 @@ private Q_SLOTS:
             const QByteArray svg = sun.readAll();
             QVERIFY2(svg.contains("#ffffff") && !svg.contains("currentColor") && !svg.contains("current-color-scheme"), svg.left(400).constData());
             QVERIFY(!QFileInfo::exists(theme + QLatin1String("/16x16/status/folder-symbolic.svg")));   // (not the tray's)
+            // (the update icon: the tray's glyph small, Breeze's full-colour one at 32 and 48)
+            if (QFileInfo::exists(QStringLiteral("/usr/share/icons/breeze/apps/48/system-software-update.svg"))) {
+                auto read = [&](const QString &path) {
+                    QFile f(path);
+                    return f.open(QIODevice::ReadOnly) ? f.readAll() : QByteArray();
+                };
+                const QByteArray breeze = read(QStringLiteral("/usr/share/icons/breeze/apps/48/system-software-update.svg"));
+                QCOMPARE(read(theme + QLatin1String("/48x48/status/system-software-update.svg")), breeze);
+                QCOMPARE(read(theme + QLatin1String("/32x32/status/system-software-update.svg")), breeze);
+                QVERIFY(read(theme + QLatin1String("/22x22/status/system-software-update.svg")).contains("#ffffff"));
+            }
         }
     }
 
