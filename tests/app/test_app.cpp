@@ -20,6 +20,7 @@
 #include "app/gtk.h"
 #include "app/install.h"
 #include "app/pointers.h"
+#include "app/project.h"
 #include "app/sounds.h"
 #include "app/updates.h"
 #include "app/timezones.h"
@@ -2056,15 +2057,15 @@ private Q_SLOTS:
     void updateCheck()
     {
         // The release file: a version and a web page; anything else refused.
-        const auto r = updates::parse("{\"version\": \"0.2.0\", \"page\": \"https:\/\/example.org/xplasma\", \"notes\": \"Sounds.\"}");
+        const auto r = updates::parse("{\"version\": 2, \"page\": \"https:\/\/example.org/xplasma\", \"notes\": \"Sounds.\"}");
         QVERIFY(r);
-        QCOMPARE(r->version, QStringLiteral("0.2.0"));
+        QCOMPARE(r->version, 2);
+        QCOMPARE(updates::parse("{\"version\": \"12\", \"page\": \"https:\/\/example.org\"}")->version, 12);   // (a string will do)
         QVERIFY(!updates::parse("not json"));
         QVERIFY(!updates::parse("{\"page\": \"https:\/\/example.org\"}"));
-        QVERIFY(!updates::parse("{\"version\": \"0.2.0\", \"page\": \"file:\/\/\/etc/passwd\"}"));
-        QVERIFY(updates::newer(QStringLiteral("0.2.0"), QStringLiteral("0.1.0")));
-        QVERIFY(updates::newer(QStringLiteral("0.10.0"), QStringLiteral("0.9.1")));
-        QVERIFY(!updates::newer(QStringLiteral("0.1.0"), QStringLiteral("0.1.0")));
+        QVERIFY(!updates::parse("{\"version\": \"0.2.0\", \"page\": \"https:\/\/example.org\"}"));   // (a release number, not a dotted version)
+        QVERIFY(!updates::parse("{\"version\": 2.5, \"page\": \"https:\/\/example.org\"}"));
+        QVERIFY(!updates::parse("{\"version\": 2, \"page\": \"file:\/\/\/etc/passwd\"}"));
 
         // Once a day; a declined version not told again, a later one is.
         State state;
@@ -2073,20 +2074,34 @@ private Q_SLOTS:
         updates::checked(state, now);
         QVERIFY(!updates::due(state, now.addSecs(3600)));
         QVERIFY(updates::due(state, now.addDays(1)));
-        const updates::Release far{QStringLiteral("99.0"), QStringLiteral("https://example.org"), QString()};
+        const updates::Release far{project::kVersion + 1, QStringLiteral("https://example.org"), QString()};
         QVERIFY(updates::worthTelling(state, far));
         updates::decline(state, far);
         QVERIFY(!updates::worthTelling(state, far));
-        QVERIFY(updates::worthTelling(state, updates::Release{QStringLiteral("99.1"), QStringLiteral("https://example.org"), QString()}));
-        QVERIFY(!updates::worthTelling(state, updates::Release{QStringLiteral("0.0.1"), QStringLiteral("https://example.org"), QString()}));
+        QVERIFY(updates::worthTelling(state, updates::Release{project::kVersion + 2, QStringLiteral("https://example.org"), QString()}));
+        QVERIFY(!updates::worthTelling(state, updates::Release{project::kVersion, QStringLiteral("https://example.org"), QString()}));
 
         // Fetched (a file here, as a web address would be).
         const QString file = m_home.filePath(QStringLiteral("latest.json"));
-        writeFile(file, "{\"version\": \"0.3.0\", \"page\": \"https:\/\/example.org/get\"}");
+        writeFile(file, "{\"version\": 3, \"page\": \"https:\/\/example.org/get\"}");
         QString error;
         const auto fetched = updates::fetch(QUrl::fromLocalFile(file).toString(), &error);
         QVERIFY2(fetched, qPrintable(error));
         QCOMPARE(fetched->page, QStringLiteral("https://example.org/get"));
+    }
+
+    void installedVersion()
+    {
+        // The installed XPlasma's own word: its release number; one from
+        // before release numbers, or none, 0.
+        const QString prefix = m_home.filePath(QStringLiteral("versioned"));
+        const QString exe = prefix + QLatin1String("/bin/xplasma");
+        QCOMPARE(installer::installedVersion(prefix), 0);
+        for (const auto &[says, number] : {std::pair("xplasma 3", 3), std::pair("xplasma 0.1.0", 0)}) {
+            writeFile(exe, QByteArray("#!/bin/sh\necho '") + says + "'\n");
+            QFile(exe).setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+            QCOMPARE(installer::installedVersion(prefix), number);
+        }
     }
 
     void plasmaSeries()

@@ -23,6 +23,9 @@ bool isPackage(const QString &root);
 // Where XPlasma is installed (State's record, else ~/.local if its bin/xplasma
 // is there), or empty.
 QString installedPrefix();
+// The release number of the XPlasma installed in `prefix` (its own word:
+// `xplasma --version`); 0 for one from before release numbers, or none.
+int installedVersion(const QString &prefix);
 
 // The package's files into `prefix` (recorded as the install's prefix).
 bool installFiles(const QString &package, const QString &prefix, const Progress &progress, QString *error = nullptr);

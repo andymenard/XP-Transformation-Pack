@@ -9,7 +9,6 @@
 #include <QNetworkReply>
 #include <QTimer>
 #include <QUrl>
-#include <QVersionNumber>
 
 namespace xpl::updates {
 
@@ -39,10 +38,13 @@ std::optional<Release> parse(const QByteArray &json, QString *error)
         return std::nullopt;
     }
     const QJsonObject o = doc.object();
-    Release r{o.value(QLatin1String("version")).toString().trimmed(), o.value(QLatin1String("page")).toString().trimmed(),
-              o.value(QLatin1String("notes")).toString().trimmed()};
-    if (QVersionNumber::fromString(r.version).isNull()) {
-        fail(error, QStringLiteral("the release file has no version"));
+    // (the release's number: 2, or "2")
+    const QJsonValue v = o.value(QLatin1String("version"));
+    bool whole = false;
+    const int version = v.isDouble() && v.toDouble() == double(v.toInt()) ? (whole = true, v.toInt()) : v.toString().trimmed().toInt(&whole);
+    Release r{version, o.value(QLatin1String("page")).toString().trimmed(), o.value(QLatin1String("notes")).toString().trimmed()};
+    if (!whole || r.version < 1) {
+        fail(error, QStringLiteral("the release file has no release number"));
         return std::nullopt;
     }
     const QUrl page(r.page);
@@ -51,11 +53,6 @@ std::optional<Release> parse(const QByteArray &json, QString *error)
         return std::nullopt;
     }
     return r;
-}
-
-bool newer(const QString &latest, const QString &current)
-{
-    return QVersionNumber::compare(QVersionNumber::fromString(latest), QVersionNumber::fromString(current)) > 0;
 }
 
 bool due(const State &state, const QDateTime &now)
@@ -71,8 +68,7 @@ void checked(State &state, const QDateTime &now)
 
 bool worthTelling(const State &state, const Release &release)
 {
-    return newer(release.version, QString::fromUtf8(project::kVersion))
-           && state.settings.value(QStringLiteral("updatesDeclined")).toString() != release.version;
+    return release.version > project::kVersion && state.settings.value(QStringLiteral("updatesDeclined")).toInt() != release.version;
 }
 
 void decline(State &state, const Release &release)
@@ -84,7 +80,7 @@ std::optional<Release> fetch(const QString &url, QString *error)
 {
     QNetworkAccessManager network;
     QNetworkRequest request{QUrl(url)};
-    request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("XPlasma/%1").arg(QLatin1String(project::kVersion)));
+    request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("XPlasma/%1").arg(project::kVersion));
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
     QNetworkReply *reply = network.get(request);
     QEventLoop loop;

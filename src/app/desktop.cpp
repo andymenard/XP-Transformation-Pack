@@ -105,7 +105,7 @@ QString diagnostics(Session &session, const QString &failure)
     const Report r = check(session);
     QStringList lines;
     lines << QStringLiteral("XPlasma: %1 (builds of Plasma's widgets for %2)")
-                 .arg(QLatin1String(project::kVersion), forks::seriesNames().join(QStringLiteral(", ")));
+                 .arg(QString::number(project::kVersion), forks::seriesNames().join(QStringLiteral(", ")));
     lines << QStringLiteral("Plasma: %1").arg(r.plasma.isEmpty() ? QStringLiteral("unknown") : r.plasma);
     const QString kf = libraryVersion(QStringLiteral("libKF6CoreAddons"));
     lines << QStringLiteral("KDE Frameworks: %1").arg(kf.isEmpty() ? QStringLiteral("unknown") : kf);

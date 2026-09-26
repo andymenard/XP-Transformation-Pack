@@ -4,7 +4,7 @@
 
 namespace xpl::project {
 
-inline constexpr const char *kVersion = "@XPLASMA_VERSION@";
+inline constexpr int kVersion = @XPLASMA_VERSION@;              // this release's number (1, 2, ...)
 inline constexpr const char *kIssuesUrl = "@XPLASMA_ISSUES_URL@";     // empty: none yet
 inline constexpr const char *kUpdatesUrl = "@XPLASMA_UPDATES_URL@";   // empty: none yet
 inline constexpr const char *kArchiveUrl = "@XPLASMA_ARCHIVE_URL@";

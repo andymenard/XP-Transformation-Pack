@@ -28,7 +28,7 @@ xp2plasma carried.
 | `tests/oracle/` | Dev tooling (Python) that holds the style against the Windows XP reference VM (`styles_matrix.py`, …). |
 | `refharness/` | The programs that run inside the XP VM and dump what real uxtheme draws. |
 | `containers/` | Build containers: the dev image (host-matched toolchain), the release image (oldest supported Qt), and one per Plasma series for `build-forks.sh`. |
-| `project.ini` | The project's own settings: its version, its issue tracker, where it checks for a newer XPlasma, and the Internet Archive. The build writes them into `app/project.h`. |
+| `project.ini` | The project's own settings: its release number (a whole number, one up per release: Setup offers Update over a lower one), its issue tracker, where it checks for a newer XPlasma, and the Internet Archive. The build writes them into `app/project.h`. |
 | `docs/xp2plasma/` | xp2plasma's README and visual notes, kept for reference. |
 
 ## Building
@@ -92,7 +92,7 @@ xplasma reset                          # back to Plasma's own look
 xplasma-edit                           # XPlasma Properties: Themes, Desktop, Appearance, Pointers, Sounds (also in the app menu)
 xplasma-edit --date-time               # Date and Time Properties (double-click the clock)
 xplasma-edit --sounds                  # ... opened on its Sounds tab: XP's sound schemes
-xplasma-edit --check-updates --now     # XP's update globe, if project.ini's UpdatesUrl names a newer XPlasma (run at login)
+xplasma-edit --check-updates --now     # XP's update globe, if project.ini's UpdatesUrl names a higher release number (run at login)
 xplasma sounds 'Windows Default'       # or 'No Sounds', a saved scheme, or off (kept off by later applies)
 ```
 

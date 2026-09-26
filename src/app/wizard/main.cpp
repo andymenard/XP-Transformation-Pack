@@ -139,13 +139,15 @@ QString unpackPayload(const QString &scratch, QString *error)
 
 // --- the work ----------------------------------------------------------------------------
 
-enum class Mode { Install, Repair, Remove };
+// (Update: a repair that brings a lower release number up to this Setup's.)
+enum class Mode { Install, Update, Repair, Remove };
 
 struct Plan
 {
     Mode mode = Mode::Install;
     QString package;
     QString prefix;
+    int installed = 0;           // the installed XPlasma's release number (0: from before them)
     QString media;               // the disc image the user gave; empty: download (or the one already here)
     bool deleteExtracted = false;
     bool deleteDownloads = false;
@@ -293,6 +295,13 @@ public:
 
 // --- the pages ---------------------------------------------------------------------------
 
+// The installed XPlasma, by its release number ("XPlasma 1"; from before
+// release numbers, "the XPlasma installed").
+QString installedName(const Plan &plan)
+{
+    return plan.installed > 0 ? QStringLiteral("XPlasma %1").arg(plan.installed) : QStringLiteral("the XPlasma installed");
+}
+
 enum PageId { Welcome, Maintenance, Requirements, Media, Ready, Progress, Finish };
 
 QLabel *wrapped(const QString &text)
@@ -339,8 +348,9 @@ public:
                                              "Windows XP's own files, so Setup takes what XPlasma uses out of a Windows XP CD image: "
                                              "one you have, or one it downloads from the Internet Archive.\n\nClick Next to continue "
                                              "or Cancel to exit the Setup Wizard.")
-                            : QStringLiteral("The Setup Wizard allows you to repair XPlasma or remove it from your computer.\n\n"
-                                             "Click Next to continue or Cancel to exit the Setup Wizard."));
+                            : QStringLiteral("The Setup Wizard allows you to %1 XPlasma or remove it from your computer.\n\n"
+                                             "Click Next to continue or Cancel to exit the Setup Wizard.")
+                                  .arg(m_plan->mode == Mode::Update ? QStringLiteral("update") : QStringLiteral("repair")));
     }
     int nextId() const override { return m_plan->mode == Mode::Install ? Requirements : Maintenance; }
 
@@ -539,7 +549,8 @@ public:
     MaintenancePage(Plan *plan)
         : m_plan(plan)
     {
-        setTitle(QStringLiteral("Repair or remove installation"));
+        const bool update = m_plan->installed < project::kVersion;
+        setTitle(update ? QStringLiteral("Update or remove installation") : QStringLiteral("Repair or remove installation"));
         setSubTitle(QStringLiteral("Select the operation you wish to perform."));
         auto *layout = new QVBoxLayout(this);
         auto option = [&](const QString &name, const QString &text, QStyle::StandardPixmap icon, Mode mode) {
@@ -561,16 +572,27 @@ public:
             layout->addLayout(row);
             layout->addSpacing(10);
         };
-        option(QStringLiteral("Repair"),
-               QStringLiteral("Downloads Windows XP again if it's gone, takes its files out again, and puts back XPlasma's own files."),
-               QStyle::SP_BrowserReload, Mode::Repair);
+        if (update)
+            option(QStringLiteral("Update"),
+                   QStringLiteral("Replaces %1 with XPlasma %2, keeping your look and settings.").arg(installedName(*m_plan)).arg(project::kVersion),
+                   QStyle::SP_ArrowUp, Mode::Update);
+        else if (m_plan->installed > project::kVersion)
+            option(QStringLiteral("Replace with XPlasma %1").arg(project::kVersion),
+                   QStringLiteral("XPlasma %1, newer than this Setup's, is installed. Puts this Setup's older XPlasma %2 in its place.")
+                       .arg(m_plan->installed)
+                       .arg(project::kVersion),
+                   QStyle::SP_BrowserReload, Mode::Repair);
+        else
+            option(QStringLiteral("Repair"),
+                   QStringLiteral("Downloads Windows XP again if it's gone, takes its files out again, and puts back XPlasma's own files."),
+                   QStyle::SP_BrowserReload, Mode::Repair);
         option(QStringLiteral("Remove"), QStringLiteral("Puts Plasma's own look back and removes XPlasma from your computer."), QStyle::SP_TrashIcon,
                Mode::Remove);
         layout->addStretch(1);
     }
     // (The buttons choose and go on; Next alone would be ambiguous.)
     bool isComplete() const override { return false; }
-    int nextId() const override { return m_plan->mode == Mode::Repair ? Requirements : Ready; }
+    int nextId() const override { return m_plan->mode == Mode::Remove ? Ready : Requirements; }
 
 private:
     Plan *m_plan;
@@ -596,7 +618,10 @@ public:
     void initializePage() override
     {
         const bool remove = m_plan->mode == Mode::Remove;
-        const QString what = m_plan->mode == Mode::Install ? QStringLiteral("install") : remove ? QStringLiteral("remove") : QStringLiteral("repair");
+        const QString what = m_plan->mode == Mode::Install  ? QStringLiteral("install")
+                             : m_plan->mode == Mode::Update ? QStringLiteral("update")
+                             : remove                       ? QStringLiteral("remove")
+                                                            : QStringLiteral("repair");
         setTitle(QStringLiteral("Ready to %1 XPlasma").arg(what));
         setSubTitle(remove ? QStringLiteral("You have chosen to remove XPlasma from your computer.")
                            : QStringLiteral("The Setup Wizard is ready to begin."));
@@ -610,14 +635,22 @@ public:
             : remove ? QStringLiteral("Click Remove to remove XPlasma from your computer. Your desktop goes back to Plasma's own look.\n\n"
                                       "If you want to review or change any of your installation settings, click Back. Click Cancel "
                                       "to exit the wizard.")
-                     : QStringLiteral("Click Repair to repair the installation of XPlasma.\n\nIf you want to review or change any of "
-                                      "your installation settings, click Back. Click Cancel to exit the wizard."));
+            : m_plan->mode == Mode::Update
+                ? QStringLiteral("Click Update to replace %1 with XPlasma %2. Your look and settings are kept.\n\nIf you want to review "
+                                 "or change any of your installation settings, click Back. Click Cancel to exit the wizard.")
+                      .arg(installedName(*m_plan))
+                      .arg(project::kVersion)
+                : QStringLiteral("Click Repair to repair the installation of XPlasma.\n\nIf you want to review or change any of "
+                                 "your installation settings, click Back. Click Cancel to exit the wizard."));
         m_extracted->setVisible(remove);
         const qint64 downloaded = installer::downloadsSize();
         m_downloads->setText(QStringLiteral("Also delete the downloaded Windows XP CD image (%1 MB)").arg(downloaded / 1048576));
         m_downloads->setVisible(remove && downloaded > 0);
         setButtonText(QWizard::CommitButton,
-                      m_plan->mode == Mode::Install ? QStringLiteral("&Install") : remove ? QStringLiteral("&Remove") : QStringLiteral("&Repair"));
+                      m_plan->mode == Mode::Install  ? QStringLiteral("&Install")
+                      : m_plan->mode == Mode::Update ? QStringLiteral("&Update")
+                      : remove                       ? QStringLiteral("&Remove")
+                                                     : QStringLiteral("&Repair"));
     }
     bool validatePage() override
     {
@@ -663,14 +696,18 @@ public:
     void initializePage() override
     {
         const bool remove = m_plan->mode == Mode::Remove;
+        const bool update = m_plan->mode == Mode::Update;
         setTitle(m_plan->mode == Mode::Install ? QStringLiteral("Installing XPlasma")
+                 : update                     ? QStringLiteral("Updating XPlasma")
                  : remove                     ? QStringLiteral("Removing XPlasma")
                                               : QStringLiteral("Repairing XPlasma"));
         setSubTitle(remove                          ? QStringLiteral("XPlasma is being removed.")
+                    : update                        ? QStringLiteral("XPlasma is being updated.")
                     : m_plan->mode == Mode::Repair ? QStringLiteral("XPlasma is being repaired.")
                                                    : QStringLiteral("XPlasma is being installed."));
-        m_text->setText(remove ? QStringLiteral("Please wait while the Setup Wizard removes XPlasma. This may take a moment.")
-                               : QStringLiteral("Please wait while the Setup Wizard installs XPlasma. This may take several minutes."));
+        m_text->setText(remove   ? QStringLiteral("Please wait while the Setup Wizard removes XPlasma. This may take a moment.")
+                        : update ? QStringLiteral("Please wait while the Setup Wizard updates XPlasma. This may take several minutes.")
+                                 : QStringLiteral("Please wait while the Setup Wizard installs XPlasma. This may take several minutes."));
         m_done = false;
         if (m_dryRun) {
             m_status->setText(QStringLiteral("Status: Downloading Windows XP from the Internet Archive"));
@@ -749,6 +786,9 @@ public:
         if (ok) {
             m_title->setText(QStringLiteral("Completing the XPlasma Setup Wizard"));
             m_text->setText(remove ? QStringLiteral("XPlasma has been removed from your computer.\n\nClick the Finish button to exit the Setup Wizard.")
+                            : m_plan->mode == Mode::Update
+                                ? QStringLiteral("XPlasma has been updated to XPlasma %1.\n\nClick the Finish button to exit the Setup Wizard.")
+                                      .arg(project::kVersion)
                             : m_plan->mode == Mode::Repair
                                 ? QStringLiteral("XPlasma has been repaired.\n\nClick the Finish button to exit the Setup Wizard.")
                                 : QStringLiteral("XPlasma has been installed. Choose your look in XPlasma Properties.\n\nClick the Finish "
@@ -804,7 +844,7 @@ private:
                             QStringLiteral("XPlasma: %1 (builds of Plasma's widgets for 6.6, 6.7)\nPlasma: 6.9.0\nKDE Frameworks: 6.24.0\n"
                                            "Qt: 6.12.0 (XPlasma built with 6.10.0)\nDistribution: Arch Linux\nSession: KDE, wayland\n\n"
                                            "What failed:\nnone of XPlasma's builds of Plasma's widgets loads in Plasma 6.9.0")
-                                .arg(QLatin1String(project::kVersion))}};
+                                .arg(project::kVersion)}};
     }
 
     QLabel *m_title, *m_text;
@@ -898,7 +938,10 @@ int main(int argc, char **argv)
         return 1;
     }
     plan.prefix = installer::installedPrefix();
-    plan.mode = plan.prefix.isEmpty() ? Mode::Install : Mode::Repair;
+    plan.installed = plan.prefix.isEmpty() ? 0 : installer::installedVersion(plan.prefix);
+    plan.mode = plan.prefix.isEmpty()                    ? Mode::Install
+                : plan.installed < project::kVersion      ? Mode::Update
+                                                          : Mode::Repair;
     if (plan.prefix.isEmpty())
         plan.prefix = paths::home() + QLatin1String("/.local");
 
@@ -911,11 +954,14 @@ int main(int argc, char **argv)
             {"media", Mode::Install, Media, false},             {"ready", Mode::Install, Ready, false},
             {"progress", Mode::Install, Progress, false},       {"finish", Mode::Install, Finish, false},
             {"newer-plasma", Mode::Install, Finish, true},      {"maintenance", Mode::Repair, Maintenance, false},
-            {"remove", Mode::Remove, Ready, false},
+            {"remove", Mode::Remove, Ready, false},             {"update", Mode::Update, Maintenance, false},
+            {"update-ready", Mode::Update, Ready, false},
         };
         for (const auto &shot : shots) {
             Plan p = plan;
             p.mode = shot.mode;
+            // (maintenance: this Setup's own release installed; update: the one before)
+            p.installed = shot.mode == Mode::Update ? project::kVersion - 1 : project::kVersion;
             p.demoNewerPlasma = shot.newer;
             Wizard w(&p, true, shot.page);
             w.setAttribute(Qt::WA_DontShowOnScreen);

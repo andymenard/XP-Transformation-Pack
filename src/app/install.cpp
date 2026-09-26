@@ -97,6 +97,22 @@ QString installedPrefix()
     return QFileInfo(local + QLatin1String("/bin/xplasma")).exists() ? local : QString();
 }
 
+int installedVersion(const QString &prefix)
+{
+    QProcess run;
+    run.start(prefix + QLatin1String("/bin/xplasma"), {QStringLiteral("--version")});
+    if (!run.waitForFinished(10000)) {
+        run.kill();
+        run.waitForFinished(1000);
+        return 0;
+    }
+    // ("xplasma 2"; before release numbers, "xplasma 0.1.0")
+    const QStringList words = QString::fromUtf8(run.readAllStandardOutput()).simplified().split(QLatin1Char(' '));
+    bool whole = false;
+    const int version = words.last().toInt(&whole);
+    return whole ? version : 0;
+}
+
 QStringList installedPaths()
 {
     QStringList out;

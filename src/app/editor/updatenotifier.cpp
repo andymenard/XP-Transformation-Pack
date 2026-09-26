@@ -64,7 +64,7 @@ public:
         setWindowIcon(icon);
         setIconPixmap(icon.pixmap(32, 32));
         setText(QStringLiteral("XPlasma %1 is ready to download.").arg(release.version));
-        setInformativeText(release.notes.isEmpty() ? QStringLiteral("You have XPlasma %1.").arg(QLatin1String(project::kVersion))
+        setInformativeText(release.notes.isEmpty() ? QStringLiteral("You have XPlasma %1.").arg(project::kVersion)
                                                    : release.notes);
         m_download = addButton(QStringLiteral("&Download"), QMessageBox::AcceptRole);
         addButton(QStringLiteral("&Remind Me Later"), QMessageBox::RejectRole);
@@ -89,7 +89,7 @@ private:
 bool saveUpdateScreenshot(const QString &dir)
 {
     QDir().mkpath(dir);
-    UpdateBox box({QStringLiteral("0.2.0"), QStringLiteral("https://example.org/xplasma"),
+    UpdateBox box({2, QStringLiteral("https://example.org/xplasma"),
                    QStringLiteral("XP's sounds on by default, and text that holds up on scaled screens.")},
                   globe());
     box.setAttribute(Qt::WA_DontShowOnScreen);
