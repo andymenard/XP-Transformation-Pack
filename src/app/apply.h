@@ -10,6 +10,7 @@
 #include "app/forks.h"
 #include "app/look.h"
 #include "app/session.h"
+#include "app/state.h"
 
 #include <QColor>
 #include <QString>
@@ -38,6 +39,13 @@ struct ApplyOptions
 };
 
 bool applyLook(Session &session, const Look &look, const ApplyOptions &options, QString *error = nullptr);
+
+// State's settings: the release number (project.ini's Version) of the
+// XPlasma that last applied the look. One older than this XPlasma's means
+// the desktop wears an older XPlasma's make of it: Apply is wanted, and
+// XPlasma Properties keeps it ready until it's done.
+constexpr const char *kAppliedWithKey = "appliedWith";
+bool lookOutdated(const State &state);
 // What of the whole XP look this Plasma can't take (empty: all of it) --
 // what applyLook checks before changing anything; and, `taskbar` asked
 // for, the builds of Plasma's widgets it would use.

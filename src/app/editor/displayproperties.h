@@ -90,6 +90,7 @@ private:
     bool m_loading = false;
     // What's on the desktop now, as of the last Apply (or opening).
     QString m_appliedLook;            // lookKey(); empty: unknown
+    bool m_outdated = false;          // applied by an older XPlasma (apply.h's lookOutdated)
     Wallpaper m_appliedDesktop;
     QString m_appliedThemeFile;
     // Pointers: the scheme as edited (nullopt: "(None)", Plasma's own),

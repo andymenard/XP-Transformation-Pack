@@ -1739,6 +1739,7 @@ private Q_SLOTS:
         o.progress = [&](const QString &line) { said << line; };
         QString error;
         QVERIFY2(applyLook(session, *look, o, &error), qPrintable(error + said.join(QLatin1Char('\n'))));
+        QVERIFY(!xpl::lookOutdated(State::load()));   // (applied by this XPlasma)
 
         // Installed where Plasma looks.
         QVERIFY(QFileInfo::exists(share + QLatin1String("/aurorae/themes/windows-xp-style-silver/decoration.svg")));
@@ -2099,6 +2100,20 @@ private Q_SLOTS:
         const auto fetched = updates::fetch(QUrl::fromLocalFile(file).toString(), &error);
         QVERIFY2(fetched, qPrintable(error));
         QCOMPARE(fetched->page, QStringLiteral("https://example.org/get"));
+    }
+
+    void lookOutdated()
+    {
+        // A look applied by an older XPlasma (or one from before release
+        // numbers) wants applying again; none applied, or this one's, doesn't.
+        State state;
+        QVERIFY(!xpl::lookOutdated(state));
+        state.appliedKind = QStringLiteral("style");
+        QVERIFY(xpl::lookOutdated(state));
+        state.settings.insert(QLatin1String(kAppliedWithKey), project::kVersion - 1);
+        QVERIFY(xpl::lookOutdated(state));
+        state.settings.insert(QLatin1String(kAppliedWithKey), project::kVersion);
+        QVERIFY(!xpl::lookOutdated(state));
     }
 
     void installedVersion()

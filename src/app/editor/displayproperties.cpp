@@ -195,7 +195,10 @@ DisplayProperties::DisplayProperties(QWidget *parent)
     else if (state.appliedKind == QLatin1String("classic"))
         if (const auto s = schemes::load(state.scheme))
             applied = lookKey(Look::fromScheme(*s));
-    m_appliedLook = applied == lookKey(look()) ? applied : QString();
+    // (made by an older XPlasma: not what this one would make, so Apply
+    // stays ready until it's rebuilt)
+    m_outdated = lookOutdated(state);
+    m_appliedLook = applied == lookKey(look()) && !m_outdated ? applied : QString();
     m_appliedDesktop = wallpaper();
     m_appliedThemeFile = state.themeFile;
     // Pointers: what XPlasma applied, or "(None)" (Plasma's own).
@@ -881,8 +884,10 @@ bool DisplayProperties::apply()
     if (ok && startChanged)
         m_appliedStartExtras = m_startExtras;
     if (ok) {
-        if (lookChanged)
+        if (lookChanged) {
             m_appliedLook = lookKey(l);
+            m_outdated = false;
+        }
         m_appliedDesktop = desktop;
         m_appliedThemeFile = m_themeFile;
     }
@@ -911,6 +916,9 @@ bool DisplayProperties::apply()
 
 void DisplayProperties::updateApply()
 {
+    m_apply->setToolTip(m_outdated ? QStringLiteral("XPlasma has been updated since this look was applied. Apply rebuilds it with this "
+                                                    "version.\nHold Shift to rebuild and apply everything, changed or not.")
+                                   : QStringLiteral("Hold Shift to rebuild and apply everything, changed or not."));
     m_apply->setEnabled(shiftHeld() || lookKey(look()) != m_appliedLook || !sameDesktop(wallpaper(), m_appliedDesktop)
                         || m_themeFile != m_appliedThemeFile || pointersDiffer() || m_startExtras != m_appliedStartExtras
                         || m_sounds->pending());

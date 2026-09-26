@@ -9,6 +9,7 @@
 #include "app/overrides.h"
 #include "app/panel.h"
 #include "app/pointers.h"
+#include "app/project.h"
 #include "app/paths.h"
 #include "app/qttarget.h"
 #include "app/sounds.h"
@@ -464,6 +465,11 @@ QStringList cannotTake(Session &session, bool taskbar, std::optional<forks::Choi
     return cannot;
 }
 
+bool lookOutdated(const State &state)
+{
+    return !state.appliedKind.isEmpty() && state.settings.value(QLatin1String(kAppliedWithKey)).toInt() < project::kVersion;
+}
+
 bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QString *error)
 {
     // The whole XP look or none of it: what this Plasma can't take is known
@@ -674,6 +680,7 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
     state.variant = look.variant;
     state.scheme = look.classic() ? look.system.name : QString();
     state.themeFile = o.themeFile;
+    state.settings.insert(QLatin1String(kAppliedWithKey), project::kVersion);
     state.save();
     report(o, QStringLiteral("Done."));
     return true;
@@ -778,6 +785,7 @@ bool resetDesktop(Session &session, const std::function<void(const QString &)> &
     state.variant.clear();
     state.scheme.clear();
     state.themeFile.clear();
+    state.settings.remove(QLatin1String(kAppliedWithKey));
     state.save();
     session.reconfigureKWin();
     say(QStringLiteral("The desktop is Plasma's default again."));
