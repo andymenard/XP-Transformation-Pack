@@ -18,9 +18,13 @@
 #   out/plasma/applets/  the plugins -- checked here to use no Qt private
 #              API and to need no Qt newer than the series' own floor
 #
-# Needs podman, the series' image (containers/plasma-SERIES.Containerfile),
-# and the dev build's xplasma -- brought up to date first (./build.sh dev,
-# incremental), since the patches it applies are built into it.
+# Needs podman (CONTAINER=docker for Docker), the series' image
+# (containers/plasma-SERIES.Containerfile), and the dev build's xplasma --
+# brought up to date first (./build.sh dev, incremental), since the patches
+# it applies are built into it. XPLASMA names another xplasma to use instead
+# (CI: the release build's, in its container -- ci/xplasma.sh), and then no
+# dev build is made. FORKS_PREPARE_ONLY=1 stops at the patched source (CI
+# works out from it whether a stored build will do).
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 # Compiling Plasma takes about a gigabyte a job: as many as this machine's
@@ -28,9 +32,12 @@ here="$(cd "$(dirname "$0")" && pwd)"
 jobs="${JOBS:-$(awk '/MemAvailable/ { print int($2 / 1100000) }' /proc/meminfo)}"
 [ "${jobs:-0}" -ge 1 ] || jobs=1
 [ "$jobs" -le "$(nproc)" ] || jobs=$(nproc)
-xplasma="$here/build/dev/bin/xplasma"
+container="${CONTAINER:-podman}"
+xplasma="${XPLASMA:-$here/build/dev/bin/xplasma}"
 [ $# -gt 0 ] || { echo "usage: $0 SERIES..." >&2; exit 2; }
-"$here/build.sh" dev >/dev/null || { echo "build-forks: the dev build failed (./build.sh dev)" >&2; exit 1; }
+if [ -z "${XPLASMA:-}" ]; then
+    "$here/build.sh" dev >/dev/null || { echo "build-forks: the dev build failed (./build.sh dev)" >&2; exit 1; }
+fi
 
 for series in "$@"; do
     root="$here/build/plasma/$series"
@@ -55,13 +62,14 @@ for series in "$@"; do
 
     # The patched source.
     "$xplasma" fork-sources "$series" "$root/pristine" "$root/work"
+    [ "${FORKS_PREPARE_ONLY:-0}" = 1 ] && continue
 
     # Only XPlasma's targets, per project.
     for project in $(printf '%s\n' "$info" | awk '$1 == "target" { print $2 }' | sort -u); do
         version="$(printf '%s\n' "$info" | awk -v p="$project" '$1 == "source" && $2 == p { print $3 }')"
         targets="$(printf '%s\n' "$info" | awk -v p="$project" '$1 == "target" && $2 == p { print $3 }' | tr '\n' ' ')"
         echo "building $project $version: $targets"
-        podman run --rm -v "$root":/w:z -w /w -e CCACHE_DIR=/w/ccache "$image" sh -c "
+        "$container" run --rm -v "$root":/w:z -w /w -e CCACHE_DIR=/w/ccache "$image" sh -c "
             set -e
             if [ ! -f build/$project/build.ninja ]; then
                 cmake -S work/$project-$version -B build/$project -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \

@@ -146,6 +146,42 @@ Tests that need the official styles or the XP media find them where setup
 imported them, and skip when they are absent. The oracle tooling is the only
 Python left: `python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt`.
 
+## CI
+
+`.tangled/workflows/build.yml` runs on Tangled's CI (a spindle, on its
+microVM engine with Docker): the release image, `./build.sh release`, the
+tests, Plasma's widgets (`ci/forks.sh`), `./package.sh`, then
+`ci/publish.sh` into a public Tigris bucket, every object at
+`https://BUCKET.t3.storage.dev/KEY`:
+
+| Push | Goes to |
+|------|---------|
+| main | `builds/COMMIT/XPlasma-Setup`, `builds/main/XPlasma-Setup` |
+| tag `vN` | `releases/N/XPlasma-Setup` and `SHA256SUMS`, `latest/XPlasma-Setup`, `latest.json` |
+
+A tag has to be `v` and project.ini's `Version`, not yet released; its
+message (`git tag -a v2 -m "What's new"`) becomes latest.json's notes, which
+XPlasma's update box shows. The builds of Plasma's widgets are kept in the
+bucket (`cache/forks/`) under a hash of each series' patched source, image
+and build script, so a series is only compiled again (an hour or more) when
+one of those changes.
+
+Once, with the Tigris CLI (`npm install -g @tigrisdata/cli`, `tigris login`):
+
+```sh
+tigris buckets create BUCKET --public
+tigris access-keys create xplasma-ci --bucket BUCKET --role Editor
+```
+
+then the key's ID and secret into the Tangled repository's Settings → Secrets
+as `TIGRIS_STORAGE_ACCESS_KEY_ID` and `TIGRIS_STORAGE_SECRET_ACCESS_KEY`,
+`TIGRIS_BUCKET` in the workflow, and in project.ini
+`UpdatesUrl=https://BUCKET.t3.storage.dev/latest.json` (and `IssuesUrl`,
+the repository's issues).
+
+A release, then: `Version` one higher in project.ini, committed; `git tag
+-a vN -m "notes"`; push the commit and the tag.
+
 ## Licence
 
 XPlasma is free software: you can redistribute it and/or modify it under the

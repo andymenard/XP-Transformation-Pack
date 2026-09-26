@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# XPlasma-Setup built, tested and put in a public Tigris bucket (ci/):
+#
+#   a push to main   builds/COMMIT/ and builds/main/XPlasma-Setup
+#   a tag vN         release N (N = project.ini's Version): releases/N/,
+#                    latest/XPlasma-Setup, and latest.json -- what XPlasma's
+#                    update check reads (project.ini's UpdatesUrl)
+#
+# The builds of Plasma's widgets are the slow part (an hour or more a
+# series); ci/forks.sh keeps them in the bucket and rebuilds a series only
+# when its patched source or its image changes.
+#
+# Set up once (see README, "CI"): the bucket, public; an Editor key for it
+# in this repository's secrets as TIGRIS_STORAGE_ACCESS_KEY_ID and
+# TIGRIS_STORAGE_SECRET_ACCESS_KEY; the bucket's name below.
+
+when:
+  - event: ["push", "manual"]
+    branch: ["main"]
+  - event: ["push"]
+    tag: ["v*"]
+
+engine: microvm
+image: nixos
+
+virtualisation:
+  docker: true
+
+dependencies:
+  - nodejs
+  - jq
+  - curl
+  - git
+  - gawk
+  - xz
+  - binutils
+
+environment:
+  TIGRIS_BUCKET: "xplasma"
+  CONTAINER: "docker"
+
+steps:
+  - name: "Build image"
+    command: docker build -t localhost/xplasma-release:2 -f containers/release.Containerfile containers
+
+  - name: "Build"
+    command: ./build.sh release
+
+  - name: "Test"
+    command: |
+      docker run --rm -v "$PWD:$PWD" -w "$PWD" -e LC_ALL=C.UTF-8 -e QT_QPA_PLATFORM=offscreen localhost/xplasma-release:2 \
+        sh -c 'export LD_LIBRARY_PATH=$QT6_DIR/lib QT_PLUGIN_PATH=$QT6_DIR/plugins HOME=$(mktemp -d); build/release-qt6/tests/app/test-app'
+
+  - name: "Plasma's widgets"
+    command: ci/forks.sh
+
+  - name: "Package"
+    command: |
+      ./build.sh release
+      ./package.sh release
+
+  - name: "Publish"
+    command: ci/publish.sh

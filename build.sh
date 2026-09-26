@@ -19,7 +19,8 @@ case "$mode" in
   release) image=localhost/xplasma-release:2;  prefix6='$QT6_DIR'; prefix5='$QT5_DIR' ;;
   *) echo "usage: $0 dev|release" >&2; exit 2 ;;
 esac
-podman run --rm -v "$root:/src" -w /src "$image" sh -ec "
+# (CONTAINER=docker where there's no podman: CI)
+"${CONTAINER:-podman}" run --rm -v "$root:/src" -w /src "$image" sh -ec "
 for m in 6 5; do
   if [ \$m = 6 ]; then qt=$prefix6; else qt=$prefix5; fi
   cmake -S . -B build/$mode-qt\$m -G Ninja -DQT_MAJOR=\$m \
