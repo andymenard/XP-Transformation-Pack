@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Every bottom panel as XP's taskbar: not floating, opaque, the full width,
 // ${HEIGHT} pixels. Prints what each was.
 var out = [];

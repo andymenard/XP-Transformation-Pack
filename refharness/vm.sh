@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Boot the XP reference VM for the pixel oracle: ~/clod/xpvm/xp.sh plus
 #   * a QMP control socket (refharness/vm.py drives it: screenshots, keys),
 #   * -snapshot: nothing a test run does touches xp.qcow2; it is all thrown

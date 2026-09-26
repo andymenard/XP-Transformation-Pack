@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Build XPlasma -- the app, its editor and the style plugins -- and install it
 # into build/<mode>/ (bin/, lib/xplasma/qt{6,5}/styles/, share/applications/).
 #

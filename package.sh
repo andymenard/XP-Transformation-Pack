@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
 # XPlasma-Setup: the one file to download. The Setup wizard (xplasma-setup)
 # with XPlasma appended to it -- a tar of the release tree's programs, style
 # plugins, builds of Plasma's widgets and application menu entries -- then

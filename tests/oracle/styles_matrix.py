@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Every control job under every visual style: real XP against XPlasma.
 
     styles_matrix.py OUTDIR [--styles DIR] [--only LABEL ...] [--cached] [--qt 5|6]

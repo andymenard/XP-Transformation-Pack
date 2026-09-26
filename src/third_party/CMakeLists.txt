@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 # libarchive (BSD), linked into the app rather than shelled out to: ZIP,
 # RAR, 7z and TAR downloads, and XP's CAB-compressed I386 files (*.EX_,
 # *.DL_ -- MSZIP and LZX; its output matches cabextract's byte for byte on

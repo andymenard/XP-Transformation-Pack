@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Build image for XPlasma's forks of Plasma's compiled widgets (the tray,
 # the task manager, notifications) for one Plasma series: here 6.6, whose
 # libPlasma is .so.7 -- from Plasma 6.6 on, each release bumps it, so each

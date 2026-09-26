@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Whether this is a desktop XPlasma can dress: a KDE Plasma session, a Plasma
 // from the oldest XPlasma is tested on, the programs applying a look runs.

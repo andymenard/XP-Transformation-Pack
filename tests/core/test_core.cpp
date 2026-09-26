@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Unit tests for the core's parsing and lookup rules. No test framework:
 // each CHECK prints on failure and the exit code counts failures.
 #include "core/classic.h"

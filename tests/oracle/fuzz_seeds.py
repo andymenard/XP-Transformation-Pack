@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Write fuzz seeds: synthetic ones always, real ones when the corpus is here.
 
     fuzz_seeds.py SEEDDIR       -> SEEDDIR/{theme,dib,ini}/

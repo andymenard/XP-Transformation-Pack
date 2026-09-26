@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // XP's stock Windows Classic colour schemes, read from where XP itself gets
 // them: I386\HIVEDEF.INF, the default user hive, whose

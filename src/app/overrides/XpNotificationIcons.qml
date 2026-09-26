@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // XPlasma: where notifications' balloons come from, XP-style. An app with
 // its own icon in the tray gets its balloon from that; the rest get an icon
 // here while their balloon waits its turn or shows, left blinking if it

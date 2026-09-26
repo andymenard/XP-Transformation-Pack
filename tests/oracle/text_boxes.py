@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Where each control's label sits, XP against Qt.
 
     text_boxes.py XP_DIR QT_DIR

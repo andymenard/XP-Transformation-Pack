@@ -9,7 +9,7 @@
     with a sound. Only the first screen's Start button plays them
     (`enabled`), so two taskbars don't play twice.
 
-    SPDX-License-Identifier: GPL-2.0-or-later
+    SPDX-License-Identifier: GPL-3.0-or-later
 */
 import QtQuick
 import org.kde.taskmanager as TaskManager

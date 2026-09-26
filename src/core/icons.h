@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Icons out of a PE file: an RT_GROUP_ICON directory names RT_ICON images
 // by resource id (14-byte entries, not an .ico's 16-byte ones), each image a

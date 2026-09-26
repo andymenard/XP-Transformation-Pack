@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // XP's own icons as a freedesktop icon theme laid over the user's: shell32's
 // folders and drives, user32's message icons, the tray's volume, network,

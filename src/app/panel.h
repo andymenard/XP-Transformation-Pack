@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // The taskbar: a Plasma desktop theme ("Plasma Style") holding the panel's
 // background, the task buttons, and the notification area's art, plus the

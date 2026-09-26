@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // The system appearance as Plasma settings: a KDE colour scheme (.colors)
 // and the fonts kdeglobals names.

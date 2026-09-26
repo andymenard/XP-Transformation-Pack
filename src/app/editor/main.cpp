@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // xplasma-edit: XPlasma Properties, and Date and Time Properties.
 //
 //   xplasma-edit                    XPlasma Properties (Themes, Desktop,

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // The theme library: everything XPlasma can apply, as XP's Display
 // Properties presents it.

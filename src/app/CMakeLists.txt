@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 # The app: a library holding everything (theme library, generators, apply,
 # setup), and the thin programs over it. Qt 6 only.
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network DBus)
@@ -96,6 +97,8 @@ add_executable(xplasma-edit
   editor/displayproperties.cpp
   editor/datetime.cpp
   editor/soundstab.cpp
+  editor/abouttab.cpp
+  wizard/art.cpp
   editor/updatenotifier.cpp
   editor/preview.cpp
   editor/advanced.cpp
@@ -104,6 +107,9 @@ add_executable(xplasma-edit
   editor/jobs.cpp
 )
 target_link_libraries(xplasma-edit PRIVATE stdc++ xplasma-app Qt6::Widgets)
+# (the About tab's licence and notices, as :/licenses/...)
+qt_add_resources(xplasma-edit "licenses" PREFIX /licenses BASE ${PROJECT_SOURCE_DIR}
+                 FILES ${PROJECT_SOURCE_DIR}/LICENSE ${PROJECT_SOURCE_DIR}/THIRD-PARTY-NOTICES)
 add_test(NAME editor-screenshots COMMAND xplasma-edit --screenshots ${CMAKE_BINARY_DIR}/editor-screenshots)
 set_tests_properties(editor-screenshots PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 
@@ -120,3 +126,5 @@ install(TARGETS xplasma-cli xplasma-edit xplasma-setup RUNTIME DESTINATION bin)
 install(FILES data/fyi.hotsocket.xplasma.desktop data/fyi.hotsocket.xplasma.datetime.desktop DESTINATION share/applications)
 # (run at login: installed into ~/.config/autostart by Setup and install.sh)
 install(FILES data/fyi.hotsocket.xplasma.updates.desktop DESTINATION share/xplasma/autostart)
+# (the licence and the third-party notices, with the programs)
+install(FILES ${PROJECT_SOURCE_DIR}/LICENSE ${PROJECT_SOURCE_DIR}/THIRD-PARTY-NOTICES DESTINATION share/licenses/xplasma)

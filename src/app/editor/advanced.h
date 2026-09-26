@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // XP's Advanced Appearance dialog, for Windows Classic: an item (Desktop,
 // Active Title Bar, Menu, ...), and the size, colours and font XP lets that

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Hold XPlasma's Qt widgets against real XP controls of the same size.
 
     controls_compare.py XP_DIR QT_DIR [SHEET.png]

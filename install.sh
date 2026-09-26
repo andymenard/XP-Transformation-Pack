@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Install a build (./build.sh dev|release) onto this machine.
 #
 #   ./install.sh [dev|release] [PREFIX]      default: dev, ~/.local
@@ -42,4 +43,9 @@ for desktop in "$from"/share/xplasma/autostart/*.desktop; do
   [ -f "$desktop" ] || continue
   sed "s|^Exec=xplasma-edit|Exec=$prefix/bin/xplasma-edit|" "$desktop" > "$HOME/.config/autostart/${desktop##*/}"
 done
+# The licence and the third-party notices.
+if [ -d "$from/share/licenses/xplasma" ]; then
+  mkdir -p "$prefix/share/licenses/xplasma"
+  cp "$from"/share/licenses/xplasma/* "$prefix/share/licenses/xplasma/"
+fi
 echo "installed $mode into $prefix"

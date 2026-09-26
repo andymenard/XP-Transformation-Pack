@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // The Start menu's presentation (StartMenu.qml, pure Qt Quick) drawn
 // offscreen from look data XPlasma generated: every part where the layout
 // puts it, for a visual style and for Windows Classic.

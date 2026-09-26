@@ -3,7 +3,7 @@
     hot, and pressed while the menu is open -- at their size, the panel's
     height. Without a look applied, Plasma's launcher icon.
 
-    SPDX-License-Identifier: GPL-2.0-or-later
+    SPDX-License-Identifier: GPL-3.0-or-later
 */
 import QtQuick
 import QtQuick.Layouts

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // First-run setup: what XPlasma needs on this machine. None of it ships with
 // XPlasma -- XP's media, its styles and fonts are Microsoft's -- so it's taken

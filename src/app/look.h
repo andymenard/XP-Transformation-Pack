@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // A look: what XPlasma turns into Plasma packages -- a visual style at one of
 // its variants, or Windows Classic in one colour scheme. Either way it has

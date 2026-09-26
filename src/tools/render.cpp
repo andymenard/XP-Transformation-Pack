@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // xplasma-render: XPlasma's renderer, driven by the same job files as uxdump.
 //
 //   xplasma-render JOB OUTDIR --style NAME=PATH [--style ...]

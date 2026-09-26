@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // The bottom panel as XP's taskbar:
 //
 //   [Start] [Quick Launch] [labelled task buttons ...] [tray] [clock]

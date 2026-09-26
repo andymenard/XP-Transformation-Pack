@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // The one way the app runs other programs (kwriteconfig6, the plasma-apply-*
 // tools, systemctl...): resolved on PATH, output streamed line by line as it

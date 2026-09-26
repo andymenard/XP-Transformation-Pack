@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Cross-compile the XP-side tools: 32-bit, stock XP SP3, no C runtime
 # (today's mingw-w64 links the UCRT, which XP doesn't have).
 set -eu

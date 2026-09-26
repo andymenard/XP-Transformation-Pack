@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // xplasma-setup: XPlasma's Setup wizard, a program of its own -- a souped-up
 // self-extracting archive, in the shape of a Windows Installer wizard. It
 // carries XPlasma (its release tree, appended to this file as a tar) and

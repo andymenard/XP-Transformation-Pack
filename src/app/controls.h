@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Plasma's own controls -- the buttons, check boxes, radio buttons, text
 // fields, list highlights, progress bars, sliders, scroll bars and tabs in

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Put XPlasma's renderer next to real uxtheme, pixel for pixel.
 
     oracle_compare.py STYLE.msstyles [--job JOB] [--out DIR] [--cached]

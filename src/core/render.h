@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // uxtheme's DrawThemeBackground and friends, on QImage.
 //

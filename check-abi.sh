@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Release gate for a built style plugin: is it really portable?
 #
 #   ./check-abi.sh path/to/libxplasma.so [max-glibc]

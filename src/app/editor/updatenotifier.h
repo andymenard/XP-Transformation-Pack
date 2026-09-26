@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // xplasma-edit --check-updates: XP's Automatic Updates globe for XPlasma's
 // own updates (updates.h). Run at login (its autostart entry); if a check is

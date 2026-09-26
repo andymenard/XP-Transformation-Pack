@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // XPlasma's Start plasmoid (fyi.hotsocket.xplasma.start): the package, which
 // ships inside XPlasma and never changes with the look, and the look's data,

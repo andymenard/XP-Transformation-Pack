@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """xp-icons.py FILE OUT.png [ID...] [--size N] [--cols N]
    xp-icons.py --audit OUT.png      every row of src/app/icons.cpp's map
 

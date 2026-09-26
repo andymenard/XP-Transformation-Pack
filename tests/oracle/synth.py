@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Build synthetic .msstyles files: real PE resource DLLs, no Microsoft art.
 
     from synth import msstyles, dib

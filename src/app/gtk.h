@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // GTK 3 apps' widgets: a GTK theme generated from the look, since GTK has no
 // style plugins. ~/.local/share/themes/<look>/gtk-3.0/gtk.css starts from

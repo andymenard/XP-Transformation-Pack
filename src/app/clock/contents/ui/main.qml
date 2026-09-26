@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 /*
     XPlasma's taskbar clock: XP's -- the time alone, in the look's clock font
     at XP's 96 dpi and its clock colour, on the look's tray art (xp-tray's

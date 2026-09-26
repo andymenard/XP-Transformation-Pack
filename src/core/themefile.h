@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // A Windows .theme file: an INI document naming a visual style (or a Classic
 // colour scheme), a wallpaper, fonts and metrics.

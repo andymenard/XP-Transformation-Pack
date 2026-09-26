@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 # XPlasma release image: builds the portable plugins and the app.
 #
 # A plugin built against Qt 6.N loads into every Qt >= 6.N (public API only,

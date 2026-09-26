@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """theme-elements.py SVG OUT.png [PREFIX] [--zoom N] [--cols N]
 
 The pieces of one of XPlasma's generated Plasma theme SVGs (its <image>

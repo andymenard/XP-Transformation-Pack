@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // The window border and title bar: a KWin Aurorae theme.
 //

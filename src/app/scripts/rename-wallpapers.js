@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Desktops showing a wallpaper that was renamed (old URL -> new URL, in
 // ${RENAMES}) show it by its new name.
 var renames = ${RENAMES};

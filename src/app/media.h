@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Windows XP's own files, from the install media the user pointed XPlasma at
 // (State::media: the ISO, or a folder holding I386/). Some of the look lives

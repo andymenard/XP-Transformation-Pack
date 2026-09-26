@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Windows cursors -- .cur files, .ani animations, a PE's cursor groups (XP's
 // defaults live in user32.dll) -- as frames; and Xcursor, the format X and

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #include "icons.h"
 
 #include <limits>   // before QtEndian: Qt 5.15.2's qfloat16.h uses it unincluded (GCC 11+)

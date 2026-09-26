@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // XPlasma's own state, in one versioned file (paths::statePath()): what is
 // applied, where the XP media is, and settings. Written atomically; unknown

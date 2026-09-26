@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
 # XPlasma's builds of Plasma's own widgets, one per Plasma series (see
 # src/app/forks.h): the tray, notifications, task manager and panel that Plasma
 # 6.5+ builds into its plugins, patched as XPlasma patches the packaged ones.

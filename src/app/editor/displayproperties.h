@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // xplasma-edit: XPlasma Properties -- Windows XP's Display Properties, for
 // Plasma, its Themes, Desktop and Appearance tabs, Mouse Properties'
-// Pointers, and Sounds and Audio Devices' Sounds (soundstab.h) -- with OK,
+// Pointers, Sounds and Audio Devices' Sounds (soundstab.h), and About
+// (abouttab.h) -- with OK,
 // Cancel and Apply; Apply does what `xplasma apply` does, for what changed
 // since the last Apply: only the desktop's wallpaper, say, is set without
 // rebuilding the look. Apply is greyed out until something changes; with

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Setup, from the editor: what's missing on this machine, and getting XP's
 // media and the official theme packs (the same steps as `xplasma setup`).

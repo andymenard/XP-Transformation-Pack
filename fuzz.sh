@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Fuzz the core's parsers: PE/theme, DIB, INI and .theme/scheme, each under
 # ASan + UBSan.
 #

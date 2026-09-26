@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """XP's keyboard cues: mnemonic underlines only while Alt is held, focus
 rectangles only once focus has moved by keyboard.
 

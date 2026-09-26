@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Windows Classic: XP with visual styles off. No bitmaps -- GDI draws bevels
 // from 29 system colours, and the frame, caption, menu and scroll bar sizes

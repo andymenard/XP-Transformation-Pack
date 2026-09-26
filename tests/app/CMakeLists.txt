@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 find_package(Qt6 REQUIRED COMPONENTS Test Network)
 
 add_executable(test-app test_app.cpp)

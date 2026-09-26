@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Long work (applying a look, importing XP's media, a download) off the
 // window's thread, shown in a progress dialog: what it's doing, a details

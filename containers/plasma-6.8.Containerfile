@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Build image for XPlasma's forks of Plasma's compiled widgets for the
 # Plasma 6.8 series, whose libPlasma is .so.8 (see plasma-6.6.Containerfile
 # for the why of it all).

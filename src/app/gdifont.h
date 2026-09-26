@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Text measured the way GDI measures it, for laying text out where XP does.
 // GDI advances glyphs by whole pixels -- a TrueType font's hdmx table gives

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Taking over from xp2plasma, once: its imported asset library (styles,
 // wallpapers, fonts, icons -- ~100 MB distilled from ~600 MB of XP media), the

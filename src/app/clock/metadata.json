@@ -8,7 +8,7 @@
         "FormFactors": ["desktop"],
         "Icon": "preferences-system-time",
         "Id": "fyi.hotsocket.xplasma.clock",
-        "License": "GPL-2.0+",
+        "License": "GPL-3.0-or-later",
         "Name": "XP Clock",
         "Version": "1.0"
     },

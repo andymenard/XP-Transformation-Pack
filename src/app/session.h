@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // The running Plasma session, as applying a look talks to it: its host
 // programs (kwriteconfig6, the plasma-apply-* tools, systemctl), plasmashell's

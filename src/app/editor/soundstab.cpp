@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #include "app/editor/soundstab.h"
 
 #include "app/media.h"
@@ -10,6 +11,7 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
@@ -131,60 +133,68 @@ QRect SoundsTab::du(int x, int y, int w, int h) const
 
 void SoundsTab::build()
 {
-    // mmsys.cpl's dialog 4876, "Events Schemes" (227 x 218).
-    QWidget *page = this;
-    page->setMinimumSize(du(0, 0, 227, 218).size());
-    auto place = [&](QWidget *w, QRect r) {
-        w->setParent(page);
-        w->setGeometry(r);
+    // mmsys.cpl's dialog 4876, "Events Schemes": its words and its order,
+    // laid out to the tab's width like the other tabs (XP's own was a fixed
+    // 227 x 218 dialog units).
+    auto *layout = new QVBoxLayout(this);
+    auto wrappedLabel = [](const QString &text) {
+        auto *l = new QLabel(text);
+        l->setWordWrap(true);
+        return l;
     };
-    // (a combo box's template height is its list's: the box is a line's)
-    auto combo = [&](QComboBox *c, int x, int y, int w) {
-        c->setParent(page);
-        const QRect r = du(x, y, w, 12);
-        c->setGeometry(r.x(), r.y(), r.width(), qMax(r.height(), c->sizeHint().height()));
+    // (XP's buttons: 50 dialog units wide, at least)
+    auto sized = [this](QPushButton *b) {
+        b->setMinimumWidth(qMax(b->sizeHint().width(), du(0, 0, 50, 14).width()));
+        return b;
     };
-    auto *intro = new QLabel(QStringLiteral("A sound scheme is a set of sounds applied to events in Windows and programs. "
-                                            "You can select an existing scheme or save one you have modified."));
-    intro->setWordWrap(true);
-    intro->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-    place(intro, du(7, 5, 213, 24));
+    layout->addWidget(wrappedLabel(QStringLiteral("A sound scheme is a set of sounds applied to events in Windows and programs. "
+                                                  "You can select an existing scheme or save one you have modified.")));
+    layout->addSpacing(du(0, 0, 0, 5).height());
     auto *schemeLabel = new QLabel(QStringLiteral("Sound s&cheme:"));
-    place(schemeLabel, du(8, 34, 60, 8));
+    layout->addWidget(schemeLabel);
     m_schemes = new QComboBox;
-    combo(m_schemes, 8, 45, 209);
+    layout->addWidget(m_schemes);
     schemeLabel->setBuddy(m_schemes);
-    m_saveAs = new QPushButton(QStringLiteral("Sav&e As..."));
-    place(m_saveAs, du(114, 61, 50, 14));
-    m_delete = new QPushButton(QStringLiteral("&Delete"));
-    place(m_delete, du(167, 61, 50, 14));
-    auto *how = new QLabel(QStringLiteral("To change sounds, click a program event in the following list and then select a sound to apply. "
-                                          "You can save the changes as a new sound scheme."));
-    how->setWordWrap(true);
-    how->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-    place(how, du(7, 80, 213, 24));
+    auto *schemeButtons = new QHBoxLayout;
+    schemeButtons->addStretch(1);
+    m_saveAs = sized(new QPushButton(QStringLiteral("Sav&e As...")));
+    m_delete = sized(new QPushButton(QStringLiteral("&Delete")));
+    schemeButtons->addWidget(m_saveAs);
+    schemeButtons->addWidget(m_delete);
+    layout->addLayout(schemeButtons);
+    layout->addSpacing(du(0, 0, 0, 5).height());
+    layout->addWidget(wrappedLabel(QStringLiteral("To change sounds, click a program event in the following list and then select a "
+                                                  "sound to apply. You can save the changes as a new sound scheme.")));
     auto *eventsLabel = new QLabel(QStringLiteral("&Program events:"));
-    place(eventsLabel, du(8, 108, 60, 8));
+    layout->addWidget(eventsLabel);
     m_events = new QTreeWidget;
     m_events->setHeaderHidden(true);
     m_events->setRootIsDecorated(false);   // (XP's has no lines or buttons)
     m_events->setItemsExpandable(false);
     m_events->setIconSize(QSize(16, 16));
     m_events->setIndentation(19);
-    place(m_events, du(8, 118, 209, 62));
+    // (as tall as the dialog lets it be; at least XP's 62 dialog units)
+    m_events->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Ignored);
+    m_events->setMinimumHeight(du(0, 0, 0, 62).height());
+    layout->addWidget(m_events, 1);
     eventsLabel->setBuddy(m_events);
     m_soundsLabel = new QLabel(QStringLiteral("&Sounds:"));
-    place(m_soundsLabel, du(8, 185, 60, 8));
+    layout->addWidget(m_soundsLabel);
+    auto *soundRow = new QHBoxLayout;
     m_sounds = new QComboBox;
-    combo(m_sounds, 8, 196, 139);
+    m_sounds->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    m_sounds->setMinimumContentsLength(1);
+    soundRow->addWidget(m_sounds, 1);
     m_soundsLabel->setBuddy(m_sounds);
     m_play = new QPushButton;
     m_play->setToolTip(QStringLiteral("Play and Stop Toggle"));
     m_play->setIcon(m_playIcon);
     m_play->setIconSize(QSize(23, 23));
-    place(m_play, du(150, 196, 15, 14));
-    m_browse = new QPushButton(QStringLiteral("&Browse..."));
-    place(m_browse, du(168, 196, 50, 14));
+    m_play->setFixedWidth(du(0, 0, 15, 14).width() + 8);
+    soundRow->addWidget(m_play);
+    m_browse = sized(new QPushButton(QStringLiteral("&Browse...")));
+    soundRow->addWidget(m_browse);
+    layout->addLayout(soundRow);
 
     connect(m_schemes, &QComboBox::activated, this, &SoundsTab::schemePicked);
     connect(m_saveAs, &QPushButton::clicked, this, &SoundsTab::saveAs);

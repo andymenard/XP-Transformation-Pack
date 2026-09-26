@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // The Start menu's art and measures for XPlasma's Start plasmoid: every
 // StartPanel part (and its hot state) as uxtheme keys it, with its sizing

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 /* xput -- send every file in a directory to the host over HTTP.
  *
  *   xput.exe <dir> [host] [port]       (defaults: 10.0.2.2 8765)

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Windows setup INFs, as XP's install media has them: sections of lines,
 // [Strings] for %KEY% substitution, comma-separated fields with "quoting"

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 
 // Pure presentation shared by the Plasma launcher and the isolated preview.

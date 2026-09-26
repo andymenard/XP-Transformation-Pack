@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Live reload: switching ~/.config/xplasmarc repaints a running app.
 
     live_reload.py            (needs PySide6 and build/dev built)

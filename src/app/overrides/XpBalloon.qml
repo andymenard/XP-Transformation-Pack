@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // XPlasma: a notification as XP's balloon -- measured on XP's own (Luna,
 // Security Center): the tooltip colours, a 1px frame round a box with 7px
 // corners, a stem from its bottom edge (a 2px slant down to the tip, a

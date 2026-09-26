@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // libFuzzer targets for everything that parses untrusted bytes.
 //
 // Built once per target, -DFUZZ_TARGET_<NAME>=1: theme, dib, ini, scheme, icon

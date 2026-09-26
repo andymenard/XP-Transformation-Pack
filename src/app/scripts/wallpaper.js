@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Every desktop's wallpaper: an image (${IMAGE}, positioned by ${FILL} when
 // not null, over ${COLOUR}), or -- no image -- the solid colour.
 desktops().forEach(function (d) {

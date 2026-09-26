@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Where Plasma's own widgets have to be told about XP: user-local copies of
 // KDE's QML, patched, that Plasma prefers over the system's -- and removed

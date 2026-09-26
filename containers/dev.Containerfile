@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 # XPlasma dev image: the host's own toolchain and Qt, for fast iteration.
 #
 # Based on xp2plasma's kvantum build image, which is Arch re-pointed at only

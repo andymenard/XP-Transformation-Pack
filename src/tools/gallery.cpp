@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // xplasma-gallery: every control XPlasma themes, in its interesting states.
 //
 //   xplasma-gallery [--style NAME] [--out FILE.png]

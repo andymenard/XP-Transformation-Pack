@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // xplasma-schemes: XP's stock Windows Classic schemes, from the install ISO
 // (or an HIVEDEF.INF), as the .theme files XPlasma ships.
 //

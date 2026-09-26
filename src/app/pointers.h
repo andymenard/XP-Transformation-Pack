@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Mouse pointers, as XP's Mouse Properties > Pointers has them: a scheme
 // names a cursor file for each of 15 roles (Normal Select, Help Select, ...,

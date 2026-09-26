@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Where XPlasma keeps its files, and where the session looks for what it
 // writes.

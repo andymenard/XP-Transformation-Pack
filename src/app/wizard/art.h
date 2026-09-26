@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // The Setup wizard's pictures, drawn here -- nothing of Windows': the tall
 // one down the left of the first and last pages (a Windows Installer

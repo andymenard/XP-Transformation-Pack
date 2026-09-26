@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Extras..., where XP's Appearance tab had Effects...: the Start button's
 // label and logo, in place of XP's "start" and flag -- characters (an

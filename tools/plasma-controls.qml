@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 /*
  * plasma-controls.qml: Plasma's popup controls (Plasma Components 3), drawn
  * by the Plasma theme in use, on a popup background -- to see XPlasma's

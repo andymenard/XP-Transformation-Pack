@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // XP's time zones, as its Date and Time Properties lists them: from the
 // registry XP's setup writes (HIVESFT.INF, "Time Zones"), in XP's order and

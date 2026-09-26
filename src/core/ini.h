@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // The layout INI inside a classic (XP-era) .msstyles, and uxtheme's lookup
 // rules over it.

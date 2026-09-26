@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // The Start button, as XP's explorer draws it: a push button themed
 // Start::Button (normal, hot, pressed), XP's flag (explorer.exe's bitmap

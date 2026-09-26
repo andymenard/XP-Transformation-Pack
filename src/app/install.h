@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // XPlasma's own files onto the machine, and off again: what install.sh does,
 // for the Setup wizard (xplasma-setup). A package (a release tree: bin/,

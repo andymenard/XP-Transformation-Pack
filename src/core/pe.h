@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Read the resources out of a PE file (.msstyles are resource-only DLLs).
 //

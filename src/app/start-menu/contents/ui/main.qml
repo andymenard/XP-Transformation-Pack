@@ -7,7 +7,7 @@
     Start menu's art, colours, fonts and layout. Nothing here changes per
     look.
 
-    SPDX-License-Identifier: GPL-2.0-or-later
+    SPDX-License-Identifier: GPL-3.0-or-later
 */
 import QtQuick
 import QtQuick.Layouts

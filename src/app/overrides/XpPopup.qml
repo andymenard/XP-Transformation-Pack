@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // XPlasma: one notification as XP shows it -- a balloon from its icon in the
 // tray, or, for a file transfer, XP's copy dialog (a transfer that fails
 // becomes an error balloon). Globals decides which balloon is on screen:

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Decode the bare DIBs msstyles store as RT_BITMAP resources
 // (BITMAPINFOHEADER + optional palette/masks + pixels; no file header).

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 # XPlasma: the msstyles core, renderer, Qt style plugin and tools.
 #
 # One source tree, built once per Qt major (build.sh does this in podman):

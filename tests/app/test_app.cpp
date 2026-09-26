@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // QtTest for the app library: archives, host programs, state, adoption.
 //
 // Every test runs with HOME moved to a scratch directory. The XP install ISO,

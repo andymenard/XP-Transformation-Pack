@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // XPlasma's builds of Plasma's own widgets, for the Plasmas that build them
 // into their plugins (from 6.5 on) and so can't be patched from the home

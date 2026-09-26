@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Text as Windows XP drew it, across the desktop: XP's default "Standard"
 // font smoothing. GDI hinted every TrueType font fully, never used colour

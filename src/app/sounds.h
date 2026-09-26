@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Sounds, as XP's Sounds and Audio Devices > Sounds has them: a sound scheme
 // names a sound for each program event (Asterisk, Critical Stop, Device

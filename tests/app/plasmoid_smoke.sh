@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
 # The Start plasmoid, loaded by Plasma for real (plasmawindowed, offscreen,
 # in a scratch home) with a look's theme.json, both as the Start button and
 # as the menu: any QML error, type error or binding loop fails it.

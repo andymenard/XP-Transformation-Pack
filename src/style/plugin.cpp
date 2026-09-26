@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // The Qt style plugin entry point: Qt's loader reads xplasma.json's keys and
 // calls create() for "XPlasma" (keys match case-insensitively).
 #include <QStylePlugin>

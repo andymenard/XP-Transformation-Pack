@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // xplasma-edit --date-time: Windows XP's Date and Time Properties, for the
 // computer's clock -- laid out from XP's own dialog templates (timedate.cpl,

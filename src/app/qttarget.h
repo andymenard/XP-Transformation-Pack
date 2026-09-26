@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Qt apps' widgets: XPlasma's style plugin, drawing the look itself.
 //

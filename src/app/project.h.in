@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // XPlasma's project settings, from project.ini at the top of the source
 // tree (written here by the build: edit that, not this).

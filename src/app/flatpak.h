@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Flatpak apps' widgets: XPlasma's Qt 6 style plugin as a KDE runtime style
 // extension (org.kde.KStyle.XPlasma), so Qt apps from Flathub draw the look

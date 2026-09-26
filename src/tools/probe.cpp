@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // xplasma-probe: load a style by name and render a few widgets with it.
 //
 //   xplasma-probe [--style NAME] [--out FILE.png]

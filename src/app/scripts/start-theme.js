@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Every XPlasma Start button, given the look's data.
 var n = 0;
 panels().forEach(function (p) {

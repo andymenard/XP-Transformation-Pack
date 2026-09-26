@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // XPlasma Properties' Sounds tab: Windows XP's, from Sounds and Audio
-// Devices Properties -- laid out from XP's own dialog template (mmsys.cpl's
-// "Events Schemes", in dialog units), its words, its bitmaps and icons taken
+// Devices Properties -- XP's dialog template's words and order (mmsys.cpl's
+// "Events Schemes"), laid out to the tab's width; its bitmaps and icons taken
 // from the XP media. (XP's Volume tab isn't here: Plasma's audio settings
 // do all it did.)
 //

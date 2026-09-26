@@ -1,5 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #include "app/editor/displayproperties.h"
 
+#include "app/editor/abouttab.h"
 #include "app/editor/advanced.h"
 #include "app/editor/extras.h"
 #include "app/editor/jobs.h"
@@ -27,6 +29,7 @@
 #include <QListWidget>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QTabBar>
 #include <QTabWidget>
 #include <QTimer>
 #include <QUrl>
@@ -120,6 +123,19 @@ DisplayProperties::DisplayProperties(QWidget *parent)
     m_sounds = new SoundsTab;
     m_tabs->addTab(m_sounds, QStringLiteral("Sounds"));
     connect(m_sounds, &SoundsTab::changed, this, &DisplayProperties::updateApply);
+    auto *about = new AboutTab;
+    m_tabs->addTab(about, QStringLiteral("About"));
+    // The dialog's width: its widest tab's but About's (whose paragraphs
+    // wrap to it), and room for every tab's name.
+    int pageWidth = 0;
+    for (int i = 0; i < m_tabs->count(); ++i)
+        if (m_tabs->widget(i) != about)
+            pageWidth = qMax(pageWidth, m_tabs->widget(i)->sizeHint().width());
+    const int frame = m_tabs->sizeHint().width() - m_tabs->currentWidget()->sizeHint().width();
+    pageWidth = qMax(pageWidth, m_tabs->tabBar()->sizeHint().width() + 4 - frame);
+    for (int i = 0; i < m_tabs->count(); ++i)
+        m_tabs->widget(i)->setMinimumWidth(pageWidth);
+    about->fitWidth(pageWidth);
     root->addWidget(m_tabs, 1);
     // A property sheet: its size is its contents', not the user's to change.
     root->setSizeConstraint(QLayout::SetFixedSize);
@@ -971,7 +987,7 @@ bool DisplayProperties::saveScreenshots(const QString &dir)
     show();
     bool ok = true;
     m_sounds->showForScreenshot();
-    const char *const names[] = {"themes", "desktop", "appearance", "pointers", "sounds"};
+    const char *const names[] = {"themes", "desktop", "appearance", "pointers", "sounds", "about"};
     for (int i = 0; i < m_tabs->count(); ++i) {
         m_tabs->setCurrentIndex(i);
         QApplication::processEvents();
@@ -991,3 +1007,5 @@ bool DisplayProperties::saveScreenshots(const QString &dir)
 }
 
 } // namespace xpl::editor
+
+

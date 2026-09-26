@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Ask real Windows XP to draw visual-style parts: XPlasma's pixel oracle.
 
     oracle.py JOB OUTDIR [--style FILE.msstyles ...]

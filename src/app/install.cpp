@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #include "app/install.h"
 
 #include "app/paths.h"
@@ -119,7 +120,7 @@ QStringList installedPaths()
     for (const QString &p : kPrograms)
         out << QLatin1String("bin/") + p;
     out << QStringLiteral("lib/xplasma") << QStringLiteral("share/applications/fyi.hotsocket.xplasma.desktop")
-        << QStringLiteral("share/applications/fyi.hotsocket.xplasma.datetime.desktop");
+        << QStringLiteral("share/applications/fyi.hotsocket.xplasma.datetime.desktop") << QStringLiteral("share/licenses/xplasma");
     for (const char *name : kRetiredEntries)
         out << QLatin1String("share/applications/") + QLatin1String(name);
     return out;
@@ -168,6 +169,10 @@ bool installFiles(const QString &package, const QString &prefix, const Progress 
         }
         return true;
     };
+    // (the licence and the third-party notices)
+    const QString licenses = QStringLiteral("/share/licenses/xplasma");
+    if (QFileInfo::exists(package + licenses) && !copyTree(package + licenses, prefix + licenses, error))
+        return false;
     say(QStringLiteral("Adding XPlasma to the application menu"));
     const QString apps = prefix + QLatin1String("/share/applications");
     if (!entries(package + QLatin1String("/share/applications"), apps))

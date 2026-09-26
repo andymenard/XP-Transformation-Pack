@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // One visual style, loaded: its variant tables, the chosen variant's layout
 // INI, and its bitmaps (decoded on first use).

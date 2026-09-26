@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 /* uxdump -- what real uxtheme draws, for XPlasma's pixel oracle.
  *
  *   uxdump.exe <job.txt> <outdir>

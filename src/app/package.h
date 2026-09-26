@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Writing generated packages: the files, the SVGs Plasma reads art from, and
 // the marker that tells XPlasma's own packages from anyone else's.

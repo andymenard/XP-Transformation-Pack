@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Drive the XP reference VM over QMP: screenshots, keystrokes, Run dialog.
 
     vm.py screendump out.png     what the VM's screen shows right now

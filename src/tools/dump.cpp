@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // xplasma-dump: what the core parsed out of a .msstyles, as canonical JSON.
 //
 //   xplasma-dump FILE.msstyles [--variant NAME_INI | --all-variants] [--no-bitmaps]

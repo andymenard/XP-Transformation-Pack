@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // Whether a newer XPlasma is out, as XP's Automatic Updates told of
 // Windows': project.ini's UpdatesUrl names a small JSON file,

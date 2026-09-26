@@ -29,6 +29,11 @@ XP go in NOTES.md instead; the plan for the big phases is PLAN.md.
 
 ## Done
 
+- GPL-3.0-or-later (the user's choice), with the third-party notices
+  (libarchive, bzip2, KDE's widgets) shipped beside it; XPlasma Properties'
+  About tab: release, copyright, licence and notices, this computer's
+  details to copy into a bug report, Microsoft's trademarks disclaimed
+  (2026-09-25).
 - One XPlasma Properties (the user's idea): Display Properties' tabs,
   Pointers and Sounds in one dialog, in the app menu and on the desktop's
   right-click menu. XP's Volume tab dropped: Plasma's audio settings do the

@@ -3,7 +3,7 @@
     application models offer them, in a real (QMenu) menu -- so it's drawn by
     the widget style, XPlasma's included. XpBackend decides what's in it.
 
-    SPDX-License-Identifier: GPL-2.0-or-later
+    SPDX-License-Identifier: GPL-3.0-or-later
 */
 import QtQuick
 import org.kde.plasma.extras as PlasmaExtras

@@ -145,3 +145,21 @@ tests/oracle/styles_matrix.py OUT                     # the style against real X
 Tests that need the official styles or the XP media find them where setup
 imported them, and skip when they are absent. The oracle tooling is the only
 Python left: `python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt`.
+
+## Licence
+
+XPlasma is free software: you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version (`LICENSE`). Its files say so in their `SPDX-License-Identifier`
+lines; the QML snippets pasted into KDE's own files (`src/app/overrides/`,
+those without the line) are under the same terms.
+
+What its programs carry from others -- libarchive, bzip2, and the builds of
+KDE Plasma's widgets under their own licences -- is listed with their notices
+in `THIRD-PARTY-NOTICES`, installed beside the licence in
+`share/licenses/xplasma/` and viewable from XPlasma Properties' About tab.
+
+Windows and Windows XP are trademarks of Microsoft Corporation, which neither
+makes nor endorses XPlasma. XPlasma includes none of Windows' files: it takes
+what it uses from the user's own Windows XP CD image.

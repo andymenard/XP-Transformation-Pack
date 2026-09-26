@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 // XP's visual-style schema: class -> part names/ids -> state names/ids.
 //
