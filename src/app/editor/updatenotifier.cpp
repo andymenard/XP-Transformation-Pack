@@ -59,7 +59,8 @@ class UpdateBox : public QMessageBox
 public:
     enum Choice { Later, Download, Decline };
 
-    UpdateBox(const updates::Release &release, const QIcon &icon)
+    UpdateBox(const updates::Release &release, const QIcon &icon, QWidget *parent = nullptr)
+        : QMessageBox(parent)
     {
         setWindowTitle(QStringLiteral("XPlasma Updates"));
         setWindowIcon(icon);
@@ -97,6 +98,40 @@ bool saveUpdateScreenshot(const QString &dir)
     box.show();
     QApplication::processEvents();
     return box.grab().save(QDir(dir).filePath(QStringLiteral("updates.png")));
+}
+
+void checkUpdatesNow(QWidget *parent)
+{
+    const QString title = QStringLiteral("XPlasma Updates");
+    const QString url = updates::url();
+    if (url.isEmpty()) {
+        QMessageBox::information(parent, title, QStringLiteral("This XPlasma has nowhere to look for updates."));
+        return;
+    }
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    QString error;
+    const auto release = updates::fetch(url, &error);
+    QApplication::restoreOverrideCursor();
+    if (!release) {
+        QMessageBox::warning(parent, title, QStringLiteral("XPlasma couldn't check for updates: %1").arg(error));
+        return;
+    }
+    State state = State::load();
+    updates::checked(state);
+    state.save();
+    if (release->version <= project::kVersion) {
+        QMessageBox::information(parent, title, QStringLiteral("You have the latest XPlasma, release %1.").arg(project::kVersion));
+        return;
+    }
+    UpdateBox box(*release, globe(), parent);
+    const UpdateBox::Choice choice = box.ask();
+    if (choice == UpdateBox::Download) {
+        QDesktopServices::openUrl(QUrl(release->page));
+    } else if (choice == UpdateBox::Decline) {
+        State s = State::load();
+        updates::decline(s, *release);
+        s.save();
+    }
 }
 
 int checkUpdates(bool now)

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "app/editor/abouttab.h"
 
+#include "app/editor/updatenotifier.h"
+
 #include "app/desktop.h"
 #include "app/project.h"
 #include "app/session.h"
@@ -98,6 +100,12 @@ AboutTab::AboutTab(QWidget *parent)
     legal->addWidget(licence);
     legal->addWidget(notices);
     legal->addStretch(1);
+    // (only where this XPlasma has somewhere to look: project.ini's UpdatesUrl)
+    if (project::kUpdatesUrl[0] != '\0') {
+        auto *updates = new QPushButton(QStringLiteral("Check for &Updates"));
+        legal->addWidget(updates);
+        connect(updates, &QPushButton::clicked, this, [this] { checkUpdatesNow(this); });
+    }
     layout->addLayout(legal);
     connect(licence, &QPushButton::clicked, this, [this] {
         showText(QStringLiteral("GNU General Public License"), QStringLiteral(":/licenses/LICENSE"));

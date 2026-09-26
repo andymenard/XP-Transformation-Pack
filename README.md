@@ -152,7 +152,7 @@ Python left: `python3 -m venv .venv && .venv/bin/pip install -r requirements-dev
 microVM engine with Docker): the release image, `./build.sh release`, the
 tests, Plasma's widgets (`ci/forks.sh`), `./package.sh`, then
 `ci/publish.sh` into a public Tigris bucket, every object at
-`https://BUCKET.t3.storage.dev/KEY`:
+`https://xplasma.t3.tigrisfiles.io/KEY` (`TIGRIS_PUBLIC_URL`):
 
 | Push | Goes to |
 |------|---------|
@@ -175,9 +175,9 @@ tigris access-keys create xplasma-ci --bucket BUCKET --role Editor
 
 then the key's ID and secret into the Tangled repository's Settings → Secrets
 as `TIGRIS_STORAGE_ACCESS_KEY_ID` and `TIGRIS_STORAGE_SECRET_ACCESS_KEY`,
-`TIGRIS_BUCKET` in the workflow, and in project.ini
-`UpdatesUrl=https://BUCKET.t3.storage.dev/latest.json` (and `IssuesUrl`,
-the repository's issues).
+`TIGRIS_BUCKET` and `TIGRIS_PUBLIC_URL` in the workflow, and in project.ini
+`UpdatesUrl=PUBLIC_URL/latest.json` (and `IssuesUrl`, the repository's
+issues).
 
 A release, then: `Version` one higher in project.ini, committed; `git tag
 -a vN -m "notes"`; push the commit and the tag.

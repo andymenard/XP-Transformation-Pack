@@ -12,7 +12,8 @@
 #
 # Set up once (see README, "CI"): the bucket, public; an Editor key for it
 # in this repository's secrets as TIGRIS_STORAGE_ACCESS_KEY_ID and
-# TIGRIS_STORAGE_SECRET_ACCESS_KEY; the bucket's name below.
+# TIGRIS_STORAGE_SECRET_ACCESS_KEY; the bucket's name and public address
+# below.
 
 when:
   - event: ["push", "manual"]
@@ -37,6 +38,7 @@ dependencies:
 
 environment:
   TIGRIS_BUCKET: "xplasma"
+  TIGRIS_PUBLIC_URL: "https://xplasma.t3.tigrisfiles.io"
   CONTAINER: "docker"
 
 steps:

@@ -13,7 +13,7 @@ here="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$here"
 : "${TIGRIS_BUCKET:?which Tigris bucket}"
 export CONTAINER="${CONTAINER:-docker}" XPLASMA="$here/ci/xplasma.sh"
-base="https://$TIGRIS_BUCKET.t3.storage.dev"
+base="${TIGRIS_PUBLIC_URL:?the bucket'"'"'s public address}"
 for series in $(jq -r 'keys[]' src/app/overrides/forks.json); do
     FORKS_PREPARE_ONLY=1 ./build-forks.sh "$series"
     root="build/plasma/$series"

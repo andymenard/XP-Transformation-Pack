@@ -1,7 +1,7 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-3.0-or-later
 # build/XPlasma-Setup into the Tigris bucket (public: every object has an
-# address, https://BUCKET.t3.storage.dev/KEY).
+# address under TIGRIS_PUBLIC_URL, e.g. https://BUCKET.t3.tigrisfiles.io/KEY).
 #
 #   a push to trunk  builds/COMMIT/XPlasma-Setup, and builds/trunk/XPlasma-Setup
 #                    (the newest)
@@ -16,7 +16,7 @@ cd "$here"
 : "${TIGRIS_BUCKET:?which Tigris bucket}"
 setup=build/XPlasma-Setup
 [ -x "$setup" ] || { echo "publish: no $setup (./package.sh)" >&2; exit 1; }
-base="https://$TIGRIS_BUCKET.t3.storage.dev"
+base="${TIGRIS_PUBLIC_URL:?the bucket'"'"'s public address}"
 version="$(sed -n 's/^Version=//p' project.ini)"
 sha="$(sha256sum "$setup" | cut -d' ' -f1)"
 put() {   # FILE KEY CACHE-CONTROL

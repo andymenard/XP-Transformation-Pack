@@ -2,7 +2,8 @@
 #pragma once
 // XPlasma Properties' About tab: what XPlasma is (its name, release number
 // and copyright), its licence and the third-party notices (each viewable,
-// from the program itself), where to report a problem, this computer as a
+// from the program itself), Check for Updates (when project.ini names where
+// to look), where to report a problem, this computer as a
 // bug report wants it (desktop::diagnostics, with Copy), and Microsoft's
 // trademarks disclaimed.
 #include <QWidget>

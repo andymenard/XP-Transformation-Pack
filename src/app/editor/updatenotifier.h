@@ -10,10 +10,17 @@
 // not due, nothing newer, no network -- it ends at once, silently.
 #include <QString>
 
+class QWidget;
+
 namespace xpl::editor {
 
 // `now`: check even if one was made today (for trying it out).
 int checkUpdates(bool now);
+// A check asked for (About's Check for Updates): at once, whatever was
+// checked today or declined before, with a wait cursor; the box above if a
+// newer XPlasma is out, else a word that this is the latest, or why the
+// check failed.
+void checkUpdatesNow(QWidget *parent);
 // The window, drawn for a made-up release into DIR/updates.png (tests).
 bool saveUpdateScreenshot(const QString &dir);
 
