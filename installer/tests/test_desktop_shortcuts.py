@@ -12,12 +12,18 @@ class ShortcutTests(unittest.TestCase):
    for name in ['computer','documents','network','trash-full','trash-empty','browser']:(payload/(name+'.png')).write_bytes(('XP '+name).encode())
    legacy=desktop/'My Computer.desktop';legacy.write_text('[Desktop Entry]\nType=Link\nName=My Computer\nIcon='+str(state/'desktop-icons/computer.png')+'\nURL=file:///\nX-Custom=keep\n')
    custom=desktop/'My Documents.desktop';custom.write_text('[Desktop Entry]\nIcon=custom-folder\nURL=file:///custom\n');saved=custom.read_bytes()
+   # Theme aliases are symlinks; shortcuts need standalone image files.
+   layer=base/'layer/xplasma-xp-extended/128x128/apps';layer.mkdir(parents=True)
+   (layer/'real.png').write_bytes(b'HiDPI PNG')
+   for alias in ['computer','user-home','network-workgroup','user-trash-full','user-trash-empty','firefox']:(layer/(alias+'.png')).symlink_to('real.png')
+   tools=base/'payload/tools';tools.mkdir()
+   with tarfile.open(tools/'icons.tar.gz','w:gz') as archive:archive.add(layer.parents[1],arcname='xplasma-xp-extended')
    ns={'Path':Path,'BASE':base,'shutil':shutil,'tempfile':tempfile,'os':os,'re':re,'tarfile':tarfile,'desktop_path':lambda _:desktop,'log':lambda _:None}
    exec(compile(ast.Module(body=functions,type_ignores=[]),'backend.py','exec'),ns)
-   with patch('shutil.which',return_value=None):ns['shortcuts'](home,state,{'firefox'},{})
+   with patch('shutil.which',return_value=None):ns['shortcuts'](home,state,{'firefox'},{'hidpi_icons':True})
    self.assertEqual(custom.read_bytes(),saved);self.assertIn('X-Custom=keep',legacy.read_text())
    for name in ['My Computer','My Network Places','Recycle Bin','Internet Explorer']:
     text=(desktop/(name+'.desktop')).read_text()
     for line in text.splitlines():
      if line.startswith(('Icon=','EmptyIcon=')):
-      icon=Path(line.split('=',1)[1]);self.assertTrue(icon.is_file(),str(icon));self.assertNotIn(str(state),str(icon))
+      icon=Path(line.split('=',1)[1]);self.assertTrue(icon.is_file(),str(icon));self.assertFalse(icon.is_symlink());self.assertEqual(icon.read_bytes(),b'HiDPI PNG');self.assertNotIn(str(state),str(icon))

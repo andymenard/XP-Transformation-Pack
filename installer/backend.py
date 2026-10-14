@@ -396,7 +396,7 @@ def shortcuts(home,state,selected,asset_options=None):
    layer=Path(temp)/'xplasma-xp-extended'
    for filename,alias in {'computer':'computer','documents':'user-home','network':'network-workgroup','trash-full':'user-trash-full','trash-empty':'user-trash-empty','browser':'firefox'}.items():
     candidates=list(layer.glob('128x128/*/'+alias+'.png'))
-    if candidates:copy(candidates[0],icons/(filename+'.png'))
+    if candidates:copy(candidates[0].resolve(strict=True),icons/(filename+'.png'))
  desktop=desktop_path(home);desktop.mkdir(parents=True,exist_ok=True)
  documents=Path(run(['xdg-user-dir','DOCUMENTS'],capture=True)) if shutil.which('xdg-user-dir') else home/'Documents'
  targets={'My Computer':('computer.png','file:///'),'My Documents':('documents.png',documents.as_uri()),
