@@ -14,7 +14,7 @@ Read [CREDITS.md](CREDITS.md), [LICENSE](LICENSE), [native/THIRD-PARTY-NOTICES](
 
 ## Assets and builds
 
-This public repository is source only. Original Microsoft fonts, visual styles, sounds and imagery and third-party stock photographs are not uploaded. See [ASSET-DISTRIBUTION.md](ASSET-DISTRIBUTION.md). A local installer assembled from the user's supplied assets is a separate test artifact; this source checkout alone is not that full installer.
+This public repository is source only. Original Microsoft fonts, visual styles, sounds and imagery and third-party stock photographs are not uploaded. See [ASSET-DISTRIBUTION.md](ASSET-DISTRIBUTION.md). The complete installer is provided separately as an alpha prerelease asset; it includes the publisher-supplied XP resources and retains their separate copyright notices. This source checkout alone is not that full installer.
 
 Build Desktop with `cmake -S native -B build/desktop -G Ninja -DQT_MAJOR=6` and `cmake --build build/desktop`. Native components must match the receiving machine's KDE/Qt. The optional browser sources are under `browser/ie6`. Source includes the caption effect and original third-party notices.
 
@@ -23,3 +23,13 @@ Build Desktop with `cmake -S native -B build/desktop -G Ninja -DQT_MAJOR=6` and 
 The public updater uses anonymous HTTPS GitHub release requests to `andymenard/XP-Transformation-Pack`; users do not need GitHub CLI or an account. Alpha releases use semantic versions such as `1.0.0-alpha.1`. The alpha channel can select complete signed prereleases; stable clients do not select prereleases. The bundled publisher key still verifies release manifests and file hashes before installation. No private signing key or authentication token is shipped.
 
 Until a complete signed alpha release is published, Check for updates reports that no complete signed alpha update is available. Public-repository creation does not publish proprietary assets or make the private development repository public.
+
+## Download the alpha installer
+
+See [Alpha 1.0](https://github.com/andymenard/XP-Transformation-Pack/releases/tag/v1.0.0-alpha.1).
+Extract the installer tar.gz, then launch **Start-Installer.desktop** from the
+extracted folder as your desktop user. Linux dependencies require internet
+access; an XP ISO is not needed. Desktop is selected by default; Firefox is optional.
+The release is a testing prerelease, with compatibility and validation limits
+listed in its notes. Signed checksums authenticate the installer download; this
+release does not activate an OTA payload.
