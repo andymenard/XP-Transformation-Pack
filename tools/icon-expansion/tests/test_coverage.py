@@ -6,6 +6,11 @@ def load(name,file):
  spec=importlib.util.spec_from_file_location(name,root/file);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
 b=load('coverage_build','build.py');i=load('coverage_install','install.py')
 class Coverage(unittest.TestCase):
+ def test_network_places_is_not_wireless_connection(self):
+  role,reason=b.role('network-workgroup')
+  self.assertEqual(b.ROLES[role],'My Network Places')
+  self.assertEqual(reason,'exact')
+
  def test_default_tray_roles_cover_both_symbolic_and_state_names(self):
   for name,value in [('camera-on-symbolic','camera-web'),('media-playback-paused-symbolic','media-playback-pause'),('input-caps-on-symbolic','input-keyboard'),('flightmode-on','network-disconnected'),('plasma-vault-unlocked','changes-allow'),('printer-paused','printer')]:self.assertEqual(b.role(name)[0],value)
   self.assertTrue(b.tray_variant('camera-off-symbolic')[0]);self.assertTrue(b.tray_variant('camera-on-symbolic')[1]);self.assertEqual(b.tray_variant('input-caps-on-symbolic')[2],'A')

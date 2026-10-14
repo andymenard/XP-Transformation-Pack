@@ -24,7 +24,8 @@
     "font-opentype": "OpenType",
     "application-code": "Java Script",
     "applications-chart": "Graph View",
-    "system-activity": "Task Manager"
+    "system-activity": "Task Manager",
+    "network-workgroup": "My Network Places"
   },
   "exact": {
     "help-feedback": "dialog-information",
