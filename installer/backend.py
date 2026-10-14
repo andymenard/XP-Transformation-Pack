@@ -388,7 +388,7 @@ def firefox(home):
  module.install(home=home,source=BASE/'payload/firefox')
 
 def shortcuts(home,state,selected,asset_options=None):
- icons=state/'desktop-icons';copy(BASE/'payload/assets/desktop-icons',icons)
+ icons=home/'.local/share/icons/xp-desktop-shortcuts';copy(BASE/'payload/assets/desktop-icons',icons)
  if (asset_options or {}).get('hidpi_icons'):
   # Use the chosen bundle even when the system icon feature is deselected.
   with tempfile.TemporaryDirectory(prefix='xp-shortcut-icons-') as temp:
@@ -403,12 +403,26 @@ def shortcuts(home,state,selected,asset_options=None):
   'My Network Places':('network.png','remote:/'),'Recycle Bin':('trash-full.png','trash:/')}
  for name,(icon,url) in targets.items():
   p=desktop/(name+'.desktop')
-  if p.exists():log('Kept existing desktop shortcut: '+p.name);continue
+  if p.exists():
+   # Repair our legacy launcher after an old installer's private state was
+   # removed. Preserve custom launchers and all unrelated entry settings.
+   text=p.read_text()
+   legacy=str(state/'desktop-icons')+'/'
+   if 'Icon='+legacy in text:
+    text=re.sub(r'^Icon=.*$', 'Icon='+str(icons/icon), text, flags=re.MULTILINE)
+    if name=='Recycle Bin':text=re.sub(r'^EmptyIcon=.*$', 'EmptyIcon='+str(icons/'trash-empty.png'), text, flags=re.MULTILINE)
+    p.write_text(text);p.chmod(0o755)
+   else:log('Kept existing desktop shortcut: '+p.name)
+   continue
   text='[Desktop Entry]\nType=Link\nName='+name+'\nIcon='+str(icons/icon)+'\nURL='+url+'\n'
   if name=='Recycle Bin':text+='EmptyIcon='+str(icons/'trash-empty.png')+'\n'
   p.write_text(text);p.chmod(0o755)
  p=desktop/'Internet Explorer.desktop'
- if not p.exists():
+ if p.exists():
+  text=p.read_text()
+  if 'Icon='+str(state/'desktop-icons')+'/' in text:
+   p.write_text(re.sub(r'^Icon=.*$', 'Icon='+str(icons/'browser.png'), text, flags=re.MULTILINE));p.chmod(0o755)
+ else:
   command='"'+str(home/'.local/share/firefox-esr-ie6/launch')+'" %U' if 'firefox' in selected else 'xdg-open https://www.google.com/'
   p.write_text('[Desktop Entry]\nType=Application\nName=Internet Explorer\nComment=Modern browser with an XP-era desktop icon\nIcon='+str(icons/'browser.png')+'\nExec='+command+'\nTerminal=false\nStartupNotify=true\n');p.chmod(0o755)
 def codex(home,selected):
@@ -478,7 +492,7 @@ def install(selected,theme,asset_options=None):
    run(['kwriteconfig6','--file','ksplashrc','--group','KSplash','--key','Engine','none'])
    phase('Installing selected login and boot screens');root('screens',selected)
   if 'welcome_splash' in selected:phase('Installing XP Welcome desktop splash');welcome_splash(home)
-  snapshot.finish();(state/'installation.json').write_text(json.dumps({'version':4,'features':sorted(selected),'theme':theme,'asset_options':asset_options},indent=2)+'\n')
+  snapshot.finish();(state/'installation.json').write_text(json.dumps({'version':4,'edition':json.loads((BASE/'edition.json').read_text()) if (BASE/'edition.json').is_file() else None,'features':sorted(selected),'theme':theme,'asset_options':asset_options},indent=2)+'\n')
   phase('Installed successfully')
   log('Reopen applications to refresh their themes. No logout or reboot was performed.')
   if 'login' in selected or 'boot' in selected:log('Login and boot screens apply at the next login/reboot. Test the lock screen first.')
