@@ -15,6 +15,29 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def collect_wallpapers(source, saved_wallpapers):
+    # Keep the uncropped source, never substitute a widescreen/portrait crop.
+    photos=[]
+    for photo in sorted(source.rglob('*')):
+        if not photo.is_file() or photo.is_symlink():continue
+        relative=photo.relative_to(source)
+        if relative.parts[0] in {'User Account Pictures','Scanner & Camera Wizard'}:continue
+        if photo.suffix.lower() not in {'.jpg','.jpeg','.png','.bmp'}:continue
+        if re.search(r' \((?:\d+\s*[x×]\s*\d+|Alt|Alternative|Crop(?:ped)?|1080p|4K)\)$',photo.stem,re.I):continue
+        # Party Mode distributes several resolutions of the same picture.
+        resolution=re.search(r'_(\d{3,4})$',photo.stem)
+        if resolution:
+            family=photo.stem[:resolution.start()]
+            siblings=list(photo.parent.glob(family+'_*'+photo.suffix))
+            siblings=[p for p in siblings if re.fullmatch(re.escape(family)+r'_\d{3,4}',p.stem)]
+            if siblings and photo!=max(siblings,key=lambda p:int(p.stem.rsplit('_',1)[1])):continue
+        clean=re.sub(r' \((?:Unedited Version|Getty Images Rescan)\)$','',photo.stem,flags=re.I)+photo.suffix
+        name=' — '.join((*relative.parts[:-1],clean))
+        shutil.copy2(photo,saved_wallpapers/name)
+        photos.append({'file':name,'source':str(relative),'group':'stock' if len(relative.parts)==1 else relative.parts[0]})
+    (saved_wallpapers/'WALLPAPERS.json').write_text(json.dumps(photos,indent=2)+'\n')
+
+
 def sync(suite, icons=None, wallpapers=None):
     suite = Path(suite).resolve()
     if not (suite / 'payload/assets').is_dir() or not (suite / 'source').is_dir():
@@ -86,27 +109,7 @@ def sync(suite, icons=None, wallpapers=None):
         if saved_wallpapers.exists():
             shutil.rmtree(saved_wallpapers)
         saved_wallpapers.mkdir(parents=True)
-        for photo in sorted(source.rglob('*')):
-            if not photo.is_file() or photo.is_symlink(): continue
-            relative = photo.relative_to(source)
-            if relative.parts[0] in {'User Account Pictures', 'Scanner & Camera Wizard'}: continue
-            if photo.suffix.lower() not in {'.jpg', '.jpeg', '.png', '.bmp'}: continue
-            name = ' — '.join(relative.parts)
-            shutil.copy2(photo, saved_wallpapers / name)
-        # Prefer the largest landscape crop for the standard preset name.
-        # Keep every supplied variant visible under its own filename too.
-        from PIL import Image
-        for photo in source.glob('*.jpg'):
-            if re.search(r' \(\d+x\d+\)$',photo.stem):continue
-            candidates=[photo]+list(source.glob(photo.stem+' ([0-9]*x[0-9]*).jpg'))
-            scored=[]
-            for candidate in candidates:
-                with Image.open(candidate) as image:
-                    width,height=image.size
-                if width>=height:scored.append((width*height,candidate))
-            if scored:
-                chosen=max(scored,key=lambda pair:pair[0])[1]
-                shutil.copy2(chosen,saved_wallpapers/photo.name)
+        collect_wallpapers(source, saved_wallpapers)
         if (source / 'Notes.txt').is_file():
             shutil.copy2(source / 'Notes.txt', saved_wallpapers / 'SOURCE-NOTES.txt')
     if saved_wallpapers.exists():

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "app/editor/preview.h"
+#include "app/editor/wallpapercatalogue.h"
 #include "app/decoration.h"
 #include "app/panel.h"
 #include <QTest>
@@ -8,6 +9,22 @@
 class TestPreview : public QObject {
  Q_OBJECT
 private Q_SLOTS:
+ void wallpaperOrderAndVariants() {
+  QFileInfoList files={QFileInfo("Plus! — Plus! Space.jpg"),QFileInfo("Bliss (1920x1080).jpg"),QFileInfo("Sample Pictures — Winter.jpg"),QFileInfo("Azul.jpg"),QFileInfo("Bliss.jpg")};
+  xpl::editor::sortWallpapers(files);
+  QCOMPARE(files.size(),4);
+  QCOMPARE(files[0].fileName(),QString("Azul.jpg"));
+  QCOMPARE(files[1].fileName(),QString("Bliss.jpg"));
+  QCOMPARE(files[2].fileName(),QString("Plus! — Plus! Space.jpg"));
+ }
+ void fillWallpaperPreservesAspectAndCropsCenter() {
+  QImage image(4,2,QImage::Format_ARGB32);
+  for(int y=0;y<2;++y) for(int x=0;x<4;++x) image.setPixelColor(x,y,QList<QColor>{Qt::red,Qt::green,Qt::blue,Qt::yellow}[x]);
+  const QImage filled=xpl::preview::placeWallpaper(image,2,Qt::black,QSize(2,2));
+  QCOMPARE(filled.pixelColor(0,0),QColor(Qt::green));
+  QCOMPARE(filled.pixelColor(1,0),QColor(Qt::blue));
+ }
+
  void matchesGeneratedWindowBorders() {
   const QString root = qEnvironmentVariable("XPLASMA_PREVIEW_THEMES");
   if (root.isEmpty()) QSKIP("Set XPLASMA_PREVIEW_THEMES to an extracted XP theme library");

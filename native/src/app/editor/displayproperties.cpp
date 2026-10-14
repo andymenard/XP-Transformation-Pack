@@ -2,6 +2,7 @@
 #include "app/editor/displayproperties.h"
 
 #include "app/editor/abouttab.h"
+#include "app/editor/wallpapercatalogue.h"
 #include "app/editor/advanced.h"
 #include "app/editor/extras.h"
 #include "app/editor/jobs.h"
@@ -49,7 +50,7 @@ constexpr const char *kBrowse = "browse";
 constexpr const char *kSetup = "setup";
 
 // XP's Position drop-down, as Plasma FillModes.
-const std::pair<const char *, int> kPositions[] = {{"Center", 6}, {"Tile", 3}, {"Stretch", 0}};
+const std::pair<const char *, int> kPositions[] = {{"Center", 6}, {"Tile", 3}, {"Stretch", 0}, {"Fill", 2}};
 
 // The desktop the session shows now (Plasma's first image or colour
 // wallpaper), for the Desktop tab to open on.
@@ -683,6 +684,7 @@ void DisplayProperties::fillWallpapers()
     QFileInfoList files = QDir(paths::wallpapers()).entryInfoList({QStringLiteral("*.jpg"), QStringLiteral("*.jpeg"), QStringLiteral("*.png"),
                                                                     QStringLiteral("*.bmp"), QStringLiteral("*.gif")},
                                                                    QDir::Files, QDir::Name | QDir::IgnoreCase);
+    sortWallpapers(files);
     for (const QFileInfo &f : std::as_const(files)) {
         auto *item = new QListWidgetItem(f.completeBaseName());
         item->setData(Qt::UserRole, f.absoluteFilePath());
