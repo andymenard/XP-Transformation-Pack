@@ -9,3 +9,13 @@ CC0 icon recreations, appropriately licensed KDE-derived glyphs, credited Tux/KD
 Before publishing any full installer or OTA assets containing proprietary resources, review their redistribution permissions or replace them with appropriately licensed assets. The current source publication does not assert that those permissions have been obtained.
 
 References: https://www.microsoft.com/en-us/legal/intellectualproperty/copyright/permissions and https://www.gettyimages.com/eula . See CREDITS.md for known photographer metadata and unresolved entries.
+
+## Alpha 1.0 installer release
+
+The publisher has explicitly chosen to include their supplied original XP
+assets in the binary installer release. They remain separate from the code
+license: Microsoft and other original creators retain their copyrights. This
+records the publisher's distribution choice; it does not claim that GPL or
+attribution grants permission for third-party media. The source repository
+continues to exclude the original assets. The complete installer preserves
+component notices, provenance and credits, including the original XP avatars.
