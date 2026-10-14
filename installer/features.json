@@ -88,6 +88,14 @@
     "project": "desktop"
   },
   {
+    "id": "user_pictures",
+    "name": "Windows XP user account pictures",
+    "description": "Adds the 24 original XP portraits to System Settings \u2192 Users \u2192 Change avatar. Keeps your current picture.",
+    "default": true,
+    "native": false,
+    "project": "desktop"
+  },
+  {
     "id": "desktop_icons",
     "name": "Default XP desktop shortcuts",
     "description": "My Computer, My Documents, My Network Places, Internet Explorer and Recycle Bin.",

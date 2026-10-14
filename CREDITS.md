@@ -17,6 +17,7 @@ Credit the integration, adaptations and new work to the XPlasma transformation-p
 | DragonSWDev | [dsdmine](https://github.com/DragonSWDev/dsdmine) | Minesweeper implementation, MIT. |
 | Jonathan Verbeek and Annie Berend | [Qt Solitaire](https://github.com/iUltimateLP/solitaire) | Klondike implementation adapted to Qt6, MIT; original external media removed. |
 | rpatechnology | [ChatGPT-Clippy](https://github.com/rpatechnology/ChatGPT-Clippy) | Optional Clippy pet artwork; credit the project without assuming all Microsoft character rights are cleared. |
+| David Edmundson and KDE lock-screen contributors | [Plasma lock screen](https://invent.kde.org/plasma/plasma-workspace/-/tree/master/lookandfeel/contents/lockscreen) | MainBlock authentication UI adapted under LGPL-2.0-or-later; copyright and license retained. |
 | KDE community / KDE e.V. | [Plasma](https://kde.org/plasma-desktop/), [KIO](https://invent.kde.org/frameworks/kio), [Solid](https://invent.kde.org/frameworks/solid) | Desktop/widget foundations, file/network/trash and hardware integration; KDE logo. Retain each component's license. |
 | Uri Herrera and KDE Breeze contributors | [Breeze Icons](https://invent.kde.org/frameworks/breeze-icons) | Geometry for specialized XP-styled glyphs where no original XP counterpart exists; original artwork licenses retained. |
 | Larry Ewing and The GIMP | [Original Tux](https://isc.tamu.edu/~lewing/linux/), [GIMP](https://www.gimp.org/) | Tux artwork and required acknowledgement. |

@@ -69,6 +69,11 @@ def sync(suite, icons=None, wallpapers=None):
     arial = suite/'payload/assets/fonts/arialbi.ttf'
     if arial.is_file():
         shutil.copy2(arial, welcome_fonts/'arialbi.ttf')
+    for name in ['MainBlock.qml','AccountPicture.qml']:
+        shutil.copy2(ROOT/'themes/xp-lockscreen'/name,suite/'payload/templates/lockscreen'/name)
+    user_pictures=ROOT/'private-assets/user-pictures'
+    if user_pictures.is_dir():
+        shutil.copytree(user_pictures,suite/'payload/assets/user-pictures',dirs_exist_ok=True)
     browser = ROOT / 'browser/ie6'
     payload = suite / 'payload/firefox'
     for source, destination in [(browser / 'chrome', payload / 'profile/chrome'),

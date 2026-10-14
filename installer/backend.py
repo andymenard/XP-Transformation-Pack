@@ -348,6 +348,10 @@ def welcome_splash(home):
  config('ksplashrc','KSplash','Theme','local.xp.welcome.desktop')
  config('ksplashrc','KSplash','Engine','KSplashQML')
 
+def user_pictures(home):
+ copy(BASE/'payload/assets/user-pictures',home/'.local/share/plasma/avatars/windows-xp')
+ log('XP user pictures added to System Settings → Users → Change avatar; current picture preserved.')
+
 def lock_screen(home,state):
  src=Path('/usr/share/plasma/shells/org.kde.plasma.desktop');dest=home/'.local/share/plasma/shells/org.kde.plasma.desktop'
  dest.mkdir(parents=True);copy(src/'metadata.json',dest/'metadata.json');(dest/'contents').mkdir()
@@ -483,6 +487,7 @@ def install(selected,theme,asset_options=None):
   if 'behavior' in selected:phase('Applying window and alert behavior');behavior(home,state)
   if 'session' in selected:phase('Installing persistent XP session menus');session(home,state)
   desktop_updates(home,state,selected,asset_options)
+  if 'user_pictures' in selected:phase('Installing XP user account pictures');user_pictures(home)
   if 'lock' in selected:phase('Installing XP lock screen');lock_screen(home,state)
   if 'firefox' in selected:phase('Installing IE6-style Firefox ESR');firefox(home)
   if 'desktop_icons' in selected:phase('Adding XP desktop shortcuts');shortcuts(home,state,selected,asset_options)
