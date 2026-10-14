@@ -1,0 +1,17 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [{"Name": "XPlasma"}],
+        "Category": "Application Launchers",
+        "Description": "The Windows XP Start button and Start menu",
+        "EnabledByDefault": true,
+        "Icon": "start-here-kde",
+        "Id": "fyi.hotsocket.xplasma.start",
+        "License": "GPL-3.0-or-later",
+        "Name": "XP Start Button",
+        "Version": "2.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-Provides": ["org.kde.plasma.launchermenu"],
+    "X-XPlasma-Generated": true
+}

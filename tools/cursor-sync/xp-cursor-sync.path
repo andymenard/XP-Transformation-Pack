@@ -1,0 +1,7 @@
+[Unit]
+Description=Watch desktop cursor changes
+[Path]
+PathChanged=%h/.config/kcminputrc
+Unit=xp-cursor-sync.service
+[Install]
+WantedBy=default.target

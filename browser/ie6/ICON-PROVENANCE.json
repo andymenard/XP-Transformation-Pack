@@ -1,0 +1,105 @@
+{
+  "author": "marchmountain",
+  "license": "CC0-1.0",
+  "source": "https://github.com/marchmountain/-Windows-XP-High-Resolution-Icon-Pack/releases/tag/02",
+  "archive_sha256": "e7a688cdb15cf3d362e87270c564dc77f23ae7eedb545895c52a3cde4bed8fde",
+  "icons": {
+    "back": "Back",
+    "forward": "Forward",
+    "refresh": "IE Refresh",
+    "stop": "IE Stop",
+    "home": "IE Home",
+    "search": "Search",
+    "favorites": "Favorites",
+    "history": "IE History",
+    "print": "Printer",
+    "bookmark": "Favorites",
+    "info": "Information",
+    "secure": "Padlock",
+    "bookmark-folder": "Folder Closed",
+    "bookmark-folder-open": "Folder Opened",
+    "bookmark-page": "Internet Shortcut"
+  },
+  "adaptation": "1024px artist PNGs resized to 96px for HiDPI browser chrome",
+  "scope": "Only listed PNGs; original Microsoft flag/loading artwork and other assets retain their separate rights.",
+  "status_bar_assets": {
+    "artist": "marchmountain",
+    "license": "CC0",
+    "source": "https://github.com/marchmountain/-Windows-XP-High-Resolution-Icon-Pack/releases/tag/02",
+    "files": {
+      "status-ie.png": "Internet Explorer 6.png",
+      "status-internet.png": "Internet Shortcut.png",
+      "status-local.png": "My Computer.png"
+    }
+  },
+  "toolbar_additions": {
+    "artist": "marchmountain",
+    "license": "CC0",
+    "source": "https://github.com/marchmountain/-Windows-XP-High-Resolution-Icon-Pack/releases/tag/02",
+    "files": {
+      "mail.png": "Email",
+      "edit-page.png": "IE Edit",
+      "discuss.png": "Windows Messenger"
+    }
+  },
+  "browser_icon_coverage": {
+    "author": "marchmountain",
+    "license": "CC0",
+    "source": "https://github.com/marchmountain/-Windows-XP-High-Resolution-Icon-Pack/releases/tag/02",
+    "files": {
+      "downloads.png": "Copy To",
+      "settings.png": "Control Panel",
+      "addon.png": "Add or Remove Windows Components",
+      "reader.png": "Wordpad",
+      "translate.png": "Regional Settings",
+      "camera.png": "Digital Camera",
+      "microphone.png": "Speech",
+      "speaker.png": "Volume",
+      "screen.png": "Display Properties",
+      "notification.png": "Alert",
+      "storage.png": "Local Disk",
+      "password.png": "Key",
+      "security-ok.png": "Security - Ok",
+      "security-warning.png": "Security Alert",
+      "security-error.png": "Security Error",
+      "privacy.png": "Privacy",
+      "location.png": "My Network Places",
+      "serial.png": "Serial Connection",
+      "midi.png": "Generic Audio",
+      "image-file.png": "Bitmap",
+      "audio-file.png": "Generic Audio",
+      "video-file.png": "Generic Video",
+      "document-file.png": "Generic Document",
+      "text-file.png": "TXT",
+      "program-file.png": "Default",
+      "archive-file.png": "Zip folder",
+      "pdf-file.png": "XPS document",
+      "menu.png": "Programs",
+      "notes.png": "StickyNotes",
+      "pin.png": "Shortcut overlay",
+      "certificate.png": "Certificate",
+      "help.png": "Help and Support",
+      "open-window.png": "Folders open in new window",
+      "delete.png": "Delete",
+      "network.png": "Network Connection",
+      "play.png": "Play",
+      "xr.png": "Game Controller",
+      "drm.png": "WMP Copy Protected Music"
+    },
+    "adaptation": "Blocked-permission variants add a red/white slash. Classic close/arrow glyphs are XPlasma GPL-3.0-or-later code-native vectors."
+  },
+  "application_icon": {
+    "artist": "marchmountain",
+    "license": "CC0",
+    "file": "Internet Explorer 6.png",
+    "sizes": [
+      16,
+      32,
+      48,
+      64,
+      128,
+      256
+    ],
+    "source": "https://github.com/marchmountain/-Windows-XP-High-Resolution-Icon-Pack/releases/tag/02"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "notes": "Describe the changes and validation for this release.",
+  "files": [
+    {
+      "source": "/path/to/reviewed/notepad.py",
+      "target": ".local/share/xp-accessories/notepad.py",
+      "feature": "notepad",
+      "mode": 420
+    },
+    {
+      "source": "/path/to/amd64/qt-6.10/libxplasma.so",
+      "target": ".local/lib/qt6/plugins/styles/libxplasma.so",
+      "feature": "apps",
+      "features_any": ["desktop", "theme_manager"],
+      "arch": "amd64",
+      "qt": "6.10",
+      "mode": 493
+    }
+  ]
+}

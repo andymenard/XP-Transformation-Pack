@@ -1,0 +1,10 @@
+{
+  "source": "User-supplied Windows XP SP3 ISO, shell32.dll",
+  "sha256": "7c201e812138e2b9cbc2aa94e41d5573775d893b8104833a997acc79486d9a3a",
+  "resource_type": "BITMAP",
+  "resource_id": 242,
+  "frames": 50,
+  "size": 38,
+  "adaptation": "Complete original frames packaged as APNG on their original white background; no warped/recreated frames",
+  "license": "Original Microsoft artwork; not covered by the CC0 icon recreation license"
+}

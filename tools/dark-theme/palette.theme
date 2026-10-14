@@ -1,0 +1,48 @@
+; SPDX-License-Identifier: GPL-3.0-or-later
+; Original XPlasma palette, using original Zune shell artwork and XP Tahoma metrics.
+[Theme]
+DisplayName=Zune Dark
+
+[Control Panel\Colors]
+Scrollbar=58 65 77
+Background=18 27 42
+ActiveTitle=21 56 113
+InactiveTitle=43 49 61
+Menu=39 45 56
+Window=25 30 39
+WindowFrame=12 16 24
+MenuText=233 237 244
+WindowText=233 237 244
+TitleText=255 255 255
+ActiveBorder=61 70 85
+InactiveBorder=44 51 63
+AppWorkspace=20 25 33
+Hilight=133 72 21
+HilightText=255 255 255
+ButtonFace=49 57 70
+ButtonShadow=25 31 41
+GrayText=154 163 179
+ButtonText=233 237 244
+InactiveTitleText=185 194 209
+ButtonHilight=118 133 154
+ButtonDkShadow=10 14 21
+ButtonLight=78 90 108
+InfoText=245 238 214
+InfoWindow=56 53 42
+ButtonAlternateFace=60 69 83
+HotTrackingColor=255 186 112
+GradientActiveTitle=48 99 167
+GradientInactiveTitle=61 70 87
+MenuHilight=133 72 21
+MenuBar=39 45 56
+
+[Control Panel\Desktop]
+Wallpaper=
+WallpaperStyle=2
+TileWallpaper=0
+
+[Control Panel\Cursors]
+DefaultValue=Windows Default
+
+[XPlasma]
+BaseStyle=Zune

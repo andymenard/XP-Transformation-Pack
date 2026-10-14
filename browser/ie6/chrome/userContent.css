@@ -1,0 +1,31 @@
+/* XP icons for Firefox internal pages only; websites are unaffected. */
+@-moz-document url-prefix("about:preferences"), url-prefix("about:addons"), url-prefix("about:downloads"), url-prefix("about:logins"), url-prefix("about:protections") {
+/* Built-in icon resource attributes in popup/component markup. */
+:is(image,img)[src^="chrome://"][src$="/settings.svg"], :is(image,img)[src^="resource://"][src$="/settings.svg"] { content:url("ie6-icons/settings.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/help.svg"], :is(image,img)[src^="resource://"][src$="/help.svg"] { content:url("ie6-icons/help.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/info.svg"], :is(image,img)[src^="resource://"][src$="/info.svg"] { content:url("ie6-icons/info.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/info-filled.svg"], :is(image,img)[src^="resource://"][src$="/info-filled.svg"] { content:url("ie6-icons/info.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/warning.svg"], :is(image,img)[src^="resource://"][src$="/warning.svg"] { content:url("ie6-icons/security-warning.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/error.svg"], :is(image,img)[src^="resource://"][src$="/error.svg"] { content:url("ie6-icons/security-error.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/folder.svg"], :is(image,img)[src^="resource://"][src$="/folder.svg"] { content:url("ie6-icons/bookmark-folder.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/close.svg"], :is(image,img)[src^="resource://"][src$="/close.svg"] { content:url("ie6-icons/close.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/close-12.svg"], :is(image,img)[src^="resource://"][src$="/close-12.svg"] { content:url("ie6-icons/close.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/page-portrait.svg"], :is(image,img)[src^="resource://"][src$="/page-portrait.svg"] { content:url("ie6-icons/document-file.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/extension.svg"], :is(image,img)[src^="resource://"][src$="/extension.svg"] { content:url("ie6-icons/addon.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/chevron.svg"], :is(image,img)[src^="resource://"][src$="/chevron.svg"] { content:url("ie6-icons/overflow.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/arrow-down.svg"], :is(image,img)[src^="resource://"][src$="/arrow-down.svg"] { content:url("ie6-icons/tab-list.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/arrow-right.svg"], :is(image,img)[src^="resource://"][src$="/arrow-right.svg"] { content:url("ie6-icons/arrow-right.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/search-glass.svg"], :is(image,img)[src^="resource://"][src$="/search-glass.svg"] { content:url("ie6-icons/search.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/login.svg"], :is(image,img)[src^="resource://"][src$="/login.svg"] { content:url("ie6-icons/password.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/translations.svg"], :is(image,img)[src^="resource://"][src$="/translations.svg"] { content:url("ie6-icons/translate.png") !important; }
+
+#category-general .category-icon { list-style-image:url("ie6-icons/settings.png") !important; }
+#category-home .category-icon { list-style-image:url("ie6-icons/home.png") !important; }
+#category-search .category-icon { list-style-image:url("ie6-icons/search.png") !important; }
+#category-privacy .category-icon { list-style-image:url("ie6-icons/privacy.png") !important; }
+#category-sync .category-icon { list-style-image:url("ie6-icons/refresh.png") !important; }
+#category-experimental .category-icon { list-style-image:url("ie6-icons/addon.png") !important; }
+.downloadIconCancel .button-icon { list-style-image:url("ie6-icons/close.svg") !important; }
+.downloadIconShow .button-icon { list-style-image:url("ie6-icons/bookmark-folder-open.png") !important; }
+.downloadIconRetry .button-icon { list-style-image:url("ie6-icons/refresh.png") !important; }
+}

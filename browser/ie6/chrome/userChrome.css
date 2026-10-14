@@ -1,0 +1,494 @@
+@import url("dark-mode.css");
+/* IE6 replica for Firefox ESR 153 on Linux.
+ * Artwork: matthewmx86/RetroThemesFirefox, BSD-2-Clause; see bundled license.
+ */
+:root {
+  --toolbar-bgcolor: #ece9d8 !important;
+  --toolbar-color: #000 !important;
+  --toolbar-field-background-color: #fff !important;
+  --toolbar-field-color: #000 !important;
+  --toolbarbutton-border-radius: 2px !important;
+  --tab-min-height: 24px !important;
+  --urlbar-min-height: 24px !important;
+}
+#navigator-toolbox, #navigator-toolbox toolbar {
+  background: #ece9d8 !important;
+  color: black !important;
+  font: 11px Tahoma, sans-serif !important;
+}
+#toolbar-menubar { visibility: visible !important; min-height: 24px !important; border-bottom: 1px solid #aca899 !important; padding-inline: 8px 43px !important; background-image: url("image/menu_bar_handle.png") !important; background-repeat: no-repeat !important; background-size: 100% 100% !important; }
+#menubar-items { visibility: visible !important; }
+#toolbar-menubar menu { padding: 3px 6px !important; }
+#nav-bar { border-top: 1px solid white !important; border-bottom: 1px solid #aca899 !important; padding: 2px 4px 2px 8px !important; box-shadow: none !important; }
+#nav-bar-customization-target { display: flex !important; flex-wrap: nowrap !important; align-items: center !important; position: relative !important; margin-bottom: 30px !important; overflow: visible !important; }
+#nav-bar .toolbarbutton-1 { padding: 2px !important; margin: 0 1px !important; border: 1px solid transparent !important; border-radius: 2px !important; }
+#nav-bar .toolbarbutton-1:hover:not([disabled]) { border-color: #fff #aca899 #aca899 #fff !important; background: #f4f1e8 !important; }
+#nav-bar .toolbarbutton-1:active:not([disabled]) { border-color: #aca899 #fff #fff #aca899 !important; background: #dedacd !important; }
+#nav-bar :is(#back-button,#forward-button,#stop-button,#reload-button,#home-button,#bookmarks-menu-button,#history-panelmenu,#downloads-button,#print-button) .toolbarbutton-icon {
+
+  width: 18px !important; height: 18px !important;
+  padding: 0 !important; margin: 3px !important;
+  background: none !important; border-radius: 0 !important;
+}
+#back-button .toolbarbutton-icon { list-style-image: url("ie6-icons/back.png") !important; }
+#forward-button .toolbarbutton-icon { list-style-image: url("ie6-icons/forward.png") !important; }
+#reload-button .toolbarbutton-icon { list-style-image: url("ie6-icons/refresh.png") !important; }
+#stop-button .toolbarbutton-icon { list-style-image: url("ie6-icons/stop.png") !important; }
+#home-button .toolbarbutton-icon { list-style-image: url("ie6-icons/home.png") !important; }
+#bookmarks-menu-button .toolbarbutton-icon { list-style-image: url("ie6-icons/favorites.png") !important; }
+#history-panelmenu .toolbarbutton-icon { list-style-image: url("ie6-icons/history.png") !important; }
+#downloads-button .toolbarbutton-icon { list-style-image: url("ie6-icons/downloads.png") !important; }
+#print-button .toolbarbutton-icon { list-style-image: url("ie6-icons/print.png") !important; }
+#nav-bar .toolbarbutton-1[disabled] { opacity: .5 !important; }
+#back-button .toolbarbutton-text { display: flex !important; padding-inline-end: 5px !important; }
+#bookmarks-menu-button .toolbarbutton-text, #history-panelmenu .toolbarbutton-text { display: flex !important; margin-inline: 4px !important; }
+#urlbar-container { position: absolute !important; inset-inline: 0 !important; top: 100% !important; width: 100% !important; box-sizing: border-box !important; min-width: 0 !important; margin: 3px 0 0 !important; padding: 0 !important; min-height: 27px !important; }
+#urlbar { border-radius: 0 !important; font: 11px Tahoma, sans-serif !important; }
+#urlbar-background, .urlbar-background { background: #fff !important; border: 1px solid !important; border-color: #7f9db9 !important; border-radius: 0 !important; box-shadow: none !important; }
+#urlbar-input-container, .urlbar-input-container { padding-block: 0 !important; }
+#search-container { flex: 0 1 155px !important; min-width: 110px !important; margin: 1px 8px !important; }
+#searchbar { border-radius: 0 !important; background: white !important; border: 1px solid #7f9db9 !important; min-height: 23px !important; }
+#PersonalToolbar { min-height: 23px !important; padding: 0 8px !important; border-top: 1px solid white !important; border-bottom: 1px solid #aca899 !important; }
+#TabsToolbar { order: 10 !important; min-height: 24px !important; }
+#TabsToolbar:not(:has(.tabbrowser-tab:not([hidden]) ~ .tabbrowser-tab:not([hidden]))) { display: none !important; }
+.tab-background { border-radius: 0 !important; margin: 0 !important; box-shadow: none !important; }
+.tab-background[selected] { background: #fff !important; border: 1px solid #7f9db9 !important; }
+.titlebar-buttonbox-container, #sidebar-main, #sidebar-button { display: none !important; }
+#browser-bottombox { display: flex !important; min-height: 21px !important; background: #ece9d8 !important; border-top: 1px solid #aca899 !important; }
+#statuspanel { max-width: 80% !important; bottom: 1px !important; left: 0 !important; margin: 0 !important; }
+#statuspanel-label { background: #ece9d8 !important; color: black !important; border-radius: 0 !important; border: 0 !important; padding: 2px 6px !important; font: 11px Tahoma, sans-serif !important; }
+/* Classic menu access replaces the modern app-menu control. */
+#PanelUI-button { display: none !important; }
+
+#unified-extensions-button { display: none !important; }
+#nav-bar .toolbarbutton-1[disabled] .toolbarbutton-icon { filter: grayscale(1) !important; }
+#bookmarks-menu-button .toolbarbutton-text { font-size: 0 !important; }
+#bookmarks-menu-button .toolbarbutton-text::after { content: "Favorites"; font: 11px Tahoma, sans-serif; }
+
+
+#history-menu { display: none !important; }
+#bookmarksMenu .menu-text { font-size: 0 !important; }
+#bookmarksMenu .menu-text::after { content: "Favorites"; font: 11px Tahoma, sans-serif; }
+#urlbar-container::before { content: "Address"; position:absolute; top:6px; left:0; font:11px Tahoma,sans-serif; color:black; }
+#urlbar { width: calc(var(--urlbar-width) - 50px) !important; margin-inline-start: 50px !important; }
+#browser { position: relative !important; padding-bottom: 21px !important; }
+#browser::after { content: "Done"; position:absolute; inset:auto 0 0; height:21px; box-sizing:border-box; padding:3px 6px; border-top:1px solid #aca899; background:#ece9d8; color:black; font:11px Tahoma,sans-serif; pointer-events:none; z-index:1; }
+:root:has(.tabbrowser-tab[selected][busy]) #browser::after { content: "Opening page..."; }
+#statuspanel { z-index:2 !important; }
+
+#profiles-menu { display:none !important; }
+/* Reference toolbar: larger XP buttons and separate Stop / Refresh. */
+#nav-bar .toolbarbutton-1 .toolbarbutton-icon { width:24px !important; height:24px !important; }
+#stop-reload-button { display:flex !important; }
+#stop-reload-button > :is(#stop-button,#reload-button) { display:flex !important; visibility:visible !important; }
+#stop-button { order:0 !important; }
+#reload-button { order:1 !important; }
+#history-panelmenu .toolbarbutton-text { display:none !important; }
+#urlbar-go-button { display:flex !important; list-style-image:url("ie6-icons/forward.png") !important; width:22px !important; height:22px !important; }
+#PersonalToolbar:empty { display:none !important; }
+#nav-bar :is(#back-button,#forward-button,#stop-button,#reload-button,#home-button,#bookmarks-menu-button,#history-panelmenu,#downloads-button,#print-button) .toolbarbutton-icon { width:24px !important; height:24px !important; }
+#personal-toolbar-empty-description { display:none !important; }
+/* Actual IE6-style controls supplied by the local toolbar configuration. */
+#search-container { display:none !important; }
+#ie6-search-button { list-style-image:url("ie6-icons/search.png") !important; }
+#ie6-search-button .toolbarbutton-text { display:flex !important; padding-inline:4px !important; }
+#ie6-search-button .toolbarbutton-icon { width:24px !important; height:24px !important; padding:0 !important; }
+#urlbar-container { padding-inline-end:55px !important; }
+#ie6-go-button { position:absolute !important; right:0 !important; top:2px !important; width:51px !important; height:24px !important; list-style-image:url("ie6-icons/forward.png") !important; padding:1px !important; }
+#ie6-go-button .toolbarbutton-icon { width:20px !important; height:20px !important; }
+#ie6-go-button .toolbarbutton-text { display:flex !important; margin-inline:3px !important; }
+#urlbar-go-button { display:none !important; }
+#toolbar-menubar { padding-inline-end:0 !important; background-image:none !important; }
+#ie6-windows-logo { width:38px !important; height:24px !important; margin-inline-start:auto !important; padding:2px 7px !important; box-sizing:border-box !important; background:white !important; border-left:1px solid #aca899 !important; list-style-image:url("ie6-icons/windows.svg") !important; }
+#toolbar-menubar { position:relative !important; padding-inline-end:40px !important; }
+#ie6-windows-logo { position:absolute !important; right:0 !important; top:0 !important; }
+#urlbar { width:calc(var(--urlbar-width) - 105px) !important; }
+#ie6-go-button { z-index:5 !important; }
+/* Raised XP property-sheet tabs, with the Luna selected-tab accent. */
+#TabsToolbar { background:#ece9d8 !important; padding:4px 5px 0 !important; border-bottom:1px solid #919b9c !important; }
+.tabbrowser-tab { padding-inline:1px !important; min-height:29px !important; font:11px Tahoma,sans-serif !important; color:#000 !important; }
+.tab-stack { margin-top:2px !important; }
+.tab-background { background:linear-gradient(#faf9f3,#e7e3d4) !important; border:1px solid #919b9c !important; border-radius:3px 3px 0 0 !important; box-shadow:inset 1px 1px #fff,inset -1px 0 #d5d0bf !important; margin:0 !important; }
+.tabbrowser-tab[selected] .tab-stack { margin-top:0 !important; }
+.tabbrowser-tab[selected] .tab-background { background:linear-gradient(#fff,#fcfcf8) !important; border-color:#919b9c !important; border-top:3px solid #e9a431 !important; border-bottom-color:#fcfcf8 !important; box-shadow:inset 1px 0 white,inset -1px 0 white !important; }
+.tabbrowser-tab:hover:not([selected]) .tab-background { background:linear-gradient(#fffdf5,#f0ecdf) !important; border-top-color:#e9a431 !important; }
+.tab-content { padding-inline:8px !important; }
+.tab-close-button { border:1px solid transparent !important; border-radius:2px !important; padding:2px !important; width:16px !important; height:16px !important; }
+.tab-close-button:hover { background:#f8f5eb !important; border-color:#fff #919b9c #919b9c #fff !important; }
+/* Keep the native security state and warnings; change only their artwork. */
+#trust-icon { list-style-image:url("ie6-icons/info.png") !important; -moz-context-properties:none !important; }
+#trust-icon-container.secure #trust-icon,
+#trust-icon-container.secureConnection #trust-icon,
+#identity-box.secureConnection #identity-icon,
+#identity-box.verifiedDomain #identity-icon { list-style-image:url("ie6-icons/secure.png") !important; }
+#identity-box:not(.secureConnection):not(.verifiedDomain) #identity-icon,
+#urlbar-revert-button { list-style-image:url("ie6-icons/page.png") !important; }
+#star-button { list-style-image:url("ie6-icons/bookmark.png") !important; opacity:.65 !important; }
+#star-button[starred] { opacity:1 !important; }
+#trust-icon, #identity-icon { width:16px !important; height:16px !important; }
+#identity-icon-box, #trust-icon-container { border-radius:0 !important; }
+.searchmode-switcher::part(button) { border-radius:0 !important; }
+/* XP combo-button bevel for the address-bar search selector. */
+#urlbar .searchmode-switcher::part(button) {
+ background:linear-gradient(#fffef9,#ece9d8) !important;
+ border:1px solid #7f9db9 !important;
+ border-radius:2px !important;
+ box-shadow:inset 1px 1px white,inset -1px -1px #d5d0bf !important;
+ padding:0 3px !important;
+ min-height:20px !important;
+}
+#urlbar .searchmode-switcher:hover::part(button) {
+ background:linear-gradient(#fffdf0,#f6e7c2) !important;
+ border-color:#e3b35a !important;
+}
+#urlbar .searchmode-switcher:active::part(button) {
+ background:#dedacd !important;
+ box-shadow:inset 1px 1px #aaa596 !important;
+}
+#urlbar .searchmode-switcher-dropmarker {
+ background:linear-gradient(#f5f9ff,#c4d7f2) !important;
+ border:1px solid #7f9db9 !important;
+ border-radius:1px !important;
+ box-shadow:inset 1px 1px #fff !important;
+ width:13px !important;
+ height:17px !important;
+ padding:2px !important;
+ box-sizing:border-box !important;
+ margin-inline-start:3px !important;
+}
+#ie6-new-tab-button { list-style-image:url("ie6-icons/new-tab.png") !important; }
+#ie6-new-tab-button .toolbarbutton-icon { width:24px !important; height:24px !important; padding:0 !important; margin:3px !important; }
+#ie6-windows-logo { list-style-image:url("ie6-icons/windows.png") !important; }
+/* Original 22x22 Explorer/IE idle flag; preserve its native proportions. */
+#ie6-windows-logo { width:36px !important; height:24px !important; padding:1px 7px !important; }
+
+/* IE6 reference toolbar refinement (2026-10-11). */
+#nav-bar-customization-target { margin-bottom:25px !important; }
+#nav-bar .toolbarbutton-1 { padding:1px !important; margin-inline:0 !important; }
+#nav-bar .toolbarbutton-1 .toolbarbutton-icon { margin:2px !important; }
+#ie6-search-button .toolbarbutton-icon, #ie6-new-tab-button .toolbarbutton-icon { margin:2px !important; }
+#back-button .toolbarbutton-text { padding-inline-end:3px !important; }
+#bookmarks-menu-button .toolbarbutton-text { margin-inline:3px !important; }
+#home-button { border-right:1px solid #aca899 !important; margin-inline-end:4px !important; padding-inline-end:5px !important; }
+#history-panelmenu { border-right:1px solid #aca899 !important; margin-inline-end:4px !important; padding-inline-end:5px !important; }
+#urlbar-container { min-height:23px !important; margin-top:2px !important; padding-inline-end:55px !important; }
+#urlbar-container::before { top:4px !important; }
+#urlbar { --urlbar-height:22px !important; --urlbar-container-height:22px !important; height:22px !important; min-height:22px !important; }
+#urlbar .urlbar-input-container { min-height:20px !important; height:20px !important; padding:0 2px !important; gap:0 !important; }
+#urlbar .urlbar-input-box { min-width:0 !important; }
+#urlbar-input { font:11px Tahoma,sans-serif !important; }
+#ie6-go-button { height:22px !important; top:1px !important; }
+#urlbar .searchmode-switcher { order:100 !important; margin-inline:2px 0 !important; padding:0 !important; align-self:center !important; }
+#urlbar .searchmode-switcher::part(button) { background:transparent !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; padding:0 !important; min-height:0 !important; }
+#urlbar .searchmode-switcher-dropmarker { width:15px !important; height:17px !important; margin:0 !important; padding:3px !important; box-sizing:border-box !important; border:0 !important; background:none !important; box-shadow:none !important; }
+#permissions-granted-icon { list-style-image:url("ie6-icons/info.png") !important; -moz-context-properties:none !important; }
+#urlbar #page-action-buttons .urlbar-icon { width:16px !important; height:16px !important; }
+#ie6-windows-logo[loading] { list-style-image:url("ie6-icons/windows-loading.png") !important; }
+
+#ie6-address-dropdown { order:101 !important; width:17px !important; min-width:17px !important; height:19px !important; min-height:19px !important; margin:0 0 0 2px !important; padding:3px !important; border:1px solid #7f9db9 !important; border-radius:0 !important; background:linear-gradient(#fffef9,#e3e9f3) !important; box-shadow:inset 1px 1px white,inset -1px -1px #c5cee0 !important; list-style-image:url("ie6-icons/address-dropdown.svg") !important; }
+#ie6-address-dropdown:hover { background:linear-gradient(#fffdf0,#f6e7c2) !important; }
+#ie6-address-dropdown:active { box-shadow:inset 1px 1px #aaa596 !important; }
+#ie6-address-dropdown .toolbarbutton-icon { width:9px !important; height:9px !important; }
+#ie6-address-dropdown .toolbarbutton-text { display:none !important; }
+#urlbar:has(.searchmode-switcher:not([offscreen])) #ie6-address-dropdown { display:none !important; }
+
+/* XP bookmark and tab-strip controls (2026-10-11). */
+#PersonalToolbar .bookmark-item { font:11px Tahoma,sans-serif !important; padding:1px 3px !important; margin:0 1px !important; border:1px solid transparent !important; border-radius:0 !important; }
+#PersonalToolbar .bookmark-item:hover { border-color:white #aca899 #aca899 white !important; background:#f4f1e8 !important; }
+#PersonalToolbar .bookmark-item[open] { border-color:#aca899 white white #aca899 !important; background:#dedacd !important; }
+#PersonalToolbar .bookmark-item .toolbarbutton-icon { width:16px !important; height:16px !important; margin-inline-end:3px !important; -moz-context-properties:none !important; }
+#PersonalToolbar .bookmark-item[container] { list-style-image:url("ie6-icons/bookmark-folder.png") !important; }
+#PersonalToolbar .bookmark-item[container][open] { list-style-image:url("ie6-icons/bookmark-folder-open.png") !important; }
+#PersonalToolbar .bookmark-item:not([container]):not([image]),
+#PersonalToolbar .bookmark-item:not([container])[image=""],
+#PersonalToolbar .bookmark-item[image^="chrome://global/skin/icons/defaultFavicon"],
+#PersonalToolbar .bookmark-item[image^="chrome://mozapps/skin/places/defaultFavicon"] { list-style-image:url("ie6-icons/bookmark-page.png") !important; }
+#PlacesChevron .toolbarbutton-icon,
+#nav-bar-overflow-button .toolbarbutton-icon { list-style-image:url("ie6-icons/overflow.svg") !important; width:10px !important; height:9px !important; padding:0 !important; }
+#alltabs-button .toolbarbutton-icon { list-style-image:url("ie6-icons/tab-list.svg") !important; width:9px !important; height:9px !important; padding:0 !important; }
+#alltabs-button, #PlacesChevron, #nav-bar-overflow-button { border:1px solid transparent !important; border-radius:0 !important; padding:2px 4px !important; box-shadow:none !important; }
+#alltabs-button:hover, #PlacesChevron:hover, #nav-bar-overflow-button:hover { border-color:white #aca899 #aca899 white !important; background:#f4f1e8 !important; }
+#tabs-newtab-button, #new-tab-button { list-style-image:url("ie6-icons/new-tab.png") !important; border:1px solid #aca899 !important; border-radius:2px !important; background:linear-gradient(#fffef9,#ece9d8) !important; box-shadow:inset 1px 1px white,inset -1px -1px #d5d0bf !important; padding:2px !important; margin:3px 4px !important; min-width:24px !important; height:24px !important; }
+#tabs-newtab-button .toolbarbutton-icon, #new-tab-button .toolbarbutton-icon { width:16px !important; height:16px !important; padding:0 !important; margin:0 !important; }
+#tabs-newtab-button:hover, #new-tab-button:hover { border-color:#7f9db9 !important; background:#fff3d6 !important; }
+#tabs-newtab-button:active, #new-tab-button:active { box-shadow:inset 1px 1px #aaa596 !important; }
+
+#PersonalToolbar .bookmark-item[xp-default-favicon] .toolbarbutton-icon { list-style-image:url("ie6-icons/bookmark-page.png") !important; }
+
+/* Clear XP plus and opaque focused address/results surfaces. */
+#tabs-newtab-button, #new-tab-button, #ie6-new-tab-button { list-style-image:url("ie6-icons/new-tab-plus.svg") !important; }
+#urlbar, #urlbar[focused], #urlbar[breakout-extend],
+#urlbar .urlbar-input-container, #urlbar-input,
+#urlbar .urlbarView { background-color:white !important; color:black !important; opacity:1 !important; }
+#urlbar .urlbarView { border:1px solid #7f9db9 !important; border-radius:0 !important; box-shadow:1px 2px 3px #0004 !important; margin-inline:0 !important; }
+#urlbar { --urlbarView-highlight-background:#316ac5 !important; --urlbarView-highlight-color:white !important; }
+#urlbar .urlbarView-type-icon { background-image:url("ie6-icons/history.png") !important; background-color:transparent !important; mask-image:none !important; background-size:16px 16px !important; background-repeat:no-repeat !important; background-position:center !important; }
+#urlbar .urlbarView-row[type="search"] .urlbarView-type-icon { background-image:url("ie6-icons/search.png") !important; }
+#urlbar .urlbarView-row[type="bookmark"] .urlbarView-type-icon { background-image:url("ie6-icons/bookmark.png") !important; }
+
+#urlbar .urlbarView-favicon[src="chrome://global/skin/icons/search-glass.svg"] { content:url("ie6-icons/search.png") !important; }
+#urlbar .urlbarView-favicon[src^="chrome://global/skin/icons/defaultFavicon"],
+#urlbar .urlbarView-favicon[src^="chrome://mozapps/skin/places/defaultFavicon"] { content:url("ie6-icons/bookmark-page.png") !important; }
+#urlbar .urlbarView-row[type="switchtab"] .urlbarView-type-icon { background-image:url("ie6-icons/new-tab-plus.svg") !important; }
+
+/* Square XP autocomplete rows, action chips and popup corners. */
+#urlbar-background, #urlbar .urlbar-background, #urlbar .urlbarView,
+#urlbar .urlbarView-row, #urlbar .urlbarView-row-inner,
+#urlbar .urlbarView-row-buttons, #urlbar .urlbarView button,
+#urlbar .urlbarView .urlbarView-button,
+#urlbar .urlbarView moz-button::part(button) { border-radius:0 !important; }
+#urlbar .urlbarView { --button-border-radius:0px !important; --border-radius-small:0px !important; --border-radius-medium:0px !important; }
+#urlbar .urlbarView-row-inner[selected],
+#urlbar .urlbarView-row[selected] .urlbarView-row-inner { background-color:#316ac5 !important; color:white !important; }
+
+#urlbar .urlbarView-action-btn { border-radius:0 !important; border:1px solid !important; border-color:white #aca899 #aca899 white !important; background:linear-gradient(#fffef9,#ece9d8) !important; font:11px Tahoma,sans-serif !important; }
+#urlbar .urlbarView-action-btn:hover { background:#fff3d6 !important; }
+#urlbar .urlbarView-action-btn:active { border-color:#aca899 white white #aca899 !important; }
+#urlbar .urlbarView-action-btn img[src="chrome://browser/skin/bookmark.svg"] { content:url("ie6-icons/bookmark.png") !important; }
+
+/* The input container has its own Firefox radius, separate from popup rows. */
+#urlbar, #urlbar .urlbar-input-container, #urlbar .urlbar-input-box,
+#urlbar-input, #urlbar .searchmode-switcher-dropmarker { border-radius:0 !important; }
+
+/* XP context and popup menus: text-only rows, compact Tahoma and square edges. */
+menupopup {
+  --panel-background: #ffffff !important;
+  --panel-color: #000000 !important;
+  --panel-border-color: #aca899 !important;
+  --panel-border-radius: 0px !important;
+  --panel-padding: 2px !important;
+  --arrowpanel-background: #ffffff !important;
+  --arrowpanel-color: #000000 !important;
+  font: 11px Tahoma, sans-serif !important;
+  border-radius: 0 !important;
+}
+menupopup::part(content) { background: #ffffff !important; color: #000 !important; border: 1px solid #aca899 !important; border-radius: 0 !important; padding: 2px !important; }
+menupopup menuitem, menupopup menu {
+  appearance: none !important; font: 11px Tahoma, sans-serif !important;
+  min-height: 17px !important; padding-block: 0px !important;
+  padding-inline: 2px !important; margin: 0 !important;
+  border: 0 !important; border-radius: 0 !important; color: #000 !important;
+}
+menupopup menuitem[_moz-menuactive="true"], menupopup menu[_moz-menuactive="true"] { background: #316ac5 !important; color: #fff !important; }
+menupopup menuitem[disabled="true"], menupopup menu[disabled="true"] { color: #aca899 !important; }
+menupopup menuitem:not([type]) .menu-iconic-icon, menupopup menu .menu-iconic-icon { visibility: hidden !important; }
+menupopup .menu-iconic-left { min-width: 16px !important; width: 16px !important; margin-inline: 0 !important; }
+menupopup menuseparator { appearance: none !important; border: 0 !important; border-top: 1px solid #aca899 !important; margin: 4px 1px !important; padding: 0 !important; min-height: 0 !important; }
+/* Firefox's navigation commands remain available as normal text rows. */
+#context-navigation { display: block !important; padding: 0 !important; background: transparent !important; }
+#context-navigation > menuitem { width: auto !important; }
+#context-navigation .menu-iconic-text { display: flex !important; }
+#context-navigation .menu-iconic-icon { visibility: hidden !important; }
+
+/* IE6 toolbar groups and split history arrows (reference refinement). */
+#home-button, #history-panelmenu {
+ border-right-color: transparent !important; margin-inline-end:0 !important;
+ padding-inline-end:1px !important;
+}
+.ie6-toolbar-separator {
+ appearance:none !important; flex:0 0 2px !important;
+ width:2px !important; min-width:2px !important; height:26px !important;
+ margin:2px 6px !important; padding:0 !important; border:0 !important;
+ background:linear-gradient(to right,#aca899 0 1px,#fff 1px 2px) !important;
+ align-self:center !important;
+}
+.ie6-history-arrow {
+ appearance:none !important; min-width:10px !important; width:10px !important;
+ min-height:29px !important; height:29px !important; margin:0 !important;
+ padding:0 !important; border:1px solid transparent !important; border-radius:0 !important;
+ background:transparent !important; justify-content:center !important;
+}
+.ie6-history-arrow::before {
+ content:""; width:0; height:0; border-inline:3px solid transparent;
+ border-top:3px solid #000; align-self:center;
+}
+.ie6-history-arrow[disabled]::before { border-top-color:#aca899; }
+.ie6-history-arrow:not([disabled]):hover {
+ border-color:white #aca899 #aca899 white !important; background:#f4f1e8 !important;
+}
+.ie6-history-arrow:not([disabled]):active {
+ border-color:#aca899 white white #aca899 !important; background:#dedacd !important;
+}
+.ie6-history-arrow .toolbarbutton-icon, .ie6-history-arrow .toolbarbutton-text { display:none !important; }
+#ie6-search-button, #bookmarks-menu-button { gap:0 !important; }
+#nav-bar .toolbarbutton-1 { min-height:29px !important; }
+#nav-bar .toolbarbutton-1:hover:not([disabled]) { border-radius:0 !important; }
+/* The status and toolbar edges are recessed rather than flat gray rules. */
+#nav-bar { border-top-color:white !important; border-bottom-color:#aca899 !important; }
+#PersonalToolbar { border-top:1px solid white !important; border-bottom:1px solid #aca899 !important; }
+#browser::after { border-top:1px solid #aca899 !important; box-shadow:inset 0 1px white !important; }
+
+/* Address-row Links and the segmented IE6-style status bar. */
+#urlbar-container { padding-inline-end:108px !important; }
+#ie6-go-button { right:53px !important; }
+#ie6-links-button {
+ appearance:none !important; position:absolute !important; right:0 !important; top:1px !important;
+ width:51px !important; height:22px !important; min-height:22px !important;
+ padding:0 3px 0 5px !important; margin:0 !important; border:0 !important;
+ border-left:1px solid #aca899 !important; box-shadow:inset 1px 0 white !important;
+ border-radius:0 !important; background:transparent !important; color:#777 !important;
+ font:11px Tahoma,sans-serif !important;
+}
+#ie6-links-button .toolbarbutton-icon { display:none !important; }
+#ie6-links-button .toolbarbutton-text { display:flex !important; margin:0 !important; }
+#ie6-links-button::after { content:""; background:url("ie6-icons/overflow.svg") center/9px 9px no-repeat; width:11px; height:11px; margin-inline-start:3px; }
+#ie6-links-button:hover { background:#f4f1e8 !important; color:black !important; }
+#browser::after { display:none !important; }
+#ie6-statusbar {
+ position:absolute !important; inset:auto 0 0 !important; height:21px !important;
+ display:flex !important; align-items:center !important; box-sizing:border-box !important;
+ background:#ece9d8 !important; color:black !important;
+ border-top:1px solid #aca899 !important; box-shadow:inset 0 1px white !important;
+ font:11px Tahoma,sans-serif !important; z-index:1 !important; pointer-events:none !important;
+}
+#ie6-status-icon { list-style-image:url("ie6-icons/status-ie.png"); width:16px; height:16px; margin:1px 3px 0 2px; }
+#ie6-status-text { flex:1; min-width:0; margin:0 3px; }
+#ie6-status-progress { width:96px; height:18px; border-left:1px solid #aca899; box-shadow:inset 1px 0 white; align-items:center; justify-content:center; }
+#ie6-status-progress .ie6-load-meter { width:84px; height:12px; box-sizing:border-box; overflow:hidden; background:#ece9d8; border:1px solid #aca899; border-radius:0; }
+#ie6-status-progress .ie6-load-meter[hidden] { display:none !important; }
+#ie6-status-progress .ie6-load-fill { height:100%; background:repeating-linear-gradient(to right,#00ba00 0 6px,transparent 6px 8px); }
+#ie6-status-progress .indeterminate .ie6-load-fill { animation:ie6-load-unknown 1.2s linear infinite; }
+@keyframes ie6-load-unknown { from { transform:translateX(-100%); } to { transform:translateX(420%); } }
+@media (prefers-reduced-motion:reduce) { #ie6-status-progress .indeterminate .ie6-load-fill { animation:none; transform:translateX(150%); } }
+#ie6-status-location { width:177px; height:18px; border-left:1px solid #aca899; box-shadow:inset 1px 0 white; align-items:center; padding-inline:6px; }
+#ie6-status-location image { width:16px; height:16px; margin-inline-end:4px; list-style-image:url("ie6-icons/status-local.png"); }
+#ie6-status-location[remote] image { list-style-image:url("ie6-icons/status-internet.png"); }
+#ie6-status-location label { margin:0; font:11px Tahoma,sans-serif; }
+#statuspanel { left:24px !important; max-width:calc(100% - 300px) !important; }
+/* Firefox-internal tab placeholders use the IE page icon; real favicons stay. */
+.tab-icon-image[src^="chrome://branding/"], .tab-icon-image[src^="chrome://browser/skin/new-tab"],
+.tab-icon-image[src="chrome://global/skin/icons/defaultFavicon.svg"] { content:url("ie6-icons/bookmark-page.png") !important; }
+/* Reserve both right-hand controls inside Firefox's explicit URL width. */
+#urlbar { width:calc(var(--urlbar-width) - 158px) !important; }
+/* Softer separators requested for the beige XP toolbar. */
+.ie6-toolbar-separator { opacity:.5 !important; }
+
+/* IE6 Mail, Edit and Discuss icons; existing Print/New Tab remain in place. */
+#ie6-mail-button { list-style-image:url("ie6-icons/mail.png") !important; }
+#ie6-edit-button { list-style-image:url("ie6-icons/edit-page.png") !important; }
+#ie6-discuss-button { list-style-image:url("ie6-icons/discuss.png") !important; }
+.ie6-extra-tool .toolbarbutton-icon { width:24px !important; height:24px !important; padding:0 !important; margin:2px !important; }
+.ie6-extra-tool .toolbarbutton-text { display:none !important; }
+.ie6-tool-menu::after { content:""; width:0; height:0; border-inline:3px solid transparent; border-top:3px solid black; margin-inline:0 2px; align-self:center; }
+
+/* Firefox icon coverage: indicator children, panels and modern browser tools. */
+#downloads-button, #downloads-indicator-anchor, #downloads-indicator-icon,
+#downloads-button .toolbarbutton-icon { list-style-image:url("ie6-icons/downloads.png") !important; -moz-context-properties:none !important; }
+#downloads-indicator-anchor, #downloads-indicator-icon { width:24px !important; height:24px !important; }
+#downloads-button #downloads-indicator-icon { visibility:visible !important; }
+/* Retain actual download progress as a small XP-style bar, not a modern ring. */
+#downloads-indicator-start-box, #downloads-indicator-finish-box { display:none !important; }
+#downloads-button #downloads-indicator-progress-outer {
+ top:auto !important; bottom:0 !important; left:2px !important; width:24px !important;
+ height:4px !important; border:1px solid #7f9db9 !important; border-radius:0 !important;
+ background:white !important; align-items:stretch !important; justify-content:flex-start !important;
+}
+#downloads-indicator-progress-inner {
+ width:var(--download-progress-pcent) !important; height:100% !important;
+ background:#316ac5 !important; border-radius:0 !important; mask-image:none !important; clip-path:none !important;
+}
+#downloads-button[attention="success"] { border-color:#6e9b49 !important; }
+#downloads-button[attention="warning"] #downloads-indicator-icon { list-style-image:url("ie6-icons/security-warning.png") !important; }
+#downloads-button[attention="severe"] #downloads-indicator-icon { list-style-image:url("ie6-icons/security-error.png") !important; }
+#downloadsSummary .downloadTypeIcon { list-style-image:url("ie6-icons/downloads.png") !important; }
+.downloadIconCancel .button-icon { list-style-image:url("ie6-icons/close.svg") !important; }
+.downloadIconRetry .button-icon { list-style-image:url("ie6-icons/refresh.png") !important; }
+.downloadIconShow .button-icon { list-style-image:url("ie6-icons/bookmark-folder-open.png") !important; }
+.downloadIconSubviewArrow .button-icon { list-style-image:url("ie6-icons/arrow-right.svg") !important; }
+#downloadsPanel .downloadTypeIcon[src^="moz-icon:"] { content:url("ie6-icons/document-file.png") !important; }
+#downloadsPanel .downloadTypeIcon:is([src*=".zip" i],[src*=".7z" i],[src*=".rar" i],[src*=".tar" i],[src*=".gz" i]) { content:url("ie6-icons/archive-file.png") !important; }
+#downloadsPanel .downloadTypeIcon[src*=".pdf" i] { content:url("ie6-icons/pdf-file.png") !important; }
+#downloadsPanel .downloadTypeIcon:is([src*=".png" i],[src*=".jpg" i],[src*=".jpeg" i],[src*=".gif" i],[src*=".webp" i]) { content:url("ie6-icons/image-file.png") !important; }
+#downloadsPanel .downloadTypeIcon:is([src*=".mp3" i],[src*=".wav" i],[src*=".ogg" i],[src*=".flac" i]) { content:url("ie6-icons/audio-file.png") !important; }
+#downloadsPanel .downloadTypeIcon:is([src*=".mp4" i],[src*=".mkv" i],[src*=".avi" i],[src*=".webm" i]) { content:url("ie6-icons/video-file.png") !important; }
+#downloadsPanel .downloadTypeIcon[src*=".txt" i] { content:url("ie6-icons/text-file.png") !important; }
+#downloadsPanel .downloadTypeIcon:is([src*=".exe" i],[src*=".msi" i]) { content:url("ie6-icons/program-file.png") !important; }
+
+#reader-mode-button-icon { list-style-image:url("ie6-icons/reader.png") !important; }
+#translations-button-icon { list-style-image:url("ie6-icons/translate.png") !important; }
+#translations-button-circle-arrows { list-style-image:url("ie6-icons/refresh.png") !important; }
+#picture-in-picture-button-icon, #document-pip-return-to-opener-button .toolbarbutton-icon { list-style-image:url("ie6-icons/screen.png") !important; }
+#unified-extensions-button .toolbarbutton-icon, .addons-notification-icon { list-style-image:url("ie6-icons/addon.png") !important; }
+#PanelUI-menu-button .toolbarbutton-icon { list-style-image:url("ie6-icons/menu.png") !important; }
+#bookmarks-toolbar-button .toolbarbutton-icon { list-style-image:url("ie6-icons/bookmark-folder.png") !important; }
+#smartwindow-ask-button-inner .toolbarbutton-icon, #cfr-notification-header-image { list-style-image:url("ie6-icons/help.png") !important; }
+.tab-note-icon, .tab-note-icon-overlay { list-style-image:url("ie6-icons/notes.png") !important; }
+#pinned-drop-indicator-icon { content:url("ie6-icons/pin.png") !important; }
+#vertical-tabs-newtab-button .toolbarbutton-icon { list-style-image:url("ie6-icons/new-tab-plus.svg") !important; }
+.tab-close-button, .close-icon, .close-button .toolbarbutton-icon { list-style-image:url("ie6-icons/close.svg") !important; -moz-context-properties:none !important; }
+#sidebar-switcher-arrow { list-style-image:url("ie6-icons/tab-list.svg") !important; }
+.subviewbutton-nav::after, .menu-right { content:url("ie6-icons/arrow-right.svg") !important; }
+
+/* Permission roles and blocked states remain visually distinct. */
+.camera-icon, #webRTC-selectCamera-icon, #webrtc-sharing-icon[sharing="camera"] { list-style-image:url("ie6-icons/camera.png") !important; }
+.microphone-icon, #webRTC-selectMicrophone-icon, #webrtc-sharing-icon[sharing="microphone"] { list-style-image:url("ie6-icons/microphone.png") !important; }
+.screen-icon, #webrtc-sharing-icon[sharing="screen"] { list-style-image:url("ie6-icons/screen.png") !important; }
+.speaker-icon, #webRTC-selectSpeaker-icon { list-style-image:url("ie6-icons/speaker.png") !important; }
+.geo-icon, #geo-sharing-icon[sharing] { list-style-image:url("ie6-icons/location.png") !important; }
+.desktop-notification-icon { list-style-image:url("ie6-icons/notification.png") !important; }
+.persistent-storage-icon, .indexedDB-icon { list-style-image:url("ie6-icons/storage.png") !important; }
+.serial-icon, #serial-sharing-icon[sharing] { list-style-image:url("ie6-icons/serial.png") !important; }
+.midi-icon { list-style-image:url("ie6-icons/midi.png") !important; }
+.canvas-icon { list-style-image:url("ie6-icons/image-file.png") !important; }
+.local-network-icon, .loopback-network-icon { list-style-image:url("ie6-icons/network.png") !important; }
+#password-notification-icon, #identity-credential-notification-icon, #credential-chooser-notification-icon { list-style-image:url("ie6-icons/password.png") !important; }
+#webauthn-notification-icon, .popup-notification-icon[popupid^="webauthn-prompt-"] { list-style-image:url("ie6-icons/certificate.png") !important; }
+.popup-icon { list-style-image:url("ie6-icons/security-warning.png") !important; }
+.focus-tab-by-prompt-icon, .notification-anchor-icon:not(.camera-icon,.microphone-icon,.screen-icon,.speaker-icon,.geo-icon,.desktop-notification-icon,.persistent-storage-icon,.indexedDB-icon,.serial-icon,.midi-icon,.canvas-icon,.local-network-icon,.loopback-network-icon,.addons-notification-icon,.autoplay-media-icon,.xr-icon,.storage-access-icon) { list-style-image:url("ie6-icons/info.png") !important; }
+.camera-icon.blocked-permission-icon { list-style-image:url("ie6-icons/camera-blocked.png") !important; }
+.microphone-icon.blocked-permission-icon { list-style-image:url("ie6-icons/microphone-blocked.png") !important; }
+.screen-icon.blocked-permission-icon { list-style-image:url("ie6-icons/screen-blocked.png") !important; }
+.geo-icon.blocked-permission-icon { list-style-image:url("ie6-icons/location-blocked.png") !important; }
+.desktop-notification-icon.blocked-permission-icon { list-style-image:url("ie6-icons/notification-blocked.png") !important; }
+.persistent-storage-icon.blocked-permission-icon { list-style-image:url("ie6-icons/storage-blocked.png") !important; }
+.serial-icon.blocked-permission-icon { list-style-image:url("ie6-icons/serial-blocked.png") !important; }
+.midi-icon.blocked-permission-icon { list-style-image:url("ie6-icons/midi-blocked.png") !important; }
+.canvas-icon.blocked-permission-icon { list-style-image:url("ie6-icons/image-file-blocked.png") !important; }
+:is(.local-network-icon,.loopback-network-icon).blocked-permission-icon { list-style-image:url("ie6-icons/network-blocked.png") !important; }
+
+/* Preserve connection and tracking-protection meanings, rather than one lock. */
+#identity-icon { list-style-image:url("ie6-icons/info.png") !important; }
+#identity-box.chromeUI #identity-icon, #identity-box.localResource #identity-icon { list-style-image:url("ie6-icons/bookmark-page.png") !important; }
+#identity-box:is(.verifiedDomain,.mixedActiveBlocked) #identity-icon { list-style-image:url("ie6-icons/secure.png") !important; }
+#identity-box:is(.weakCipher,.mixedDisplayContent,.mixedDisplayContentLoadedActiveBlocked,.certUserOverridden,.certErrorPage) #identity-icon { list-style-image:url("ie6-icons/security-warning.png") !important; }
+#identity-box:is(.notSecure,.mixedActiveContent,.httpsOnlyErrorPage) #identity-icon { list-style-image:url("ie6-icons/security-error.png") !important; }
+#trust-icon-container.secure, #trust-icon-container.secure #trust-icon { list-style-image:url("ie6-icons/secure.png") !important; }
+#trust-icon-container.insecure, #trust-icon-container.insecure #trust-icon { list-style-image:url("ie6-icons/security-warning.png") !important; }
+#trust-icon-container.breached::after { background-image:url("ie6-icons/security-error.png") !important; }
+#tracking-protection-icon-box { list-style-image:url("ie6-icons/privacy.png") !important; }
+#tracking-protection-icon-box[active] { list-style-image:url("ie6-icons/security-ok.png") !important; }
+#tracking-protection-icon-box[hasException] { list-style-image:url("ie6-icons/security-warning.png") !important; }
+.autoplay-media-icon { list-style-image:url("ie6-icons/play.png") !important; }
+.autoplay-media-icon.blocked-permission-icon { list-style-image:url("ie6-icons/play-blocked.png") !important; }
+.xr-icon, #xr-sharing-icon { list-style-image:url("ie6-icons/xr.png") !important; }
+.xr-icon.blocked-permission-icon { list-style-image:url("ie6-icons/xr-blocked.png") !important; }
+.storage-access-icon { list-style-image:url("ie6-icons/privacy.png") !important; }
+.storage-access-icon.blocked-permission-icon { list-style-image:url("ie6-icons/privacy-blocked.png") !important; }
+#addons-notification-icon { list-style-image:url("ie6-icons/addon.png") !important; }
+#eme-notification-icon { list-style-image:url("ie6-icons/drm.png") !important; }
+.private-browsing-indicator-icon { list-style-image:url("ie6-icons/privacy.png") !important; }
+.content-analysis-indicator-icon, .content-analysis-indicator-icon .toolbarbutton-icon { list-style-image:url("ie6-icons/security-warning.png") !important; }
+
+/* Built-in icon resource attributes in popup/component markup. */
+:is(image,img)[src^="chrome://"][src$="/settings.svg"], :is(image,img)[src^="resource://"][src$="/settings.svg"] { content:url("ie6-icons/settings.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/help.svg"], :is(image,img)[src^="resource://"][src$="/help.svg"] { content:url("ie6-icons/help.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/info.svg"], :is(image,img)[src^="resource://"][src$="/info.svg"] { content:url("ie6-icons/info.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/info-filled.svg"], :is(image,img)[src^="resource://"][src$="/info-filled.svg"] { content:url("ie6-icons/info.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/warning.svg"], :is(image,img)[src^="resource://"][src$="/warning.svg"] { content:url("ie6-icons/security-warning.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/error.svg"], :is(image,img)[src^="resource://"][src$="/error.svg"] { content:url("ie6-icons/security-error.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/folder.svg"], :is(image,img)[src^="resource://"][src$="/folder.svg"] { content:url("ie6-icons/bookmark-folder.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/close.svg"], :is(image,img)[src^="resource://"][src$="/close.svg"] { content:url("ie6-icons/close.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/close-12.svg"], :is(image,img)[src^="resource://"][src$="/close-12.svg"] { content:url("ie6-icons/close.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/page-portrait.svg"], :is(image,img)[src^="resource://"][src$="/page-portrait.svg"] { content:url("ie6-icons/document-file.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/extension.svg"], :is(image,img)[src^="resource://"][src$="/extension.svg"] { content:url("ie6-icons/addon.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/chevron.svg"], :is(image,img)[src^="resource://"][src$="/chevron.svg"] { content:url("ie6-icons/overflow.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/arrow-down.svg"], :is(image,img)[src^="resource://"][src$="/arrow-down.svg"] { content:url("ie6-icons/tab-list.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/arrow-right.svg"], :is(image,img)[src^="resource://"][src$="/arrow-right.svg"] { content:url("ie6-icons/arrow-right.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/search-glass.svg"], :is(image,img)[src^="resource://"][src$="/search-glass.svg"] { content:url("ie6-icons/search.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/login.svg"], :is(image,img)[src^="resource://"][src$="/login.svg"] { content:url("ie6-icons/password.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/translations.svg"], :is(image,img)[src^="resource://"][src$="/translations.svg"] { content:url("ie6-icons/translate.png") !important; }
+/* Keep native indicator wrappers from widening the XP toolbar row. */
+#downloads-button .toolbarbutton-badge-stack { padding:0 !important; min-width:28px !important; }
+#downloads-indicator-anchor { padding:0 !important; margin:2px !important; }
+#nav-bar .subviewbutton-nav::after { content:none !important; }
+:is(panel,panelview) .subviewbutton-nav::after { content:url("ie6-icons/arrow-right.svg") !important; }

@@ -1,0 +1,9 @@
+# The dev-only Python tooling: the XP reference VM (refharness/) and the
+# oracle scripts (tests/oracle/). XPlasma itself is C++ and needs none of it.
+#
+#   python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
+Pillow>=10.0
+# keyboard_cues.py and live_reload.py drive the style from Python.
+PySide6-Essentials>=6.6
+# refharness/oracle.py hands files to the VM on a generated CD.
+pycdlib>=1.14

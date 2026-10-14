@@ -1,0 +1,66 @@
+style -
+control push 75 23 hot OK
+control default 75 23 hot OK
+control check 160 17 hot Use drop shadows
+control check-on 160 17 hot Show window contents
+control radio 160 17 hot Tile
+control radio-on 160 17 hot Center
+control combo 150 21 hot Windows XP style
+control combo 150 21 hot-140-10 Windows XP style
+control combo-edit 150 21 hot-140-10 Tahoma
+control edit 150 21 hot Text
+control trackbar:40 150 30 hot-62-13
+control tabs 300 120 hot-86-10
+control hscroll 150 17 hot-8-8
+control hscroll 150 17 hot-56-8
+control hscroll 150 17 hot-100-8
+control vscroll 17 150 hot-8-141
+control listview 260 100 hot-140-10
+control toolbar 240 30 hot-16-9
+control spin 80 21 hot-70-5
+control spin 80 21 hot-70-15
+control combo 150 21 disabled Windows XP style
+control combo-edit 150 21 disabled Tahoma
+control push 75 23 focused OK
+control default 75 23 focused OK
+control check 160 17 focused Use drop shadows
+control check-on 160 17 focused Show window contents
+control radio-on 160 17 focused Center
+control combo 150 21 focused Windows XP style
+control trackbar:40 150 30 focused
+control tabs 300 120 focused
+control hscroll 150 17 focused
+control link 200 20 normal Visit <a>the web site</a> now
+control listview:4 260 100 normal
+control check 160 17 disabled Use drop shadows
+control radio 160 17 disabled Tile
+control radio-on 160 17 disabled Center
+control group 180 80 disabled Buttons
+control hscroll 150 17 disabled
+control vscroll 17 150 disabled
+control trackbar:40 150 30 disabled
+control tabs 300 120 disabled
+control listbox 120 80 disabled
+control listview 260 100 disabled
+control treeview 160 100 disabled
+control progress:60 150 18 disabled
+control check 160 17 pressed Use drop shadows
+control check-on 160 17 pressed Use drop shadows
+control radio 160 17 pressed Tile
+control radio-on 160 17 pressed Center
+control hscroll 150 17 pressed-8-8
+control hscroll 150 17 pressed-141-8
+control hscroll 150 17 pressed-56-8
+control hscroll 150 17 pressed-110-8
+control vscroll 17 150 pressed-8-141
+control spin 80 21 pressed-70-5
+control spin 80 21 pressed-70-15
+control trackbar:40 150 30 pressed-62-13
+control listview 260 100 pressed-40-10
+control toolbar 240 30 pressed-16-9
+control tabs 300 120 pressed-86-10
+control toolbar:1 240 30 normal
+control toolbar:1 240 30 hot-20-13
+control toolbar:1 240 30 hot-50-13
+control toolbar:1 240 30 hot-80-13
+control toolbar:1 240 30 pressed-20-13

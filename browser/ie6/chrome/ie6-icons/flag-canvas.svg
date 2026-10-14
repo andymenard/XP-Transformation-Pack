@@ -1,0 +1,8 @@
+<!-- SPDX-License-Identifier: GPL-3.0-or-later
+     Key the original XP bitmap's white canvas without recoloring the flag. -->
+<svg xmlns="http://www.w3.org/2000/svg">
+ <filter id="white-canvas" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">
+  <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  -1 -1 -1 0 3"/>
+  <feComponentTransfer><feFuncA type="linear" slope="255"/></feComponentTransfer>
+ </filter>
+</svg>

@@ -1,0 +1,21 @@
+Tux artwork attribution
+
+Original Tux: Larry Ewing (lewing@isc.tamu.edu), created with The GIMP.
+Vector adaptations: Simon Budig and Garrett LeSage.
+
+Larry Ewing permits use and modification provided Larry Ewing and The GIMP
+are acknowledged. Garrett LeSage's vector contribution is CC0.
+Simon Budig's contribution is freely redistributable with its copyright notice:
+These drawings are copyrighted by Larry Ewing and Simon Budig
+(penguin-variant.sk also by Anja Gerwinski), redistribution is free
+but has to include this README/Copyright notice.
+
+References:
+https://isc.tamu.edu/~lewing/linux/
+https://www.home.unix-ag.org/simon/penguin/README
+https://commons.wikimedia.org/wiki/File:Tux.svg
+https://github.com/garrett/Tux
+
+Bundled raster supplied by the user as Downloads/Tux.png (lossless WebP).
+Converted to PNG with identical RGBA pixels, no resizing or other changes.
+Original asset rights are retained; it is not relicensed as project code.

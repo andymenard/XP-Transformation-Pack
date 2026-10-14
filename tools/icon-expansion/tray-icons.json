@@ -1,0 +1,180 @@
+{
+  "network-bluetooth": [
+    "bluetooth",
+    "bluetooth-active",
+    "bluetooth-inactive",
+    "bluetooth-disabled",
+    "bluetooth-off",
+    "bluetooth-unavailable",
+    "bluetooth-blocked",
+    "network-bluetooth",
+    "network-bluetooth-activated",
+    "preferences-system-bluetooth"
+  ],
+  "preferences-system-power": [
+    "brightness-high",
+    "brightness-medium",
+    "brightness-low",
+    "video-display-brightness",
+    "brightnesssettings",
+    "nightlight-on",
+    "nightlight-off",
+    "nightlight-inactive",
+    "redshift-status-on",
+    "redshift-status-off"
+  ],
+  "edit-copy": [
+    "clipboard",
+    "klipper",
+    "edit-paste",
+    "clipboard-empty"
+  ],
+  "notification": [
+    "notification-active",
+    "notification-inactive",
+    "notification-progress-active",
+    "notification-progress-inactive",
+    "notifications",
+    "notifications-disabled",
+    "notifications-enabled"
+  ],
+  "system-software-update": [
+    "update-none",
+    "update-low",
+    "update-medium",
+    "update-high",
+    "update-notifier",
+    "system-software-update",
+    "system-reboot-update",
+    "system-reboot-update-required"
+  ],
+  "drive-removable-media": [
+    "device-notifier",
+    "drive-removable-media",
+    "drive-removable-media-usb",
+    "drive-removable-media-usb-pendrive",
+    "device-mounted",
+    "device-unmounted"
+  ],
+  "media-eject": [
+    "media-eject",
+    "media-eject-force"
+  ],
+  "input-keyboard": [
+    "input-keyboard",
+    "keyboard-layout",
+    "input-caps-on",
+    "input-num-on",
+    "input-scroll-on",
+    "input-combo-on",
+    "input-keyboard-virtual-on",
+    "input-keyboard-virtual-off",
+    "input-keyboard-virtual",
+    "input-method",
+    "dialog-input-devices"
+  ],
+  "input-mouse": [
+    "input-touchpad",
+    "input-touchpad-on",
+    "input-touchpad-off",
+    "touchpad-enabled",
+    "touchpad-disabled"
+  ],
+  "camera-web": [
+    "camera-ready",
+    "camera-on",
+    "camera-off",
+    "camera-web",
+    "camera-web-disabled"
+  ],
+  "media-playback-start": [
+    "media-playback-playing",
+    "media-playback-start"
+  ],
+  "media-playback-pause": [
+    "media-playback-paused",
+    "media-playback-pause"
+  ],
+  "media-playback-stop": [
+    "media-playback-stopped",
+    "media-playback-stop"
+  ],
+  "multimedia-player": [
+    "plasma-media-center",
+    "mediacontroller",
+    "multimedia-player"
+  ],
+  "printer": [
+    "printer",
+    "printer-printing",
+    "printer-warning",
+    "printer-error",
+    "printer-offline",
+    "printer-paused",
+    "printer-stop",
+    "print-manager",
+    "printmanager"
+  ],
+  "changes-prevent": [
+    "plasmavault",
+    "plasma-vault",
+    "plasma-vault-locked",
+    "wallet-closed",
+    "kwalletmanager",
+    "kwalletmanager5"
+  ],
+  "changes-allow": [
+    "plasma-vault-unlocked",
+    "wallet-open",
+    "wallet-opened"
+  ],
+  "phone": [
+    "smartphone",
+    "phone",
+    "phone-battery",
+    "kdeconnect",
+    "kdeconnectindicator",
+    "kdeconnect-tray",
+    "kdeconnect-tray-connected",
+    "kdeconnect-tray-disconnected",
+    "kdeconnect-tray-unreachable"
+  ],
+  "network-wireless": [
+    "network-wireless",
+    "network-wireless-available",
+    "network-wireless-connected",
+    "network-wireless-on"
+  ],
+  "network-wired": [
+    "network-wired",
+    "network-wired-activated",
+    "network-wired-available"
+  ],
+  "network-disconnected": [
+    "network-disconnect",
+    "network-wired-disconnected",
+    "network-wired-unavailable",
+    "network-wireless-off",
+    "network-wireless-disconnected",
+    "network-wireless-disabled",
+    "flightmode-on",
+    "flightmode-off",
+    "network-flightmode-on",
+    "network-flightmode-off",
+    "network-flightmode",
+    "network-offline"
+  ],
+  "network-vpn": [
+    "network-vpn",
+    "network-vpn-activated",
+    "network-vpn-disconnected",
+    "network-vpn-disabled"
+  ],
+  "preferences-desktop-display": [
+    "preferences-desktop-display",
+    "video-display",
+    "computer-monitor",
+    "kscreen",
+    "preferences-desktop-display-randr"
+  ]
+}

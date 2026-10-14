@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+#pragma once
+// XPlasma's project settings, from project.ini at the top of the source
+// tree (written here by the build: edit that, not this).
+
+namespace xpl::project {
+
+inline constexpr int kVersion = @XPLASMA_VERSION@;              // this release's number (1, 2, ...)
+inline constexpr const char *kIssuesUrl = "@XPLASMA_ISSUES_URL@";     // empty: none yet
+inline constexpr const char *kUpdatesUrl = "@XPLASMA_UPDATES_URL@";   // empty: none yet
+inline constexpr const char *kArchiveUrl = "@XPLASMA_ARCHIVE_URL@";
+
+} // namespace xpl::project

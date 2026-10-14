@@ -1,0 +1,227 @@
+{
+ "systemtray/main.qml": [
+  {
+   "find": "                Layout.row: root.vertical && root.reverseLayout ? 1 : 0 // Explicitly define grid coordinates\n                Layout.column: 0                                        // to prevent overlapping\n",
+   "replace": "",
+   "optional": true
+  },
+  {
+   "find": "                Layout.row: root.vertical && !root.reverseLayout ? 1 : 0 // Explicitly define grid coordinates\n                Layout.column: root.vertical ? 0 : 1                     // to prevent overlapping\n",
+   "replace": "",
+   "optional": true
+  },
+  {
+   "find": "import QtQuick\n",
+   "replace": "import QtQuick\nimport org.kde.ksvg as KSvg\n",
+   "unlessContains": "import org.kde.ksvg as KSvg"
+  },
+  {
+   "find": "    id: root\n",
+   "replace": "    id: root\n{{backdrop-tray}}"
+  },
+  {
+   "find": "    readonly property bool vertical:",
+   "replace": "{{tray-state}}\n    readonly property bool vertical:"
+  },
+  {
+   "find": "        id: activeModel\n",
+   "replace": "        id: activeModel\n        sortRoleName: \"effectiveStatus\"\n        sortOrder: Qt.AscendingOrder\n        sortColumn: root.xpTrayAvailable && !root.vertical ? 0 : -1\n"
+  },
+  {
+   "find": "return value === PlasmaCore.Types.ActiveStatus;",
+   "replace": "return value === PlasmaCore.Types.ActiveStatus\n                || (value === PlasmaCore.Types.PassiveStatus\n                    && root.xpRevealHidden(sourceModel.data(sourceModel.index(sourceRow, 0, sourceParent), Qt.UserRole + 2)));"
+  },
+  {
+   "find": "return value === PlasmaCore.Types.PassiveStatus\n",
+   "replace": "return value === PlasmaCore.Types.PassiveStatus\n                && !root.xpRevealHidden(sourceModel.data(sourceModel.index(sourceRow, 0, sourceParent), Qt.UserRole + 2));\n"
+  },
+  {
+   "find": "                id: tasksGrid\n",
+   "replace": "                id: tasksGrid\n                Layout.row: 0\n                Layout.column: !root.vertical && root.xpTrayAvailable ? 2 : 0\n                // With no expander, reserve the theme's left cap ourselves.\n                Layout.leftMargin: root.xpTrayAvailable && !root.vertical && !expander.visible && !xpNotificationIcons.visible\n                    ? xpTrayBackground.margins.left : 0\n"
+  },
+  {
+   "find": "                id: expander\n",
+   "replace": "                id: expander\n                Layout.row: root.vertical ? 2 : 0\n                Layout.column: root.vertical || root.xpTrayAvailable ? 0 : 2\n"
+  },
+  {
+   "find": "visible: root.hiddenLayout.itemCount > 0",
+   "replace": "visible: root.xpTrayAvailable && !root.vertical\n                    ? root.xpTrayExpanded || root.xpExpandableCount > 0\n                    : root.hiddenLayout.itemCount > 0"
+  },
+  {
+   "find": "readonly property int smallIconSize: Kirigami.Units.iconSizes.smallMedium",
+   "replace": "readonly property int smallIconSize: root.xpTrayAvailable ? 16 : Kirigami.Units.iconSizes.smallMedium"
+  },
+  {
+   "find": "readonly property int cellSpacing: Kirigami.Units.smallSpacing",
+   "replace": "readonly property int cellSpacing: root.xpTrayAvailable ? 2 : Kirigami.Units.smallSpacing"
+  },
+  {
+   "find": "            ExpanderArrow {\n",
+   "replace": "            // XPlasma: notifications' own icons, for their balloons.\n            XpNotificationIcons {\n                id: xpNotificationIcons\n                Layout.row: root.vertical ? 1 : 0\n                Layout.column: root.vertical ? 0 : 1\n                Layout.alignment: Qt.AlignCenter\n                Layout.leftMargin: root.xpTrayAvailable && !root.vertical && !expander.visible\n                    ? xpTrayBackground.margins.left : 0\n                Layout.rightMargin: root.vertical ? 0 : 2\n                trayModel: activeModel\n                trayView: tasksGrid\n                vertical: root.vertical\n                thickness: root.vertical ? root.width : root.height\n            }\n\n            ExpanderArrow {\n"
+  },
+  {
+   "find": "            mainItem: ExpandedRepresentation {\n                id: expandedRepresentation\n",
+   "replace": "            mainItem: ExpandedRepresentation {\n                id: expandedRepresentation\n                // XPlasma: the popup in XP's dialog colours, not the taskbar's\n                // the tray takes (a popup declared in it inherits them).\n                Kirigami.Theme.colorSet: Kirigami.Theme.Window\n                Kirigami.Theme.inherit: false\n",
+   "optional": true
+  }
+ ],
+ "systemtray/items/AbstractItem.qml": [
+  {
+   "find": "import QtQuick\n",
+   "replace": "import QtQuick\nimport QtQuick.Effects\n"
+  },
+  {
+   "find": "            id: iconContainer\n",
+   "replace": "            id: iconContainer\n{{tray-icon-shadow}}"
+  },
+  {
+   "find": "effectiveStatus: model.effectiveStatus || PlasmaCore.Types.UnknownStatus",
+   "replace": "effectiveStatus: model.effectiveStatus === PlasmaCore.Types.PassiveStatus && root.xpRevealHidden(itemId)\n        ? PlasmaCore.Types.ActiveStatus : (model.effectiveStatus || PlasmaCore.Types.UnknownStatus)"
+  }
+ ],
+ "taskmanager/main.qml": [
+  {
+   "find": "    readonly property bool shouldShrinkToZero: tasksModel.count === 0\n",
+   "replace": "    // XPlasma: an XP taskbar's panel theme marks its task buttons, laid out\n    // as XP's TaskBand lays them out.\n    KSvg.Svg { id: xpTasksSvg; imagePath: \"widgets/tasks\" }\n    readonly property bool xpTaskband: xpTasksSvg.hasElement(\"hint-xplasma-taskband\") && !vertical\n    // ...and every XPlasma taskbar its colours: the theme's Complementary\n    // set (its Window set is XP's dialog colours, for Plasma's popups).\n    readonly property bool xpColours: xpTasksSvg.hasElement(\"hint-xplasma-colours\")\n    Kirigami.Theme.colorSet: xpColours ? Kirigami.Theme.Complementary : Kirigami.Theme.Window\n    Kirigami.Theme.inherit: !xpColours\n    readonly property bool shouldShrinkToZero: tasksModel.count === 0\n"
+  },
+  {
+   "find": "        ToolTipDelegate {\n            id: openWindowToolTipDelegate\n",
+   "replace": "        ToolTipDelegate {\n            id: openWindowToolTipDelegate\n            // XPlasma: in XP's tooltip colours, not the taskbar's the task\n            // manager takes (the tooltip, declared in it, inherits them).\n            Kirigami.Theme.colorSet: Kirigami.Theme.Window\n            Kirigami.Theme.inherit: false\n",
+   "optional": true
+  },
+  {
+   "find": "        ToolTipDelegate {\n            id: pinnedAppToolTipDelegate\n",
+   "replace": "        ToolTipDelegate {\n            id: pinnedAppToolTipDelegate\n            // XPlasma: in XP's tooltip colours, not the taskbar's the task\n            // manager takes (the tooltip, declared in it, inherits them).\n            Kirigami.Theme.colorSet: Kirigami.Theme.Window\n            Kirigami.Theme.inherit: false\n",
+   "optional": true
+  }
+ ],
+ "taskmanager/code/layoutmetrics.js": [
+  {
+   "find": "function preferredMaxWidth() {\n    if (tasks.iconsOnly) {",
+   "replace": "function preferredMaxWidth() {\n    // XPlasma: XP's task buttons, one every 160px at most.\n    if (tasks.xpTaskband) {\n        return 160;\n    }\n    if (tasks.iconsOnly) {"
+  }
+ ],
+ "taskmanager/Task.qml": [
+  {
+   "find": "            rightMargin: ((inPopup || tasksRoot.vertical) && taskList.columns > 1) ? LayoutMetrics.iconMargin : 0\n        }\n\n        imagePath: \"widgets/tasks\"",
+   "replace": "            rightMargin: tasksRoot.xpTaskband && !inPopup ? 2 : ((inPopup || tasksRoot.vertical) && taskList.columns > 1) ? LayoutMetrics.iconMargin : 0   // XPlasma: XP's 2px between buttons\n        }\n\n        imagePath: \"widgets/tasks\""
+  },
+  {
+   "find": "            leftMargin: adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))",
+   "replace": "            // XPlasma: XP's 16px icon, 10px in, centred.\n            leftMargin: tasksRoot.xpTaskband && !task.inPopup ? 10 : adjustMargin(true, parent.width, taskFrame.margins.left)\n            top: parent.top\n            topMargin: tasksRoot.xpTaskband && !task.inPopup ? Math.round((parent.height - 16) / 2) : adjustMargin(false, parent.height, taskFrame.margins.top)\n        }\n\n        width: tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? Math.max(Kirigami.Units.iconSizes.sizeForLabels, Kirigami.Units.iconSizes.medium) : Math.min(task.parent?.minimumWidth ?? 0, task.height)\n        height: tasksRoot.xpTaskband && !task.inPopup ? 16 : task.inPopup ? width : (parent.height - adjustMargin(false, parent.height, taskFrame.margins.top)\n                 - adjustMargin(false, parent.height, taskFrame.margins.bottom))"
+  },
+  {
+   "find": "                    width: Math.min(task.parent.minimumWidth, tasks.height)\n",
+   "replace": "                    width: tasksRoot.xpTaskband && !task.inPopup ? 16 : Math.min(task.parent.minimumWidth, tasks.height)\n"
+  },
+  {
+   "find": "            leftMargin: taskFrame.margins.left + iconBox.width + LayoutMetrics.labelMargin\n",
+   "replace": "            leftMargin: tasksRoot.xpTaskband && !inPopup ? 10 + 16 + 3 : taskFrame.margins.left + iconBox.width + LayoutMetrics.labelMargin   // XPlasma\n"
+  },
+  {
+   "find": "            topMargin: taskFrame.margins.top\n            rightMargin: taskFrame.margins.right + (audioStreamIcon",
+   "replace": "            topMargin: taskFrame.margins.top - (tasksRoot.xpTaskband && !inPopup ? 1 : 0)   // XPlasma: XP's baseline, 1px higher\n            rightMargin: taskFrame.margins.right + (audioStreamIcon"
+  },
+  {
+   "find": "            bottomMargin: taskFrame.margins.bottom\n        }\n\n        wrapMode",
+   "replace": "            bottomMargin: taskFrame.margins.bottom + (tasksRoot.xpTaskband && !inPopup ? 1 : 0)\n        }\n\n        wrapMode"
+  }
+ ],
+ "desktopcontainment/FolderViewLayer.qml": [
+  {
+   "find": "import org.kde.plasma.core as PlasmaCore\n",
+   "replace": "import org.kde.plasma.core as PlasmaCore\nimport org.kde.plasma.plasma5support as P5Support\n",
+   "unlessContains": "import org.kde.plasma.plasma5support as P5Support"
+  },
+  {
+   "find": "    PlasmaCore.Action {\n        id: actionSeparator\n",
+   "replace": "{{desktop-properties}}    PlasmaCore.Action {\n        id: actionSeparator\n"
+  },
+  {
+   "find": "        Plasmoid.contextualActions.push(actionSeparator);\n",
+   "replace": "        Plasmoid.contextualActions.push(actionSeparator);\n        if (isContainment)\n            Plasmoid.contextualActions.push(xpPropertiesAction);   // XPlasma\n"
+  }
+ ],
+ "notifications/global/Globals.qml": [
+  {
+   "find": "import org.kde.kirigami 2.11 as Kirigami\n",
+   "replace": "import org.kde.kirigami 2.11 as Kirigami\nimport org.kde.ksvg as KSvg\n"
+  },
+  {
+   "find": "    id: globals\n",
+   "replace": "    id: globals\n{{xp-globals}}\n"
+  },
+  {
+   "find": "    function positionPopups() {\n",
+   "replace": "    function positionPopups() {\n        if (globals.xpBalloons) {\n            return;\n        }\n"
+  },
+  {
+   "find": "        delegate: NotificationPopup {\n",
+   "replace": "        delegate: globals.xpBalloons ? xpDelegate : stockDelegate\n        property Component xpDelegate: Component {\n        {{xp-delegate}}\n        }\n        property Component stockDelegate: Component {\n        NotificationPopup {\n"
+  },
+  {
+   "find": "        }\n        onObjectAdded: (index, object) => {\n            positionPopups();\n",
+   "replace": "        }\n        }\n        onObjectAdded: (index, object) => {\n            if (globals.xpBalloons) {\n                popupNotificationsModel.playSoundHint(popupNotificationsModel.index(index, 0));\n                globals.xpAdvance();\n                return;\n            }\n            positionPopups();\n"
+  }
+ ],
+ "notifications/main.qml": [
+  {
+   "find": "    id: root\n",
+   "replace": "    id: root\n\n    // XPlasma: the balloons' queue, for the system tray to draw.\n    readonly property var xpQueue: Globals.xpBalloons ? Globals.xpQueue : []\n    readonly property int xpCurrentId: Globals.xpCurrentId\n    function xpRegisterIcon(id, item) { Globals.xpRegisterIcon(id, item); }\n    function xpUnregisterIcon(id, item) { Globals.xpUnregisterIcon(id, item); }\n    function xpIconClicked(id) { Globals.xpRecall(id); }\n"
+  },
+  {
+   "find": "    readonly property int effectiveStatus: historyModel.activeJobsCount > 0\n",
+   "replace": "    // XPlasma: with XP's balloons, no icon of its own but Do Not Disturb's -- XP's\n    // tray had none; the balloons' icons and the copy dialog show the rest.\n    readonly property int effectiveStatus: Globals.xpBalloons\n                     ? (Globals.inhibited ? PlasmaCore.Types.ActiveStatus : PlasmaCore.Types.PassiveStatus)\n                     : historyModel.activeJobsCount > 0\n"
+  }
+ ],
+ "desktopcontainment/FolderView.qml": [
+  {
+   "find": "    function drop(target, event, pos) {\n",
+   "replace": "{{start-menu-drop}}\n    function drop(target, event, pos) {\n"
+  },
+  {
+   "find": "dir.drop(target, event, dropItemAt(dropPos), ",
+   "replace": "dir.drop(target, xpShortcutDrop(event), dropItemAt(dropPos), "
+  },
+  {
+   "find": "    property alias cellHeight: gridView.cellHeight\n",
+   "replace": "    // Font/theme changes can leave manual icons in a now-offscreen column.\n    function xpFitDesktopGrid() {\n        if (!root.isContainment || !main.isRootView || main.sortMode !== -1\n            || Plasmoid.containment.corona.editMode || dir.status !== Folder.FolderModel.Ready) return;\n        const cols = Math.floor(gridView.width / gridView.cellWidth);\n        const rows = Math.floor(gridView.height / gridView.cellHeight);\n        if (cols < 1 || rows < 1) return;\n        let layouts;\n        try { layouts = JSON.parse(Plasmoid.configuration.positions || \"{}\"); } catch (e) { return; }\n        const resolution = Plasmoid.configuration.lastResolution;\n        const entries = layouts[resolution];\n        if (!entries || (entries.length - 2) % 3 !== 0 || (entries.length - 2) / 3 > cols * rows) return;\n        let occupied = new Set(), pending = [];\n        for (let i = 2; i < entries.length; i += 3) {\n            const x = Number(entries[i + 1]), y = Number(entries[i + 2]);\n            if (!Number.isFinite(x) || !Number.isFinite(y)) return;\n            if (x >= 0 && x < cols && y >= 0 && y < rows) occupied.add(x + \",\" + y);\n            else pending.push(i);\n        }\n        if (pending.length === 0) return;\n        let changed;\n        try { changed = JSON.parse(Plasmoid.configuration.changedPositions || \"{}\"); } catch (e) { changed = {}; }\n        for (const i of pending) {\n            let x = Math.max(0, Math.min(cols - 1, Number(entries[i + 1])));\n            let y = Math.max(0, Math.min(rows - 1, Number(entries[i + 2])));\n            if (occupied.has(x + \",\" + y)) {\n                let found = false;\n                for (let xx = 0; xx < cols && !found; ++xx)\n                    for (let yy = 0; yy < rows && !found; ++yy)\n                        if (!occupied.has(xx + \",\" + yy)) { x = xx; y = yy; found = true; }\n                if (!found) return;\n            }\n            occupied.add(x + \",\" + y);\n            entries[i + 1] = String(x); entries[i + 2] = String(y);\n            changed[entries[i]] = [resolution, String(x), String(y)];\n        }\n        entries[0] = String(cols); entries[1] = String(rows);\n        Plasmoid.configuration.positions = JSON.stringify(layouts);\n        Plasmoid.configuration.changedPositions = JSON.stringify(changed);\n    }\n    Timer { id: xpGridFitTimer; interval: 1000; onTriggered: main.xpFitDesktopGrid(); Component.onCompleted: restart(); }\n    Connections { target: dir; function onStatusChanged() { xpGridFitTimer.restart(); } }\n    Connections {\n        target: gridView\n        function onCellWidthChanged() { xpGridFitTimer.restart(); }\n        function onCellHeightChanged() { xpGridFitTimer.restart(); }\n        function onWidthChanged() { xpGridFitTimer.restart(); }\n        function onHeightChanged() { xpGridFitTimer.restart(); }\n    }\n    property alias cellHeight: gridView.cellHeight\n"
+  },
+  {
+   "find": "                radius: Kirigami.Units.cornerRadius\n                border.color: sysPalette.highlight\n                color: Qt.alpha(border.color, 0.3)",
+   "replace": "                // XPlasma: classic XP desktop selection (clear center, dashed edge).\n                radius: 0\n                border.width: 0\n                color: \"transparent\"\n\n                Canvas {\n                    anchors.fill: parent\n                    onWidthChanged: requestPaint()\n                    onHeightChanged: requestPaint()\n                    onPaint: {\n                        const ctx = getContext(\"2d\");\n                        ctx.reset();\n                        if (width < 1 || height < 1) return;\n                        ctx.lineWidth = 1;\n                        ctx.strokeStyle = \"white\";\n                        ctx.strokeRect(0.5, 0.5, width - 1, height - 1);\n                        ctx.setLineDash([2, 2]);\n                        ctx.strokeStyle = \"black\";\n                        ctx.strokeRect(0.5, 0.5, width - 1, height - 1);\n                    }\n                }",
+   "optional": true,
+   "unlessContains": "XPlasma: classic XP desktop selection"
+  }
+ ],
+ "panel/main.qml": [
+  {
+   "find": "ContainmentItem {\n    id: root\n",
+   "replace": "ContainmentItem {\n    id: root\n    // XPlasma: an XPlasma taskbar's colours -- the theme's Complementary\n    // set; its Window set is XP's dialog colours, for Plasma's popups -- for\n    // every widget on it (Plasma's own clock, the keyboard layout's label).\n    KSvg.Svg { id: xpTasksSvg; imagePath: \"widgets/tasks\" }\n    readonly property bool xpColours: xpTasksSvg.hasElement(\"hint-xplasma-colours\")\n    Kirigami.Theme.colorSet: xpColours ? Kirigami.Theme.Complementary : Kirigami.Theme.Window\n    Kirigami.Theme.inherit: !xpColours\n"
+  }
+ ],
+ "desktopcontainment/FolderItemDelegate.qml": [
+  {
+   "find": "                    PlasmaExtras.Highlight {\n                        // Workaround for a bug where the frameComponent does not\n                        // get unloaded when items are dragged to a different\n                        // place on the desktop.\n                        visible: this === frameLoader.item\n                        hovered: impl.hovered\n                        pressed: main.selected\n                        active: Window.active\n                    }",
+   "replace": "                    Item {\n                        // XPlasma: XP desktop icon selection: selection-coloured label box, tinted icon, no hover frame.\n                        visible: this === frameLoader.item\n                        PlasmaExtras.Highlight {\n                            anchors.fill: parent\n                            visible: !main.isOnRootView\n                            hovered: impl.hovered\n                            pressed: main.selected\n                            active: Window.active\n                        }\n                        Rectangle {\n                            // XP fills the label's text bounds plus a 2px side margin.\n                            visible: main.isOnRootView && !!(main.selected || (main.model && main.model.selected)) && Window.active && !label.renaming\n                            x: label.x + (label.width - label.contentWidth) / 2 - 2\n                            y: label.y\n                            width: label.contentWidth + 4\n                            height: label.contentHeight\n                            color: Kirigami.Theme.highlightColor\n                        }\n                    }",
+   "optional": true,
+   "unlessContains": "XPlasma: XP desktop icon selection:"
+  },
+  {
+   "find": "                    PlasmaExtras.Highlight {\n                        // Workaround for a bug where the frameComponent does not\n                        // get unloaded when items are dragged to a different\n                        // place on the desktop.\n                        visible: this === frameLoader.item\n                        hovered: impl.iconAndLabelsShouldlookSelected\n                        pressed: main.model.selected\n                        active: Window.active\n                    }",
+   "replace": "                    Item {\n                        // XPlasma: XP desktop icon selection: selection-coloured label box, tinted icon, no hover frame.\n                        visible: this === frameLoader.item\n                        PlasmaExtras.Highlight {\n                            anchors.fill: parent\n                            visible: !main.isOnRootView\n                            hovered: impl.iconAndLabelsShouldlookSelected\n                            pressed: main.model.selected\n                            active: Window.active\n                        }\n                        Rectangle {\n                            // XP fills the label's text bounds plus a 2px side margin.\n                            visible: main.isOnRootView && !!(main.selected || (main.model && main.model.selected)) && Window.active && !label.renaming\n                            x: label.x + (label.width - label.contentWidth) / 2 - 2\n                            y: label.y\n                            width: label.contentWidth + 4\n                            height: label.contentHeight\n                            color: Kirigami.Theme.highlightColor\n                        }\n                    }",
+   "optional": true,
+   "unlessContains": "XPlasma: XP desktop icon selection:"
+  },
+  {
+   "find": "                PlasmaExtras.ShadowedLabel {\n",
+   "replace": "                ColorOverlay {\n                    // XPlasma: XP blends a selected desktop icon 50% with the selection colour.\n                    anchors.fill: icon\n                    z: 2\n                    source: icon\n                    color: Kirigami.Theme.highlightColor\n                    opacity: 0.5\n                    visible: main.isOnRootView && !!(main.selected || (main.model && main.model.selected)) && Window.active\n                }\n\n                PlasmaExtras.ShadowedLabel {\n",
+   "unlessContains": "XPlasma: XP blends a selected desktop icon"
+  },
+  {
+   "find": "                    renderShadow: main.isOnRootView && !renaming\n",
+   "replace": "                    renderShadow: main.isOnRootView && !renaming && !(!!(main.selected || (main.model && main.model.selected)) && Window.active)\n",
+   "unlessContains": "renderShadow: main.isOnRootView && !renaming && !("
+  }
+ ]
+}

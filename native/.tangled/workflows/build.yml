@@ -1,0 +1,73 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# XPlasma-Setup built, tested and put in a public Tigris bucket (ci/):
+#
+#   every push       builds/COMMIT/ and builds/trunk/XPlasma-Setup
+#   a new Version    (project.ini's, not yet released) that release too:
+#                    releases/N/, latest/XPlasma-Setup, and latest.json --
+#                    what XPlasma's update check reads (UpdatesUrl)
+#
+# The builds of Plasma's widgets are the slow part (each series' image,
+# then its compile; the series side by side); ci/forks.sh keeps them in the
+# bucket and rebuilds a series only when its patched source or its image
+# changes.
+#
+# Set up once (see README, "CI"): the bucket, public; an Editor key for it
+# in this repository's secrets as TIGRIS_STORAGE_ACCESS_KEY_ID and
+# TIGRIS_STORAGE_SECRET_ACCESS_KEY; the bucket's name and public address
+# below.
+
+when:
+  - event: ["push", "manual"]
+    branch: ["trunk"]
+
+engine: microvm
+image: nixos
+
+virtualisation:
+  docker: true
+
+dependencies:
+  - nodejs
+  - jq
+  - curl
+  - git
+  - gawk
+  - xz
+  - binutils
+
+environment:
+  TIGRIS_BUCKET: "xplasma"
+  TIGRIS_PUBLIC_URL: "https://xplasma.t3.tigrisfiles.io"
+  CONTAINER: "docker"
+  # "1" publishes (ci/publish.sh); anything else builds without it
+  PUBLISH: "0"
+
+steps:
+  - name: "Machine"
+    command: |
+      nproc; free -m; df -h; findmnt -T /var/lib/docker || true
+      grep -w overlay /proc/filesystems || echo "no overlay in the kernel"
+      docker info 2>&1 | grep -iE 'storage|driver|snapshotter|root dir|cpus|memory' || true
+
+  - name: "Build image"
+    command: timeout 15m docker build -t localhost/xplasma-release:2 -f containers/release.Containerfile containers
+
+  - name: "Build"
+    command: ./build.sh release
+
+  - name: "Test"
+    command: |
+      docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:$PWD" -w "$PWD" -e LC_ALL=C.UTF-8 -e QT_QPA_PLATFORM=offscreen localhost/xplasma-release:2 \
+        sh -c 'export LD_LIBRARY_PATH=$QT6_DIR/lib QT_PLUGIN_PATH=$QT6_DIR/plugins HOME=$(mktemp -d); build/release-qt6/tests/app/test-app'
+
+  - name: "Plasma's widgets"
+    command: ci/forks.sh
+
+  - name: "Package"
+    command: |
+      ./build.sh release
+      ./package.sh release
+
+  - name: "Publish"
+    command: |
+      if [ "$PUBLISH" = 1 ]; then ci/publish.sh; else echo "not published (PUBLISH=$PUBLISH)"; fi

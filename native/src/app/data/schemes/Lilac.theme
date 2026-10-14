@@ -1,0 +1,40 @@
+[Theme]
+DisplayName=Lilac
+
+[Control Panel\Colors]
+Scrollbar=174 168 217
+Background=0 0 0
+ActiveTitle=90 78 177
+InactiveTitle=128 128 128
+Menu=174 168 217
+Window=255 255 255
+WindowFrame=0 0 0
+MenuText=0 0 0
+WindowText=0 0 0
+TitleText=255 255 255
+ActiveBorder=174 168 217
+InactiveBorder=174 168 217
+AppWorkspace=90 78 177
+Hilight=90 78 177
+HilightText=255 255 255
+ButtonFace=174 168 217
+ButtonShadow=90 78 177
+GrayText=90 78 177
+ButtonText=0 0 0
+InactiveTitleText=255 255 255
+ButtonHilight=216 213 236
+ButtonDkShadow=0 0 0
+ButtonLight=174 168 217
+InfoText=0 0 0
+InfoWindow=255 255 255
+ButtonAlternateFace=192 192 192
+HotTrackingColor=90 78 177
+GradientActiveTitle=182 143 203
+GradientInactiveTitle=184 180 208
+MenuHilight=90 78 177
+MenuBar=174 168 217
+
+[Metrics]
+IconMetrics=76 0 0 0 75 0 0 0 75 0 0 0 1 0 0 0 245 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 144 1 0 0 0 0 0 0 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+NonclientMetrics=84 1 0 0 1 0 0 0 15 0 0 0 15 0 0 0 22 0 0 0 22 0 0 0 240 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 188 2 0 0 0 0 0 0 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 16 0 0 0 16 0 0 0 245 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 188 2 0 0 0 0 0 0 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 18 0 0 0 18 0 0 0 243 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 144 1 0 0 0 0 0 0 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 245 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 144 1 0 0 0 0 0 0 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 243 255 255 255 0 0 0 0 0 0 0 0 0 0 0 0 144 1 0 0 0 0 0 0 0 0 0 0 84 97 104 111 109 97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+

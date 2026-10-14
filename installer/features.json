@@ -1,0 +1,156 @@
+[
+  {
+    "id": "theme_manager",
+    "name": "Theme library and custom XP theme installer",
+    "description": "XPlasma Properties with stock themes and Install Theme\u2026 for XP archives, .theme and .msstyles files.",
+    "default": true,
+    "native": true,
+    "project": "desktop"
+  },
+  {
+    "id": "desktop",
+    "name": "XP window borders and desktop colors",
+    "description": "Luna borders, titlebars and XP colors; includes the maximized-titlebar corrections.",
+    "default": true,
+    "native": true,
+    "project": "desktop"
+  },
+  {
+    "id": "apps",
+    "name": "XP application controls",
+    "description": "Qt and GTK controls, including generated Flatpak themes and the generalized LibreOffice/layout fix.",
+    "default": true,
+    "native": true,
+    "project": "desktop"
+  },
+  {
+    "id": "fonts",
+    "name": "Windows XP fonts",
+    "description": "Tahoma, Trebuchet MS, Lucida Console and the XP font-rendering preferences.",
+    "default": true,
+    "native": false,
+    "project": "desktop"
+  },
+  {
+    "id": "taskbar",
+    "name": "Start menu, taskbar and system tray",
+    "description": "XP Start menu without corner background/grips, labeled task buttons, tray and clock.",
+    "default": true,
+    "native": true,
+    "project": "desktop"
+  },
+  {
+    "id": "icons",
+    "name": "XP system and application icons",
+    "description": "Original XP icons plus 7,390 named replacements covering the installed KDE/Breeze inventory, mask-safe controls and XP-styled specialized glyphs. Credits and source licenses are included; replacements survive theme changes.",
+    "default": true,
+    "native": false,
+    "project": "desktop"
+  },
+  {
+    "id": "pointers",
+    "name": "XP mouse pointers",
+    "description": "Windows Default pointers with shadows and multiple sizes for sharp, correctly sized cursors.",
+    "default": true,
+    "native": false,
+    "project": "desktop"
+  },
+  {
+    "id": "sounds",
+    "name": "Windows XP sounds",
+    "description": "Original Windows Default event sounds.",
+    "default": true,
+    "native": false,
+    "project": "desktop"
+  },
+  {
+    "id": "wallpaper",
+    "name": "Bliss wallpaper",
+    "description": "Applies the original Bliss wallpaper. Extra wallpapers and stock styles are included with the theme library.",
+    "default": true,
+    "native": false,
+    "project": "desktop"
+  },
+  {
+    "id": "behavior",
+    "name": "XP-style window and alert behavior",
+    "description": "Removes flying alerts and adds the transparent checkered snapping outline. Window snapping remains enabled.",
+    "default": true,
+    "native": false,
+    "project": "desktop"
+  },
+  {
+    "id": "caption_animation",
+    "name": "XP minimize and maximize animation",
+    "description": "Builds the classic caption animation for this computer (Plasma 6.6/6.7). Log out/in after installation. Credits aubymori.",
+    "default": true,
+    "native": false,
+    "project": "desktop"
+  },
+  {
+    "id": "desktop_icons",
+    "name": "Default XP desktop shortcuts",
+    "description": "My Computer, My Documents, My Network Places, Internet Explorer and Recycle Bin.",
+    "default": true,
+    "native": false,
+    "project": "desktop"
+  },
+  {
+    "id": "session",
+    "name": "XP logout and shutdown menus",
+    "description": "Original XP dialogs, automatically retained when you change themes.",
+    "default": true,
+    "native": false,
+    "project": "desktop"
+  },
+  {
+    "id": "welcome_splash",
+    "name": "XP Welcome desktop splash",
+    "description": "XP-style Welcome screen while Plasma starts, separate from login and boot screens.",
+    "default": true,
+    "native": false,
+    "project": "desktop"
+  },
+  {
+    "id": "lock",
+    "name": "XP lock screen",
+    "description": "An XP-style password screen using Plasma's existing authentication.",
+    "default": true,
+    "native": false,
+    "project": "desktop"
+  },
+  {
+    "id": "login",
+    "name": "XP Welcome login screen",
+    "description": "SDDM theme and login pointers. Applies on the next login; does not log you out.",
+    "default": true,
+    "native": false,
+    "system": true,
+    "project": "desktop"
+  },
+  {
+    "id": "boot",
+    "name": "XP boot splash",
+    "description": "Original XP boot artwork and loading animation; rebuilds the initramfs.",
+    "default": true,
+    "native": false,
+    "system": true,
+    "project": "desktop"
+  },
+  {
+    "id": "firefox",
+    "name": "IE6 Replica \u2014 Firefox ESR",
+    "description": "Separate browser/profile, XP tabs and icons, Search/Go/New Tab buttons, genuine XP flag, and links opening in tabs.",
+    "default": false,
+    "native": false,
+    "project": "firefox"
+  },
+  {
+    "id": "updates",
+    "name": "XPlasma Update",
+    "description": "Signed alpha updates from the public XP Transformation Pack repository. No GitHub account required.",
+    "default": true,
+    "native": false,
+    "project": "shared"
+  }
+]

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg  PUBLIC '-//W3C//DTD SVG 20010904//EN'  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<!-- Created using Karbon, part of Calligra: http://www.calligra.org/karbon -->
+<svg width="400pt" height="400pt" xmlns="http://www.w3.org/2000/svg">
+ <defs>
+  <filter id="filter0" primitiveUnits="objectBoundingBox">
+   <feGaussianBlur x="0.00000000000" y="0.00000000000" width="1.00000000000" height="1.00000000000" in="SourceAlpha" result="shadow" stdDeviation="0.0273523, 0.0299043"/>
+   <feMerge x="0.00000000000" y="0.00000000000" width="1.00000000000" height="1.00000000000" result="">
+    <feMergeNode in="shadow"/>
+    <feMergeNode in="shadow"/>
+    <feMergeNode in="shadow"/>
+    <feMergeNode in="SourceGraphic"/>
+   </feMerge>
+  </filter>
+  <linearGradient id="gradient0" x1=".021882" x2=".65646" y1=".023923" y2=".95694" gradientTransform="translate(-12 -73)">
+   <stop stop-color="#fffff2" offset="0"/>
+   <stop stop-color="#fffff2" offset=".4"/>
+   <stop stop-color="#b1b3b2" offset="1"/>
+  </linearGradient>
+  <linearGradient id="gradient1" x1=".30303" x2=".90909" y1=".30303" y2="1.2121" gradientTransform="translate(-78 -89)">
+   <stop stop-color="#6e6e6e" offset="0"/>
+   <stop stop-color="#373731" offset="1"/>
+  </linearGradient>
+  <linearGradient id="gradient2" x1=".031646" x2=".94937" y1=".031646" y2="1.2658" gradientTransform="translate(-85 -96)">
+   <stop stop-color="#fffff2" offset="0"/>
+   <stop stop-color="#fffff2" offset=".4"/>
+   <stop stop-color="#b1b3b2" offset="1"/>
+  </linearGradient>
+  <linearGradient id="gradient3" x1=".74074" x2=".92593" y1=".74074" y2="1.2963" gradientTransform="translate(-108 -119)">
+   <stop stop-color="#545450" offset="0"/>
+   <stop stop-color="#d9dade" offset="1"/>
+  </linearGradient>
+  <linearGradient id="gradient4" x1=".41667" x2="1.0417" y1="1.6667" y2="1.4583" gradientTransform="translate(-127 -149)">
+   <stop stop-color="#c5b7aa" offset="0"/>
+   <stop stop-color="#fefdf9" offset="1"/>
+  </linearGradient>
+  <radialGradient id="gradient5" cx=".69106" cy=".65041" r=".63237" fx="0" fy="0" gradientTransform="translate(-120 -131)">
+   <stop stop-color="#fefef2" offset="0"/>
+   <stop stop-color="#fefef2" offset=".1"/>
+   <stop stop-color="#fcfccd" offset=".3"/>
+   <stop stop-color="#fcd99a" offset=".5"/>
+   <stop stop-color="#e4b573" offset=".6"/>
+   <stop stop-color="#cb9e60" offset=".75"/>
+   <stop stop-color="#c19553" offset="1"/>
+  </radialGradient>
+  <filter id="filter1" primitiveUnits="objectBoundingBox">
+   <feGaussianBlur x="0.00000000000" y="0.00000000000" width="1.00000000000" height="1.00000000000" in="SourceAlpha" result="shadow" stdDeviation="0.0438596, 0.0353107"/>
+   <feMerge x="0.00000000000" y="0.00000000000" width="1.00000000000" height="1.00000000000" result="">
+    <feMergeNode in="shadow"/>
+    <feMergeNode in="shadow"/>
+    <feMergeNode in="shadow"/>
+    <feMergeNode in="SourceGraphic"/>
+   </feMerge>
+  </filter>
+ </defs>
+ <g id="layer0">
+  <g id="gear" transform="translate(11.375 72.49)" filter="url(#filter0)">
+   <path id="shape0" transform="translate(.625 .50961)" d="m188 71-100-71-35 35 65 95-118 25v50l120 22-72 101 36 38 100-73 20 125h52l20-126 101 74 35-39-44-60v-48l89-14v-52l-100-17z" fill="url(#gradient0)"/>
+   <circle id="shape1" transform="translate(66.625 16.51)" cx="132pt" cy="132pt" r="132pt" fill="url(#gradient1)"/>
+   <circle id="shape2" transform="translate(73.625 23.51)" cx="126.4pt" cy="126.4pt" r="126.4pt" fill="url(#gradient2)"/>
+   <circle id="shape3" transform="translate(96.625 46.51)" cx="108pt" cy="108pt" r="108pt" fill="url(#gradient3)"/>
+   <circle id="sphere-reflection" transform="translate(115.62 76.51)" cx="96pt" cy="96pt" r="96pt" fill="url(#gradient4)"/>
+   <circle id="sphere" transform="translate(108.62 58.51)" cx="98.4pt" cy="98.4pt" r="98.4pt" fill="url(#gradient5)"/>
+  </g>
+  <path id="k" transform="translate(197 13)" d="m0 6v345l84-10v-147l115 160 83-26-112-158 115-145-90-23-111 150v-152z" fill="#fff" filter="url(#filter1)"/>
+ </g>
+</svg>

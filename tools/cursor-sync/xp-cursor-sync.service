@@ -1,0 +1,5 @@
+[Unit]
+Description=Keep shared XP cursor fallback aligned with desktop settings
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 %h/.local/share/xplasma/cursor-sync.py

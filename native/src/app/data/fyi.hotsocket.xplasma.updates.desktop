@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=XPlasma Updates
+Comment=Tells you when a newer XPlasma is out, as Windows XP's Automatic Updates did
+Exec=xplasma-edit --check-updates
+Icon=system-software-update
+Terminal=false
+NoDisplay=true
+OnlyShowIn=KDE;
+X-KDE-autostart-phase=2

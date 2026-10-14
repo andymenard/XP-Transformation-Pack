@@ -1,0 +1,29 @@
+# Windows XP media and Microsoft-copyrighted assets never enter this repo.
+# They are user-supplied or fetched at setup time; tests find the corpus
+# in the asset library setup imported (~/.local/share/xplasma/assets).
+*.msstyles
+*.theme
+*.iso
+iso/
+samples/
+
+# Build output
+build/
+out/
+refharness/build/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Local state
+refharness/share/
+# (.theme files XPlasma writes itself: a test scheme, and XP's stock Classic
+# schemes, decoded from HIVEDEF.INF by xplasma-schemes.)
+!tests/oracle/schemes/*.theme
+!src/app/data/schemes/*.theme
+
+# Independently authored application palette, embedded with its builder.
+!src/app/data/dark-mode/palette.theme

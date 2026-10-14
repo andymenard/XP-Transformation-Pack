@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "mapped_names": 9872,
+  "registered_images_per_option": 70700,
+  "provenance_aliases": 7390,
+  "fallback_maps_identical": true,
+  "note": "Both options install the same complete fallback theme. HiDPI additionally overrides eligible primary-theme 48/64/128px icons with CC0 recreations. Small and tray icons retain original artwork; unavailable high-resolution equivalents keep the fallback."
+}

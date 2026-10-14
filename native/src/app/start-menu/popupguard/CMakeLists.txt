@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.16)
+project(XPMenuGuard LANGUAGES CXX)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_CXX_STANDARD 17)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick)
+add_library(xpmenuguard MODULE plugin.cpp)
+target_link_libraries(xpmenuguard PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick)

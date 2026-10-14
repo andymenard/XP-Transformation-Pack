@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+  <kcfgfile name=""/>
+  <!-- Written by XPlasma for the look it applies. -->
+  <group name="General">
+    <entry name="fontFamily" type="String"><default>Tahoma</default></entry>
+    <entry name="fontPoints" type="Int"><default>8</default></entry>
+    <entry name="fontWeight" type="Int"><default>400</default></entry>
+    <!-- The style's clock colour (#rrggbb); empty: the panel theme's text colour. -->
+    <entry name="textColor" type="String"><default></default></entry>
+    <!-- What a double-click runs: Date and Time Properties. -->
+    <entry name="dateTimeCommand" type="String"><default>xplasma-edit --date-time</default></entry>
+  </group>
+</kcfg>

@@ -1,0 +1,166 @@
+/* Application color overlay: retain all IE6 geometry, fonts and icon artwork. */
+:root[xplasma-dark="true"] {
+ color-scheme:dark;
+ --toolbar-bgcolor:#313946 !important;
+ --toolbar-color:#e9edf4 !important;
+ --toolbar-field-background-color:#191e27 !important;
+ --toolbar-field-color:#e9edf4 !important;
+ --arrowpanel-background:#272d38 !important;
+ --arrowpanel-color:#e9edf4 !important;
+ --panel-background:#272d38 !important;
+ --panel-color:#e9edf4 !important;
+ --tab-selected-bgcolor:#414d60 !important;
+ --tab-selected-textcolor:#fff !important;
+ --lwt-text-color:#e9edf4 !important;
+ --lwt-toolbar-field-focus:#191e27 !important;
+ --lwt-toolbar-field-focus-color:#e9edf4 !important;
+}
+:root[xplasma-dark="true"] #navigator-toolbox,
+:root[xplasma-dark="true"] #navigator-toolbox toolbar,
+:root[xplasma-dark="true"] #ie6-statusbar,
+:root[xplasma-dark="true"] #statuspanel-label {
+ background-color:#313946 !important; color:#e9edf4 !important;
+ border-color:#6c7b91 #191e27 #191e27 #6c7b91 !important;
+}
+:root[xplasma-dark="true"] #toolbar-menubar { background-image:none !important; }
+:root[xplasma-dark="true"] :is(menu,menuitem,label,.toolbarbutton-text,.tab-text,.tab-label) {color:inherit !important;}
+:root[xplasma-dark="true"] :is(#urlbar,#urlbar-background,#urlbar-input-container,#urlbar-searchmode-switcher,#identity-box,#identity-icon-box,#urlbar-go-button,#urlbar-search-mode-indicator) {
+ background:#191e27 !important; color:#e9edf4 !important; box-shadow:none !important;
+}
+:root[xplasma-dark="true"] #navigator-toolbox #urlbar #urlbar-background,
+:root[xplasma-dark="true"] #navigator-toolbox #urlbar[focused] #urlbar-background,
+:root[xplasma-dark="true"] #navigator-toolbox #urlbar input {
+ background:#191e27 !important; color:#e9edf4 !important;
+ border-color:#10151e #76859a #76859a #10151e !important;
+}
+:root[xplasma-dark="true"] .urlbarView,
+:root[xplasma-dark="true"] .urlbarView-body-inner,
+:root[xplasma-dark="true"] :is(menupopup,panel)::part(content),
+:root[xplasma-dark="true"] :is(.panel-subview-body,.panel-header,#sidebar-box) {
+ background:#272d38 !important; color:#e9edf4 !important;
+ border-color:#76859a #10151e #10151e #76859a !important;
+}
+:root[xplasma-dark="true"] :is(menu,menuitem):is([_moz-menuactive="true"],:hover),
+:root[xplasma-dark="true"] .urlbarView-row[selected] {background:#244f85 !important;color:#fff !important;}
+:root[xplasma-dark="true"] .tabbrowser-tab .tab-background {
+ background:linear-gradient(#485469,#313946) !important;
+ border-color:#76859a #10151e #10151e #76859a !important;
+}
+:root[xplasma-dark="true"] .tabbrowser-tab[selected] .tab-background {
+ background:linear-gradient(#53637c,#414d60) !important;
+ border-top-color:#e99a36 !important;
+}
+:root[xplasma-dark="true"] #navigator-toolbox .toolbarbutton-1:hover:not([disabled]),
+:root[xplasma-dark="true"] :is(#ie6-search-button,#ie6-go-button,#ie6-new-tab-button):hover {
+ background:#414d60 !important;border-color:#76859a #10151e #10151e #76859a !important;
+}
+:root[xplasma-dark="true"] #navigator-toolbox .toolbarbutton-1:active:not([disabled]) {
+ background:#272d38 !important;border-color:#10151e #76859a #76859a #10151e !important;
+}
+:root[xplasma-dark="true"] :is(#ie6-status-progress,#ie6-status-location) {border-color:#10151e !important;box-shadow:inset 1px 0 #76859a !important;}
+:root[xplasma-dark="true"] #ie6-status-progress .ie6-load-meter {background:#191e27 !important;border-color:#76859a !important;}
+:root[xplasma-dark="true"] #nav-bar .ie6-toolbar-separator {border-color:#10151e !important;box-shadow:1px 0 #76859a !important;}
+:root[xplasma-dark="true"] :is(#tabs-newtab-button,#alltabs-button,#PlacesChevron) .toolbarbutton-icon {color:#e9edf4 !important;}
+:root[xplasma-dark="true"] #navigator-toolbox :is(label,description,menu,menuitem,button,toolbarbutton,.tab-text),
+:root[xplasma-dark="true"] #ie6-statusbar :is(label,description) {color:#e9edf4 !important;}
+
+/* Match the actual ESR address-field classes, including focus and suggestions. */
+:root[xplasma-dark="true"] #navigator-toolbox #urlbar,
+:root[xplasma-dark="true"] #navigator-toolbox #urlbar .urlbar-background,
+:root[xplasma-dark="true"] #navigator-toolbox #urlbar .urlbar-input-container,
+:root[xplasma-dark="true"] #navigator-toolbox #urlbar .urlbar-input-box,
+:root[xplasma-dark="true"] #navigator-toolbox #urlbar-input {
+ background:#191e27 !important; color:#e9edf4 !important;
+ border-color:#10151e #64748b #64748b #10151e !important;
+}
+:root[xplasma-dark="true"] #urlbar-container::before {color:#e9edf4 !important;}
+:root[xplasma-dark="true"] #urlbar {
+ --urlbarView-highlight-background:#244f85 !important;
+ --urlbarView-highlight-color:#fff !important;
+ --urlbarView-action-color:#c3cfdf !important;
+}
+:root[xplasma-dark="true"] #urlbar .urlbarView,
+:root[xplasma-dark="true"] #urlbar .urlbarView-body-inner {
+ background:#272d38 !important; color:#e9edf4 !important; border-color:#64748b !important;
+}
+:root[xplasma-dark="true"] #urlbar .urlbarView-row[selected] .urlbarView-row-inner,
+:root[xplasma-dark="true"] #urlbar .urlbarView-row-inner[selected] {
+ background:#244f85 !important; color:#fff !important;
+}
+:root[xplasma-dark="true"] #urlbar :is(#identity-box,#identity-icon-box,#trust-icon-container,#page-action-buttons),
+:root[xplasma-dark="true"] #urlbar .searchmode-switcher::part(button) {
+ background:transparent !important; color:#e9edf4 !important; box-shadow:none !important;
+}
+:root[xplasma-dark="true"] #urlbar .searchmode-switcher-dropmarker {
+ background:transparent !important; color:#e9edf4 !important; box-shadow:none !important;
+}
+/* Raised and pressed buttons use the same subdued XP bevel as dark tabs. */
+:root[xplasma-dark="true"] :is(#ie6-address-dropdown,#tabs-newtab-button,#new-tab-button),
+:root[xplasma-dark="true"] #urlbar .urlbarView-action-btn {
+ background:linear-gradient(#485469,#313946) !important; color:#e9edf4 !important;
+ border-color:#64748b #10151e #10151e #64748b !important;
+ box-shadow:inset 1px 1px #64748b,inset -1px -1px #252c38 !important;
+}
+:root[xplasma-dark="true"] :is(#ie6-address-dropdown,#tabs-newtab-button,#new-tab-button):hover,
+:root[xplasma-dark="true"] #urlbar .urlbarView-action-btn:hover {
+ background:linear-gradient(#53637c,#414d60) !important;
+}
+:root[xplasma-dark="true"] :is(#ie6-address-dropdown,#tabs-newtab-button,#new-tab-button):active,
+:root[xplasma-dark="true"] #urlbar .urlbarView-action-btn:active {
+ background:#272d38 !important; border-color:#10151e #64748b #64748b #10151e !important;
+ box-shadow:inset 1px 1px #10151e !important;
+}
+:root[xplasma-dark="true"] #ie6-windows-logo {
+ background:#313946 !important; border-left-color:#64748b !important;
+}
+:root[xplasma-dark="true"] #nav-bar .ie6-toolbar-separator {
+ background:linear-gradient(to right,#10151e 0 1px,#64748b 1px 2px) !important;
+ box-shadow:none !important;
+}
+:root[xplasma-dark="true"] .tabbrowser-tab .tab-background {
+ box-shadow:inset 1px 1px #64748b,inset -1px 0 #252c38 !important;
+}
+:root[xplasma-dark="true"] .tabbrowser-tab[selected] .tab-background {
+ border-bottom-color:#414d60 !important;
+ box-shadow:inset 1px 0 #64748b,inset -1px 0 #64748b !important;
+}
+:root[xplasma-dark="true"] .tabbrowser-tab:hover:not([selected]) .tab-background {
+ background:linear-gradient(#53637c,#414d60) !important; border-top-color:#e99a36 !important;
+}
+/* Only monochrome glyphs change contrast; colorful icons and favicons keep their artwork. */
+:root[xplasma-dark="true"] :is(.tab-close-button,#alltabs-button .toolbarbutton-icon,
+ #PlacesChevron .toolbarbutton-icon,#nav-bar-overflow-button .toolbarbutton-icon,
+ #ie6-address-dropdown .toolbarbutton-icon) {
+ filter:brightness(0) invert(.9) !important;
+}
+:root[xplasma-dark="true"] .ie6-history-arrow::before,
+:root[xplasma-dark="true"] .ie6-tool-menu::after {border-top-color:#e9edf4 !important;}
+:root[xplasma-dark="true"] .ie6-history-arrow[disabled]::before {border-top-color:#8992a2 !important;}
+:root[xplasma-dark="true"] #ie6-links-button::after {filter:brightness(0) invert(.9);}
+:root[xplasma-dark="true"] :is(#ie6-links-button,#ie6-statusbar) {box-shadow:inset 1px 0 #64748b !important;}
+:root[xplasma-dark="true"] #ie6-statusbar {box-shadow:inset 0 1px #64748b !important;}
+:root[xplasma-dark="true"] #ie6-status-progress .ie6-load-meter {background:#191e27 !important;border-color:#64748b !important;}
+:root[xplasma-dark="true"] #PersonalToolbar .bookmark-item:hover,
+:root[xplasma-dark="true"] :is(#alltabs-button,#PlacesChevron,#nav-bar-overflow-button,#ie6-links-button):hover,
+:root[xplasma-dark="true"] .ie6-history-arrow:not([disabled]):hover {
+ background:#414d60 !important;color:#e9edf4 !important;
+ border-color:#64748b #10151e #10151e #64748b !important;
+}
+:root[xplasma-dark="true"] #PersonalToolbar .bookmark-item[open],
+:root[xplasma-dark="true"] .ie6-history-arrow:not([disabled]):active {
+ background:#272d38 !important; border-color:#10151e #64748b #64748b #10151e !important;
+}
+:root[xplasma-dark="true"] .tab-close-button:hover {
+ background:transparent !important; border-color:#64748b #10151e #10151e #64748b !important;
+}
+:root[xplasma-dark="true"] menupopup {
+ --panel-background:#272d38 !important; --panel-color:#e9edf4 !important;
+ --panel-border-color:#64748b !important;
+ --arrowpanel-background:#272d38 !important; --arrowpanel-color:#e9edf4 !important;
+}
+:root[xplasma-dark="true"] menupopup :is(menu,menuitem)[disabled="true"] {color:#8992a2 !important;}
+:root[xplasma-dark="true"] menupopup menuseparator {border-top-color:#64748b !important;}
+/* XP's original flag bitmap has a white canvas, including every animated frame. */
+:root[xplasma-dark="true"] #ie6-windows-logo {
+ filter:url("ie6-icons/flag-canvas.svg#white-canvas") !important;
+}
