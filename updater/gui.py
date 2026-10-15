@@ -7,29 +7,35 @@ except ImportError:from PySide6 import QtCore,QtGui,QtWidgets
 import core
 Signal=getattr(QtCore,'pyqtSignal',None) or QtCore.Signal
 class Worker(QtCore.QObject):
- result=Signal(object);error=Signal(str)
- def __init__(self,fn):super().__init__();self.fn=fn
+ result=Signal(object);error=Signal(str);progress=Signal(str)
+ def __init__(self,fn,with_progress=False):super().__init__();self.fn=fn;self.with_progress=with_progress
  def run(self):
-  try:self.result.emit(self.fn())
+  try:self.result.emit(self.fn(self.progress.emit) if self.with_progress else self.fn())
   except Exception as e:self.error.emit(str(e))
 class Updates(QtWidgets.QWidget):
  def __init__(self):
   super().__init__();self.setWindowTitle('XPlasma Update');self.resize(640,460);self.folder=None;self.offer=None;self.checked=False
   self.home=Path.home();self.root=self.home/'.local/share/xplasma-updater'
   config=self.root/'config.json';self.config=json.loads((config if config.exists() else core.BASE/'config.json').read_text())
-  box=QtWidgets.QVBoxLayout(self);title=QtWidgets.QLabel('Windows XP Transformation Pack Update');title.setStyleSheet('font-size:18px;font-weight:bold;color:#003c74');box.addWidget(title)
+  box=QtWidgets.QVBoxLayout(self);title=QtWidgets.QLabel('Windows XP Transformation Pack Update');title.setStyleSheet('font-size:18px;font-weight:bold;color:palette(link)');box.addWidget(title)
   box.addWidget(QtWidgets.QLabel('Signed updates for your installed features. Your theme settings stay intact.'))
   self.repo=QtWidgets.QLineEdit(self.config['repository']);box.addWidget(self.repo)
   self.status=QtWidgets.QLabel('Public signed updates — no GitHub account needed.' if self.config.get('access')=='public' else 'Private updates use your GitHub CLI login.');self.status.setWordWrap(True);box.addWidget(self.status)
   self.notes=QtWidgets.QTextBrowser();box.addWidget(self.notes,1);self.optional=QtWidgets.QListWidget();self.optional.setMaximumHeight(95);box.addWidget(self.optional)
+  self.output=QtWidgets.QPlainTextEdit();self.output.setReadOnly(True);self.output.setMaximumBlockCount(2000);self.output.setMaximumHeight(150);self.output.hide();box.addWidget(self.output)
+  self.progress=QtWidgets.QProgressBar();self.progress.setRange(0,0);self.progress.hide();box.addWidget(self.progress)
+  self.finish=QtWidgets.QPushButton('Finish pending native setup');self.finish.hide();self.finish.clicked.connect(self.finish_pending);box.addWidget(self.finish)
   row=QtWidgets.QHBoxLayout();box.addLayout(row);self.check=QtWidgets.QPushButton('Check for updates');self.install=QtWidgets.QPushButton('Install update');self.install.setEnabled(False);self.undo=QtWidgets.QPushButton('Roll back last update');self.local=QtWidgets.QPushButton('Open downloaded update…')
   for button in [self.check,self.install,self.undo,self.local]:row.addWidget(button)
   self.check.clicked.connect(self.fetch);self.install.clicked.connect(self.apply);self.undo.clicked.connect(self.rollback);self.local.clicked.connect(self.open_local)
+  state=None
   try:core.recover(self.home);state,info,features=core.find_installation(self.home);self.notes.setPlainText('Detected '+state.name+'\nInstalled features: '+', '.join(sorted(features)))
   except Exception as e:self.status.setText(str(e))
   # Apply the signed snapping helper after reopening the updated client.
   # The old running GUI remains unchanged during a self-update.
   try:
+   if state is None:return
+   self.finish.setVisible(core.pending_setup(self.home) is not None)
    helper=state/'runtime/tools/xp-window-outlines.py'
    after=json.loads((state/'after.json').read_text())
    record=after.get(str(helper.relative_to(self.home)),{})
@@ -37,10 +43,14 @@ class Updates(QtWidgets.QWidget):
     subprocess.run([sys.executable,str(helper)],check=True,timeout=20,capture_output=True)
   except Exception as e:self.status.setText('Theme maintenance needs attention: '+str(e))
  def busy(self,b):
-  for button in [self.check,self.undo,self.local]:button.setEnabled(not b)
+  for button in [self.check,self.undo,self.local,self.finish]:button.setEnabled(not b)
   self.install.setEnabled(not b and self.offer is not None)
- def work(self,fn,callback):
-  self.busy(True);self.worker=Worker(fn);self.worker.result.connect(lambda result:(self.busy(False),callback(result)));self.worker.error.connect(lambda error:(self.busy(False),self.fail(error)));threading.Thread(target=self.worker.run,daemon=True).start()
+  self.progress.setVisible(b)
+  self.repo.setEnabled(not b)
+ def append_output(self,text):
+  self.output.show();self.output.appendPlainText(text)
+ def work(self,fn,callback,progress=False):
+  self.busy(True);self.worker=Worker(fn,progress);self.worker.progress.connect(self.append_output);self.worker.result.connect(lambda result:(self.busy(False),callback(result)));self.worker.error.connect(lambda error:(self.busy(False),self.fail(error)));threading.Thread(target=self.worker.run,daemon=True).start()
  def fail(self,error):self.status.setText(error);QtWidgets.QMessageBox.warning(self,'Update could not complete',error)
  def fetch(self):
   repo=self.repo.text().strip();self.status.setText('Checking GitHub and verifying publisher signature…')
@@ -61,10 +71,15 @@ class Updates(QtWidgets.QWidget):
   except Exception as e:self.install.setEnabled(False);self.status.setText(str(e))
  def apply(self):
   selected=[self.optional.item(i).data(QtCore.Qt.ItemDataRole.UserRole) for i in range(self.optional.count()) if self.optional.item(i).checkState()==QtCore.Qt.CheckState.Checked]
-  self.status.setText('Backing up files and installing verified update…');self.work(lambda:core.apply(self.home,self.folder,selected,qt='.'.join(QtCore.qVersion().split('.')[:2])),self.done)
+  self.status.setText('Backing up files and installing verified update…');self.output.clear();self.work(lambda report:core.apply(self.home,self.folder,selected,qt='.'.join(QtCore.qVersion().split('.')[:2]),progress=report),self.done,progress=True)
  def done(self,result):
   self.offer=None;self.install.setEnabled(False);self.status.setText('Update installed. Reopen updated apps; Plasma components refresh at next login.');self.notes.append('\nRecovery backup: '+str(result));journal=json.loads((Path(result)/'journal.json').read_text());
-  if journal.get('activation_deferred'):self.status.setText('Update installed. Log out and back in to activate theme maintenance; reopen updated apps.')
+  self.finish.setVisible(core.pending_setup(self.home) is not None)
+  if journal.get('native_setup'):self.status.setText('Update and native setup completed. Log out and back in to reload desktop components.')
+  elif journal.get('activation_deferred'):self.status.setText('Update installed. Log out and back in to activate theme maintenance; reopen updated apps.')
+ def finish_pending(self):
+  self.output.clear();self.status.setText('Completing native setup in this window…')
+  self.work(lambda report:core.finish_pending(self.home,progress=report),self.done,progress=True)
  def rollback(self):
   record=self.root/'current.json'
   if not record.exists():self.status.setText('No update to roll back.');return
@@ -73,21 +88,11 @@ class Updates(QtWidgets.QWidget):
   if getattr(self,'worker',None) and not self.check.isEnabled():event.ignore();return
   event.accept()
 def setup_appearance(app):
- # This client deliberately uses a light XP palette. Set every related role
- # for all groups rather than inheriting foregrounds from the desktop.
- app.setStyle('Fusion');app.setFont(QtGui.QFont('Tahoma',9))
- palette=QtGui.QPalette()
- roles={'Window':'#ece9d8','WindowText':'#000000','Button':'#ece9d8',
-        'ButtonText':'#000000','Base':'#ffffff','AlternateBase':'#f4f2e8',
-        'Text':'#000000','ToolTipBase':'#ffffe1','ToolTipText':'#000000',
-        'Highlight':'#316ac5','HighlightedText':'#ffffff','Link':'#003c74',
-        'Light':'#ffffff','Midlight':'#f1efe2','Mid':'#aca899',
-        'Dark':'#716f64','Shadow':'#000000','PlaceholderText':'#716f64'}
- for group in [QtGui.QPalette.ColorGroup.Active,QtGui.QPalette.ColorGroup.Inactive,QtGui.QPalette.ColorGroup.Disabled]:
-  for role,color in roles.items():palette.setColor(group,getattr(QtGui.QPalette.ColorRole,role),QtGui.QColor(color))
- for role in ['WindowText','ButtonText','Text']:
-  palette.setColor(QtGui.QPalette.ColorGroup.Disabled,getattr(QtGui.QPalette.ColorRole,role),QtGui.QColor('#716f64'))
- app.setPalette(palette)
+ # Follow the desktop platform theme, including live palette/font changes.
+ # Fixed light backgrounds and inherited dark foregrounds must never be mixed.
+ app.setApplicationName('xplasma-update');app.setApplicationDisplayName('XPlasma Update')
+ app.setDesktopFileName('xplasma-update')
+ app.setWindowIcon(QtGui.QIcon.fromTheme('system-software-update',app.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_BrowserReload)))
 
 if __name__=='__main__':
  app=QtWidgets.QApplication(sys.argv);setup_appearance(app);window=Updates();window.show()

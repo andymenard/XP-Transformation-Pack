@@ -13,6 +13,7 @@ def prepare(bundle,previous,out):
  for name in ['backend.py','features.json','system_profile.py','dependencies.py','root_helper.py','build-native.sh','build-widgets.py','build_cache.py']:
   shutil.copy2(bundle/name,helpers/name)
  (helpers/'source').mkdir(exist_ok=True);shutil.copy2(bundle/'source/xplasma-source.tar.gz',helpers/'source/xplasma-source.tar.gz')
+ for archive in (bundle/'source').glob('plasma-*.tar.xz'):shutil.copy2(archive,helpers/'source'/archive.name)
  (stage/'fonts').mkdir(exist_ok=True)
  for name in ['ms_sans_serif.woff','ms_sans_serif_bold.woff','CRISP-FONT-CREDITS.md']:
   shutil.copy2(bundle/'payload/assets/fonts'/name,stage/'fonts'/name)
@@ -43,7 +44,8 @@ def prepare(bundle,previous,out):
  total=sum(Path(f['source']).stat().st_size for f in files)
  if total>512*1024*1024:raise RuntimeError('OTA exceeds client limit')
  notes=(ROOT/'public-alpha/ALPHA-2.md').read_text()
- spec={'version':'1.0.0-alpha.2','notes':notes,'files':files}
+ notes='\n'.join('**Existing installation:** close XPlasma Properties, then install through the current XPlasma Update client. Native setup runs in the same window with live output and a coordinated rollback backup. Use Finish pending native setup for an older applied update. If the updater updates itself, reopen it once to load the new client. Log out/in after native changes.' if line.startswith('**Existing Alpha 1.0 installation:**') else line for line in notes.splitlines())+'\n'
+ spec={'version':'1.0.0-alpha.2','notes':notes,'files':files,'native_setup':{'script':PREFIX+'setup.py','backup':'.local/share/xplasma/maintenance/alpha-1.0.0-alpha.2'}}
  (out/'spec.json').write_text(json.dumps(spec,indent=2)+'\n')
  print('Prepared',len(files),'OTA resources;',total,'uncompressed bytes')
 

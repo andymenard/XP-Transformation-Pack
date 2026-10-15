@@ -34,11 +34,14 @@ def main():
   if conflicts:raise RuntimeError('Preserved later edits: '+', '.join(conflicts))
   print('Previous native files restored. Log out and back in.');return
  if (backup/'after.json').exists():raise RuntimeError('Setup already completed. Backup: '+str(backup))
- b.root('dependencies',{'apps'})
+ import build_cache
+ kind='taskbar' if 'taskbar' in features else 'core'
+ cached=build_cache.find(ROOT/'installer',kind);ready=bool(cached and build_cache.usable(cached))
+ b.root('dependencies',{'apps'}|({'taskbar'} if kind=='taskbar' else set()),native_ready=ready)
  build=home/'.cache/xplasma-alpha-2'
- b.run([ROOT/'installer/build-native.sh',build,'core'])
+ b.run([ROOT/'installer/build-native.sh',build,kind])
  runtime=str(state.relative_to(home))+'/runtime'
- paths=[runtime,'.local/lib/qt6/plugins/styles','.local/share/fonts/xp','.local/share/plasma/plasmoids/fyi.hotsocket.xplasma.start','.config/kwinrc',str(state.relative_to(home))+'/after.json']
+ paths=[runtime,'.local/lib/qt6/plugins/plasma/applets','.local/lib/qt6/plugins/styles','.local/share/fonts/xp','.local/share/plasma/plasmoids/fyi.hotsocket.xplasma.start','.config/kwinrc',str(state.relative_to(home))+'/after.json']
  flatpak=home/'.local/share/flatpak/extension/org.kde.KStyle.XPlasma'
  if flatpak.exists():paths.append(str(flatpak.relative_to(home)))
  for name in paths:
@@ -54,6 +57,9 @@ def main():
    for existing in flatpak.glob('*/'+'.'.join(map(str,b.detect()['qt'][:2]))+'/styles/libxplasma.so'):
     b.copy(styles[0],existing)
   if 'taskbar' in features:
+   series='.'.join(map(str,b.detect()['plasma'][:2]))
+   for plugin in (build/'runtime/lib/xplasma/forks'/series/'plasma/applets').glob('*.so'):
+    b.copy(plugin,home/'.local/lib/qt6/plugins/plasma/applets'/plugin.name)
    package=build/'source/xplasma/src/app/start-menu'
    b.copy(package/'contents',home/'.local/share/plasma/plasmoids/fyi.hotsocket.xplasma.start/contents')
    b.copy(package/'metadata.json',home/'.local/share/plasma/plasmoids/fyi.hotsocket.xplasma.start/metadata.json')
