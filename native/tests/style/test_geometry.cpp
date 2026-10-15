@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "style/xplasmastyle.h"
 #include <QApplication>
+#include <QFontDatabase>
+#include "core/crispfont.h"
 #include <QComboBox>
 #include <QFile>
 #include <QLineEdit>
@@ -8,6 +10,8 @@
 #include <QPainter>
 #include <QStyleOptionMenuItem>
 #include <QSpinBox>
+#include <QTabBar>
+#include <QStyleOptionTab>
 #include <QStyleOptionSlider>
 #include <QTemporaryDir>
 #include <QTest>
@@ -53,6 +57,42 @@ private Q_SLOTS:
         style.unpolish(&menu);
         QCOMPARE(menu.font().pointSize(),18);
     }
+    void quickSpinBoxLeavesRoomForItsContent() {
+        qputenv("XPLASMA_THEME",classicFile.toUtf8());
+        XPlasmaStyle style;
+        QObject bridge;bridge.setProperty("elementType",QStringLiteral("spinbox"));
+        QStyleOptionFrame option;option.styleObject=&bridge;
+        for (int height : {12,13,18,25}) {
+            const QSize hint=style.sizeFromContents(QStyle::CT_LineEdit,&option,QSize(80,height),nullptr);
+            QVERIFY(hint.height()-12>=height); // The real template has 6px padding on each side.
+        }
+    }
+    void pixelTabLabelsKeepAllGlyphPixels() {
+        const QString folder=qEnvironmentVariable("XPLASMA_CRISP_FONTS");
+        if(folder.isEmpty())QSKIP("Set XPLASMA_CRISP_FONTS to the pixel font folder");
+        QVERIFY(QFontDatabase::addApplicationFont(folder+"/ms_sans_serif.woff")>=0);
+        qputenv("XPLASMA_THEME",classicFile.toUtf8());
+        XPlasmaStyle style;
+        for (qreal dpr : {1.0,1.25,1.5,1.75,2.0}) {
+            QTabBar bar;bar.setFont(xpl::crispUiFont(QFont(QStringLiteral("Tahoma"),8),dpr));
+            QStyleOptionTab tab;tab.initFrom(&bar);tab.text=QStringLiteral("Appearance");
+            tab.shape=QTabBar::RoundedNorth;tab.position=QStyleOptionTab::Middle;
+            tab.rect=QRect(QPoint(),style.sizeFromContents(QStyle::CT_TabBarTab,&tab,QSize(180,bar.fontMetrics().height()),&bar));
+            auto ink=[&](bool reference,bool selected) {
+                QImage image(QSize(240,100)*dpr,QImage::Format_ARGB32_Premultiplied);
+                image.setDevicePixelRatio(dpr);image.fill(Qt::transparent);
+                QPainter p(&image);p.setFont(bar.font());p.setPen(Qt::black);
+                if(reference)p.drawText(QRect(0,0,240,100),Qt::AlignCenter,tab.text);
+                else { tab.state=QStyle::State_Enabled|(selected?QStyle::State_Selected:QStyle::State_None);
+                    style.drawControl(QStyle::CE_TabBarTabLabel,&tab,&p,&bar); }
+                p.end();int pixels=0;
+                for(int y=0;y<image.height();++y)for(int x=0;x<image.width();++x)if(qAlpha(image.pixel(x,y)))++pixels;
+                return pixels;
+            };
+            QCOMPARE(ink(false,false),ink(true,false));
+            QCOMPARE(ink(false,true),ink(true,false));
+        }
+    }
     void scrollbarHiDpiKeepsXpProportions() {
         const QString theme = qEnvironmentVariable("XPLASMA_TEST_THEME");
         if (theme.isEmpty()) QSKIP("Set XPLASMA_TEST_THEME to an XP visual style");
@@ -85,6 +125,26 @@ private Q_SLOTS:
             const QImage fractional = render(1.5);
             QVERIFY(!fractional.isNull());
             QCOMPARE(fractional.size(), (QSizeF(size)*1.5).toSize());
+        }
+    }
+    void crispTextHasNoGreyEdgesAtFractionalScales() {
+        const QString folder=qEnvironmentVariable("XPLASMA_CRISP_FONTS");
+        if(folder.isEmpty())QSKIP("Set XPLASMA_CRISP_FONTS to the supplied pixel font folder");
+        QVERIFY(QFontDatabase::addApplicationFont(folder+"/ms_sans_serif.woff")>=0);
+        QVERIFY(QFontDatabase::addApplicationFont(folder+"/ms_sans_serif_bold.woff")>=0);
+        for(qreal dpr : {1.0,1.25,1.5,1.75,2.0,2.25,2.5,3.0}) {
+            QImage image((QSizeF(320,40)*dpr).toSize(),QImage::Format_RGB32);
+            image.setDevicePixelRatio(dpr);image.fill(Qt::white);
+            QPainter painter(&image);painter.setPen(Qt::black);
+            painter.setFont(xpl::crispUiFont(QFont("Tahoma",8),dpr));
+            painter.drawText(QPointF(3,25),"Equipment  Save  Apply  Cancel  0123456789");painter.end();
+            int ink=0;
+            for(int y=0;y<image.height();++y)for(int x=0;x<image.width();++x) {
+                const QColor pixel=image.pixelColor(x,y);
+                QVERIFY2(pixel==QColor(Qt::black)||pixel==QColor(Qt::white),qPrintable(QString("Grey text edge at scale %1").arg(dpr)));
+                ink+=pixel==QColor(Qt::black);
+            }
+            QVERIFY(ink>100);
         }
     }
     void contents_data() {

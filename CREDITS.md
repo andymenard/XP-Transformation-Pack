@@ -9,6 +9,8 @@ Credit the integration, adaptations and new work to the XPlasma transformation-p
 | Creator / team | Project | Used for |
 | --- | --- | --- |
 | hotsocket | [XPlasma](https://tangled.org/hotsocket.fyi/xplasma/) | Upstream native XP visual-style engine and desktop/Properties foundation, GPL-3.0-or-later; successor to xp2plasma. |
+| lou | [MS Sans Serif](https://fontstruct.com/fontstructions/show/1384746), [license](https://creativecommons.org/licenses/by-sa/3.0/) | Unmodified regular/bold pixel-grid font recreations supplied through XP.css/98.css, CC BY-SA 3.0, copyright lou 2017; optional Crisp XP text. |
+| Adam Hammad and Jordan Scales | [XP.css](https://github.com/botoxparty/XP.css), [98.css](https://github.com/jdan/98.css) | Distribution source for the pixel fonts; font license remains separate from the frameworks’ MIT code. |
 | matthewmx86 | [RetroThemesFirefox](https://github.com/matthewmx86/RetroThemesFirefox) | Firefox retro-theme foundation and legacy chrome assets, BSD-2-Clause. |
 | marchmountain | [Windows XP High Resolution Icon Pack](https://github.com/marchmountain/-Windows-XP-High-Resolution-Icon-Pack) | CC0 XP icon recreations used throughout the icon layer, Firefox, Explorer and Control Panel. |
 | aubymori | [Classic Min/Max Animations](https://windhawk.net/mods/classic-min-max-animations), [author](https://github.com/aubymori) | Behavioral reference for the independent KWin caption animation; no Windhawk implementation code copied. |

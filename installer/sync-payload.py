@@ -74,6 +74,10 @@ def sync(suite, icons=None, wallpapers=None):
     user_pictures=ROOT/'private-assets/user-pictures'
     if user_pictures.is_dir():
         shutil.copytree(user_pictures,suite/'payload/assets/user-pictures',dirs_exist_ok=True)
+    crisp_fonts=ROOT/'private-assets/crisp-fonts'
+    if crisp_fonts.is_dir():
+        shutil.copytree(crisp_fonts,suite/'payload/assets/fonts',dirs_exist_ok=True)
+        shutil.copy2(ROOT/'tools/crisp-text/CREDITS.md',suite/'payload/assets/fonts/CRISP-FONT-CREDITS.md')
     browser = ROOT / 'browser/ie6'
     payload = suite / 'payload/firefox'
     for source, destination in [(browser / 'chrome', payload / 'profile/chrome'),
@@ -103,6 +107,7 @@ def sync(suite, icons=None, wallpapers=None):
         shutil.copy2(saved_icons, suite / 'payload/tools/icons.tar.gz')
     shutil.copy2(ROOT / 'tools/icon-expansion/install.py', suite / 'payload/tools/xp-icons.py')
     shutil.copy2(ROOT / 'tools/cursor-sync/sync.py', suite / 'payload/tools/cursor-sync.py')
+    shutil.copy2(ROOT / 'tools/desktop-behavior/xp-behavior.py', suite / 'payload/tools/xp-behavior.py')
     for name in ['xp-cursor-sync.path', 'xp-cursor-sync.service']:
         shutil.copy2(ROOT / 'tools/cursor-sync' / name, suite / 'payload/tools' / name)
     # Supplied photos are a separate private input; never overwrite originals.

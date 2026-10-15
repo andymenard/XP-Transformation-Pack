@@ -12,7 +12,7 @@ class FirefoxInstallTests(unittest.TestCase):
   (profile/'user.js').write_text('user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);\nuser_pref("browser.uiCustomization.state", "reset");\n')
   (profile/'initial-prefs.js').write_text('user_pref("browser.uiCustomization.state", "initial-toolbar");\n')
   (payload/'runtime-overrides').mkdir(parents=True)
-  (payload/'runtime-overrides/ie6-ui.cfg').write_text('// current theme runtime\nfunction readDarkMode() {}\n')
+  (payload/'runtime-overrides/ie6-ui.cfg').write_text('// current theme runtime\nfunction readAppearance() {}\n')
   icons=payload/'runtime-overrides/browser/chrome/icons/default';icons.mkdir(parents=True)
   for size in [16,32,48,64,128,256]:(icons/('default'+str(size)+'.png')).write_bytes(b'icon'+str(size).encode())
   helper=REPO/'browser/ie6/install-icon.py'
@@ -31,7 +31,7 @@ class FirefoxInstallTests(unittest.TestCase):
   self.install();entries=self.home/'.local/share/applications';primary=(entries/'firefox-esr-ie6.desktop').read_text();alias=(entries/'firefox-esr.desktop').read_text()
   self.assertIn('StartupWMClass=firefox-esr',primary);self.assertIn('application-ie.png',primary);self.assertNotIn('Icon=firefox\n',primary);self.assertIn('NoDisplay=true',alias)
   runtime=self.home/'.local/share/firefox-esr-ie6/firefox/ie6-ui.cfg'
-  self.assertIn('readDarkMode',runtime.read_text());self.assertNotIn('obsolete',runtime.read_text())
+  self.assertIn('readAppearance',runtime.read_text());self.assertNotIn('obsolete',runtime.read_text())
   profile=self.home/'.local/share/firefox-esr-ie6/profile'
   self.assertIn('initial-toolbar',(profile/'prefs.js').read_text());self.assertNotIn('browser.uiCustomization.state',(profile/'user.js').read_text())
  def test_existing_customization_survives_installation(self):
@@ -44,6 +44,6 @@ class BundledBrowserTests(unittest.TestCase):
   payload=ROOT/'payload/firefox/runtime-overrides'
   if not payload.is_dir():self.skipTest('Source checkout without packaged payload')
   cfg=(payload/'ie6-ui.cfg').read_text()
-  self.assertIn('function readDarkMode()',cfg)
+  self.assertIn('function readAppearance()',cfg)
   self.assertIn("setInterval(()=>setDarkMode(win)",cfg)
   self.assertIn('general.config.sandbox_enabled',(payload/'defaults/pref/ie6-ui.js').read_text())

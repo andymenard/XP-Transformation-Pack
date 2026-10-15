@@ -44,6 +44,7 @@ add_library(xplasma-app STATIC
   startmenu.cpp
   session.cpp
   xptext.cpp
+  crisptext.cpp
   inf.cpp
   pointers.cpp
   sounds.cpp
@@ -71,7 +72,20 @@ qt_add_resources(xplasma-app "schemes" PREFIX /schemes BASE data/schemes FILES $
 
 # The Start plasmoid's package, as :/start-menu/...
 file(GLOB_RECURSE start_menu RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS start-menu/*)
+# The package must carry a helper built for the target machine, including when
+# it is reinstalled by a theme change. Never embed a developer's binary.
+list(FILTER start_menu EXCLUDE REGEX "^start-menu/popupguard/")
+list(FILTER start_menu EXCLUDE REGEX "\\.so$")
 qt_add_resources(xplasma-app "startmenu" PREFIX /start-menu BASE start-menu FILES ${start_menu})
+add_subdirectory(start-menu/popupguard)
+set(start_guard "${CMAKE_CURRENT_BINARY_DIR}/startmenu-generated/libxpmenuguard.so")
+add_custom_command(OUTPUT "${start_guard}"
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/startmenu-generated"
+  COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:xpmenuguard>" "${start_guard}"
+  DEPENDS xpmenuguard)
+set_source_files_properties("${start_guard}" PROPERTIES GENERATED TRUE
+  QT_RESOURCE_ALIAS "contents/ui/popupguard/libxpmenuguard.so")
+qt_add_resources(xplasma-app "startmenu_guard" PREFIX /start-menu FILES "${start_guard}")
 # The clock plasmoid's package, as :/clock/...
 file(GLOB_RECURSE clock_package RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS clock/*)
 qt_add_resources(xplasma-app "clock" PREFIX /clock BASE clock FILES ${clock_package})

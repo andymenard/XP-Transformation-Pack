@@ -132,6 +132,7 @@ private:
     mutable QCache<QString, QImage> m_cache; // rendered parts, keyed by part + size + dpi
     bool m_cues = false;                   // Alt held: show mnemonic underlines (XP's keyboard cues)
     QString m_configPath;                  // ~/.config/xplasmarc, when live
+    bool m_crispEnabled = false;
     std::pair<QString, QString> m_loaded;  // (Path, Variant) in use
     class QFileSystemWatcher *m_watcher = nullptr;
     class QTimer *m_reloadTimer = nullptr;

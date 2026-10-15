@@ -26,7 +26,7 @@ Until a complete signed alpha release is published, Check for updates reports th
 
 ## Download the alpha installer
 
-See [Alpha 1.0](https://github.com/andymenard/XP-Transformation-Pack/releases/tag/v1.0.0-alpha.1).
+See [Alpha 1.0](https://github.com/andymenard/XP-Transformation-Pack/releases/tag/v1.0.0-alpha.2).
 Extract the installer tar.gz, then launch **Start-Installer.desktop** from the
 extracted folder as your desktop user. Linux dependencies require internet
 access; an XP ISO is not needed. Desktop is selected by default; Firefox is optional.

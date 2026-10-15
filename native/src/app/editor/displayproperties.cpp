@@ -10,6 +10,7 @@
 #include "app/editor/soundstab.h"
 #include "app/paths.h"
 #include "app/darkmode.h"
+#include "app/crisptext.h"
 #include "app/session.h"
 #include "app/state.h"
 #include "app/themeimport.h"
@@ -192,6 +193,8 @@ DisplayProperties::DisplayProperties(QWidget *parent)
     m_loading = true;
     m_appliedDark = state.settings.value(QStringLiteral("darkMode")).toBool();
     m_darkMode->setChecked(m_appliedDark);
+    m_appliedCrisp = state.settings.value(QStringLiteral("crispText")).toBool();
+    m_crispText->setChecked(m_appliedCrisp);
     if (state.appliedKind == QLatin1String("classic")) {
         if (const auto s = schemes::load(state.scheme))
             m_scheme = *s;
@@ -397,6 +400,10 @@ QWidget *DisplayProperties::appearanceTab()
     m_darkMode = new QCheckBox(QStringLiteral("&Dark application colors"));
     m_darkMode->setToolTip(QStringLiteral("Dark backgrounds and light text for applications and IE6 Firefox; keeps the selected theme\'s titlebars and taskbar"));
     layout->addWidget(m_darkMode);
+    m_crispText = new QCheckBox(QStringLiteral("Crisp XP text"));
+    m_crispText->setToolTip(QStringLiteral("Pixel-style interface text for XPlasma widgets and IE6 Firefox. Aligns glyph sizes to physical pixels at fractional scaling; preserves explicit document and code font choices."));
+    layout->addWidget(m_crispText);
+    connect(m_crispText,&QCheckBox::toggled,this,[this]{updateApply();});
     connect(m_darkMode, &QCheckBox::toggled, this, [this] { renderAppearance(); updateApply(); });
     layout->addStretch(1);
     connect(m_style, &QComboBox::activated, this, [this] {
@@ -997,8 +1004,9 @@ bool DisplayProperties::apply()
     const bool desktopChanged = everything || !sameDesktop(desktop, m_appliedDesktop);
     const bool pointersChanged = pointersDiffer() || ((everything || m_themeFile != m_appliedThemeFile || lookChanged) && m_pointers);
     const bool startChanged = m_startExtras != m_appliedStartExtras;
+    const bool crispChanged = m_crispText->isChecked() != m_appliedCrisp;
     const bool darkChanged = m_darkMode->isChecked() != m_appliedDark;
-    if (!lookChanged && !desktopChanged && !pointersChanged && !startChanged && !darkChanged && m_themeFile == m_appliedThemeFile)
+    if (!lookChanged && !desktopChanged && !pointersChanged && !startChanged && !darkChanged && !crispChanged && m_themeFile == m_appliedThemeFile)
         return m_sounds->apply();
 
     QString error;
@@ -1049,6 +1057,10 @@ bool DisplayProperties::apply()
     if (ok && darkChanged && !lookChanged) {
         ok = runJob(this, QStringLiteral("Applying application colors"), [&](const JobContext &, QString *e) { LiveSession session; return darkmode::apply(session, l, m_darkMode->isChecked(), e); }, &error);
     }
+    if (ok && crispChanged) {
+        LiveSession session;ok = crisptext::apply(session,m_crispText->isChecked(),&error);
+        if (ok) m_appliedCrisp=m_crispText->isChecked();
+    }
     if (ok) m_appliedDark = m_darkMode->isChecked();
     if (ok && startChanged)
         m_appliedStartExtras = m_startExtras;
@@ -1090,7 +1102,7 @@ void DisplayProperties::updateApply()
                                    : QStringLiteral("Hold Shift to rebuild and apply everything, changed or not."));
     m_apply->setEnabled(shiftHeld() || lookKey(look()) != m_appliedLook || !sameDesktop(wallpaper(), m_appliedDesktop)
                         || m_themeFile != m_appliedThemeFile || pointersDiffer() || m_startExtras != m_appliedStartExtras
-                        || m_sounds->pending() || m_darkMode->isChecked() != m_appliedDark);
+                        || m_sounds->pending() || m_darkMode->isChecked() != m_appliedDark || m_crispText->isChecked() != m_appliedCrisp);
 }
 
 bool DisplayProperties::eventFilter(QObject *watched, QEvent *event)

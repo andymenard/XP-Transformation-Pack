@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "app/darkmode.h"
+#include "app/crisptext.h"
 #include "app/colors.h"
 #include "app/gtk.h"
 #include "app/panel.h"
@@ -10,6 +11,7 @@
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
+#include <QJsonDocument>
 #include <QFileInfo>
 #include <QProcess>
 #include <QSaveFile>
@@ -50,7 +52,7 @@ std::optional<Look> applicationLook(const Look &source, bool dark, QString *erro
  result.id=source.id+QStringLiteral("-dark-applications");result.name=source.name+QStringLiteral(" (dark applications)");result.system.name=result.name;
  return result;
 }
-bool publish(bool dark,QString *error){return write(paths::data()+QStringLiteral("/appearance.json"),dark?QByteArray("{\"darkMode\":true}\n"):QByteArray("{\"darkMode\":false}\n"),error);}
+bool publish(bool dark,QString *error){return write(paths::data()+QStringLiteral("/appearance.json"),QJsonDocument(QJsonObject{{QStringLiteral("darkMode"),dark},{QStringLiteral("crispText"),State::load().settings.value(QStringLiteral("crispText")).toBool()}}).toJson(QJsonDocument::Compact),error);}
 bool apply(Session &session,const Look &source,bool dark,QString *error){
  const auto apps=applicationLook(source,dark,error);if(!apps)return false;
  State state=State::load();QStringList log;
@@ -59,6 +61,8 @@ bool apply(Session &session,const Look &source,bool dark,QString *error){
  if(!write(target,colorScheme(apps->system,source.id,{panelArt(source).panelColour,panelArt(source).textColour}),error))return false;
  session.writeConfig(QStringLiteral("kdeglobals"),{QStringLiteral("General")},QStringLiteral("ColorScheme"),QString(),false);
  if(!session.run({QStringLiteral("plasma-apply-colorscheme"),source.id}).ok()){if(error)*error=QStringLiteral("Could not apply application colors");return false;}
- state.settings.insert(QStringLiteral("darkMode"),dark);if(!state.save(error))return false;return publish(dark,error);
+ state.settings.insert(QStringLiteral("darkMode"),dark);if(!state.save(error))return false;
+ if(state.settings.value(QStringLiteral("crispText")).toBool())return crisptext::apply(session,true,error);
+ return publish(dark,error);
 }
 }

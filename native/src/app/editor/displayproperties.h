@@ -124,6 +124,8 @@ private:
     QComboBox *m_style, *m_colour, *m_size;
     QPushButton *m_advanced, *m_extras;
     bool m_appliedDark = false;
+    bool m_appliedCrisp = false;
+    QCheckBox *m_crispText;
     QCheckBox *m_darkMode;
     QCheckBox *m_kdeLogo;
     QCheckBox *m_tux;   // Tux for the Start flag: a shortcut to Extras' picture

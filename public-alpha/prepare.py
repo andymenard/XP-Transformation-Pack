@@ -7,6 +7,7 @@ ROOT=Path(__file__).resolve().parents[1]
 PROFILE=json.loads((ROOT/'public-alpha/edition.json').read_text())
 KEEP={'native','browser','installer','updater','themes','effects','tools','public-alpha'}
 EXCLUDED={'applications','tray','extras'}
+PRIVATE_RELEASE_TESTS={'updater/tests/test_release_024.py','updater/tests/test_sounds_setup.py','updater/tests/test_window_outlines.py'}
 def configure(base):
  features=json.loads((ROOT/'installer/features.json').read_text())
  features=[f for f in features if f.get('project') not in EXCLUDED]
@@ -16,10 +17,13 @@ def configure(base):
  (base/'edition.json').write_text(json.dumps(PROFILE,indent=2)+'\n')
 def source(destination):
  destination.mkdir(parents=True,exist_ok=True)
+ for name in PRIVATE_RELEASE_TESTS:
+  (destination/name).unlink(missing_ok=True)
  paths=subprocess.check_output(['git','ls-files','-z','--cached','--others','--exclude-standard'],cwd=ROOT).decode().split('\0')
  for name in sorted(set(paths)-{''}):
   p=Path(name)
   if p.parts[0] not in KEEP:continue
+  if name in PRIVATE_RELEASE_TESTS:continue
   if name.startswith('tools/dark-theme/tests/') or '__pycache__' in p.parts:continue
   if p.suffix.lower() in {'.exe','.dll','.ttf','.msstyles','.vlt'}:continue
   if p.suffix=='.pem' and name!='updater/release-key.pem':continue

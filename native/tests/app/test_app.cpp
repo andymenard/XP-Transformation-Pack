@@ -1159,6 +1159,9 @@ private Q_SLOTS:
         QVERIFY2(installStartPlasmoid(plasmoids, &error), qPrintable(error));
         const QString pkg = plasmoids + QLatin1String("/fyi.hotsocket.xplasma.start");
         QVERIFY(!QFileInfo::exists(pkg + QLatin1String("/contents/ui/Kickoff-leftover.qml")));
+        QFile guard(pkg + QLatin1String("/contents/ui/popupguard/libxpmenuguard.so"));
+        QVERIFY(guard.open(QIODevice::ReadOnly));
+        QCOMPARE(guard.read(4), QByteArray("\x7f" "ELF", 4));
         for (const char *file : {"metadata.json", "contents/config/main.xml", "contents/ui/main.qml", "contents/ui/StartButton.qml",
                                  "contents/ui/StartMenu.qml", "contents/ui/XpFullRepresentation.qml", "contents/ui/ActionMenu.qml"})
             QVERIFY2(QFileInfo::exists(pkg + QLatin1Char('/') + QLatin1String(file)), file);

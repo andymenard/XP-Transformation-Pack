@@ -3,7 +3,7 @@
 The public alpha feed is https://github.com/andymenard/XP-Transformation-Pack .
 Checks and downloads use anonymous HTTPS. No GitHub CLI or account is needed.
 The alpha channel accepts complete signed prereleases such as 1.0.0-alpha.1;
-stable clients exclude prereleases. Until one is published, no update is offered.
+stable clients exclude prereleases. After applying Alpha 1.0 update 2, run **XP Alpha Update Setup** from the application menu to build the native fixes for your computer. Close XPlasma Properties first; log out and back in afterward to reload native components.
 
 Release manifest signatures and payload hashes are verified using the bundled
 public key. Never include the private signing key or credentials in source or

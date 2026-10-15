@@ -37,9 +37,9 @@ public:
         }
         if(window && m_backgrounds.isEmpty())qWarning()<<"XP Start menu: no Plasma background layer found";
         if(window && m_filters.isEmpty())qWarning()<<"XP Start menu: no Plasma resize handler found";
-        emit windowChanged();
+        Q_EMIT windowChanged();
     }
-signals:
+Q_SIGNALS:
     void windowChanged();
 };
 class Plugin : public QQmlExtensionPlugin {

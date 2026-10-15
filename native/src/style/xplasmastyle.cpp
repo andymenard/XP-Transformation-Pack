@@ -30,6 +30,8 @@
 #include <QPushButton>
 #include <QScrollBar>
 #include <QSettings>
+#include <QScreen>
+#include "core/crispfont.h"
 #include <QSlider>
 #include <QStatusBar>
 #include <QStandardPaths>
@@ -146,6 +148,7 @@ XPlasmaStyle::XPlasmaStyle()
     if (qEnvironmentVariableIsEmpty("XPLASMA_THEME")) {
         m_configPath = rcPath();
         m_loaded = configuredTheme();
+    m_crispEnabled = QSettings(rcPath(), QSettings::IniFormat).value(QStringLiteral("Text/Crisp"),false).toBool();
         m_watcher = new QFileSystemWatcher(this);
         m_watcher->addPath(QFileInfo(m_configPath).absolutePath());
         if (QFileInfo::exists(m_configPath))
@@ -171,8 +174,11 @@ void XPlasmaStyle::reloadIfChanged()
     if (QFileInfo::exists(m_configPath) && !m_watcher->files().contains(m_configPath))
         m_watcher->addPath(m_configPath);
     const auto now = configuredTheme();
-    if (now == m_loaded)
+    const bool crisp=QSettings(rcPath(), QSettings::IniFormat).value(QStringLiteral("Text/Crisp"),false).toBool();
+    if (now == m_loaded && crisp == m_crispEnabled)
         return;
+    m_crispEnabled=crisp;
+    if(qApp)unkern(qApp);
     m_loaded = now;
     m_renderer.reset();
     m_scheme.reset();
@@ -445,6 +451,7 @@ void XPlasmaStyle::polish(QWidget *widget)
             widget->setProperty("_xplasmaMenuFont", widget->font());
         QFont font = sysFont(u"menufont", QFont(QStringLiteral("Tahoma"), 8));
         font.setKerning(false);
+        if(m_crispEnabled)font=xpl::crispUiFont(font,widget->devicePixelRatioF(),widget->logicalDpiY());
         widget->setFont(font);
     }
     // The MDI workspace: COLOR_APPWORKSPACE.
@@ -491,18 +498,28 @@ void XPlasmaStyle::polish(QApplication *app)
 // the platform theme hands out new fonts.
 void XPlasmaStyle::unkern(QApplication *app)
 {
-    if (QSettings(rcPath(), QSettings::IniFormat).value(QStringLiteral("Text/Kerning"), true).toBool())
-        return;
-    QFont font = app->font();
-    if (!font.kerning())
-        return;
-    font.setKerning(false);
-    app->setFont(font);
+    QFont font=app->font();
+    const bool pixel=font.family()==QStringLiteral("MS Sans Serif") || font.family()==QStringLiteral("MS Sans Serif Bold");
+    if(m_crispEnabled) {
+        if(!pixel)app->setProperty("_xplasmaSmoothUiFont",font);
+        const QFont original=app->property("_xplasmaSmoothUiFont").value<QFont>();
+        QScreen *screen=app->primaryScreen();
+        font=xpl::crispUiFont(original,screen?screen->devicePixelRatio():1.0,screen?screen->logicalDotsPerInchY():96.0);
+    } else if(pixel && app->property("_xplasmaSmoothUiFont").isValid()) {
+        font=app->property("_xplasmaSmoothUiFont").value<QFont>();
+        app->setProperty("_xplasmaSmoothUiFont",QVariant());
+    }
+    if(!QSettings(rcPath(),QSettings::IniFormat).value(QStringLiteral("Text/Kerning"),true).toBool())font.setKerning(false);
+    if(font!=app->font())app->setFont(font);
 }
 
 void XPlasmaStyle::unpolish(QApplication *app)
 {
     app->removeEventFilter(this);
+    if(app->property("_xplasmaSmoothUiFont").isValid()) {
+        app->setFont(app->property("_xplasmaSmoothUiFont").value<QFont>());
+        app->setProperty("_xplasmaSmoothUiFont",QVariant());
+    }
     QProxyStyle::unpolish(app);
 }
 
@@ -2202,6 +2219,15 @@ QSize XPlasmaStyle::sizeFromContents(ContentsType type, const QStyleOption *opti
                                      const QWidget *widget) const
 {
     const ContextScope context(this, widget, option);
+    if (type == CT_LineEdit && (m_renderer || classic()) && !widget && option->styleObject
+        && option->styleObject->property("elementType").toString() == QLatin1String("spinbox")) {
+        // qqc2-desktop-style measures its SpinBox through CT_LineEdit. Its
+        // template reserves 6px above and below the content item; QWidget's
+        // smaller edit margins would leave only half a line of visible text.
+        QSize s = QProxyStyle::sizeFromContents(type, option, size, widget);
+        s.setHeight(qMax(s.height(), size.height() + 12));
+        return s;
+    }
     if (type == CT_ComboBox && (m_renderer || classic()) && widget) {
         // XP's combo box is its font's height + 8 tall: 21 at Tahoma 8.
         QSize s = QProxyStyle::sizeFromContents(type, option, size, widget);
@@ -2580,7 +2606,18 @@ void XPlasmaStyle::drawXpTabLabel(const QStyleOptionTab *tab, QPainter *painter,
         copy.palette.setColor(g, QPalette::WindowText, tab->palette.color(g, QPalette::ButtonText));
     if (tab->state & State_Selected)
         copy.rect.translate(0, -2);
-    QProxyStyle::drawControl(CE_TabBarTabLabel, &copy, painter, widget);
+    if (tab->icon.isNull()) {
+        // xpTabRect already removes the pane overlap and headroom. The base
+        // style removes PM_TabBarTabVSpace once more, clipping hinted glyphs.
+        QRect textRect = QProxyStyle::subElementRect(SE_TabBarTabText, &copy, widget);
+        textRect.setTop(copy.rect.top());
+        textRect.setBottom(copy.rect.bottom());
+        const int flags = Qt::AlignCenter | Qt::TextSingleLine
+            | (proxy()->styleHint(SH_UnderlineShortcut, tab, widget) ? Qt::TextShowMnemonic : Qt::TextHideMnemonic);
+        proxy()->drawItemText(painter, textRect, flags, copy.palette, enabled(tab), tab->text, QPalette::ButtonText);
+    } else {
+        QProxyStyle::drawControl(CE_TabBarTabLabel, &copy, painter, widget);
+    }
     if ((tab->state & State_HasFocus) && (tab->state & State_KeyboardFocusChange))
         drawFocusDots(painter, xpTabRect(tab).adjusted(1, 1, -1, -1), focusColours(widget).first, focusColours(widget).second);
 }

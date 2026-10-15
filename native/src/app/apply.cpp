@@ -3,6 +3,7 @@
 
 #include "app/colors.h"
 #include "app/darkmode.h"
+#include "app/crisptext.h"
 #include "app/controls.h"
 #include "app/decoration.h"
 #include "app/forks.h"
@@ -689,6 +690,7 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
     state.settings.insert(QStringLiteral("darkMode"), dark);
     state.save();
     darkmode::publish(dark);
+    if(state.settings.value(QStringLiteral("crispText")).toBool())crisptext::apply(session,true);
     report(o, QStringLiteral("Done."));
     return true;
 }
