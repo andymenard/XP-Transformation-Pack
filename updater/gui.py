@@ -72,7 +72,24 @@ class Updates(QtWidgets.QWidget):
  def closeEvent(self,event):
   if getattr(self,'worker',None) and not self.check.isEnabled():event.ignore();return
   event.accept()
+def setup_appearance(app):
+ # This client deliberately uses a light XP palette. Set every related role
+ # for all groups rather than inheriting foregrounds from the desktop.
+ app.setStyle('Fusion');app.setFont(QtGui.QFont('Tahoma',9))
+ palette=QtGui.QPalette()
+ roles={'Window':'#ece9d8','WindowText':'#000000','Button':'#ece9d8',
+        'ButtonText':'#000000','Base':'#ffffff','AlternateBase':'#f4f2e8',
+        'Text':'#000000','ToolTipBase':'#ffffe1','ToolTipText':'#000000',
+        'Highlight':'#316ac5','HighlightedText':'#ffffff','Link':'#003c74',
+        'Light':'#ffffff','Midlight':'#f1efe2','Mid':'#aca899',
+        'Dark':'#716f64','Shadow':'#000000','PlaceholderText':'#716f64'}
+ for group in [QtGui.QPalette.ColorGroup.Active,QtGui.QPalette.ColorGroup.Inactive,QtGui.QPalette.ColorGroup.Disabled]:
+  for role,color in roles.items():palette.setColor(group,getattr(QtGui.QPalette.ColorRole,role),QtGui.QColor(color))
+ for role in ['WindowText','ButtonText','Text']:
+  palette.setColor(QtGui.QPalette.ColorGroup.Disabled,getattr(QtGui.QPalette.ColorRole,role),QtGui.QColor('#716f64'))
+ app.setPalette(palette)
+
 if __name__=='__main__':
- app=QtWidgets.QApplication(sys.argv);app.setStyle('Fusion');app.setFont(QtGui.QFont('Tahoma',9));palette=app.palette();palette.setColor(QtGui.QPalette.ColorRole.Window,QtGui.QColor('#ece9d8'));palette.setColor(QtGui.QPalette.ColorRole.Button,QtGui.QColor('#ece9d8'));palette.setColor(QtGui.QPalette.ColorRole.Highlight,QtGui.QColor('#316ac5'));app.setPalette(palette);window=Updates();window.show()
+ app=QtWidgets.QApplication(sys.argv);setup_appearance(app);window=Updates();window.show()
  if '--preview' in sys.argv:QtCore.QTimer.singleShot(300,lambda:(window.grab().save(sys.argv[-1]),app.quit()))
  sys.exit(app.exec())
