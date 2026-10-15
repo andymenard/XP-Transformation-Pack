@@ -66,8 +66,16 @@ jobs:
       - name: Export verified matching runtime
         run: |
           python3 installer/build_cache.py store /tmp/xp-suite /tmp/xp-build taskbar --destination /tmp/xp-prebuilt --caption /tmp/xp-caption/lib/kwin/effects/plugins/xp-caption-animation.so
+          python3 - <<'PY'
+          import sys
+          sys.path.insert(0,'installer')
+          import build_cache
+          folder=build_cache.find('/tmp/xp-suite','taskbar',cache='/tmp/xp-prebuilt')
+          assert folder and build_cache.usable(folder) and build_cache.caption_ready('/tmp/xp-suite',folder)
+          PY
+          tar -C /tmp/xp-prebuilt -czf /tmp/kubuntu-26.04-amd64-prebuilt.tar.gz .
       - uses: actions/upload-artifact@v4
         with:
           name: kubuntu-26.04-amd64-prebuilt
-          path: /tmp/xp-prebuilt/
+          path: /tmp/kubuntu-26.04-amd64-prebuilt.tar.gz
           retention-days: 30

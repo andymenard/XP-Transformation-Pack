@@ -17,8 +17,8 @@ skips the KWin development dependencies.
 Run the **Build Kubuntu prebuilt components** GitHub workflow to build the
 Intel/AMD package using Ubuntu 26.04 libraries. It builds the core, four Plasma
 plugins and caption effect; the Plasma source archives have pinned checksums.
-It produces an artifact, not a published release. Extract the artifact's hash
-directories into `private-assets/prebuilt/`, then run `installer/sync-payload.py`
+It produces a tar archive inside the workflow artifact, preserving executable
+permissions and links. Extract its hash directories into `private-assets/prebuilt/`, then run `installer/sync-payload.py`
 and the normal signed release packager. These steps bundle the binaries in the
 installer, so installation does not need a GitHub account or a build download.
 Kubuntu testing is still required before publishing a new prebuilt variant.

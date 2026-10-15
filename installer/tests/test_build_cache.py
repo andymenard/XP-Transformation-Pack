@@ -43,5 +43,13 @@ class BuildCacheTests(unittest.TestCase):
   self.assertIn('build-essential',compiled);self.assertIn('kwin-dev',compiled)
   self.assertNotIn('build-essential',ready);self.assertNotIn('kwin-dev',ready)
   self.assertNotIn('qt6-base-dev',ready)
+ def test_kwin_package_probe_does_not_execute_privileged_binary(self):
+  import subprocess
+  source=self.suite/'payload/caption-animation';source.mkdir(parents=True)
+  for name in ['CMakeLists.txt','effect.cpp','caption.h','metadata.json','test-caption.cpp','demo.cpp']:(source/name).write_text('source')
+  with patch.object(cache.shutil,'which',side_effect=lambda name:'/usr/bin/'+name if name in ['kwin_wayland','dpkg-query'] else None),patch.object(cache.subprocess,'run',return_value=subprocess.CompletedProcess([],0,'4:6.6.4-0ubuntu1','')) as run:
+   result=cache.caption_identity(self.suite)
+   self.assertEqual(result['kwin'],'6.6.4');self.assertEqual(result['package'],'4:6.6.4-0ubuntu1')
+   self.assertEqual(run.call_count,1);self.assertEqual(run.call_args.args[0][0],'/usr/bin/dpkg-query')
 
 if __name__=='__main__':unittest.main()

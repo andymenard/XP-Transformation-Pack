@@ -70,12 +70,25 @@ def find(suite,kind,profile=None,cache=None):
 def caption_identity(suite):
  binary=shutil.which('kwin_wayland') or shutil.which('kwin_x11')
  if not binary:return None
- result=subprocess.run([binary,'--version'],capture_output=True,text=True,env={**os.environ,'QT_QPA_PLATFORM':'offscreen'})
- match=re.search(r'6\.\d+\.\d+',result.stdout)
+ # File capabilities can prevent executing KWin in a build container. Query
+ # its owning package first; include the vendor revision in the ABI identity.
+ package='';match=None
+ for tool,args in [('dpkg-query',['-W','-f=${Version}','kwin-wayland']),('rpm',['-qf',binary,'--qf','%{VERSION}-%{RELEASE}']),('pacman',['-Q','kwin'])]:
+  command=shutil.which(tool)
+  if not command:continue
+  try:result=subprocess.run([command,*args],capture_output=True,text=True,timeout=10)
+  except (OSError,subprocess.TimeoutExpired):continue
+  if result.returncode==0:
+   match=re.search(r'6\.\d+\.\d+',result.stdout)
+   if match:package=result.stdout.strip();break
+ if not match:
+  try:result=subprocess.run([binary,'--version'],capture_output=True,text=True,timeout=10,env={**os.environ,'QT_QPA_PLATFORM':'offscreen'})
+  except (OSError,subprocess.TimeoutExpired):return None
+  match=re.search(r'6\.\d+\.\d+',result.stdout)
  source=Path(suite)/'payload/caption-animation'
  names=['CMakeLists.txt','effect.cpp','caption.h','metadata.json','test-caption.cpp','demo.cpp']
  if not match or any(not (source/name).is_file() for name in names):return None
- return {'kwin':match.group(),'source':{name:hashlib.sha256((source/name).read_bytes()).hexdigest() for name in names}}
+ return {'kwin':match.group(),'package':package or match.group(),'source':{name:hashlib.sha256((source/name).read_bytes()).hexdigest() for name in names}}
 
 def caption_ready(suite,folder):
  if not folder:return False
