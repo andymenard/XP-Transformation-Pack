@@ -10,7 +10,7 @@ def prepare(bundle,previous,out):
  bundle,previous,out=map(lambda p:Path(p).resolve(),(bundle,previous,out));out.mkdir(parents=True,exist_ok=True)
  stage=out/'setup';stage.mkdir(exist_ok=True)
  helpers=stage/'installer';helpers.mkdir(exist_ok=True)
- for name in ['backend.py','features.json','system_profile.py','dependencies.py','root_helper.py','build-native.sh','build-widgets.py']:
+ for name in ['backend.py','features.json','system_profile.py','dependencies.py','root_helper.py','build-native.sh','build-widgets.py','build_cache.py']:
   shutil.copy2(bundle/name,helpers/name)
  (helpers/'source').mkdir(exist_ok=True);shutil.copy2(bundle/'source/xplasma-source.tar.gz',helpers/'source/xplasma-source.tar.gz')
  (stage/'fonts').mkdir(exist_ok=True)

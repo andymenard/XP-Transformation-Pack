@@ -1558,12 +1558,12 @@ private Q_SLOTS:
             QVERIFY2(QFileInfo(notifications + QLatin1String(f)).size() > 0, f);
         QVERIFY(text.contains("XpNotificationIcons {"));
         QVERIFY(QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.systemtray/contents/ui/XpNotificationIcons.qml")));
-        // The desktop's menu: XPlasma Properties, starting the editor outside the shell.
+        // The desktop's menu: XPlasma Plus Properties, starting the editor outside the shell.
         QVERIFY2(overrides::installDesktopMenu(plasmoids, QStringLiteral("/opt/it's here/xplasma-edit"), &error), qPrintable(error));
         QFile layer(plasmoids + QLatin1String("/org.kde.desktopcontainment/contents/ui/FolderViewLayer.qml"));
         QVERIFY(layer.open(QIODevice::ReadOnly));
         const QByteArray desktop = layer.readAll();
-        QVERIFY(desktop.contains("text: \"XPlasma Properties\""));
+        QVERIFY(desktop.contains("text: \"XPlasma Plus Properties\""));
         QVERIFY2(desktop.contains(R"(connectSource("systemd-run --user --collect --quiet -- '/opt/it'\\''s here/xplasma-edit' || '/opt/it'\\''s here/xplasma-edit'"))"),
                  desktop.mid(desktop.indexOf("connectSource"), 160).constData());
         QVERIFY(desktop.contains("Plasmoid.contextualActions.push(xpPropertiesAction)") && !desktop.contains("@LAUNCH@") && !desktop.contains("{{"));

@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=XPlasma Properties
+Name=XPlasma Plus Properties
 GenericName=Windows XP appearance and sounds
 Comment=Apply Windows XP visual styles, colour schemes and sounds to Plasma and to Qt apps
 Exec=xplasma-edit

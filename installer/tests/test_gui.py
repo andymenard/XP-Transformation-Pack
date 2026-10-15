@@ -27,4 +27,11 @@ class GuiTests(unittest.TestCase):
   self.assertIn('authentication',self.window.summary.text())
  def test_preview_mode_cannot_execute_installation(self):
   self.window.start('install');self.assertIsNone(self.window.process)
+ def test_live_output_is_visible_beside_progress_page(self):
+  self.window.pages.setCurrentIndex(1);self.window.show();self.app.processEvents()
+  self.window.append_log('Building component 1 of 4')
+  self.assertTrue(self.window.terminal_log.isVisible())
+  self.assertFalse(self.window.pages.isAncestorOf(self.window.terminal_log))
+  self.assertIn('Building component 1 of 4',self.window.terminal_log.toPlainText())
+  self.assertTrue(self.window.terminal_log.isReadOnly())
 if __name__=='__main__':unittest.main()

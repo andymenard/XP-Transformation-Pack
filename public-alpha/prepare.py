@@ -5,7 +5,7 @@ import argparse,json,shutil,subprocess,hashlib,tarfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 PROFILE=json.loads((ROOT/'public-alpha/edition.json').read_text())
-KEEP={'native','browser','installer','updater','themes','effects','tools','public-alpha'}
+KEEP={'native','browser','installer','updater','themes','effects','tools','public-alpha','.github'}
 EXCLUDED={'applications','tray','extras'}
 PRIVATE_RELEASE_TESTS={'updater/tests/test_release_024.py','updater/tests/test_sounds_setup.py','updater/tests/test_window_outlines.py'}
 def configure(base):
@@ -23,6 +23,7 @@ def source(destination):
  for name in sorted(set(paths)-{''}):
   p=Path(name)
   if p.parts[0] not in KEEP:continue
+  if p.parts[0]=='.github' and name!='.github/workflows/prebuilt-kubuntu.yml':continue
   if name in PRIVATE_RELEASE_TESTS:continue
   if name.startswith('tools/dark-theme/tests/') or '__pycache__' in p.parts:continue
   if p.suffix.lower() in {'.exe','.dll','.ttf','.msstyles','.vlt'}:continue

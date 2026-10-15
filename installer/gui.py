@@ -37,7 +37,7 @@ class Installer(QtWidgets.QMainWindow):
   body=QtWidgets.QWidget();body.setObjectName('setupBody');host_layout.addWidget(body,1)
   outer=QtWidgets.QHBoxLayout(body);outer.setContentsMargins(0,0,0,0);outer.setSpacing(0)
   rail=QtWidgets.QWidget();rail.setObjectName('setupRail');rail.setFixedWidth(250);outer.addWidget(rail)
-  rail_layout=QtWidgets.QVBoxLayout(rail);rail_layout.setContentsMargins(32,35,20,25);rail_layout.setSpacing(18)
+  rail_layout=QtWidgets.QVBoxLayout(rail);rail_layout.setContentsMargins(32,35,20,25);rail_layout.setSpacing(12)
   self.steps=[]
   for label in ['Collecting information','Preparing installation','Installing components','Finalizing installation','Completing setup']:
    step=SetupStep(label);step.setObjectName('setupStep');step.setWordWrap(True);rail_layout.addWidget(step);self.steps.append(step)
@@ -46,7 +46,11 @@ class Installer(QtWidgets.QMainWindow):
   self.progress=QtWidgets.QProgressBar();self.progress.setRange(0,100);self.progress.setValue(0);self.progress.setTextVisible(False);rail_layout.addWidget(self.progress)
   self.activity=QtWidgets.QLabel('');self.activity.setObjectName('setupActivity');rail_layout.addWidget(self.activity)
   self.dots=QtCore.QTimer(self);self.dots.setInterval(350);self.dots.timeout.connect(lambda:self.activity.setText('■ '*((len(self.activity.text())//2+1)%5)))
-  rail_layout.addStretch()
+  self.terminal_log=QtWidgets.QPlainTextEdit();self.terminal_log.setObjectName('setupTerminal');self.terminal_log.setReadOnly(True)
+  self.terminal_log.setFont(QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.SystemFont.FixedFont));self.terminal_log.setLineWrapMode(QtWidgets.QPlainTextEdit.LineWrapMode.NoWrap)
+  self.terminal_log.setMaximumBlockCount(2000);self.terminal_log.setMinimumHeight(100);self.terminal_log.setMaximumHeight(200)
+  self.terminal_log.setPlaceholderText('Installation output will appear here.');self.terminal_log.setStyleSheet('background:#071b38;color:#ffffff;border:1px solid #92a9c8;font-size:10px;')
+  rail_layout.addWidget(self.terminal_log,1)
   credit=QtWidgets.QLabel('Based on XPlasma\nby hotsocket');credit.setObjectName('setupNote');rail_layout.addWidget(credit)
   self.pages=QtWidgets.QStackedWidget();outer.addWidget(self.pages,1)
   content=QtWidgets.QWidget();content.setObjectName('setupContent');self.pages.addWidget(content)
@@ -83,7 +87,7 @@ class Installer(QtWidgets.QMainWindow):
   self.hires_wallpapers=QtWidgets.QCheckBox('Use high-resolution wallpapers (unchecked: originals)')
   self.hidpi_icons.setChecked(options.get('hidpi_icons',True));self.hires_wallpapers.setChecked(options.get('hires_wallpapers',True))
   self.hidpi_icons.setToolTip('Use credited XP recreations for larger icons; keeps original small toolbar/tray artwork. KDE-only replacements are included in both modes.')
-  self.hires_wallpapers.setToolTip('Use bundled high-resolution XP photos and alternate crops. Original wallpaper files remain in the installer.')
+  self.hires_wallpapers.setToolTip('Use bundled high-resolution XP photos without duplicate crops. Original wallpaper files remain in the installer.')
   quality.addWidget(self.hidpi_icons);quality.addWidget(self.hires_wallpapers);quality.addWidget(self.dark_mode);layout.addLayout(quality)
   self.description=QtWidgets.QLabel('Select a feature to read what it installs.');self.description.setWordWrap(True);self.description.setMinimumHeight(45);layout.addWidget(self.description)
   self.summary=QtWidgets.QLabel();self.summary.setWordWrap(True);layout.addWidget(self.summary)
@@ -163,32 +167,34 @@ class Installer(QtWidgets.QMainWindow):
   if action=='uninstall':
    answer=QtWidgets.QMessageBox.question(self,'Remove XP features','Restore the saved settings for this installation? Later edits are preserved when possible. Linux dependencies and backups are kept.')
    if answer!=QtWidgets.QMessageBox.StandardButton.Yes:return
-  args=[str(BASE/'backend.py'),action]
+  args=['-u',str(BASE/'backend.py'),action]
   if action=='install':args+=['--features',','.join(self.selected()),'--theme',self.theme.currentText()]
   if action=='install':
    if self.dark_mode.isChecked():args+=['--dark-mode']
    if self.hidpi_icons.isChecked():args+=['--hidpi-icons']
    if self.hires_wallpapers.isChecked():args+=['--hires-wallpapers']
-  self.set_step(1);self.pages.setCurrentIndex(1);self.tip_timer.start();self.dots.start();self.current_action=action;self.log.clear();self.progress.setRange(0,0);self.tree.setEnabled(False);self.theme.setEnabled(False);self.close_button.setEnabled(False)
+  self.set_step(1);self.pages.setCurrentIndex(1);self.tip_timer.start();self.dots.start();self.current_action=action;self.log.clear();self.terminal_log.clear();self.progress.setRange(0,0);self.tree.setEnabled(False);self.theme.setEnabled(False);self.close_button.setEnabled(False)
   self.process=QtCore.QProcess(self);self.process.setProcessChannelMode(QtCore.QProcess.ProcessChannelMode.MergedChannels)
   self.process.readyReadStandardOutput.connect(self.read_output);self.process.finished.connect(self.finished)
   self.process.errorOccurred.connect(self.process_error);self.process.start(sys.executable,args);self.update_summary()
+ def append_log(self,text):
+  self.log.appendPlainText(text);self.terminal_log.appendPlainText(text)
  def read_output(self):
-  self.buffer+=bytes(self.process.readAllStandardOutput()).decode(errors='replace')
+  self.buffer+=bytes(self.process.readAllStandardOutput()).decode(errors='replace').replace('\r','\n')
   while '\n' in self.buffer:
    line,self.buffer=self.buffer.split('\n',1)
    if line.startswith('@@'):
     try:
-     phase=json.loads(line[2:])['phase'];self.status.setText(phase)
+     phase=json.loads(line[2:])['phase'];self.status.setText(phase);self.append_log(phase)
      if phase.startswith(('Checking','Creating','Installing Linux')):self.set_step(1)
      elif 'Restoring' in phase or 'recovery' in phase.lower():self.set_step(3)
      elif phase.startswith(('Finalizing','Saving')):self.set_step(3)
      else:self.set_step(2)
-    except (ValueError,KeyError):self.log.appendPlainText(line)
-   else:self.log.appendPlainText(line)
+    except (ValueError,KeyError):self.append_log(line)
+   else:self.append_log(line)
  def finished(self,code,status):
   self.read_output()
-  if self.buffer:self.log.appendPlainText(self.buffer);self.buffer=''
+  if self.buffer:self.append_log(self.buffer);self.buffer=''
   self.tip_timer.stop();self.dots.stop();self.set_step(4 if code==0 else 0);self.pages.setCurrentIndex(0);self.process.deleteLater();self.process=None;self.progress.setRange(0,100);self.progress.setValue(100 if code==0 else 0)
   self.tree.setEnabled(True);self.theme.setEnabled(True);self.close_button.setEnabled(True);self.update_summary()
   if code==0:

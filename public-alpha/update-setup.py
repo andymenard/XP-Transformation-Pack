@@ -57,6 +57,7 @@ def main():
    package=build/'source/xplasma/src/app/start-menu'
    b.copy(package/'contents',home/'.local/share/plasma/plasmoids/fyi.hotsocket.xplasma.start/contents')
    b.copy(package/'metadata.json',home/'.local/share/plasma/plasmoids/fyi.hotsocket.xplasma.start/metadata.json')
+   b.copy(build/'runtime/lib/xplasma/start-menu/libxpmenuguard.so',home/'.local/share/plasma/plasmoids/fyi.hotsocket.xplasma.start/contents/ui/popupguard/libxpmenuguard.so')
   if features&{'fonts','apps','theme_manager'}:
    b.copy(ROOT/'fonts',home/'.local/share/fonts/xp');b.run(['fc-cache','-f'])
   if 'behavior' in features:

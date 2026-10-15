@@ -1,4 +1,4 @@
-    // XPlasma: XP's desktop menu ends with Properties -- XPlasma Properties.
+    // XPlasma: XP's desktop menu ends with Properties -- XPlasma Plus Properties.
     // Started as its own systemd unit, not the shell's child: applying a
     // look restarts the shell, which would take a child with it.
     P5Support.DataSource {
@@ -8,7 +8,7 @@
     }
     PlasmaCore.Action {
         id: xpPropertiesAction
-        text: "XPlasma Properties"
+        text: "XPlasma Plus Properties"
         icon.name: "preferences-desktop-theme"
         onTriggered: xpLauncher.connectSource(@LAUNCH@)
     }

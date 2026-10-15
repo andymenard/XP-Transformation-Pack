@@ -141,7 +141,7 @@ QString embeddedStartLogo(const QString &name)
 DisplayProperties::DisplayProperties(QWidget *parent)
     : QDialog(parent)
 {
-    setWindowTitle(QStringLiteral("XPlasma Properties"));
+    setWindowTitle(QStringLiteral("XPlasma Plus Properties"));
     auto *root = new QVBoxLayout(this);
     m_tabs = new QTabWidget;
     m_tabs->addTab(themesTab(), QStringLiteral("Themes"));

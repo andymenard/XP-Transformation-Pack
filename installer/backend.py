@@ -190,7 +190,11 @@ def verify():
     raise RuntimeError('Package resource link is missing or damaged: '+name)
   elif not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=expected:
    raise RuntimeError('Package file missing or damaged: '+name)
-def root(action,selected=()):run(['pkexec',sys.executable,BASE/'root_helper.py',action,'--features',','.join(sorted(selected))])
+def root(action,selected=(),native_ready=False,caption_ready=False):
+ args=['pkexec',sys.executable,BASE/'root_helper.py',action,'--features',','.join(sorted(selected))]
+ if native_ready:args.append('--native-ready')
+ if caption_ready:args.append('--caption-ready')
+ run(args)
 def desktop_path(home):
  p=Path(run(['xdg-user-dir','DESKTOP'],capture=True)) if shutil.which('xdg-user-dir') else home/'Desktop'
  try:p.relative_to(home)
@@ -312,6 +316,32 @@ def session(home,state):
  units=home/'.config/systemd/user';units.mkdir(parents=True,exist_ok=True)
  for name in ['xp-session-theme.path','xp-session-theme.service']:copy(state/'runtime/tools'/name,units/name)
  run(['systemctl','--user','daemon-reload']);run(['systemctl','--user','enable','--now','xp-session-theme.path'])
+def taskbar_defaults(home,selected):
+ # Seed the installer's Quick Launch once. Later theme changes retain edits.
+ roots=[home/'.local/share/applications',Path('/usr/local/share/applications'),Path('/usr/share/applications'),
+        Path('/var/lib/snapd/desktop/applications'),home/'.local/share/flatpak/exports/share/applications',Path('/var/lib/flatpak/exports/share/applications')]
+ def entry(names):
+  return next((p.as_uri() for name in names for root in roots if (p:=root/name).is_file()),None)
+ settings=entry(['systemsettings.desktop','org.kde.systemsettings.desktop'])
+ manager=entry(['org.kde.dolphin.desktop','dolphin.desktop'])
+ browser=entry(['firefox-esr-ie6.desktop']) if 'firefox' in selected else None
+ browser=browser or entry(['firefox.desktop','org.mozilla.firefox.desktop','firefox_firefox.desktop'])
+ urls=[url for url in [settings,manager,browser] if url]
+ if len(urls)!=3:print('A requested default taskbar application was not found; pinning the installed applications only.',flush=True)
+ script='''panels().forEach(function(p){
+ var quick=null;p.widgets().forEach(function(w){
+  if(w.type==="org.kde.plasma.quicklaunch"&&!quick)quick=w;
+  if(w.type==="org.kde.plasma.taskmanager"||w.type==="org.kde.plasma.icontasks"){
+   w.currentConfigGroup=["General"];w.writeConfig("launchers",[]);w.reloadConfig();}
+ });
+ if(!quick)quick=p.addWidget("org.kde.plasma.quicklaunch");
+ quick.currentConfigGroup=["General"];quick.writeConfig("launcherUrls",URLS);
+ quick.writeConfig("maxSectionCount",1);quick.writeConfig("showLauncherNames",false);quick.writeConfig("enablePopup",false);quick.reloadConfig();
+ var start=p.widgets().filter(function(w){return w.type==="fyi.hotsocket.xplasma.start";})[0];
+ if(start)quick.index=start.index+1;
+});'''.replace('URLS',json.dumps(urls))
+ run([kdbus(),'org.kde.plasmashell','/PlasmaShell','org.kde.PlasmaShell.evaluateScript',script])
+
 def desktop_updates(home,state,selected,asset_options=None):
  import importlib.util
  tools=state/'runtime/tools'
@@ -338,7 +368,12 @@ def desktop_updates(home,state,selected,asset_options=None):
   else:log('Existing shared cursor fallback preserved; no application override was installed.')
  if 'caption_animation' in selected:
   dest=home/'.local/share/kwin/xplasma/caption-source';copy(BASE/'payload/caption-animation',dest)
-  run([sys.executable,dest/'build-local.py'])
+  import build_cache
+  cached=build_cache.find(BASE,'taskbar' if 'taskbar' in selected else 'core')
+  if cached and build_cache.caption_ready(BASE,cached) and build_cache.usable(cached):
+   copy(cached/'runtime/lib/xplasma/caption/xp-caption-animation.so',home/'.local/lib/qt6/plugins/kwin/effects/plugins/xp-caption-animation.so')
+   log('Using the verified caption animation for this KWin version.')
+  else:run([sys.executable,dest/'build-local.py'])
   config('kwinrc','Plugins','xp-caption-animationEnabled','true')
   for effect in ['maximize','squash','magiclamp']:config('kwinrc','Plugins',effect+'Enabled','false')
   log('XP caption animation built for this computer. Log out/in to activate it.')
@@ -465,7 +500,12 @@ def install(selected,theme,asset_options=None):
  home=Path.home();state=home/'.local/share'/STATE_NAME
  if (state/'installation.json').exists():raise RuntimeError('An XP Suite installation already exists. Use Remove installed features before choosing a new selection.')
  phase('Preparing Linux dependencies — authentication may be requested')
- if detect()['family'] and selected&(NATIVE|ACCESSORIES|{'login','boot','firefox','explorer','control_panel','tray','caption_animation','icons'}):root('dependencies',selected)
+ if detect()['family'] and selected&(NATIVE|ACCESSORIES|{'login','boot','firefox','explorer','control_panel','tray','caption_animation','icons'}):
+  import build_cache
+  cached=build_cache.find(BASE,'taskbar' if 'taskbar' in selected else 'core') if selected&NATIVE else None
+  ready=bool(cached and build_cache.usable(cached))
+  if ready:log('A verified prebuilt package matches this distribution, architecture, Qt and Plasma version.')
+  root('dependencies',selected,native_ready=ready,caption_ready=bool(ready and build_cache.caption_ready(BASE,cached)))
  state.mkdir(parents=True,exist_ok=True)
  snapshot=Snapshot(home,state,tracked_paths(home));snapshot.save()
  try:
@@ -490,6 +530,7 @@ def install(selected,theme,asset_options=None):
   if 'user_pictures' in selected:phase('Installing XP user account pictures');user_pictures(home)
   if 'lock' in selected:phase('Installing XP lock screen');lock_screen(home,state)
   if 'firefox' in selected:phase('Installing IE6-style Firefox ESR');firefox(home)
+  if 'taskbar' in selected:phase('Setting default taskbar shortcuts');taskbar_defaults(home,selected)
   if 'desktop_icons' in selected:phase('Adding XP desktop shortcuts');shortcuts(home,state,selected,asset_options)
   if selected&{'codex_colors','clippy'}:phase('Configuring Codex extras');codex(home,selected)
   if 'updates' in selected:phase('Installing signed XPlasma update client');update_client(home)

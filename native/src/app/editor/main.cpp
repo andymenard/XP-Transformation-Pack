@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// xplasma-edit: XPlasma Properties, and Date and Time Properties.
+// xplasma-edit: XPlasma Plus Properties, and Date and Time Properties.
 //
-//   xplasma-edit                    XPlasma Properties (Themes, Desktop,
+//   xplasma-edit                    XPlasma Plus Properties (Themes, Desktop,
 //                                   Appearance, Pointers, Sounds)
 //   xplasma-edit --sounds           ... open on its Sounds tab
 //   xplasma-edit --date-time        Date and Time Properties
@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
     QApplication::setApplicationName(QStringLiteral("xplasma-edit"));
-    QApplication::setApplicationDisplayName(QStringLiteral("XPlasma Properties"));
+    QApplication::setApplicationDisplayName(QStringLiteral("XPlasma Plus Properties"));
     QApplication::setApplicationVersion(QStringLiteral(XPLASMA_VERSION));
     QApplication::setDesktopFileName(QStringLiteral("fyi.hotsocket.xplasma"));
     QCommandLineParser parser;
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
     parser.addOption(screenshots);
     const QCommandLineOption dateTime(QStringLiteral("date-time"), QStringLiteral("Date and Time Properties."));
     parser.addOption(dateTime);
-    const QCommandLineOption soundsOption(QStringLiteral("sounds"), QStringLiteral("XPlasma Properties, on its Sounds tab."));
+    const QCommandLineOption soundsOption(QStringLiteral("sounds"), QStringLiteral("XPlasma Plus Properties, on its Sounds tab."));
     parser.addOption(soundsOption);
     const QCommandLineOption checkUpdates(QStringLiteral("check-updates"), QStringLiteral("Show XP's update globe if a newer XPlasma is out."));
     parser.addOption(checkUpdates);

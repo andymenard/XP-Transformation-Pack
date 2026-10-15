@@ -1,0 +1,73 @@
+name: Build Kubuntu prebuilt components
+on:
+  push:
+    branches: ['codex/prebuilt-*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  kubuntu-amd64:
+    runs-on: ubuntu-24.04
+    container: ubuntu:26.04
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      QT_QPA_PLATFORM: offscreen
+      XP_BUILD_JOBS: '3'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y python3 ca-certificates git plasma-workspace
+          python3 - <<'PY'
+          import sys,subprocess
+          sys.path.insert(0,'installer')
+          import dependencies
+          dependencies.install('apt',{'taskbar','caption_animation'},lambda args:subprocess.run(args,check=True))
+          PY
+      - name: Prepare Linux-only build inputs
+        run: |
+          mkdir -p /tmp/xp-suite/source /tmp/xp-suite/payload/caption-animation
+          cp installer/*.py installer/*.sh /tmp/xp-suite/
+          cp effects/xp-caption-animation/* /tmp/xp-suite/payload/caption-animation/
+          python3 - <<'PY'
+          from pathlib import Path
+          import tarfile
+          with tarfile.open('/tmp/xp-suite/source/xplasma-source.tar.gz','w:gz') as archive:
+              for p in sorted(Path('native').rglob('*')):
+                  if p.is_file() and '__pycache__' not in p.parts:
+                      archive.add(p,arcname='xplasma/'+str(p.relative_to('native')))
+          PY
+          bash /tmp/xp-suite/build-native.sh /tmp/xp-build core
+      - name: Fetch verified Plasma sources and build widgets
+        run: |
+          python3 - <<'PY'
+          import sys,subprocess,urllib.request,hashlib
+          from pathlib import Path
+          sys.path.insert(0,'installer')
+          from system_profile import detect
+          series='.'.join(map(str,detect()['plasma'][:2]))
+          info=subprocess.check_output(['/tmp/xp-build/runtime/bin/xplasma','fork-info',series],text=True)
+          for line in info.splitlines():
+              fields=line.split()
+              if fields[0]!='source':continue
+              _,project,version,sha=fields
+              name=project+'-'+version+'.tar.xz'
+              data=urllib.request.urlopen('https://download.kde.org/stable/plasma/'+version+'/'+name,timeout=120).read()
+              if hashlib.sha256(data).hexdigest()!=sha:raise RuntimeError('Plasma source checksum mismatch')
+              (Path('/tmp/xp-suite/source')/name).write_bytes(data)
+          PY
+          python3 /tmp/xp-suite/build-widgets.py /tmp/xp-build 3
+      - name: Build and test caption effect
+        run: |
+          cmake -S effects/xp-caption-animation -B /tmp/xp-caption -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/xp-caption --parallel 3 --target xp-caption-animation test-caption
+          ctest --test-dir /tmp/xp-caption --output-on-failure
+      - name: Export verified matching runtime
+        run: |
+          python3 installer/build_cache.py store /tmp/xp-suite /tmp/xp-build taskbar --destination /tmp/xp-prebuilt --caption /tmp/xp-caption/lib/kwin/effects/plugins/xp-caption-animation.so
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kubuntu-26.04-amd64-prebuilt
+          path: /tmp/xp-prebuilt/
+          retention-days: 30

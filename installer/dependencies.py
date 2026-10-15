@@ -9,10 +9,10 @@ RECIPES={
  'pacman':{'base':'fontconfig kde-cli-tools qt6-tools','native':'base-devel cmake ninja pkgconf libarchive zlib xz bzip2 qt6-base qt6-declarative','gui':'python-pyqt6','firefox':'gtk3 nss nspr alsa-lib dbus-glib libxt libx11 libxcomposite libxdamage libxrandr mesa','login':'sddm qt6-declarative qt6-5compat','qml':'qt6-declarative qt6-5compat','boot':'plymouth','apps':'gtk3 gtk4 gsettings-desktop-schemas'},
  'zypper':{'base':'fontconfig kde-cli-tools6 qt6-tools','native':'gcc-c++ cmake ninja pkg-config libarchive-devel zlib-devel liblzma-devel libbz2-devel qt6-base-devel qt6-declarative-devel','gui':'python3-qt6','firefox':'libgtk-3-0 mozilla-nss mozilla-nspr libasound2 libdbus-glib-1-2 libXt6 libX11-6 libXcomposite1 libXdamage1 libXrandr2 libgbm1','login':'sddm qt6-declarative-imports qt6-5compat-imports','qml':'qt6-declarative-imports qt6-5compat-imports','boot':'plymouth plymouth-scripts','apps':'libgtk-3-0 libgtk-4-1 gsettings-desktop-schemas'}
 }
-def packages(family,features,bootstrap=False):
+def packages(family,features,bootstrap=False,native_ready=False,caption_ready=False):
  r=RECIPES[family];groups=['gui'] if bootstrap else ['base']
  if not bootstrap:
-  if set(features)&NATIVE:groups+=['native']
+  if set(features)&NATIVE and not native_ready:groups+=['native']
   if set(features)&({'explorer','control_panel','updates'}|APPS):groups+=['gui']
   groups += [x for x in ['firefox','login','boot','apps'] if x in features]
   if set(features)&{'lock','session'}:groups+=['qml']
@@ -37,6 +37,7 @@ def packages(family,features,bootstrap=False):
  'pacman':'base-devel cmake ninja extra-cmake-modules kwin qt6-base qt6-declarative libdrm wayland vulkan-headers',
  'zypper':'gcc-c++ cmake ninja extra-cmake-modules kwin6-devel qt6-base-devel qt6-declarative-devel libdrm-devel wayland-devel vulkan-headers'}[family]
  for key,value in extras[family].items():
+  if key=='caption_animation' and caption_ready:continue
   if key in features or (key=='games' and set(features)&{'pinball','minesweeper','solitaire'}):result.update(value.split())
  return sorted(result)
 def apt_builddeps(run):
@@ -56,8 +57,8 @@ def apt_builddeps(run):
   options=['-o','Dir::Etc::sourcelist=/dev/null','-o','Dir::Etc::sourceparts='+str(parts)]
   run(['apt-get',*options,'update'])
   run(['apt-get',*options,'build-dep','--assume-yes','plasma-workspace','plasma-desktop'])
-def install(family,features,run,bootstrap=False):
- chosen=packages(family,features,bootstrap)
+def install(family,features,run,bootstrap=False,native_ready=False,caption_ready=False):
+ chosen=packages(family,features,bootstrap,native_ready,caption_ready)
  if family=='apt':
   # Debian before the t64 transition uses the unsuffixed package names.
   for i,p in enumerate(chosen):
@@ -66,7 +67,7 @@ def install(family,features,run,bootstrap=False):
  elif family=='dnf':run(['dnf','install','-y',*chosen])
  elif family=='pacman':run(['pacman','-S','--needed','--noconfirm',*chosen])
  else:run(['zypper','--non-interactive','install',*chosen])
- if bootstrap or 'taskbar' not in features:return
+ if bootstrap or native_ready or 'taskbar' not in features:return
  if family=='apt':apt_builddeps(run)
  elif family=='dnf':
   run(['dnf','install','-y','dnf5-command(builddep)' if 'dnf5' in subprocess.check_output(['dnf','--version'],text=True).lower() else 'dnf-plugins-core'])

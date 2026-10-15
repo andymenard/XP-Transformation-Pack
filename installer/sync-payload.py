@@ -47,6 +47,9 @@ def sync(suite, icons=None, wallpapers=None):
     for source in (ROOT / 'installer').iterdir():
         if source.is_file():
             shutil.copy2(source, suite / source.name)
+    prebuilts=ROOT/'private-assets/prebuilt'
+    if prebuilts.is_dir():
+        shutil.copytree(prebuilts,suite/'prebuilt',dirs_exist_ok=True,symlinks=True)
     tests = ROOT / 'installer/tests'
     if tests.is_dir():
         shutil.copytree(tests, suite / 'tests', dirs_exist_ok=True,
@@ -63,6 +66,8 @@ def sync(suite, icons=None, wallpapers=None):
                 target.add(source, arcname='xplasma/' + str(Path(relative).relative_to('native')), recursive=False)
     temporary.replace(archive)
     shutil.copytree(ROOT/'themes/xp-welcome',suite/'payload/templates/welcome-splash',dirs_exist_ok=True)
+    shutil.copytree(ROOT/'effects/xp-caption-animation',suite/'payload/caption-animation',dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns('__pycache__'))
     # Original optional font stays in the local asset payload, outside public source.
     welcome_fonts = suite/'payload/templates/welcome-splash/contents/splash/fonts'
     welcome_fonts.mkdir(parents=True, exist_ok=True)

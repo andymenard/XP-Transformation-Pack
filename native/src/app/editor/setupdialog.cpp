@@ -19,11 +19,11 @@ namespace xpl::editor {
 SetupDialog::SetupDialog(QWidget *parent)
     : QDialog(parent)
 {
-    setWindowTitle(QStringLiteral("XPlasma Setup"));
+    setWindowTitle(QStringLiteral("XPlasma Plus Assets"));
     auto *layout = new QVBoxLayout(this);
     auto *blurb = new QLabel(QStringLiteral(
-        "XPlasma themes Plasma from Windows XP's own files, which it can't carry itself: point it at your XP install "
-        "media, or fetch it and the official theme packs from archive.org."));
+        "This XPlasma Plus edition includes the XP assets needed for its desktop themes. "
+        "You can optionally import another XP image or additional theme packs here."));
     blurb->setWordWrap(true);
     layout->addWidget(blurb);
     m_checks = new QLabel;
@@ -90,8 +90,8 @@ void SetupDialog::refresh()
                     .arg(c.ok() ? QStringLiteral("&#10004;") : QStringLiteral("&#10008;"), c.tool, c.purpose.toHtmlEscaped());
     const QString media = State::load().media;
     text += media.isEmpty() || !QFileInfo::exists(media)
-                ? QStringLiteral("&#10008; XP's install media<br>")
-                : QStringLiteral("&#10004; XP's install media: %1<br>").arg(QFileInfo(media).fileName().toHtmlEscaped());
+                ? QStringLiteral("&#10008; bundled XP assets<br>")
+                : QStringLiteral("&#10004; bundled XP assets: %1<br>").arg(QFileInfo(media).fileName().toHtmlEscaped());
     text += QFileInfo::exists(paths::themes() + QLatin1String("/Royale"))
                 ? QStringLiteral("&#10004; the official theme packs")
                 : QStringLiteral("&#10008; the official theme packs");

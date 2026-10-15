@@ -2,7 +2,8 @@
 set -euo pipefail
 suite_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 build_dir=${1:?An installation build directory is required}
-jobs=${XP_BUILD_JOBS:-2}
+jobs=$(python3 "$suite_dir/build_cache.py" jobs)
+kind=${2:-core}
 mkdir -p "$build_dir/source"
 python3 - "$suite_dir" "$build_dir" <<'PY'
 from pathlib import Path
@@ -18,9 +19,9 @@ if not stamp.exists() or stamp.read_text()!=digest:
  stamp.write_text(digest)
 PY
 source_dir="$build_dir/source/xplasma"
-cmake -S "$source_dir/src/app/start-menu/popupguard" -B "$build_dir/guard" -G Ninja \
- -DCMAKE_BUILD_TYPE=Release -DCMAKE_LIBRARY_OUTPUT_DIRECTORY="$source_dir/src/app/start-menu/contents/ui/popupguard"
-cmake --build "$build_dir/guard" --parallel "$jobs"
+if python3 "$suite_dir/build_cache.py" reuse "$suite_dir" "$build_dir" "$kind"; then
+ exit 0
+fi
 cmake -S "$source_dir" -B "$build_dir/native" -G Ninja \
  -DQT_MAJOR=6 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$build_dir/runtime"
 cmake --build "$build_dir/native" --parallel "$jobs" --target xplasma-cli xplasma-edit xplasma-setup xplasma test-style-geometry
@@ -29,3 +30,4 @@ cmake --install "$build_dir/native"
 if [ "${2:-core}" = taskbar ]; then
  python3 "$suite_dir/build-widgets.py" "$build_dir" "$jobs"
 fi
+python3 "$suite_dir/build_cache.py" store "$suite_dir" "$build_dir" "$kind"
