@@ -7,6 +7,9 @@ Every runtime file is checked against the package manifest. Missing libraries,
 changed files, incompatible machines or new source select a local build instead.
 No unsigned executable downloads are performed during installation.
 
+For troubleshooting, launch Setup with `XP_BUILD_FROM_SOURCE=1` to bypass
+prebuilt packages and use the installed compiler and SDK instead.
+
 Completed native builds are saved under `~/.cache/xplasma-plus/prebuilt` for reuse
 after removal/reinstallation. Compiler parallelism follows available CPUs and
 memory (up to eight jobs), with `XP_BUILD_JOBS` as an explicit override. The Start

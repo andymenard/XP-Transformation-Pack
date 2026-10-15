@@ -373,7 +373,11 @@ def desktop_updates(home,state,selected,asset_options=None):
   if cached and build_cache.caption_ready(BASE,cached) and build_cache.usable(cached):
    copy(cached/'runtime/lib/xplasma/caption/xp-caption-animation.so',home/'.local/lib/qt6/plugins/kwin/effects/plugins/xp-caption-animation.so')
    log('Using the verified caption animation for this KWin version.')
-  else:run([sys.executable,dest/'build-local.py'])
+  else:
+   run([sys.executable,dest/'build-local.py'])
+   build=state/'build'
+   if (build/'runtime').is_dir():
+    build_cache.store(BASE,build,'taskbar' if 'taskbar' in selected else 'core',caption=home/'.local/lib/qt6/plugins/kwin/effects/plugins/xp-caption-animation.so')
   config('kwinrc','Plugins','xp-caption-animationEnabled','true')
   for effect in ['maximize','squash','magiclamp']:config('kwinrc','Plugins',effect+'Enabled','false')
   log('XP caption animation prepared for this computer. Log out/in to activate it.')

@@ -60,12 +60,17 @@ def validate(folder,expected):
  except (OSError,ValueError,KeyError,RuntimeError):return False
 
 def find(suite,kind,profile=None,cache=None):
+ if os.environ.get('XP_BUILD_FROM_SOURCE')=='1':return None
  expected=identity(suite,kind,profile)
  roots=[Path(suite)/'prebuilt',Path(cache) if cache else Path.home()/'.cache/xplasma-plus/prebuilt']
+ matches=[]
  for root in roots:
   folder=root/key(expected)
-  if validate(folder,expected):return folder
- return None
+  if validate(folder,expected):matches.append(folder)
+ if not matches and kind=='core':return find(suite,'taskbar',profile,cache)
+ # A newly rebuilt local effect can match a KWin update better than the copy
+ # in the original installer, while the native core remains compatible.
+ return next((folder for folder in matches if caption_ready(suite,folder)),matches[0] if matches else None)
 
 def caption_identity(suite):
  binary=shutil.which('kwin_wayland') or shutil.which('kwin_x11')

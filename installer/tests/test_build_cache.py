@@ -35,6 +35,11 @@ class BuildCacheTests(unittest.TestCase):
  def test_external_links_are_not_packaged(self):
   (self.build/'runtime/escape').symlink_to('/etc/passwd')
   with self.assertRaises(RuntimeError):cache.store(self.suite,self.build,'core',self.root/'cache',self.profile)
+ def test_full_runtime_can_serve_a_style_only_install(self):
+  plugins=self.build/'runtime/lib/xplasma/forks/6.6/plasma/applets';plugins.mkdir(parents=True)
+  for index in range(4):(plugins/(str(index)+'.so')).write_bytes((self.build/'runtime/lib/xplasma/qt6/styles/libxplasma.so').read_bytes())
+  folder=cache.store(self.suite,self.build,'taskbar',self.root/'cache',self.profile)
+  self.assertEqual(cache.find(self.suite,'core',self.profile,self.root/'cache'),folder)
  def test_prebuilt_does_not_request_compiler_or_kwin_sdk(self):
   import dependencies
   selected={'desktop','apps','taskbar','caption_animation'}
