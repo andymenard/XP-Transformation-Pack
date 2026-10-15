@@ -20,7 +20,7 @@ def prepare(bundle,previous,out):
  inventory={str(p.relative_to(stage)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(stage.rglob('*')) if p.is_file() and p.name!='files.json' and '__pycache__' not in p.parts}
  (stage/'files.json').write_text(json.dumps(inventory,indent=2)+'\n')
  desktop=out/'update-setup.desktop'
- desktop.write_text('[Desktop Entry]\nType=Application\nName=XP Alpha Update Setup\nComment=Build the signed Alpha 2 fixes for this computer\nExec=sh -c \'python3 "$HOME/.local/share/xp-accessories/alpha-update/setup.py" --interactive\'\nIcon=preferences-desktop-theme\nTerminal=true\nCategories=Settings;\n')
+ desktop.write_text('[Desktop Entry]\nType=Application\nName=XP Alpha Update Setup\nComment=Build the signed Alpha 2 fixes for this computer\nExec=sh -c "cd && exec python3 .local/share/xp-accessories/alpha-update/setup.py --interactive"\nIcon=preferences-desktop-theme\nTerminal=true\nCategories=Settings;\n')
  files=[]
  def add(source,target,feature,old=None,mode=0o644,features_any=None):
   item={'source':str(source),'target':target,'feature':feature,'mode':mode}
