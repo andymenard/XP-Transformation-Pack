@@ -369,15 +369,14 @@ def desktop_updates(home,state,selected,asset_options=None):
  if 'caption_animation' in selected:
   dest=home/'.local/share/kwin/xplasma/caption-source';copy(BASE/'payload/caption-animation',dest)
   import build_cache
-  cached=build_cache.find(BASE,'taskbar' if 'taskbar' in selected else 'core')
-  if cached and build_cache.caption_ready(BASE,cached) and build_cache.usable(cached):
-   copy(cached/'runtime/lib/xplasma/caption/xp-caption-animation.so',home/'.local/lib/qt6/plugins/kwin/effects/plugins/xp-caption-animation.so')
+  cached=build_cache.find_caption(BASE)
+  if cached:
+   copy(cached,home/'.local/lib/qt6/plugins/kwin/effects/plugins/xp-caption-animation.so')
    log('Using the verified caption animation for this KWin version.')
   else:
    run([sys.executable,dest/'build-local.py'])
-   build=state/'build'
-   if (build/'runtime').is_dir():
-    build_cache.store(BASE,build,'taskbar' if 'taskbar' in selected else 'core',caption=home/'.local/lib/qt6/plugins/kwin/effects/plugins/xp-caption-animation.so')
+   build_cache.store_component(home/'.local/lib/qt6/plugins/kwin/effects/plugins/xp-caption-animation.so',
+     'lib/xplasma/caption/xp-caption-animation.so',build_cache.caption_component_identity(BASE))
   config('kwinrc','Plugins','xp-caption-animationEnabled','true')
   for effect in ['maximize','squash','magiclamp']:config('kwinrc','Plugins',effect+'Enabled','false')
   log('XP caption animation prepared for this computer. Log out/in to activate it.')
@@ -509,13 +508,13 @@ def install(selected,theme,asset_options=None):
   cached=build_cache.find(BASE,'taskbar' if 'taskbar' in selected else 'core') if selected&NATIVE else None
   ready=bool(cached and build_cache.usable(cached))
   if ready:log('A verified prebuilt package matches this distribution, architecture, Qt and Plasma version.')
-  caption_was_ready=bool(ready and build_cache.caption_ready(BASE,cached))
+  caption_was_ready=bool(build_cache.find_caption(BASE))
   root('dependencies',selected,native_ready=ready,caption_ready=caption_was_ready)
-  if ready:
+  if ready or caption_was_ready:
    after=build_cache.find(BASE,'taskbar' if 'taskbar' in selected else 'core')
    still_ready=bool(after and build_cache.usable(after))
-   caption_ok=bool(still_ready and build_cache.caption_ready(BASE,after))
-   if not still_ready or ('caption_animation' in selected and caption_was_ready and not caption_ok):
+   caption_ok=bool(build_cache.find_caption(BASE))
+   if (ready and not still_ready) or ('caption_animation' in selected and caption_was_ready and not caption_ok):
     log('System libraries changed while installing packages; refreshing matching build dependencies.')
     root('dependencies',selected,native_ready=still_ready,caption_ready=caption_ok)
  state.mkdir(parents=True,exist_ok=True)

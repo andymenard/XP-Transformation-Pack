@@ -7,12 +7,13 @@ kind=${2:-core}
 mkdir -p "$build_dir/source"
 python3 - "$suite_dir" "$build_dir" <<'PY'
 from pathlib import Path
-import tarfile,sys,hashlib,shutil
+import tarfile,sys,shutil
 root,build=map(Path,sys.argv[1:])
-digest=hashlib.sha256((root/'source/xplasma-source.tar.gz').read_bytes()).hexdigest()
+sys.path.insert(0,str(root));from build_cache import source_id
+digest=source_id(root)
 stamp=build/'source-sha256.txt'
 if not stamp.exists() or stamp.read_text()!=digest:
- for name in ['source','native','guard']:
+ for name in ['source']:
   if (build/name).exists():shutil.rmtree(build/name)
  (build/'source').mkdir(parents=True,exist_ok=True)
  with tarfile.open(root/'source/xplasma-source.tar.gz') as t:t.extractall(build/'source',filter='data')

@@ -35,3 +35,29 @@ python3 installer/build_cache.py store /path/to/complete-installer /path/to/buil
 Add `--caption /path/to/xp-caption-animation.so` only for a binary built from the
 bundled effect source against that host's KWin. Linux plugin sources and license
 notices remain included in the complete installer.
+
+## Component reuse
+
+The four Plasma widget plugins have independent cache entries. Their identities
+cover the distribution, architecture, Qt/Plasma series, patched widget files,
+shared project files and build recipe. A notification-only QML edit invalidates
+the notification plugin; shared C++ or CMake changes invalidate dependent plugins.
+Each cached binary is checked for its hash, ELF architecture and missing symbols
+before reuse. The animation effect has a separate entry tied to its own sources
+and the exact KWin package, independent of engine and widget edits.
+
+Engine tools share embedded resources, so some widget QML edits also require
+relinking those tools. Existing CMake build directories are retained, allowing
+incremental compilation instead of starting over. Native source extraction uses
+a content hash, so archive timestamp changes alone do not discard work.
+
+Kubuntu CI restores previous build caches before compiling and exports individual
+widget/effect entries alongside the complete runtime. The same installer cache
+logic is used on Fedora and other supported KDE distributions. Unmatched or
+modified entries fall back to a build. Set `XP_BUILD_CACHE` to choose a cache
+folder; `XP_BUILD_FROM_SOURCE=1` bypasses all binary cache lookups.
+
+Updating scripts, Firefox CSS or supplied assets still requires regenerating the
+installer inventory/archive and signing release metadata, but no native build
+when native inputs are unchanged. Existing schema-1 complete packages remain
+supported; component caches are populated by the updated builder.

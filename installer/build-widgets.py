@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """Build only the four XP widget plugins against this system's libraries."""
-import hashlib,os,shutil,subprocess,sys,tarfile
+import hashlib,json,os,shutil,subprocess,sys,tarfile
+import build_cache
 from pathlib import Path
 from system_profile import detect
 
@@ -23,13 +24,31 @@ def main():
   elif parts[0]=='target':targets.setdefault(parts[1],[]).append(parts[2])
  run([cli,'fork-sources',series,pristine,patched])
  out=build/'runtime/lib/xplasma/forks'/series/'plasma/applets';out.mkdir(parents=True,exist_ok=True)
+ records=[]
+ recipes=json.loads((build/'source/xplasma/src/app/overrides/forks.json').read_text())[series]['widgets']
  for project,names in targets.items():
+  pending=[];identities={}
+  for name in names:
+   widget=next(w for w in recipes if w['id']==name)
+   expected=build_cache.widget_identity(patched/(project+'-'+sources[project]),widget['dir'])
+   identities[name]=expected
+   relative='lib/xplasma/forks/'+series+'/plasma/applets/'+name+'.so'
+   records.append({'path':relative,'identity':expected})
+   cached=build_cache.find_component(suite,expected)
+   if cached:
+    shutil.copy2(cached/'runtime'/relative,out/(name+'.so'))
+    print('Reusing verified widget: '+name,flush=True)
+   else:pending.append(name)
+  if not pending:continue
   native=root/'build'/project
   run(['cmake','-S',patched/(project+'-'+sources[project]),'-B',native,'-G','Ninja','-DCMAKE_BUILD_TYPE=Release','-DBUILD_TESTING=OFF'])
-  run(['cmake','--build',native,'--parallel',jobs,'--target',*names])
-  for name in names:
+  run(['cmake','--build',native,'--parallel',jobs,'--target',*pending])
+  for name in pending:
    plugin=native/'bin/plasma/applets'/(name+'.so')
    symbols=subprocess.check_output(['objdump','-T',str(plugin)],text=True)
    if 'PRIVATE_API' in symbols:raise RuntimeError('Widget unexpectedly uses Qt private API: '+name)
    shutil.copy2(plugin,out/plugin.name)
+   relative='lib/xplasma/forks/'+series+'/plasma/applets/'+name+'.so'
+   build_cache.store_component(plugin,relative,identities[name])
+ (build/'widget-components.json').write_text(json.dumps(records,indent=2)+'\n')
 if __name__=='__main__':main()

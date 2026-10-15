@@ -57,4 +57,52 @@ class BuildCacheTests(unittest.TestCase):
    self.assertEqual(result['kwin'],'6.6.4');self.assertEqual(result['package'],'4:6.6.4-0ubuntu1')
    self.assertEqual(run.call_count,1);self.assertEqual(run.call_args.args[0][0],'/usr/bin/dpkg-query')
 
+
+class ComponentCacheTests(unittest.TestCase):
+ def setUp(self):
+  self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name)
+  self.profile={'arch':'amd64','qt':(6,10,1),'plasma':(6,6,3)}
+  self.project=self.root/'project'
+  for name in ['CMakeLists.txt','libshared/common.cpp','applets/notifications/Button.qml','applets/systemtray/main.qml','containments/panel/main.qml']:
+   p=self.project/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(name)
+  self.binary=self.root/'plugin.so';elf=bytearray(64);elf[:6]=b'\x7fELF\x02\x01';elf[18:20]=(62).to_bytes(2,'little');self.binary.write_bytes(elf)
+ def tearDown(self):self.temp.cleanup()
+ def identity(self,widget='applets/notifications'):return cache.widget_identity(self.project,widget,self.profile)
+ def test_only_changed_widget_is_invalidated(self):
+  before={w:self.identity(w) for w in ['applets/notifications','applets/systemtray','containments/panel']}
+  (self.project/'applets/notifications/Button.qml').write_text('contrast fix')
+  self.assertNotEqual(before['applets/notifications'],self.identity())
+  for w in ['applets/systemtray','containments/panel']:self.assertEqual(before[w],self.identity(w))
+ def test_common_code_changes_invalidate_each_dependent_widget(self):
+  before=self.identity();(self.project/'libshared/common.cpp').write_text('new ABI')
+  self.assertNotEqual(before,self.identity())
+ def test_component_hashes_and_architecture_are_verified(self):
+  expected=self.identity();folder=cache.store_component(self.binary,'lib/test.so',expected,self.root/'cache')
+  self.assertEqual(cache.find_component(self.root,expected,self.root/'cache',False),folder)
+  self.assertFalse(cache.validate_component(folder,{**expected,'arch':'arm64'}))
+  (folder/'runtime/lib/test.so').write_bytes(b'changed')
+  self.assertIsNone(cache.find_component(self.root,expected,self.root/'cache',False))
+ def test_force_source_bypasses_component_cache(self):
+  expected=self.identity();cache.store_component(self.binary,'lib/test.so',expected,self.root/'cache')
+  with patch.dict(os.environ,{'XP_BUILD_FROM_SOURCE':'1'}):self.assertIsNone(cache.find_component(self.root,expected,self.root/'cache',False))
+ def test_missing_libraries_reject_a_matching_component(self):
+  expected=self.identity();cache.store_component(self.binary,'lib/test.so',expected,self.root/'cache')
+  with patch.object(cache,'usable',return_value=False):self.assertIsNone(cache.find_component(self.root,expected,self.root/'cache'))
+ def test_caption_cache_does_not_depend_on_engine_source(self):
+  abi={'kwin':'6.6.4','package':'6.6.4-1','source':{'effect.cpp':'hash'}}
+  with patch.object(cache,'caption_identity',return_value=abi):first=cache.caption_component_identity(self.root,self.profile)
+  (self.root/'unrelated-engine.cpp').write_text('changed')
+  with patch.object(cache,'caption_identity',return_value=abi):self.assertEqual(first,cache.caption_component_identity(self.root,self.profile))
+  with patch.object(cache,'caption_identity',return_value={**abi,'package':'6.6.4-2'}):self.assertNotEqual(first,cache.caption_component_identity(self.root,self.profile))
+
+ def test_effect_lookup_survives_engine_update_but_rejects_new_kwin(self):
+  abi={'kwin':'6.6.4','package':'6.6.4-1','source':{'effect.cpp':'hash'}}
+  with patch.object(cache,'caption_identity',return_value=abi),patch.object(cache,'detect',return_value=self.profile),patch.object(cache,'usable',return_value=True):
+   expected=cache.caption_component_identity(self.root)
+   folder=cache.store_component(self.binary,'lib/xplasma/caption/xp-caption-animation.so',expected,self.root/'cache')
+   (self.root/'source').mkdir();(self.root/'source/xplasma-source.tar.gz').write_bytes(b'new engine')
+   self.assertEqual(cache.find_caption(self.root,cache=self.root/'cache'),folder/'runtime/lib/xplasma/caption/xp-caption-animation.so')
+   with patch.object(cache,'caption_identity',return_value={**abi,'package':'6.6.4-2'}):
+    self.assertIsNone(cache.find_caption(self.root,cache=self.root/'cache'))
+
 if __name__=='__main__':unittest.main()

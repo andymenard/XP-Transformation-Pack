@@ -13,8 +13,15 @@ jobs:
       DEBIAN_FRONTEND: noninteractive
       QT_QPA_PLATFORM: offscreen
       XP_BUILD_JOBS: '3'
+      XP_BUILD_CACHE: /tmp/xp-native-cache
     steps:
       - uses: actions/checkout@v4
+      - name: Restore verified component caches
+        uses: actions/cache@v4
+        with:
+          path: /tmp/xp-native-cache
+          key: kubuntu-26.04-amd64-components-v1-${{ hashFiles('native/**', 'installer/build_cache.py', 'installer/build-widgets.py', 'effects/xp-caption-animation/**') }}
+          restore-keys: kubuntu-26.04-amd64-components-v1-
       - name: Install build dependencies
         run: |
           apt-get update
@@ -60,9 +67,22 @@ jobs:
           python3 /tmp/xp-suite/build-widgets.py /tmp/xp-build 3
       - name: Build and test caption effect
         run: |
+          python3 - <<'PYCODE'
+          import sys,shutil
+          from pathlib import Path
+          sys.path.insert(0,'installer')
+          import build_cache
+          cached=build_cache.find_caption('/tmp/xp-suite')
+          if cached:
+              target=Path('/tmp/xp-caption/lib/kwin/effects/plugins/xp-caption-animation.so')
+              target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(cached,target)
+              Path('/tmp/xp-caption-reused').touch()
+          PYCODE
+          if [ -f /tmp/xp-caption-reused ]; then echo 'Using verified caption component'; else
           cmake -S effects/xp-caption-animation -B /tmp/xp-caption -G Ninja -DCMAKE_BUILD_TYPE=Release
           cmake --build /tmp/xp-caption --parallel 3 --target xp-caption-animation test-caption
           ctest --test-dir /tmp/xp-caption --output-on-failure
+          fi
       - name: Export verified matching runtime
         run: |
           python3 installer/build_cache.py store /tmp/xp-suite /tmp/xp-build taskbar --destination /tmp/xp-prebuilt --caption /tmp/xp-caption/lib/kwin/effects/plugins/xp-caption-animation.so
