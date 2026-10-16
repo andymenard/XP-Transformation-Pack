@@ -13,11 +13,14 @@
 #include <QString>
 
 #include <optional>
+#include <array>
 
 namespace xpl {
 
 struct StartButtonArt
 {
+    std::array<QImage, 3> backgrounds, foregrounds, textMasks, shadowMasks;
+    QColor textColor;
     QImage normal, hover, pressed;   // the bar's height; transparent round the button
 };
 

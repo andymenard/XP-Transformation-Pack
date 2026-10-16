@@ -112,6 +112,8 @@ def build(source,destination):
   data=bytes(blob[begin:begin+size]);updated=data
   if keys[0].upper()=='TEXTFILE':
    text=data.decode('utf-16le').rstrip('\0')
+   keep_accent='[xplasmacustomluna]' in text.lower()
+   protected=SHELL_COLORS | ({'hilight','hilighttext','hottrackingcolor'} if keep_accent else set())
    in_metrics=False;section_name='';lines=[]
    for line in text.splitlines():
     if line.strip().startswith('['):
@@ -121,7 +123,7 @@ def build(source,destination):
      key=m[2].lower();rgb=tuple(map(int,m.group(4,5,6)))
      aliases={'highlight':'hilight','highlighttext':'hilighttext','btnface':'buttonface','btnshadow':'buttonshadow','btnhighlight':'buttonhilight','btndkshadow':'buttondkshadow','btnlight':'buttonlight','btntext':'buttontext','activecaption':'activetitle','captiontext':'titletext','inactivecaption':'inactivetitle','inactivecaptiontext':'inactivetitletext','gradientactivecaption':'gradientactivetitle','gradientinactivecaption':'gradientinactivetitle','dkshadow3d':'buttondkshadow','light3d':'buttonlight'}
      canonical=aliases.get(key,key)
-     if in_metrics and canonical in colors and canonical not in SHELL_COLORS:values=tuple(map(int,colors[canonical].split()))
+     if in_metrics and canonical in colors and canonical not in SHELL_COLORS and not (keep_accent and canonical in {'hilight','hilighttext','hottrackingcolor'}):values=tuple(map(int,colors[canonical].split()))
      elif key in {'textcolor','glyphtextcolor'} and max(rgb)<150:values=(233,237,244)
      elif key in {'fillcolor','bordercolor','edgefillcolor','edgehighlightcolor','edgelightcolor','edgeshadowcolor','edgedkshadowcolor','gradientcolor1','gradientcolor2','gradientcolor3','gradientcolor4','gradientcolor5'}:values=neutral(*rgb)
      else:values=rgb
@@ -132,9 +134,9 @@ def build(source,destination):
     joined=re.sub(r'(?im)^(DisplayName\s*=).*',r'\1Zune Dark',joined,count=1)
     lines=joined.splitlines()
    else:
-    lines+=['','[SysMetrics]']+[key+' = '+value for key,value in colors.items() if key not in SHELL_COLORS]
+    lines+=['','[SysMetrics]']+[key+' = '+value for key,value in colors.items() if key not in protected]
     mapping={'btnface':'buttonface','btntext':'buttontext','highlight':'hilight','highlighttext':'hilighttext','activecaption':'activetitle','captiontext':'titletext','inactivecaption':'inactivetitle','inactivecaptiontext':'inactivetitletext','gradientactivecaption':'gradientactivetitle','gradientinactivecaption':'gradientinactivetitle','btnshadow':'buttonshadow','btnhighlight':'buttonhilight','dkshadow3d':'buttondkshadow','light3d':'buttonlight'}
-    lines+=[key+' = '+colors[value] for key,value in mapping.items() if value not in SHELL_COLORS]
+    lines+=[key+' = '+colors[value] for key,value in mapping.items() if value not in protected]
    updated=('\r\n'.join(lines)+'\r\n\0').encode('utf-16le')
   elif keys[0]=='2' and keys[1].upper() not in shell_images:updated=bitmap(data,keys[1])
   if updated==data:continue

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "theme.h"
 
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
 
 namespace xpl {
 namespace {
@@ -16,12 +18,43 @@ QStringList utf16List(const QByteArray &data)
     return out;
 }
 
+// XPlasma's frozen copy of a look: active/<sha256 of its bytes>.msstyles.
+// Written once under that name, atomically, and only ever deleted after --
+// never changed in place -- so it can be mapped: every app on the desktop
+// then shares the one copy of its bitmaps the kernel has, instead of each
+// reading its own.
+bool contentAddressed(const QString &path)
+{
+    const QFileInfo info(path);
+    const QString name = info.completeBaseName();
+    if (info.dir().dirName() != QLatin1String("active") || info.suffix().compare(QLatin1String("msstyles"), Qt::CaseInsensitive) != 0
+        || name.size() != 64)
+        return false;
+    for (const QChar c : name)
+        if (!((c >= QLatin1Char('0') && c <= QLatin1Char('9')) || (c >= QLatin1Char('a') && c <= QLatin1Char('f'))))
+            return false;
+    return true;
+}
+
 } // namespace
 
 std::shared_ptr<const Theme> Theme::load(const QString &path, const QString &variant, QString *error)
 {
+    if (contentAddressed(path)) {
+        auto mapped = std::make_unique<QFile>(path);
+        if (mapped->open(QIODevice::ReadOnly) && mapped->size() > 0) {
+            if (uchar *bytes = mapped->map(0, mapped->size())) {
+                auto theme = build(QByteArray::fromRawData(reinterpret_cast<const char *>(bytes), qsizetype(mapped->size())),
+                                   variant, error, true);
+                if (theme)
+                    theme->m_mapping = std::move(mapped);
+                return theme;
+            }
+        }
+    }
     QFile file(path);
-    // Read into memory, never map: the file may be replaced while we run.
+    // Anything else is read into memory, never mapped: it may be replaced
+    // while we run.
     if (!file.open(QIODevice::ReadOnly)) {
         if (error)
             *error = file.errorString();
@@ -32,7 +65,12 @@ std::shared_ptr<const Theme> Theme::load(const QString &path, const QString &var
 
 std::shared_ptr<const Theme> Theme::fromData(const QByteArray &file, const QString &variant, QString *error)
 {
-    const auto pe = PeResources::parse(file, error);
+    return build(file, variant, error, false);
+}
+
+std::shared_ptr<Theme> Theme::build(const QByteArray &file, const QString &variant, QString *error, bool borrow)
+{
+    const auto pe = PeResources::parse(file, error, borrow);
     if (!pe)
         return nullptr;
     std::shared_ptr<Theme> theme(new Theme);

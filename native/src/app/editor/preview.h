@@ -25,7 +25,7 @@ constexpr QSize kThemesSize{347, 219};
 constexpr QSize kAppearanceSize{347, 180};
 
 // Drawn from the same frame/button artwork used by writeDecoration().
-QImage windowDecoration(const Look &look, QSize size, const QString &title, bool active, bool dialog = false);
+QImage windowDecoration(const Look &look, QSize size, const QString &title, bool active, bool dialog = false, const QJsonObject &live = {});
 
 class Previewer
 {
@@ -33,8 +33,8 @@ public:
     Previewer();
 
     // (Style plugins for a look, made once and kept.)
-    QImage appearance(const Look &look, QSize size, const QColor &background);
-    QImage theme(const Look &look, const Wallpaper &desktop, QSize size, const StartButtonExtras &start = {});
+    QImage appearance(const Look &look, QSize size, const QColor &background, const QJsonObject &live = {});
+    QImage theme(const Look &look, const Wallpaper &desktop, QSize size, const StartButtonExtras &start = {}, const QJsonObject &live = {});
     QImage desktop(const Wallpaper &wallpaper, QSize size);
 
     // Whether XPlasma's style plugin could be loaded (the samples need it).
@@ -42,7 +42,7 @@ public:
 
 private:
     QStyle *styleFor(const Look &look);
-    QImage windows(const Look &look, QSize size, const QImage &behind);
+    QImage windows(const Look &look, QSize size, const QImage &behind, const QJsonObject &live);
 
     QTemporaryDir m_scratch;
     QHash<QString, QStyle *> m_styles;

@@ -34,6 +34,7 @@ class Renderer
 {
 public:
     explicit Renderer(std::shared_ptr<const Theme> theme);
+    ~Renderer();
 
     const Theme &theme() const { return *m_theme; }
 
@@ -69,20 +70,23 @@ public:
     static QImage over(const QImage &premultiplied, QRgb background);
 
 private:
-    struct Frame
-    {
-        QImage image;       // premultiplied ARGB, one state's frame
-        bool valid = false;
-    };
-    Frame frame(const PartRef &ref, const QString &imageProperty, int dpi, QSize destination) const;
-    QString chooseImage(const PartRef &ref, int dpi, QSize destination, bool glyph) const;
-    QSize trueSizeDraw(const PartRef &ref, QSize source, QSize destination) const;
-    QPoint aligned(const PartRef &ref, QSize size, const QRect &room) const;
-    void drawImageBackground(QImage &canvas, const PartRef &ref, int dpi) const;
-    void drawBorderFill(QImage &canvas, const PartRef &ref) const;
-    void drawGlyph(QImage &canvas, const PartRef &ref, int dpi) const;
+    // One part's properties, looked up and parsed once (the INI cascade costs
+    // a dozen hash lookups per property), and the frames cut from its art.
+    struct Resolved;
+    struct Cache;
+    const Resolved &resolved(const PartRef &ref) const;
+    QImage frame(const Resolved &p, bool glyph, int dpi, QSize destination) const;
+    QString chooseImage(const Resolved &p, int dpi, QSize destination, bool glyph) const;
+    QSize trueSizeDraw(const Resolved &p, QSize source, QSize destination) const;
+    QPoint aligned(const Resolved &p, QSize size, const QRect &room) const;
+    void drawImageBackground(QImage &canvas, const Resolved &p, int dpi) const;
+    void drawBorderFill(QImage &canvas, const Resolved &p) const;
+    void drawGlyph(QImage &canvas, const Resolved &p, int dpi) const;
+    QMargins contentMargins(const Resolved &p) const;
+    QRect contentRect(const Resolved &p, const QRect &bounds) const;
 
     std::shared_ptr<const Theme> m_theme;
+    std::unique_ptr<Cache> m_cache;
 };
 
 // Property value parsing, shared with the style.

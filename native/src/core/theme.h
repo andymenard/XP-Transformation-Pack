@@ -7,6 +7,7 @@
 #include "ini.h"
 #include "pe.h"
 
+#include <QFile>
 #include <QHash>
 #include <QMutex>
 #include <QStringList>
@@ -58,11 +59,13 @@ public:
 
 private:
     Theme() = default;
+    static std::shared_ptr<Theme> build(const QByteArray &file, const QString &variant, QString *error, bool borrow);
 
     VariantTable m_variants;
     QString m_variant;
     Ini m_ini;
-    QHash<QString, QByteArray> m_bitmapData;    // resource name -> raw DIB
+    QHash<QString, QByteArray> m_bitmapData;    // resource name -> raw DIB (into m_mapping, when mapped)
+    std::unique_ptr<QFile> m_mapping;           // the mapped file m_bitmapData points into, if it is
     mutable QMutex m_cacheLock;
     mutable QHash<QString, Dib> m_bitmaps;
 };

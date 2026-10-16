@@ -70,6 +70,26 @@ set_target_properties(xplasma PROPERTIES PREFIX "lib" OUTPUT_NAME xplasma)
 #   <prefix>/lib/xplasma/qt<N>/styles/libxplasma.so
 install(TARGETS xplasma LIBRARY DESTINATION lib/xplasma/qt${QT_MAJOR}/styles)
 
+# --- the KWin window decoration (Qt 6, where KDecoration3 is installed) -------
+# Bound to the KDecoration it's built against, as XPlasma's builds of Plasma's
+# widgets are to their Plasma: the Plasma version goes beside it, and apply
+# uses it only on that Plasma series (an Aurorae theme otherwise).
+if(QT_MAJOR EQUAL 6)
+  find_package(KDecoration3 CONFIG QUIET)
+  find_package(KF6CoreAddons CONFIG QUIET)
+  if(KDecoration3_FOUND AND KF6CoreAddons_FOUND)
+    add_library(xplasma-decoration MODULE src/decoration/decoration.cpp)
+    target_link_libraries(xplasma-decoration PRIVATE stdc++ xplasma-core KDecoration3::KDecoration KF6::CoreAddons ${QT}::Gui)
+    # (KDecoration3's headers are C++20.)
+    set_target_properties(xplasma-decoration PROPERTIES PREFIX "" OUTPUT_NAME fyi.hotsocket.xplasma.decoration CXX_STANDARD 20)
+    file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/fyi.hotsocket.xplasma.decoration.plasma CONTENT "${KDecoration3_VERSION}\n")
+    install(TARGETS xplasma-decoration LIBRARY DESTINATION lib/xplasma/decoration)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/fyi.hotsocket.xplasma.decoration.plasma DESTINATION lib/xplasma/decoration)
+  else()
+    message(STATUS "KDecoration3 not found: no native window decoration (apply uses an Aurorae theme)")
+  endif()
+endif()
+
 # --- tools --------------------------------------------------------------------
 add_executable(xplasma-probe src/tools/probe.cpp)
 target_link_libraries(xplasma-probe PRIVATE ${QT}::Widgets)
@@ -86,6 +106,11 @@ target_link_libraries(xplasma-dump PRIVATE stdc++ xplasma-core)
 # --- the app: CLI, editor and the library under them (Qt 6) ------------------------
 if(QT_MAJOR EQUAL 6)
   add_subdirectory(src/app)
+  # A single runtime target keeps optional installed plugins in the build set.
+  add_custom_target(xplasma-runtime DEPENDS xplasma-cli xplasma-edit xplasma-setup xplasma)
+  if(TARGET xplasma-decoration)
+    add_dependencies(xplasma-runtime xplasma-decoration)
+  endif()
 endif()
 
 # --- tests ------------------------------------------------------------------------

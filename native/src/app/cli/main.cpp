@@ -133,7 +133,9 @@ int list(bool json)
 // Silver"), a Windows Classic scheme ("Brick") -- as a LOOK; a LOOK as it is.
 std::optional<QString> named(const QString &name, QString *error)
 {
-    const QString file = name.contains(QLatin1Char('/')) ? name : name.section(QLatin1Char(':'), 0, 0);
+    QString file = name.contains(QLatin1Char('/')) ? name : name.section(QLatin1Char(':'), 0, 0);
+    const int variantAt=name.lastIndexOf(QLatin1Char(':'));
+    if(variantAt>0 && name.mid(variantAt+1).endsWith(QLatin1String("_INI"),Qt::CaseInsensitive))file=name.left(variantAt);
     if (name.startsWith(QLatin1String("classic:"), Qt::CaseInsensitive) || QFileInfo::exists(name) || QFileInfo::exists(file))
         return name;
     const auto is = [&](const QString &label) { return label.compare(name, Qt::CaseInsensitive) == 0; };

@@ -166,6 +166,23 @@ std::optional<StartButtonArt> styleButton(const Look &look, QImage flag, const Q
     QImage *out[] = {&art.normal, &art.hover, &art.pressed};
     for (int state = 1; state <= 3; ++state) {
         QImage img = r.background({normal.cls, normal.part, state, normal.sub}, size);
+        art.backgrounds[state-1] = img.copy(0,0,size.width(),kTaskbarHeight);
+        art.textColor = QColor(text);
+        QImage foreground(size,QImage::Format_ARGB32_Premultiplied);foreground.fill(Qt::transparent);
+        QImage mask(size,QImage::Format_ARGB32_Premultiplied);mask.fill(Qt::transparent);
+        const QRect labelRect(content.left()+flag.width(),content.top(),textWidth,content.height());
+        {
+            QPainter p(&foreground);p.setRenderHint(QPainter::TextAntialiasing);
+            p.drawImage(content.left(),content.top()+(content.height()-flag.height())/2,flag);
+            QImage shadowMask(size,QImage::Format_ARGB32_Premultiplied);shadowMask.fill(Qt::transparent);
+            {QPainter shadowPainter(&shadowMask);shadowPainter.setRenderHint(QPainter::TextAntialiasing);
+             drawLabel(shadowPainter,labelRect,label,font,Qt::transparent,shadowType,Qt::white,shadowOffset);}
+            art.shadowMasks[state-1]=shadowMask.copy(0,0,size.width(),kTaskbarHeight);
+            QPainter glyph(&mask);glyph.setRenderHint(QPainter::TextAntialiasing);
+            drawLabel(glyph,labelRect,label,font,Qt::white,QString(),QColor(),QPoint());
+        }
+        art.foregrounds[state-1]=foreground.copy(0,0,size.width(),kTaskbarHeight);
+        art.textMasks[state-1]=mask.copy(0,0,size.width(),kTaskbarHeight);
         {
             QPainter p(&img);
             p.setRenderHint(QPainter::TextAntialiasing);
@@ -185,7 +202,7 @@ std::optional<StartButtonArt> styleButton(const Look &look, QImage flag, const Q
 std::optional<StartButtonArt> classicButton(const Look &look, QImage flag, const QString &label, const QString &logoText)
 {
     const ClassicScheme &s = look.system;
-    const QPalette pal = s.palette();
+    const QPalette pal = s.shellPalette(0);
     if (const QImage logo = characters(logoText, flag.height(), s.colour(u"ButtonText")); !logoText.isEmpty() && !logo.isNull())
         flag = logo;
     QFont font(s.metrics.messageFont.face);
@@ -202,11 +219,22 @@ std::optional<StartButtonArt> classicButton(const Look &look, QImage flag, const
         QPainter p(&img);
         const bool down = state == 2;
         classic::pushEdge(&p, button, pal, down);
+        art.backgrounds[state]=img.copy();
+        art.textColor=pal.color(QPalette::ButtonText);
         const QPoint shift = down ? QPoint(1, 1) : QPoint();
+        QImage fg(img.size(),QImage::Format_ARGB32_Premultiplied);fg.fill(Qt::transparent);
+        QImage mask(img.size(),QImage::Format_ARGB32_Premultiplied);mask.fill(Qt::transparent);
+        {
+            QPainter fp(&fg);fp.drawImage(button.topLeft()+QPoint(2,(button.height()-flag.height())/2)+shift,flag);
+            QPainter mp(&mask);mp.setRenderHint(QPainter::TextAntialiasing);
+            drawLabel(mp,QRect(button.left()+2+flag.width()+1,button.top(),textWidth,button.height()).translated(shift),
+                label,font,Qt::white,QString(),QColor(),QPoint());
+        }
+        art.foregrounds[state]=fg;art.textMasks[state]=mask;art.shadowMasks[state]=QImage(img.size(),QImage::Format_ARGB32_Premultiplied);art.shadowMasks[state].fill(Qt::transparent);
         p.drawImage(button.topLeft() + QPoint(2, (button.height() - flag.height()) / 2) + shift, flag);
         p.setRenderHint(QPainter::TextAntialiasing);
         drawLabel(p, QRect(button.left() + 2 + flag.width() + 1, button.top(), textWidth, button.height()).translated(shift),
-                  label, font, s.colour(u"ButtonText"), QString(), QColor(), QPoint());
+                  label, font, pal.color(QPalette::ButtonText), QString(), QColor(), QPoint());
         p.end();
         *out[state] = img;
     }

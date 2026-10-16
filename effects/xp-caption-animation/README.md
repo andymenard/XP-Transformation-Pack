@@ -63,3 +63,10 @@ deciding to rebuild. A failed compile/test leaves the previous plugin intact.
 An upgraded or already-loaded compositor may require logout/login before
 activation; the helper does not restart KWin. It checks the development SDK
 against the installed runtime and keeps a prior plugin and configuration backup.
+
+## Rendering optimization
+
+The effect now advances on compositor frames, reuses a pre-rendered caption
+label during each animation, and watches WM configuration instead of reopening
+it for each animation. KWin 6.6 factory/signature support and native-build ABI
+checks are retained. This source merge does not install or activate the effect.

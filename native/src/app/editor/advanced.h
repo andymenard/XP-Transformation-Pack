@@ -46,6 +46,7 @@ class ColourButton : public QWidget
 public:
     explicit ColourButton(QWidget *parent = nullptr);
     QColor colour() const { return m_colour; }
+    bool livePreview = false;
     void setColour(const QColor &colour);
     QSize sizeHint() const override;
 

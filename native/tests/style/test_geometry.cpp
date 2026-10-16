@@ -5,6 +5,9 @@
 #include "core/crispfont.h"
 #include <QComboBox>
 #include <QFile>
+#include <QSaveFile>
+#include <QJsonDocument>
+#include <QScrollBar>
 #include <QLineEdit>
 #include <QMenu>
 #include <QPainter>
@@ -93,6 +96,29 @@ private Q_SLOTS:
             QCOMPARE(ink(false,true),ink(true,false));
         }
     }
+    void retiredLiveColorsCannotChangeBakedStyle() {
+        const auto appPalette=qApp->palette();
+        const QString theme=qEnvironmentVariable("XPLASMA_TEST_THEME");
+        for(const QString &source:QStringList{classicFile,theme}){
+            if(source.isEmpty())continue;
+            const QString config=directory.filePath("live-colors.json");QFile::remove(config);
+            qputenv("XPLASMA_THEME",source.toUtf8());qputenv("XPLASMA_LIVE_COLORS",config.toUtf8());
+            XPlasmaStyle style;const auto *renderer=style.renderer();
+            QStyleOptionSlider option;option.rect=QRect(0,0,17,160);option.orientation=Qt::Vertical;
+            option.state=QStyle::State_Enabled;option.minimum=0;option.maximum=100;option.pageStep=30;option.sliderPosition=50;option.subControls=QStyle::SC_All;
+            auto render=[&]{QImage out(17,160,QImage::Format_ARGB32);out.fill(Qt::transparent);QPainter p(&out);style.drawComplexControl(QStyle::CC_ScrollBar,&option,&p);return out;};
+            const auto original=render();const auto originalPalette=style.standardPalette();
+            auto write=[&](QJsonObject value){QSaveFile f(config);QVERIFY(f.open(QIODevice::WriteOnly));f.write(QJsonDocument(value).toJson());QVERIFY(f.commit());QTest::qWait(250);};
+            write({{"enabled",true},{"menu","#315c43"}});const auto green=render();
+            QCOMPARE(style.standardPalette(),originalPalette);
+            write({{"enabled",true},{"menu","#644576"}});const auto purple=render();
+            QCOMPARE(green,original);QCOMPARE(purple,original);QCOMPARE(style.standardPalette(),originalPalette);QCOMPARE(style.renderer(),renderer);
+            write({});QCOMPARE(render(),original);QCOMPARE(style.renderer(),renderer);
+            qunsetenv("XPLASMA_LIVE_COLORS");
+        }
+        qApp->setPalette(appPalette);
+    }
+
     void scrollbarHiDpiKeepsXpProportions() {
         const QString theme = qEnvironmentVariable("XPLASMA_TEST_THEME");
         if (theme.isEmpty()) QSKIP("Set XPLASMA_TEST_THEME to an XP visual style");

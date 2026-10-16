@@ -12,6 +12,10 @@
 
 namespace xpl {
 
+class Session;
+constexpr const char *kLiveStartColorsKey = "liveStartColors";
+bool applyLiveStartColors(Session &session, const QJsonObject &colors, QString *error = nullptr);
+
 constexpr const char *kStartPlasmoidId = "fyi.hotsocket.xplasma.start";
 // XPlasma's taskbar clock (in place of Plasma's): see clock/contents/ui/main.qml.
 constexpr const char *kClockPlasmoidId = "fyi.hotsocket.xplasma.clock";

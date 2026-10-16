@@ -111,6 +111,13 @@ public:
     NonClientMetrics metrics;
     IconMetrics icons;
 
+    std::optional<std::array<QColor, 4>> shellColors;
+    QString shellBaseName;
+    int shellTextMode = 0;
+    int shellMenuTextMode = -1;
+    std::array<int,4> shellTextModes{-1,-1,-1,-1};
+    QPalette shellPalette(int part) const;
+
     ClassicScheme();   // Windows Standard, XP's default
 
     QColor colour(QStringView name) const;   // by either spelling; black if unknown

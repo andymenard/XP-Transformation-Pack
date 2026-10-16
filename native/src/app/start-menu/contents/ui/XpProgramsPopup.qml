@@ -195,6 +195,11 @@ Kicker.SubMenu {
             border.top: popup.themeData.parts.submenu ? popup.themeData.parts.submenu.sizing[2] : 0
             border.bottom: popup.themeData.parts.submenu ? popup.themeData.parts.submenu.sizing[3] : 0
             smooth: false
+            layer.enabled: !!(popup.themeData.liveColors && popup.themeData.liveColors.enabled)
+            layer.effect: TintEffect {
+                tint: popup.themeData.liveColors ? popup.themeData.liveColors.menu : "white"
+                tone: popup.themeData.parts.submenu ? popup.themeData.parts.submenu.tone || 0.5 : 0.5
+            }
             Rectangle { anchors.fill: parent; z: -1; color: "white"; border.color: "#1665cb" }
         }
         Text {

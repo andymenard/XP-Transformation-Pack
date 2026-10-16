@@ -41,7 +41,7 @@ struct Section
 class Parser
 {
 public:
-    explicit Parser(const QByteArray &file) : m_r{file} {}
+    Parser(const QByteArray &file, bool borrow) : m_r{file}, m_borrow(borrow) {}
 
     std::optional<PeResources> run(QString *error, QList<Resource> &out);
 
@@ -58,6 +58,7 @@ private:
     bool directory(quint32 offset, int depth, const QString &type, const QString &name, QList<Resource> &out);
 
     Reader m_r;
+    bool m_borrow = false;
     QList<Section> m_sections;
     qint64 m_rsrc = 0;          // file offset of the resource directory root
     QSet<quint32> m_seen;       // directory offsets already walked (cycle guard)
@@ -128,7 +129,9 @@ bool Parser::directory(quint32 offset, int depth, const QString &type, const QSt
             const qint64 dataAt = offsetOf(rva, size);
             if (dataAt < 0)
                 return fail("resource data outside the file");
-            out.append({type, resName, m_r.data.mid(dataAt, size)});
+            out.append({type, resName,
+                        m_borrow ? QByteArray::fromRawData(m_r.data.constData() + dataAt, qsizetype(size)) : m_r.data.mid(dataAt, size),
+                        dataAt});
             return true;
         }
     }
@@ -183,10 +186,10 @@ std::optional<PeResources> Parser::run(QString *error, QList<Resource> &out)
 
 } // namespace
 
-std::optional<PeResources> PeResources::parse(const QByteArray &file, QString *error)
+std::optional<PeResources> PeResources::parse(const QByteArray &file, QString *error, bool borrow)
 {
     QList<Resource> resources;
-    Parser parser(file);
+    Parser parser(file, borrow);
     auto result = parser.run(error, resources);
     if (result)
         result->m_resources = std::move(resources);

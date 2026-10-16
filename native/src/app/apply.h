@@ -31,6 +31,7 @@ struct Wallpaper
 struct ApplyOptions
 {
     std::optional<bool> darkMode;
+    bool allowColorOnly = true; // reuse installed runtime for same-base color profiles
     bool properties = true;    // Properties launcher and desktop menu
     bool colours = true;       // Desktop colour scheme
     bool decoration = true;    // Window borders and rules

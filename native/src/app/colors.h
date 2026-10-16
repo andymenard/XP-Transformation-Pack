@@ -6,6 +6,7 @@
 
 #include <QByteArray>
 #include <QColor>
+#include <QJsonObject>
 #include <QList>
 #include <QString>
 
@@ -34,6 +35,8 @@ struct ConfigValue
 // kdeglobals' fonts: the UI font (XP's message font: Tahoma 8), menus,
 // toolbars, and the title bar font KWin draws captions with.
 QList<ConfigValue> fontSettings(const ClassicScheme &system);
+
+bool applyLiveSystemColors(const QJsonObject &colors, const QString &configDirectory, bool *changed, QString *error);
 
 // A LOGFONT as QFont::toString() writes it (what kdeglobals holds).
 QString qtFontString(const LogFont &font);

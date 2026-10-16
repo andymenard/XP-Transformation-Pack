@@ -89,11 +89,14 @@ ColourButton::ColourButton(QWidget *parent)
     layout->addWidget(m_button);
     m_button->setFixedWidth(46);
     connect(m_button, &QPushButton::clicked, this, [this] {
-        const QColor c = QColorDialog::getColor(m_colour, this);
-        if (c.isValid()) {
-            setColour(c);
-            Q_EMIT picked();
-        }
+        const QColor original=m_colour;
+        QColorDialog dialog(original,this);
+        if(livePreview) dialog.setOption(QColorDialog::DontUseNativeDialog,true);
+        if(livePreview) connect(&dialog,&QColorDialog::currentColorChanged,this,[this](const QColor &color){
+            setColour(color);Q_EMIT picked();
+        });
+        if(dialog.exec()==QDialog::Accepted) {setColour(dialog.currentColor());Q_EMIT picked();}
+        else if(livePreview) {setColour(original);Q_EMIT picked();}
     });
     setColour(Qt::black);
 }

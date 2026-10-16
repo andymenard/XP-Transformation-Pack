@@ -16,10 +16,18 @@ def configure(base):
  (base/'features.json').write_text(json.dumps(features,indent=2)+'\n')
  (base/'edition.json').write_text(json.dumps(PROFILE,indent=2)+'\n')
 def source(destination):
+ if destination.resolve()==ROOT.resolve():raise RuntimeError('Public source destination must differ from the source checkout')
  destination.mkdir(parents=True,exist_ok=True)
  for name in PRIVATE_RELEASE_TESTS:
   (destination/name).unlink(missing_ok=True)
  paths=subprocess.check_output(['git','ls-files','-z','--cached','--others','--exclude-standard'],cwd=ROOT).decode().split('\0')
+ # Retire native source files removed by a merge; stale embedded resources
+ # would otherwise produce a different source identity in public builds.
+ if (destination/'.git').exists():
+  tracked=subprocess.check_output(['git','ls-files','-z','--','native'],cwd=destination).decode().split('\0')
+  for name in filter(None,tracked):
+   if not (ROOT/name).is_file():(destination/name).unlink(missing_ok=True)
+
  for name in sorted(set(paths)-{''}):
   p=Path(name)
   if p.parts[0] not in KEEP:continue

@@ -53,6 +53,31 @@ private:
     QWidget *desktopTab();
     QWidget *appearanceTab();
     QWidget *pointersTab();
+    QWidget *customLunaTab();
+    void syncCustomColors();
+    QLabel *m_customBaseLabel;
+    QLabel *m_customColorLabels[4];
+    void customLunaChanged();
+    void scheduleCustomColors();
+    QJsonObject liveStartColors() const;
+    void liveStartColorsChanged();
+    QCheckBox *m_liveStartEnabled;
+    QCheckBox *m_linkTitleColor;
+    bool m_appliedTitleLink = true;
+    void syncTitleColorLink();
+    QTimer *m_liveStartTimer;
+    QJsonObject m_appliedLiveStart;
+    bool m_livePreviewTouched = false;
+    std::array<QColor,4> m_beforeLiveColors;
+    std::array<int,4> m_beforeLiveTextModes{};
+    void restoreCustomLuna(const QString &path = QString());
+    QCheckBox *m_customLunaEnabled;
+    QComboBox *m_customTextModes[4];
+    QComboBox *m_startMenuTextMode;
+    QLabel *m_customLunaSample, *m_customLunaStatus;
+    ColourButton *m_lunaColours[4];
+    QString m_customLunaPath, m_customLunaSource, m_customLunaVariant;
+    std::optional<ClassicScheme> m_customClassic;
 
     void loadLibrary();
     void fillThemes();
@@ -92,6 +117,7 @@ private:
     QString m_themeFile;              // the bundle chosen, unless edited since
     preview::Previewer m_previewer;
     bool m_loading = false;
+    bool m_customColorsPending = false;
     // What's on the desktop now, as of the last Apply (or opening).
     QString m_appliedLook;            // lookKey(); empty: unknown
     bool m_outdated = false;          // applied by an older XPlasma (apply.h's lookOutdated)

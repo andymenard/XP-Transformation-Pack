@@ -343,13 +343,16 @@ std::optional<std::pair<Scheme, bool>> applied(const State &state)
     return std::pair(Scheme::fromJson(o.value(QLatin1String("scheme")).toObject()), o.value(QLatin1String("shadow")).toBool());
 }
 
+QString themeId(const Scheme &scheme, bool shadow)
+{
+    const QByteArray key = QJsonDocument(scheme.toJson()).toJson(QJsonDocument::Compact) + (shadow ? "+shadow" : "") + "+hidpi-v2";
+    return QLatin1String(kThemeId) + QLatin1Char('-')
+           + QString::fromLatin1(QCryptographicHash::hash(key, QCryptographicHash::Sha1).toHex().left(8));
+}
+
 bool apply(Session &session, State &state, const Scheme &scheme, bool shadow, QString *error)
 {
-    // A theme id per scheme: Plasma's tool won't re-apply the name that's
-    // set, and the compositor keeps cursors by it.
-    const QByteArray key = QJsonDocument(scheme.toJson()).toJson(QJsonDocument::Compact) + (shadow ? "+shadow" : "") + "+hidpi-v2";
-    const QString id = QLatin1String(kThemeId) + QLatin1Char('-')
-                       + QString::fromLatin1(QCryptographicHash::hash(key, QCryptographicHash::Sha1).toHex().left(8));
+    const QString id=themeId(scheme,shadow);
     int size = 32;
     if (!writeTheme(scheme, shadow, iconsDir() + QLatin1Char('/') + id, &size, error))
         return false;

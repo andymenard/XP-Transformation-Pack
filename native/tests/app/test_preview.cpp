@@ -1,14 +1,34 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "app/editor/preview.h"
+#include "app/editor/jobs.h"
+#include <QTimer>
+#include <QThread>
+#include <QWidget>
 #include "app/editor/wallpapercatalogue.h"
 #include "app/decoration.h"
 #include "app/panel.h"
 #include <QTest>
 #include <QDir>
 #include <QFileInfo>
+#include <QTemporaryDir>
 class TestPreview : public QObject {
  Q_OBJECT
+ QTemporaryDir scratch;
 private Q_SLOTS:
+ void initTestCase() {
+  QVERIFY(scratch.isValid());
+  qputenv("HOME",QFile::encodeName(scratch.path()));
+ }
+ void responsiveApplyKeepsTimersRunningAndPreservesErrors() {
+  class PaintProbe:public QWidget {public:int paints=0;protected:void paintEvent(QPaintEvent *) override {++paints;}};
+  PaintProbe window;window.show();int ticks=0;QTimer heartbeat;
+  connect(&heartbeat,&QTimer::timeout,&window,[&]{++ticks;window.update();window.close();});heartbeat.start(5);
+  bool workerThread=false;QString error;
+  QVERIFY(!xpl::editor::runResponsiveTask(&window,[&](QString *message){workerThread=QThread::currentThread()!=qApp->thread();QThread::msleep(70);*message="Expected test error";return false;},&error));
+  QVERIFY(workerThread);QVERIFY(ticks>2);QVERIFY(window.paints>1);QVERIFY(window.isVisible());QCOMPARE(error,QString("Expected test error"));
+  heartbeat.stop();window.close();QVERIFY(!window.isVisible());
+ }
+
  void wallpaperOrderAndVariants() {
   QFileInfoList files={QFileInfo("Plus! — Plus! Space.jpg"),QFileInfo("Bliss (1920x1080).jpg"),QFileInfo("Sample Pictures — Winter.jpg"),QFileInfo("Azul.jpg"),QFileInfo("Bliss.jpg")};
   xpl::editor::sortWallpapers(files);
@@ -23,6 +43,21 @@ private Q_SLOTS:
   const QImage filled=xpl::preview::placeWallpaper(image,2,Qt::black,QSize(2,2));
   QCOMPARE(filled.pixelColor(0,0),QColor(Qt::green));
   QCOMPARE(filled.pixelColor(1,0),QColor(Qt::blue));
+ }
+
+ void liveTintsAppearInPreviewsAndRestore() {
+  const QString root=qEnvironmentVariable("XPLASMA_PREVIEW_THEMES");if(root.isEmpty())QSKIP("Set XPLASMA_PREVIEW_THEMES");
+  const auto look=xpl::Look::fromStyle(QDir(root).filePath("Luna/luna.msstyles"),"NORMALBLUE_INI");QVERIFY(look);
+  xpl::preview::Previewer preview;xpl::Wallpaper wallpaper;
+  const auto original=preview.theme(*look,wallpaper,xpl::preview::kThemesSize);
+  const QJsonObject green{{"enabled",true},{"start","#f4d000"},{"menu","#315c43"},{"title","#315c43"},{"buttons","#315c43"},{"startText",2},{"titleText",1}};
+  auto purple=green;purple.insert("menu","#644576");purple.insert("title","#644576");
+  const auto g=preview.theme(*look,wallpaper,xpl::preview::kThemesSize,{},green);
+  const auto p=preview.theme(*look,wallpaper,xpl::preview::kThemesSize,{},purple);
+  QVERIFY(g!=original);QVERIFY(p!=g);QCOMPARE(preview.theme(*look,wallpaper,xpl::preview::kThemesSize),original);
+  const QColor gc=g.pixelColor(g.width()-10,g.height()-5),pc=p.pixelColor(p.width()-10,p.height()-5);
+  QVERIFY(gc.green()>gc.red());QVERIFY(pc.red()>pc.green());
+  const auto out=qEnvironmentVariable("XPLASMA_PREVIEW_OUTPUT");if(!out.isEmpty()){QDir().mkpath(out);original.save(out+"/original.png");g.save(out+"/green.png");p.save(out+"/purple.png");}
  }
 
  void matchesGeneratedWindowBorders() {

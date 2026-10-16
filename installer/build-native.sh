@@ -25,7 +25,7 @@ if python3 "$suite_dir/build_cache.py" reuse "$suite_dir" "$build_dir" "$kind"; 
 fi
 cmake -S "$source_dir" -B "$build_dir/native" -G Ninja \
  -DQT_MAJOR=6 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$build_dir/runtime"
-cmake --build "$build_dir/native" --parallel "$jobs" --target xplasma-cli xplasma-edit xplasma-setup xplasma test-style-geometry
+cmake --build "$build_dir/native" --parallel "$jobs" --target xplasma-runtime test-style-geometry
 QT_QPA_PLATFORM=offscreen QT_STYLE_OVERRIDE=Windows "$build_dir/native/tests/style/test-style-geometry"
 cmake --install "$build_dir/native"
 if [ "${2:-core}" = taskbar ]; then

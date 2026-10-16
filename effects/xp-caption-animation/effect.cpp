@@ -13,10 +13,10 @@
 #include <scene/windowitem.h>
 #include <scene/workspacescene.h>
 #include <KConfigGroup>
+#include <KConfigWatcher>
 #include <KSharedConfig>
 #include <QElapsedTimer>
 #include <QPointer>
-#include <QTimer>
 #include <QHash>
 
 namespace KWin {
@@ -25,14 +25,16 @@ class XPCaptionAnimation : public CrossFadeEffect {
 public:
     XPCaptionAnimation() {
         if(qEnvironmentVariableIsSet("XPLASMA_ANIMATION_TEST"))fprintf(stderr,"XP_CAPTION_CONSTRUCT\n");
-        #ifdef XP_KWIN_66
+#ifdef XP_KWIN_66
         m_caption=effects->scene()->renderer()->createImageItem(effects->scene()->overlayItem());
 #else
         m_caption=std::make_unique<ImageItem>(effects->scene()->overlayItem());
 #endif
         m_caption->setVisible(false);m_caption->setZ(1000);
-        m_timer.setInterval(16);m_timer.setTimerType(Qt::PreciseTimer);
-        connect(&m_timer,&QTimer::timeout,this,[this]{tick();});
+        // The caption colours and font, read once and again when kdeglobals' [WM] changes.
+        m_config=KSharedConfig::openConfig(QStringLiteral("kdeglobals"));readColours();
+        m_watcher=KConfigWatcher::create(m_config);
+        connect(m_watcher.data(),&KConfigWatcher::configChanged,this,[this](const KConfigGroup &group){if(group.name()==QLatin1String("WM"))readColours();});
         connect(effects,&EffectsHandler::windowAdded,this,[this](EffectWindow *w){manage(w);});
         connect(effects,&EffectsHandler::windowClosed,this,[this](EffectWindow *w){if(w==m_window)finish();m_before.remove(w);});
         connect(effects,&EffectsHandler::windowDeleted,this,[this](EffectWindow *w){if(w==m_window)finish();m_before.remove(w);});
@@ -40,6 +42,26 @@ public:
     }
     ~XPCaptionAnimation() override {finish();}
     bool isActive() const override {return !m_window.isNull();}
+    // Frames come from the compositor, not a timer: every refresh at the
+    // output's own rate, none while nothing is drawn.
+    void prePaintScreen(ScreenPrePaintData &data
+#ifdef XP_KWIN_66
+        ,std::chrono::milliseconds presentTime
+#endif
+    ) override {
+        if(m_window)tick();
+        CrossFadeEffect::prePaintScreen(data
+#ifdef XP_KWIN_66
+            ,presentTime
+#endif
+        );
+    }
+    void postPaintScreen() override {
+        CrossFadeEffect::postPaintScreen();
+        if(!m_window)return;
+        if(effects->activeFullScreenEffect()||m_clock.elapsed()>=XP::duration)finish();
+        else effects->addRepaint(RectF(m_bar));
+    }
     void prePaintWindow(RenderView *view,EffectWindow *w,WindowPrePaintData &data
 #ifdef XP_KWIN_66
         ,std::chrono::milliseconds presentTime
@@ -70,7 +92,8 @@ private:
     QPointer<EffectWindow> m_window;
     std::unique_ptr<ImageItem> m_caption;
     QRectF m_from,m_to,m_oldGeometry;
-    QElapsedTimer m_clock;QTimer m_timer;
+    QElapsedTimer m_clock;qint64 m_tick=-1;QRectF m_bar;QImage m_label;
+    KSharedConfig::Ptr m_config;KConfigWatcher::Ptr m_watcher;
     bool m_minVisible=false,m_restoreMin=false;
     QString m_title;QIcon m_icon;QFont m_font;
     QColor m_left,m_right,m_text; qreal m_scale=1;
@@ -107,22 +130,29 @@ private:
         if(m_minVisible)w->windowItem()->refVisible(WindowItem::PAINT_DISABLED_BY_MINIMIZE);
         if(!snapshotted)redirect(w);
         m_window=w;m_oldGeometry=old;m_from=from;m_to=to;m_restoreMin=restore;
-        const auto config=KSharedConfig::openConfig(QStringLiteral("kdeglobals"));config->reparseConfiguration();KConfigGroup wm(config,QStringLiteral("WM"));
-        m_left=wm.readEntry("activeBackground",QColor(0,84,227));m_right=wm.readEntry("activeBlend",QColor(61,149,255));m_text=wm.readEntry("activeForeground",QColor(Qt::white));
-        m_font=wm.readEntry("activeFont",QFont(QStringLiteral("Trebuchet MS"),10,QFont::Bold));m_title=w->caption();m_icon=w->icon();
+        m_title=w->caption();m_icon=w->icon();
         m_scale=w->screen()?w->screen()->scale():1;
+        m_label=XP::captionLabel(qMax(from.width(),to.width()),from.height(),m_scale,m_title,m_icon,m_font,m_text);
         if(qEnvironmentVariableIsSet("XPLASMA_ANIMATION_TEST"))fprintf(stderr,"XP_CAPTION_START %s %g,%g -> %g,%g h=%g\n",restore?"restore":(m_minVisible?"minimize":"maximize"),from.x(),from.y(),to.x(),to.y(),from.height());
-        m_caption->setVisible(true);m_clock.start();m_timer.start();tick();
+        m_caption->setVisible(true);m_clock.start();m_tick=-1;tick();effects->addRepaintFull();
+    }
+    void readColours(){
+        KConfigGroup wm(m_config,QStringLiteral("WM"));
+        m_left=wm.readEntry("activeBackground",QColor(0,84,227));m_right=wm.readEntry("activeBlend",QColor(61,149,255));m_text=wm.readEntry("activeForeground",QColor(Qt::white));
+        m_font=wm.readEntry("activeFont",QFont(QStringLiteral("Trebuchet MS"),10,QFont::Bold));
     }
     void tick(){
-        if(!m_window||effects->activeFullScreenEffect()||m_clock.elapsed()>=XP::duration){finish();return;}
-        const QRectF bar=XP::interpolate(m_from,m_to,qreal(m_clock.elapsed())/XP::duration);
-        m_caption->setImage(XP::caption(bar.width(),bar.height(),m_scale,m_title,m_icon,m_font,m_left,m_right,m_text));
-        m_caption->setPosition(bar.topLeft());m_caption->setSize(bar.size());effects->addRepaintFull();
+        // (Once per frame, however many outputs paint it.)
+        const qint64 elapsed=qMin<qint64>(m_clock.elapsed(),XP::duration);
+        if(elapsed==m_tick)return;
+        m_tick=elapsed;
+        m_bar=XP::interpolate(m_from,m_to,qreal(elapsed)/XP::duration);
+        m_caption->setImage(XP::caption(m_bar.width(),m_bar.height(),m_scale,m_label,!m_icon.isNull(),m_left,m_right));
+        m_caption->setPosition(m_bar.topLeft());m_caption->setSize(m_bar.size());
     }
     void finish(){
         if(m_window&&qEnvironmentVariableIsSet("XPLASMA_ANIMATION_TEST"))fprintf(stderr,"XP_CAPTION_END elapsed=%lld\n",m_clock.elapsed());
-        m_timer.stop();m_caption->setVisible(false);
+        m_caption->setVisible(false);m_label=QImage();
         // Clear ownership before releasing references: a closing window can
         // emit windowDeleted synchronously while its final reference drops.
         QPointer<EffectWindow> window=m_window;const bool visibleRef=m_minVisible;

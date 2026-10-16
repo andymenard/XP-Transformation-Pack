@@ -20,7 +20,7 @@ namespace xpl::qtstyle {
 
 constexpr const char *kStyleKey = "XPlasma";
 
-bool apply(Session &session, const Look &look, State &state, QStringList *log, QString *error = nullptr);
+bool apply(Session &session, const Look &look, State &state, QStringList *log, QString *error = nullptr, bool installRuntime = true);
 // The session's QT_PLUGIN_PATH, now and at every login, naming XPlasma's
 // plugin roots ahead of the system's: the style's, and where Plasma's
 // widgets as XPlasma builds them go (forks.h).

@@ -63,7 +63,11 @@ def main():
    package=build/'source/xplasma/src/app/start-menu'
    b.copy(package/'contents',home/'.local/share/plasma/plasmoids/fyi.hotsocket.xplasma.start/contents')
    b.copy(package/'metadata.json',home/'.local/share/plasma/plasmoids/fyi.hotsocket.xplasma.start/metadata.json')
-   b.copy(build/'runtime/lib/xplasma/start-menu/libxpmenuguard.so',home/'.local/share/plasma/plasmoids/fyi.hotsocket.xplasma.start/contents/ui/popupguard/libxpmenuguard.so')
+   # Locate the package's versioned QML module rather than assuming its name.
+   modules=[p.parent for p in (package/'contents/ui').glob('*/qmldir') if 'plugin xpmenuguard' in p.read_text()]
+   if len(modules)!=1:raise RuntimeError('Cannot locate the Start-menu helper module.')
+   target=home/'.local/share/plasma/plasmoids/fyi.hotsocket.xplasma.start'/modules[0].relative_to(package)
+   b.copy(build/'runtime/lib/xplasma/start-menu/libxpmenuguard.so',target/'libxpmenuguard.so')
   if features&{'fonts','apps','theme_manager'}:
    b.copy(ROOT/'fonts',home/'.local/share/fonts/xp');b.run(['fc-cache','-f'])
   if 'behavior' in features:

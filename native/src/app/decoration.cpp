@@ -193,7 +193,7 @@ void styleShadow(const Renderer &r, Rc &rc)
 void classicArt(const Look &look, const DecorationLayout &l, DecorationArt &art)
 {
     const ClassicScheme &s = look.system;
-    const QPalette pal = s.palette();
+    const QPalette pal = s.shellPalette(2);
     Sheet svg{&art.frame};
     const int F = l.frame, H = l.frame + l.caption;
     const int bar = s.metrics.captionHeight;   // the gradient band; a face row under it
@@ -251,7 +251,7 @@ void classicArt(const Look &look, const DecorationLayout &l, DecorationArt &art)
             img.fill(Qt::transparent);
             {
                 QPainter p(&img);
-                classic::captionButton(&p, img.rect(), b.glyph, pal, st == 2, st == 3);
+                classic::captionButton(&p, img.rect(), b.glyph, s.shellPalette(b.glyph == classic::CaptionGlyph::Close ? 4 : 3), st == 2, st == 3);
             }
             // (A Classic caption button looks the same in an inactive window.)
             const QString name = QLatin1String(kButtonStates[st]);

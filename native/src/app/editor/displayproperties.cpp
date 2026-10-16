@@ -5,6 +5,10 @@
 #include "app/editor/wallpapercatalogue.h"
 #include "app/editor/advanced.h"
 #include "app/editor/extras.h"
+#include "app/editor/customluna.h"
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
 #include "app/editor/jobs.h"
 #include "app/editor/setupdialog.h"
 #include "app/editor/soundstab.h"
@@ -13,8 +17,10 @@
 #include "app/crisptext.h"
 #include "app/session.h"
 #include "app/state.h"
+#include "app/startmenu.h"
 #include "app/themeimport.h"
 #include "core/themefile.h"
+#include "core/schema.h"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -36,6 +42,7 @@
 #include <QMenu>
 #include <QPushButton>
 #include <QSaveFile>
+#include <QSettings>
 #include <QTabBar>
 #include <QTabWidget>
 #include <QTimer>
@@ -147,6 +154,7 @@ DisplayProperties::DisplayProperties(QWidget *parent)
     m_tabs->addTab(themesTab(), QStringLiteral("Themes"));
     m_tabs->addTab(desktopTab(), QStringLiteral("Desktop"));
     m_tabs->addTab(appearanceTab(), QStringLiteral("Appearance"));
+    m_tabs->addTab(customLunaTab(), QStringLiteral("Custom Colors"));
     m_tabs->addTab(pointersTab(), QStringLiteral("Pointers"));
     m_sounds = new SoundsTab;
     m_tabs->addTab(m_sounds, QStringLiteral("Sounds"));
@@ -234,6 +242,40 @@ DisplayProperties::DisplayProperties(QWidget *parent)
     for (int i = 0; i < m_themes->count(); ++i)
         if (m_themes->itemData(i).toString() == state.themeFile)
             m_themes->setCurrentIndex(i);
+    if(m_themes->findData(state.themeFile)<0 && !state.style.isEmpty()){
+        for(const auto &theme:m_library.themes)if(theme.path==state.themeFile && QFileInfo(theme.path).dir().dirName()==QLatin1String("XP Presets")){
+            const int xp=m_themes->findText(QStringLiteral("Windows XP"));if(xp>=0)m_themes->setCurrentIndex(xp);
+        }
+    }
+    restoreCustomLuna();
+    m_appliedLiveStart=state.settings.value(QLatin1String(kLiveStartColorsKey)).toObject();
+    if(m_appliedLiveStart.value(QStringLiteral("enabled")).toBool() && !m_appliedLiveStart.contains(QStringLiteral("startMenuText")))
+        m_appliedLiveStart.insert(QStringLiteral("startMenuText"),m_appliedLiveStart.value(QStringLiteral("menuText")).toInt());
+    bool linked=state.settings.value(QStringLiteral("linkTitleToTaskbar")).toBool(true);
+    if(!state.settings.contains(QStringLiteral("linkTitleToTaskbar"))) {
+        if(m_appliedLiveStart.contains(QStringLiteral("linkTitleToTaskbar")))linked=m_appliedLiveStart.value(QStringLiteral("linkTitleToTaskbar")).toBool();
+        else if(m_appliedLiveStart.contains(QStringLiteral("title")))linked=m_appliedLiveStart.value(QStringLiteral("title"))==m_appliedLiveStart.value(QStringLiteral("menu"));
+        else if(m_customLunaEnabled->isChecked())linked=m_lunaColours[1]->colour()==m_lunaColours[2]->colour();
+    }
+    m_linkTitleColor->setChecked(linked);m_appliedTitleLink=linked;
+    const auto rememberedColors=m_appliedLiveStart.isEmpty()?(m_customLunaEnabled->isChecked()?QJsonObject():state.settings.value(QStringLiteral("retiredColorProfile")).toObject()):m_appliedLiveStart;
+    m_liveStartEnabled->setChecked(false);
+    if(rememberedColors.value("enabled").toBool()) {
+        m_lunaColours[0]->setColour(QColor(rememberedColors.value(QStringLiteral("start")).toString()));
+        m_lunaColours[1]->setColour(QColor(rememberedColors.value(QStringLiteral("menu")).toString()));
+        m_customTextModes[0]->setCurrentIndex(rememberedColors.value(QStringLiteral("startText")).toInt());
+        m_customTextModes[1]->setCurrentIndex(rememberedColors.value(QStringLiteral("menuText")).toInt());
+        m_startMenuTextMode->setCurrentIndex(rememberedColors.value(QStringLiteral("startMenuText")).toInt(rememberedColors.value(QStringLiteral("menuText")).toInt()));
+        if(rememberedColors.contains(QStringLiteral("title")))m_lunaColours[2]->setColour(QColor(rememberedColors.value(QStringLiteral("title")).toString()));
+        if(rememberedColors.contains(QStringLiteral("buttons")))m_lunaColours[3]->setColour(QColor(rememberedColors.value(QStringLiteral("buttons")).toString()));
+        if(rememberedColors.contains(QStringLiteral("titleText")))m_customTextModes[2]->setCurrentIndex(rememberedColors.value(QStringLiteral("titleText")).toInt());
+        if(rememberedColors.contains(QStringLiteral("buttonsText")))m_customTextModes[3]->setCurrentIndex(rememberedColors.value(QStringLiteral("buttonsText")).toInt());
+    }
+    syncTitleColorLink();
+    connect(this,&QDialog::rejected,this,[this]{
+        m_liveStartTimer->stop();
+        if(m_livePreviewTouched){LiveSession session;applyLiveStartColors(session,m_appliedLiveStart);}
+    });
     m_loading = false;
     // What's applied: the look XPlasma recorded, if the dialog could show it,
     // and the desktop as the dialog shows it.
@@ -281,6 +323,11 @@ DisplayProperties::DisplayProperties(QWidget *parent)
     renderThemes();
     renderDesktop();
     renderAppearance();
+    connect(m_tabs, &QTabWidget::currentChanged, this, [this](int index) {
+        if (m_tabs->tabText(index) == QLatin1String("Custom Colors")) syncCustomColors();
+        renderThemes();renderAppearance();
+    });
+    if (!m_customLunaEnabled->isChecked()) syncCustomColors();
 }
 
 // --- tabs ----------------------------------------------------------------------------------
@@ -367,6 +414,260 @@ QWidget *DisplayProperties::desktopTab()
     return page;
 }
 
+QWidget *DisplayProperties::customLunaTab()
+{
+    auto *page = new QWidget;
+    auto *layout = new QVBoxLayout(page);
+    m_customLunaSample = sampleBox(preview::kThemesSize);
+    layout->addWidget(m_customLunaSample, 0, Qt::AlignHCenter);
+    m_customBaseLabel = new QLabel;
+    m_customBaseLabel->setWordWrap(true); layout->addWidget(m_customBaseLabel);
+    m_liveStartEnabled = new QCheckBox(QStringLiteral("Live theme colors (experimental)"));
+    m_liveStartEnabled->setObjectName(QStringLiteral("liveStartColors"));
+    m_liveStartEnabled->hide(); // Retired: colors are baked into the generated theme.
+    m_liveStartTimer=new QTimer(this);m_liveStartTimer->setSingleShot(true);m_liveStartTimer->setInterval(60);
+    connect(m_liveStartTimer,&QTimer::timeout,this,[this]{
+        QString error;LiveSession session;
+        if(applyLiveStartColors(session,liveStartColors(),&error)) {
+            m_livePreviewTouched=true;
+            m_customLunaStatus->setText(QStringLiteral("Theme colors update live. Apply saves; Cancel restores. Close stays red."));
+        } else m_customLunaStatus->setText(error);
+        renderThemes();renderAppearance();
+    });
+    m_customLunaEnabled = new QCheckBox(QStringLiteral("Use custom theme colors"));
+    layout->addWidget(m_customLunaEnabled);
+    auto *grid = new QGridLayout;
+    const char *labels[] = {"Start button:", "Taskbar / Start menu:", "Titlebars and borders:", "Titlebar buttons (Close stays red):"};
+    const char *defaults[] = {"#3c9b35", "#245edb", "#245edb", "#245edb"};
+    for (int i = 0; i < 4; ++i) {
+        m_lunaColours[i] = new ColourButton;
+        m_lunaColours[i]->setObjectName(QStringLiteral("customColor%1").arg(i));
+        m_lunaColours[i]->setColour(QColor(QLatin1String(defaults[i])));
+        auto *label = m_customColorLabels[i] = new QLabel(QLatin1String(labels[i]));
+        label->setBuddy(m_lunaColours[i]);
+        grid->addWidget(label, i, 0); grid->addWidget(m_lunaColours[i], i, 1);
+        connect(m_lunaColours[i], &ColourButton::picked, this, [this] {
+            if(m_liveStartEnabled->isChecked()){liveStartColorsChanged();return;}
+            { const QSignalBlocker block(m_customLunaEnabled); m_customLunaEnabled->setChecked(true); } scheduleCustomColors();
+        });
+    }
+    for(int i=0;i<4;++i) {
+        auto *mode=m_customTextModes[i]=new QComboBox;
+        mode->setObjectName(QStringLiteral("customTextMode%1").arg(i));
+        mode->addItems({QStringLiteral("Auto"),QStringLiteral("White"),QStringLiteral("Black")});
+        mode->setToolTip(i==3 ? QStringLiteral("Titlebar button symbols. Close keeps its red background.") : QStringLiteral("Text color for this part of the theme."));
+        mode->setAccessibleName(QString::fromLatin1(labels[i])+QStringLiteral(" text color"));
+        grid->addWidget(mode,i,2);
+        connect(mode,&QComboBox::activated,this,[this]{if(m_liveStartEnabled->isChecked()){liveStartColorsChanged();return;}{ const QSignalBlocker block(m_customLunaEnabled); m_customLunaEnabled->setChecked(true); } scheduleCustomColors();});
+    }
+    m_startMenuTextMode=new QComboBox;
+    m_startMenuTextMode->setObjectName(QStringLiteral("startMenuTextMode"));
+    m_startMenuTextMode->addItems({QStringLiteral("Auto"),QStringLiteral("White"),QStringLiteral("Black")});
+    m_startMenuTextMode->setAccessibleName(QStringLiteral("Start menu text color"));
+    m_startMenuTextMode->setToolTip(QStringLiteral("Start menu and flyout text, independent of taskbar text. Applied with the generated theme."));
+    m_startMenuTextMode->setEnabled(true);
+    grid->addWidget(new QLabel(QStringLiteral("Start menu text:")),4,0);
+    grid->addWidget(m_startMenuTextMode,4,2);
+    connect(m_startMenuTextMode,&QComboBox::activated,this,[this]{liveStartColorsChanged();});
+    grid->setColumnStretch(0, 1); layout->addLayout(grid);
+    m_linkTitleColor=new QCheckBox(QStringLiteral("Use taskbar color for titlebars"));
+    m_linkTitleColor->setObjectName(QStringLiteral("linkTitleToTaskbar"));
+    m_linkTitleColor->setChecked(true);layout->addWidget(m_linkTitleColor);
+    m_lunaColours[2]->setEnabled(false);
+    connect(m_linkTitleColor,&QCheckBox::toggled,this,[this]{
+        if(m_loading){m_lunaColours[2]->setEnabled(!m_linkTitleColor->isChecked());return;}
+        syncTitleColorLink();
+        if(m_liveStartEnabled->isChecked())liveStartColorsChanged();
+        else if(m_customLunaEnabled->isChecked())scheduleCustomColors();
+        else updateApply();
+    });
+    auto *reset = new QPushButton(QStringLiteral("Reset to original theme"));
+    layout->addWidget(reset);
+    m_customLunaStatus = new QLabel(QStringLiteral("Choose colors, then Apply. Start menu and highlights follow the taskbar color."));
+    m_customLunaStatus->setWordWrap(true); layout->addWidget(m_customLunaStatus);
+    layout->addStretch();
+    connect(m_liveStartEnabled,&QCheckBox::toggled,this,[this](bool enabled){
+        for(int i=0;i<4;++i) {
+            if(enabled){m_beforeLiveColors[i]=m_lunaColours[i]->colour();m_beforeLiveTextModes[i]=m_customTextModes[i]->currentIndex();}
+            else if(m_beforeLiveColors[i].isValid()){m_lunaColours[i]->setColour(m_beforeLiveColors[i]);m_customTextModes[i]->setCurrentIndex(m_beforeLiveTextModes[i]);}
+        }
+        m_customLunaEnabled->setEnabled(!enabled);
+        m_startMenuTextMode->setEnabled(true);
+        m_customColorLabels[1]->setText(QStringLiteral("Taskbar / Start menu:"));
+        m_customTextModes[1]->setToolTip(enabled ? QStringLiteral("Taskbar text only. Start menu text has its own selector below.") : QStringLiteral("Taskbar and Start menu text."));
+        m_customLunaSample->setToolTip(enabled ? QStringLiteral("Preview and desktop follow the selected live colors.") : QString());
+        for(int i=0;i<4;++i){m_lunaColours[i]->setEnabled(true);m_customTextModes[i]->setEnabled(true);m_lunaColours[i]->livePreview=enabled;}
+        syncTitleColorLink();
+        if(!m_loading)liveStartColorsChanged();
+    });
+    connect(m_customLunaEnabled, &QCheckBox::toggled, this, [this] { scheduleCustomColors(); });
+    connect(reset, &QPushButton::clicked, this, [this] {
+        m_liveStartEnabled->setChecked(false);
+        m_startMenuTextMode->setCurrentIndex(0);
+        m_linkTitleColor->setChecked(true);
+        const char *defaults[] = {"#3c9b35", "#245edb", "#245edb", "#245edb"};
+        for (int i = 0; i < 4; ++i) m_lunaColours[i]->setColour(QColor(QLatin1String(defaults[i])));
+        { const QSignalBlocker block(m_customLunaEnabled); m_customLunaEnabled->setChecked(false); } scheduleCustomColors();
+    });
+    return page;
+}
+
+void DisplayProperties::syncTitleColorLink()
+{
+    m_lunaColours[2]->setEnabled(!m_linkTitleColor->isChecked());
+    if(m_linkTitleColor->isChecked())m_lunaColours[2]->setColour(m_lunaColours[1]->colour());
+}
+
+QJsonObject DisplayProperties::liveStartColors() const
+{
+    return {}; // Runtime tinting is retired; previews use the generated style.
+}
+
+void DisplayProperties::liveStartColorsChanged()
+{
+    if(m_loading)return;
+    syncTitleColorLink();
+    { const QSignalBlocker block(m_customLunaEnabled); m_customLunaEnabled->setChecked(true); }
+    scheduleCustomColors();
+    updateApply();
+}
+
+void DisplayProperties::syncCustomColors()
+{
+    if (m_loading || m_customLunaEnabled->isChecked()) return;
+    if(m_liveStartEnabled->isChecked()){
+        m_customBaseLabel->setText(QStringLiteral("Base: ")+look().name+QStringLiteral(". Choose another base on Appearance."));
+        return; // Switching tabs must not replace live draft colors with base defaults.
+    }
+    const Look base = look();
+    std::array<QColor,4> colours{base.system.colour(u"ButtonFace"), base.system.colour(u"ButtonFace"),
+                               base.system.colour(u"ActiveTitle"), base.system.colour(u"ButtonFace")};
+    if (base.renderer) {
+        const PartRef refs[] = {{QStringLiteral("button"), 1, 1, QStringLiteral("start")},
+            {QStringLiteral("taskbar"), schema::partId(u"taskbar", u"backgroundbottom"), 0, {}},
+            {QStringLiteral("window"), schema::partId(u"window", u"caption"), 1, {}},
+            {QStringLiteral("window"), schema::partId(u"window", u"maxbutton"), 1, {}}};
+        for (int i = 0; i < 4; ++i) {
+            const auto image = base.renderer->background(refs[i], QSize(100,30));
+            qint64 red=0,green=0,blue=0,count=0;
+            for (int y=0;y<image.height();++y) for (int x=0;x<image.width();++x) {
+                const QRgb c=image.pixel(x,y);
+                if (!qAlpha(c) || c==qRgb(255,0,255)) continue;
+                red+=qRed(c);green+=qGreen(c);blue+=qBlue(c);++count;
+            }
+            if (count) colours[i]=QColor(red/count,green/count,blue/count);
+        }
+    }
+    for (int i=0;i<4;++i) m_lunaColours[i]->setColour(colours[i]);
+    syncTitleColorLink();
+    m_customBaseLabel->setText(QStringLiteral("Base: ") + base.name + QStringLiteral(". Choose another base on Appearance."));
+    for(auto *mode:m_customTextModes) mode->setCurrentIndex(0);
+    m_customLunaSource.clear(); m_customLunaVariant.clear();
+}
+
+void DisplayProperties::restoreCustomLuna(const QString &path)
+{
+    if (m_scheme.shellColors && path.isEmpty()) {
+        m_customClassic = m_scheme;
+        m_startMenuTextMode->setCurrentIndex(m_scheme.shellMenuTextMode<0 ? (m_scheme.shellTextModes[1]<0 ? m_scheme.shellTextMode : m_scheme.shellTextModes[1]) : m_scheme.shellMenuTextMode);
+        for(int i=0;i<4;++i) m_customTextModes[i]->setCurrentIndex(m_scheme.shellTextModes[i]<0 ? m_scheme.shellTextMode : m_scheme.shellTextModes[i]);
+        for (int i = 0; i < 4; ++i) m_lunaColours[i]->setColour((*m_scheme.shellColors)[i]);
+        m_customLunaSource = QStringLiteral("classic:") + m_scheme.shellBaseName;
+        m_customLunaPath = QStringLiteral("classic");
+        m_customLunaEnabled->setChecked(true);
+        return;
+    }
+    const QString applied = path.isEmpty() ? State::load().style : path;
+    const auto obj = colorMetadata(applied);
+    if (!obj.isEmpty()) {
+        const auto colours = obj.value(QStringLiteral("colours")).toArray();
+        if (colours.size() == 4) {
+            m_startMenuTextMode->setCurrentIndex(obj.value("startMenuText").toInt(obj.value("textMode").toInt()));
+            const auto modes=obj.value(QStringLiteral("textModes")).toArray();
+            for(int i=0;i<4;++i) m_customTextModes[i]->setCurrentIndex(qBound(0,modes.size()==4 ? modes[i].toInt() : obj.value(QStringLiteral("textMode")).toInt(),2));
+            m_customLunaSource = obj.value(QStringLiteral("source")).toString();
+            m_customLunaVariant = obj.value(QStringLiteral("variant")).toString(QStringLiteral("NORMALBLUE_INI"));
+            for (int i = 0; i < 4; ++i) m_lunaColours[i]->setColour(QColor(colours[i].toString()));
+            m_customLunaPath = applied;
+            m_customLunaEnabled->setChecked(true);
+        }
+    }
+}
+
+void DisplayProperties::scheduleCustomColors()
+{
+    if(m_loading || m_customColorsPending)return;
+    m_customColorsPending=true;
+    QTimer::singleShot(0,this,[this]{if(m_customColorsPending)customLunaChanged();});
+}
+
+void DisplayProperties::customLunaChanged()
+{
+    m_customColorsPending=false;
+    if (m_loading) return;
+    syncTitleColorLink();
+    if (m_customLunaSource.isEmpty()) {
+        const int index = m_style->currentIndex();
+        if (index >= 0 && index < m_styles.size()) {
+            const auto &style = m_styles[index];
+            m_customLunaSource = style.path;
+            m_customLunaVariant = style.ini(m_colour->currentData().toString(), m_size->currentData().toString());
+        } else m_customLunaSource = QStringLiteral("classic:") + m_scheme.name;
+    }
+    if (m_customLunaEnabled->isChecked()) {
+        m_customBaseLabel->setText(QStringLiteral("Base: ") + (m_customLunaSource.startsWith(QLatin1String("classic:"))
+            ? m_customLunaSource.mid(8) : Library::style(m_customLunaSource).label) + QStringLiteral(". Choose another base on Appearance."));
+        QString error;
+        std::array<QColor, 4> colours;
+        std::array<int,4> textModes;for(int i=0;i<4;++i) textModes[i]=m_customTextModes[i]->currentIndex();
+        for (int i = 0; i < 4; ++i) colours[i] = m_lunaColours[i]->colour();
+        if (m_customLunaSource.startsWith(QLatin1String("classic:"))) {
+            ClassicScheme base = schemes::load(m_customLunaSource.mid(8)).value_or(m_scheme);
+            base.shellBaseName = m_customLunaSource.mid(8); base.shellColors = colours; base.shellTextModes = textModes; base.shellMenuTextMode=m_startMenuTextMode->currentIndex();
+            QByteArray paletteKey;
+            for (const auto &c : colours) paletteKey += c.name().toUtf8();
+            for(int mode : textModes) paletteKey += QByteArray::number(mode);
+            paletteKey+=QByteArray::number(m_startMenuTextMode->currentIndex());
+            base.name = QStringLiteral("Custom ") + base.shellBaseName + QLatin1Char(' ') + QString::fromLatin1(QCryptographicHash::hash(paletteKey, QCryptographicHash::Sha256).toHex().left(10));
+            base.setColour(u"ActiveTitle", colours[2]); base.setColour(u"GradientActiveTitle", colours[2].lighter(140));
+            base.setColour(u"InactiveTitle", colours[2].darker(130)); base.setColour(u"GradientInactiveTitle", colours[2].lighter(110));
+            base.setColour(u"Hilight", colours[1]);
+            const auto textFor=[&](int part) {return textModes[part]==1 ? QColor(Qt::white) : textModes[part]==2 ? QColor(Qt::black) : colours[part].lightnessF()<.5 ? QColor(Qt::white) : QColor(Qt::black);};
+            base.setColour(u"HilightText",textFor(1));base.setColour(u"TitleText",textFor(2));base.setColour(u"InactiveTitleText",textFor(2));
+            m_customClassic = base; m_customLunaPath = QStringLiteral("classic");
+        } else {
+            m_customClassic.reset();
+            const auto source=m_customLunaSource, variant=m_customLunaVariant;
+            const int menuMode=m_startMenuTextMode->currentIndex();
+            QString generated;
+            runResponsiveTask(this,[&](QString *e){generated=customLuna(source,colours,paths::data()+QStringLiteral("/custom-luna"),e,variant,0,textModes,menuMode);return !generated.isEmpty();},&error);
+            m_customLunaPath=generated;
+        }
+        m_customLunaStatus->setText(m_customLunaPath.isEmpty() ? error : QStringLiteral("Start menu and highlights follow the taskbar color. Apply to use these colors."));
+    } else {
+        m_customLunaPath.clear(); m_customClassic.reset();
+        if (m_customLunaSource.startsWith(QLatin1String("classic:"))) {
+            if (auto base = schemes::load(m_customLunaSource.mid(8))) m_scheme = *base;
+            m_loading = true; m_style->setCurrentIndex(m_styles.size()); fillColours(); fillSizes(); m_loading = false;
+        }
+        // Restore the original selected skin, color scheme and font size.
+        for (int i = 0; i < m_styles.size(); ++i)
+            if (QFileInfo(m_styles[i].path).canonicalFilePath() == QFileInfo(m_customLunaSource).canonicalFilePath()) {
+                m_loading = true; m_style->setCurrentIndex(i); fillColours();
+                if (const auto *v = m_styles[i].variant(m_customLunaVariant)) {
+                    m_colour->setCurrentIndex(m_colour->findData(v->colour)); fillSizes();
+                    m_size->setCurrentIndex(m_size->findData(v->size));
+                }
+                m_loading = false;
+                break;
+            }
+        m_customLunaStatus->setText(QStringLiteral("Original theme colors restored. Apply to update your desktop."));
+        syncCustomColors();
+    }
+    m_themeFile.clear();
+    renderThemes(); renderAppearance(); updateApply();
+}
+
 QWidget *DisplayProperties::appearanceTab()
 {
     auto *page = new QWidget;
@@ -374,9 +675,9 @@ QWidget *DisplayProperties::appearanceTab()
     m_appearanceSample = sampleBox(preview::kAppearanceSize);
     layout->addWidget(m_appearanceSample, 0, Qt::AlignHCenter);
     auto *grid = new QGridLayout;
-    m_style = new QComboBox;
-    m_colour = new QComboBox;
-    m_size = new QComboBox;
+    m_style = new QComboBox; m_style->setObjectName(QStringLiteral("appearanceStyle"));
+    m_colour = new QComboBox; m_colour->setObjectName(QStringLiteral("appearanceColor"));
+    m_size = new QComboBox; m_size->setObjectName(QStringLiteral("appearanceSize"));
     m_advanced = new QPushButton(QStringLiteral("Advanced"));
     // (Where XP had Effects...: XPlasma's own, the Start button's label and logo.)
     m_extras = new QPushButton(QStringLiteral("Extras..."));
@@ -606,7 +907,10 @@ bool DisplayProperties::pointersDiffer() const
 {
     if (!m_pointers)
         return m_appliedPointers.has_value();
-    return !m_appliedPointers || !(m_appliedPointers->first == *m_pointers) || m_appliedPointers->second != m_pointerShadow;
+    if(!m_appliedPointers || !(m_appliedPointers->first == *m_pointers) || m_appliedPointers->second != m_pointerShadow)return true;
+    // Still honor a genuine desktop override without rebuilding for every preset.
+    const QString current=QSettings(paths::config()+QStringLiteral("/kcminputrc"),QSettings::IniFormat).value(QStringLiteral("Mouse/cursorTheme")).toString();
+    return !current.isEmpty() && current!=pointers::themeId(*m_pointers,m_pointerShadow);
 }
 
 // --- the library ---------------------------------------------------------------------------
@@ -618,15 +922,24 @@ void DisplayProperties::loadLibrary()
     for (const StyleInfo &s : std::as_const(m_library.styles))
         if (s.readable())
             m_styles.append(s);
+    const QString applied = State::load().style;
+    if (applied.startsWith(paths::data() + QStringLiteral("/custom-luna/"))) {
+        auto custom = Library::style(applied);
+        if (custom.readable()) { custom.label = QStringLiteral("Custom Colors"); m_styles.append(custom); }
+    }
     fillThemes();
 }
 
 void DisplayProperties::fillThemes()
 {
     m_themes->clear();
-    for (const ThemeBundle &t : std::as_const(m_library.themes))
-        if (t.styleMissing.isEmpty())
-            m_themes->addItem(t.label, t.path);
+    bool defaults=false, separated=false;
+    for (const ThemeBundle &t : m_library.themeChoices()) {
+        if(!t.styleMissing.isEmpty())continue;
+        if(Library::stockTheme(t))defaults=true;
+        else if(defaults && !separated){m_themes->insertSeparator(m_themes->count());separated=true;}
+        m_themes->addItem(t.label,t.path);
+    }
     m_themes->insertSeparator(m_themes->count());
     m_themes->addItem(QStringLiteral("More themes..."), QLatin1String(kSetup));
     m_themes->addItem(QStringLiteral("Browse..."), QLatin1String(kBrowse));
@@ -703,6 +1016,10 @@ void DisplayProperties::fillWallpapers()
 
 Look DisplayProperties::look() const
 {
+    if (m_customLunaEnabled->isChecked() && m_customClassic) return Look::fromScheme(*m_customClassic);
+    if (m_customLunaEnabled->isChecked() && !m_customLunaPath.isEmpty())
+        if (auto custom = Look::fromStyle(m_customLunaPath, m_customLunaVariant)) return *custom;
+
     const int i = m_style->currentIndex();
     if (i >= 0 && i < m_styles.size()) {
         const StyleInfo &s = m_styles.at(i);
@@ -789,7 +1106,15 @@ void DisplayProperties::themePicked(int index)
 
 void DisplayProperties::showBundle(const ThemeBundle &b)
 {
+    m_customColorsPending=false;
+    const QSignalBlocker customBlock(m_customLunaEnabled);
+    m_customLunaEnabled->setChecked(false);
+    m_customLunaPath.clear(); m_customLunaSource.clear(); m_customLunaVariant.clear(); m_customClassic.reset();
     m_loading = true;
+    if (!b.style.isEmpty() && m_style->findData(b.style) < 0) {
+        auto custom = Library::style(b.style);
+        if (custom.readable()) { custom.label = QStringLiteral("Custom Colors"); m_styles.append(custom); fillStyles(); }
+    }
     m_themeFile = b.path;
     const auto file = ThemeFile::load(b.path);
     const ClassicScheme colours = file ? ClassicScheme::fromThemeFile(*file) : ClassicScheme();
@@ -823,7 +1148,7 @@ void DisplayProperties::showBundle(const ThemeBundle &b)
             if (!name.isEmpty() && scheme.name.compare(name, Qt::CaseInsensitive) == 0)
                 m_pointers = scheme;
         m_pointerShadow = true;
-        m_appliedPointers.reset(); // Reapply even when this preset is reselected after a desktop override.
+        // Keep the applied cursor baseline: color-only profiles can reuse it.
         fillPointerSchemes();
         showPointers();
     }
@@ -843,7 +1168,26 @@ void DisplayProperties::showBundle(const ThemeBundle &b)
         if (m_position->itemData(i).toInt() == b.fill.value_or(0))
             m_position->setCurrentIndex(i);
     m_desktopColour->setColour(colours.colour(u"Background"));
+    if (!b.style.isEmpty()) restoreCustomLuna(b.style);
+    const auto live=file ? QJsonDocument::fromJson(file->value(u"XPlasma",u"LiveColors").toUtf8()).object() : QJsonObject();
+    m_liveStartTimer->stop();
+    m_liveStartEnabled->setChecked(false);
+    if(live.value("enabled").toBool()){
+        const char *keys[]={"start","menu","title","buttons"};
+        const char *textKeys[]={"startText","menuText","titleText","buttonsText"};
+        for(int i=0;i<4;++i){const QColor color(live.value(QLatin1String(keys[i])).toString());if(color.isValid())m_lunaColours[i]->setColour(color);m_customTextModes[i]->setCurrentIndex(qBound(0,live.value(QLatin1String(textKeys[i])).toInt(),2));}
+        m_startMenuTextMode->setCurrentIndex(qBound(0,live.value("startMenuText").toInt(live.value("menuText").toInt()),2));
+        m_linkTitleColor->setChecked(live.value("linkTitleToTaskbar").toBool(true));syncTitleColorLink();
+    }
     m_loading = false;
+    if(live.value("enabled").toBool()) {
+        m_customLunaEnabled->setChecked(true);
+        // Loading a baked profile restores controls, not a second tint pass.
+        if(live.value("rendering").toString()!=QLatin1String("static"))customLunaChanged();
+        else if(!b.classic())m_customLunaPath=b.style;
+        else {m_customClassic=colours;m_customLunaPath=QStringLiteral("classic");}
+        m_themeFile=b.path;
+    }
     m_delete->setEnabled(presets::owned(b.path) || themeimport::removable(b.path));
     renderThemes();
     renderDesktop();
@@ -853,6 +1197,12 @@ void DisplayProperties::showBundle(const ThemeBundle &b)
 
 void DisplayProperties::appearanceChanged()
 {
+    m_customColorsPending=false;
+    if (!m_loading) {
+        const QSignalBlocker block(m_customLunaEnabled);
+        m_customLunaEnabled->setChecked(false);
+        m_customLunaPath.clear(); m_customLunaSource.clear(); m_customLunaVariant.clear(); m_customClassic.reset();
+    }
     if (m_loading)
         return;
     const int i = m_style->currentIndex();
@@ -923,6 +1273,7 @@ void DisplayProperties::openAdvanced()
 
 void DisplayProperties::saveAs()
 {
+    if(m_customColorsPending)customLunaChanged();
     bool ok = false;
     const QString name = QInputDialog::getText(this, QStringLiteral("Save Theme"), QStringLiteral("Save this theme as:"), QLineEdit::Normal,
                                                m_themes->currentText(), &ok)
@@ -931,10 +1282,15 @@ void DisplayProperties::saveAs()
         return;
     presets::Preset p;
     p.name = name;
+    if(m_customLunaEnabled->isChecked()){
+        p.liveColors={{"enabled",true},{"rendering","static"},{"startMenuText",m_startMenuTextMode->currentIndex()},{"linkTitleToTaskbar",m_linkTitleColor->isChecked()}};
+        const char *keys[]={"start","menu","title","buttons"};const char *text[]={"startText","menuText","titleText","buttonsText"};
+        for(int i=0;i<4;++i){p.liveColors.insert(keys[i],m_lunaColours[i]->colour().name());p.liveColors.insert(text[i],m_customTextModes[i]->currentIndex());}
+    }
     const Look l = look();
     if (!l.classic()) {
         p.style = l.stylePath;
-        const StyleInfo &s = m_styles.at(m_style->currentIndex());
+        const StyleInfo s = Library::style(l.stylePath);
         if (const StyleVariant *v = s.variant(l.variant)) {
             for (const StyleOption &c : s.colours)
                 if (c.key == v->colour)
@@ -944,7 +1300,7 @@ void DisplayProperties::saveAs()
                     p.size = z.name;
         }
     } else {
-        p.scheme = m_scheme;
+        p.scheme = l.system;
     }
     const Wallpaper w = wallpaper();
     p.desktop = presets::Desktop{w.image, w.fill.value_or(2), w.colour};
@@ -996,17 +1352,24 @@ void DisplayProperties::deleteTheme()
 
 bool DisplayProperties::apply()
 {
+    if(m_customColorsPending)customLunaChanged();
+    if (m_customLunaEnabled->isChecked() && m_customLunaPath.isEmpty()) {
+        QMessageBox::warning(this, QStringLiteral("Custom Colors"), m_customLunaStatus->text());
+        return false;
+    }
     const Look l = look();
     const Wallpaper desktop = wallpaper();
     // Shift: everything, as if nothing were applied.
     const bool everything = shiftHeld();
     const bool lookChanged = everything || lookKey(l) != m_appliedLook;
     const bool desktopChanged = everything || !sameDesktop(desktop, m_appliedDesktop);
-    const bool pointersChanged = pointersDiffer() || ((everything || m_themeFile != m_appliedThemeFile || lookChanged) && m_pointers);
+    const bool pointersChanged = pointersDiffer() || (everything && m_pointers.has_value());
     const bool startChanged = m_startExtras != m_appliedStartExtras;
     const bool crispChanged = m_crispText->isChecked() != m_appliedCrisp;
     const bool darkChanged = m_darkMode->isChecked() != m_appliedDark;
-    if (!lookChanged && !desktopChanged && !pointersChanged && !startChanged && !darkChanged && !crispChanged && m_themeFile == m_appliedThemeFile)
+    const bool linkChanged=m_linkTitleColor->isChecked()!=m_appliedTitleLink;
+    const bool liveChanged=liveStartColors()!=m_appliedLiveStart;
+    if (!lookChanged && !desktopChanged && !pointersChanged && !startChanged && !darkChanged && !crispChanged && !liveChanged && !linkChanged && m_themeFile == m_appliedThemeFile)
         return m_sounds->apply();
 
     QString error;
@@ -1022,6 +1385,7 @@ bool DisplayProperties::apply()
     }
     if (lookChanged) {
         ApplyOptions o;
+        o.allowColorOnly=!everything && !startChanged && !m_outdated;
         o.darkMode = m_darkMode->isChecked();
         if (desktopChanged)
             o.wallpaper = desktop;
@@ -1053,6 +1417,24 @@ bool DisplayProperties::apply()
             LiveSession session;
             return applyStartButton(session, l, e);
         }, &error);
+    }
+    if(ok && (liveChanged || ((lookChanged || darkChanged) && m_liveStartEnabled->isChecked()))) {
+        m_liveStartTimer->stop();const auto colors=liveStartColors();
+        ok=runResponsiveTask(this,[colors](QString *error){LiveSession session;return applyLiveStartColors(session,colors,error);},&error);
+        if(ok) {
+            State state=State::load();
+            if(liveStartColors().isEmpty()){
+                if(state.settings.contains(QLatin1String(kLiveStartColorsKey)))state.settings.insert(QStringLiteral("retiredColorProfile"),state.settings.value(QLatin1String(kLiveStartColorsKey)));
+                state.settings.remove(QLatin1String(kLiveStartColorsKey));
+            }
+            else state.settings.insert(QLatin1String(kLiveStartColorsKey),liveStartColors());
+            ok=state.save(&error);
+            if(ok)m_appliedLiveStart=liveStartColors();
+        }
+    }
+    if(ok && linkChanged) {
+        State state=State::load();state.settings.insert(QStringLiteral("linkTitleToTaskbar"),m_linkTitleColor->isChecked());
+        ok=state.save(&error);if(ok)m_appliedTitleLink=m_linkTitleColor->isChecked();
     }
     if (ok && darkChanged && !lookChanged) {
         ok = runJob(this, QStringLiteral("Applying application colors"), [&](const JobContext &, QString *e) { LiveSession session; return darkmode::apply(session, l, m_darkMode->isChecked(), e); }, &error);
@@ -1102,7 +1484,7 @@ void DisplayProperties::updateApply()
                                    : QStringLiteral("Hold Shift to rebuild and apply everything, changed or not."));
     m_apply->setEnabled(shiftHeld() || lookKey(look()) != m_appliedLook || !sameDesktop(wallpaper(), m_appliedDesktop)
                         || m_themeFile != m_appliedThemeFile || pointersDiffer() || m_startExtras != m_appliedStartExtras
-                        || m_sounds->pending() || m_darkMode->isChecked() != m_appliedDark || m_crispText->isChecked() != m_appliedCrisp);
+                        || m_linkTitleColor->isChecked()!=m_appliedTitleLink || liveStartColors()!=m_appliedLiveStart || m_sounds->pending() || m_darkMode->isChecked() != m_appliedDark || m_crispText->isChecked() != m_appliedCrisp);
 }
 
 bool DisplayProperties::eventFilter(QObject *watched, QEvent *event)
@@ -1119,7 +1501,10 @@ void DisplayProperties::renderThemes()
 {
     if (m_loading)
         return;
-    m_themeSample->setPixmap(QPixmap::fromImage(m_previewer.theme(look(), wallpaper(), preview::kThemesSize, m_startExtras)));
+    if(!m_themeSample->isVisibleTo(m_tabs) && !m_customLunaSample->isVisibleTo(m_tabs))return;
+    const auto sample = QPixmap::fromImage(m_previewer.theme(look(), wallpaper(), preview::kThemesSize, m_startExtras, liveStartColors()));
+    m_themeSample->setPixmap(sample);
+    m_customLunaSample->setPixmap(sample);
 }
 
 void DisplayProperties::renderDesktop()
@@ -1134,9 +1519,10 @@ void DisplayProperties::renderAppearance()
     if (m_loading)
         return;
     m_advanced->setEnabled(m_style->currentIndex() >= m_styles.size());
+    if(!m_appearanceSample->isVisibleTo(m_tabs))return;
     const auto applications = darkmode::applicationLook(look(), m_darkMode->isChecked());
     const Look l = applications.value_or(look());
-    m_appearanceSample->setPixmap(QPixmap::fromImage(m_previewer.appearance(l, preview::kAppearanceSize, l.system.colour(u"Background"))));
+    m_appearanceSample->setPixmap(QPixmap::fromImage(m_previewer.appearance(l, preview::kAppearanceSize, l.system.colour(u"Background"),liveStartColors())));
 }
 
 void DisplayProperties::showTab(const QString &name)
@@ -1153,7 +1539,7 @@ bool DisplayProperties::saveScreenshots(const QString &dir)
     show();
     bool ok = true;
     m_sounds->showForScreenshot();
-    const char *const names[] = {"themes", "desktop", "appearance", "pointers", "sounds", "about"};
+    const char *const names[] = {"themes", "desktop", "appearance", "custom-luna", "pointers", "sounds", "about"};
     for (int i = 0; i < m_tabs->count(); ++i) {
         m_tabs->setCurrentIndex(i);
         QApplication::processEvents();

@@ -14,6 +14,7 @@
 #include <QCheckBox>
 #include <QDir>
 #include <QFile>
+#include <QJsonDocument>
 #include <QHeaderView>
 #include <QFileInfo>
 #include <QFrame>
@@ -45,6 +46,7 @@
 #include <QMdiArea>
 #include <QMdiSubWindow>
 #include <QToolButton>
+#include <QVarLengthArray>
 
 using xpl::PartRef;
 
@@ -81,21 +83,35 @@ QString rcPath()
     return QFileInfo::exists(shared) ? shared : own;
 }
 
-// Where XPlasma's configuration says the style to draw is. XPLASMA_THEME
-// ("/path/Luna.msstyles" or "/path/Luna.msstyles:NORMALMETALLIC_INI")
-// overrides it per process, for tests and previews.
-std::pair<QString, QString> configuredTheme()
+// What the style follows in xplasmarc, read in one go (every Qt process
+// starts by reading it). The theme is where XPlasma's configuration says the
+// style to draw is; XPLASMA_THEME ("/path/Luna.msstyles" or
+// "/path/Luna.msstyles:NORMALMETALLIC_INI") overrides it per process, for
+// tests and previews.
+struct Rc
 {
+    std::pair<QString, QString> theme;
+    bool crisp = false;
+    bool kerning = true;
+};
+
+Rc readRc(const QString &path)
+{
+    Rc rc;
+    const QSettings settings(path, QSettings::IniFormat);
     const QString env = qEnvironmentVariable("XPLASMA_THEME");
     if (!env.isEmpty()) {
         const int colon = int(env.lastIndexOf(QLatin1Char(':')));
         if (colon > 0 && env.mid(colon + 1).endsWith(QLatin1String("_INI"), Qt::CaseInsensitive))
-            return {env.left(colon), env.mid(colon + 1)};
-        return {env, QString()};
+            rc.theme = {env.left(colon), env.mid(colon + 1)};
+        else
+            rc.theme = {env, QString()};
+    } else {
+        rc.theme = {settings.value(QStringLiteral("Theme/Path")).toString(), settings.value(QStringLiteral("Theme/Variant")).toString()};
     }
-    QSettings settings(rcPath(), QSettings::IniFormat);
-    settings.beginGroup(QStringLiteral("Theme"));
-    return {settings.value(QStringLiteral("Path")).toString(), settings.value(QStringLiteral("Variant")).toString()};
+    rc.crisp = settings.value(QStringLiteral("Text/Crisp"), false).toBool();
+    rc.kerning = settings.value(QStringLiteral("Text/Kerning"), true).toBool();
+    return rc;
 }
 
 // Windows Classic: the colour scheme a .theme holds. [XPlasma] ScrollWidth
@@ -119,10 +135,16 @@ XPlasmaStyle::XPlasmaStyle()
 {
     setObjectName(QStringLiteral("XPlasma"));
     m_safe = qEnvironmentVariableIntValue("XPLASMA_SAFE") != 0;
-    m_cache.setMaxCost(16 * 1024 * 1024);   // bytes of rendered parts
+    // Bytes of rendered parts, per app. 4 MB holds a busy window's parts
+    // with no more renders than 16 did (measured: same paint times) and
+    // leaves each app lighter than with Breeze.
+    m_cache.setMaxCost(4 * 1024 * 1024);
     if (m_safe)
         return;
-    loadTheme();
+    const QString rc = rcPath();
+    const Rc settings = readRc(rc);
+    m_kerning = settings.kerning;
+    loadTheme(settings.theme);
     // XPLASMA_DUMP=DIR: a testing aid -- after XPLASMA_DUMP_DELAY ms (3000),
     // save every visible top-level widget to DIR, so real apps can be
     // inspected offscreen.
@@ -146,9 +168,9 @@ XPlasmaStyle::XPlasmaStyle()
     // replaces the file atomically, so the watch is on the file and re-armed
     // after each change; a short delay folds bursts together.
     if (qEnvironmentVariableIsEmpty("XPLASMA_THEME")) {
-        m_configPath = rcPath();
-        m_loaded = configuredTheme();
-    m_crispEnabled = QSettings(rcPath(), QSettings::IniFormat).value(QStringLiteral("Text/Crisp"),false).toBool();
+        m_configPath = rc;
+        m_loaded = settings.theme;
+        m_crispEnabled = settings.crisp;
         m_watcher = new QFileSystemWatcher(this);
         m_watcher->addPath(QFileInfo(m_configPath).absolutePath());
         if (QFileInfo::exists(m_configPath))
@@ -166,6 +188,56 @@ XPlasmaStyle::XPlasmaStyle()
     }
 }
 
+void XPlasmaStyle::reloadLiveColors(bool repaint)
+{
+    QFile file(m_livePath);QJsonObject colors;
+    if(file.open(QIODevice::ReadOnly)){
+        QJsonParseError error;const auto doc=QJsonDocument::fromJson(file.readAll(),&error);
+        if(error.error!=QJsonParseError::NoError || !doc.isObject())return;
+        colors=doc.object();
+    }
+    if(colors==m_liveColors)return;
+    const auto before=m_liveColors;m_liveColors=colors;
+    m_liveEnabled=colors.value(QStringLiteral("enabled")).toBool();
+    m_liveAccent=QColor(colors.value(QStringLiteral("menu")).toString());
+    const bool oldEnabled=before.value(QStringLiteral("enabled")).toBool();
+    const bool enabled=colors.value(QStringLiteral("enabled")).toBool();
+    // Start/title/button/text-only changes do not affect this widget style.
+    if(oldEnabled==enabled && (!enabled || before.value(QStringLiteral("menu"))==colors.value(QStringLiteral("menu"))))return;
+    if(repaint && qApp){
+        const auto palette=standardPalette();
+        if(qApp->palette()!=palette)qApp->setPalette(palette); // Qt propagates palette changes itself.
+        for(auto *widget:QApplication::allWidgets())if(widget->isVisible() && qobject_cast<QScrollBar*>(widget))widget->update();
+    }
+}
+
+void XPlasmaStyle::tintScrollPart(QImage &image,const PartRef &ref) const
+{
+    if(!m_liveEnabled || image.isNull())return;
+    QColor target=m_liveAccent;if(!target.isValid())return;
+    const bool track=ref.part>=4 && ref.part<=7;
+    if(track)target=QColor(qRound(255*.90+target.red()*.10),qRound(255*.90+target.green()*.10),qRound(255*.90+target.blue()*.10));
+    // The theme's own tone for this kind of part: once per theme.
+    if(!m_scrollTone[track]){
+        const QImage reference=m_renderer->background({QStringLiteral("scrollbar"),track?6:3,1,{}},QSize(17,32));
+        qreal sum=0;int count=0;
+        for(int y=0;y<reference.height();++y)for(int x=0;x<reference.width();++x){const auto c=reference.pixelColor(x,y);if(c.alpha()>200){sum+=.2126*c.redF()+.7152*c.greenF()+.0722*c.blueF();++count;}}
+        m_scrollTone[track]=qBound(.05,count?sum/count:.5,.95);
+    }
+    const qreal tone=*m_scrollTone[track];
+    QRgb shades[256];for(int i=0;i<256;++i){const qreal v=i/255.;const qreal shade=v<tone?std::pow(v/tone,1.1):1;const qreal shine=v<tone?0:.65*(v-tone)/(1-tone);auto c=[&](int channel){return qBound(0,qRound(channel*shade*(1-shine)+255*shine),255);};shades[i]=qRgb(c(target.red()),c(target.green()),c(target.blue()));}
+    image=image.convertToFormat(QImage::Format_ARGB32);
+    for(int y=0;y<image.height();++y){auto *line=reinterpret_cast<QRgb*>(image.scanLine(y));for(int x=0;x<image.width();++x){const auto pixel=line[x];if(!qAlpha(pixel))continue;
+        // Keep dark arrow/grip glyphs and border ink readable.
+        if(!track && qMax(qRed(pixel),qMax(qGreen(pixel),qBlue(pixel)))<45){
+            if(ref.part==1 && x>image.width()*.2 && x<image.width()*.8 && y>image.height()*.2 && y<image.height()*.8){const bool white=.299*target.redF()+.587*target.greenF()+.114*target.blueF()<.5;line[x]=qRgba(white?255:0,white?255:0,white?255:0,qAlpha(pixel));}
+            continue;
+        }
+        const int value=(54*qRed(pixel)+183*qGreen(pixel)+19*qBlue(pixel)+128)>>8;
+        line[x]=(shades[value]&0x00ffffff)|(pixel&0xff000000);
+    }}
+}
+
 // xplasmarc changed: when it names another theme, load it, drop what was
 // rendered from the old one, and repolish every widget so metrics, palettes
 // and pixels all follow -- no app restart.
@@ -173,17 +245,21 @@ void XPlasmaStyle::reloadIfChanged()
 {
     if (QFileInfo::exists(m_configPath) && !m_watcher->files().contains(m_configPath))
         m_watcher->addPath(m_configPath);
-    const auto now = configuredTheme();
-    const bool crisp=QSettings(rcPath(), QSettings::IniFormat).value(QStringLiteral("Text/Crisp"),false).toBool();
-    if (now == m_loaded && crisp == m_crispEnabled)
+    const Rc rc = readRc(m_configPath);
+    const bool kerningChanged = rc.kerning != m_kerning;
+    m_kerning = rc.kerning;
+    if (rc.theme == m_loaded && rc.crisp == m_crispEnabled) {
+        if (kerningChanged && qApp)
+            unkern(qApp);
         return;
-    m_crispEnabled=crisp;
+    }
+    m_crispEnabled=rc.crisp;
     if(qApp)unkern(qApp);
-    m_loaded = now;
+    m_loaded = rc.theme;
     m_renderer.reset();
     m_scheme.reset();
-    loadTheme();
-    m_cache.clear();
+    loadTheme(rc.theme);
+    forgetTheme();
     if (!qApp)
         return;
     const QList<QWidget *> widgets = QApplication::allWidgets();
@@ -200,9 +276,20 @@ void XPlasmaStyle::reloadIfChanged()
     }
 }
 
-void XPlasmaStyle::loadTheme()
+// Everything worked out from the old theme.
+void XPlasmaStyle::forgetTheme()
 {
-    const auto [path, variant] = configuredTheme();
+    m_cache.clear();
+    m_large = QImage();
+    m_themeProperties.clear();
+    m_textHeights.clear();
+    m_scrollTone[0].reset();
+    m_scrollTone[1].reset();
+}
+
+void XPlasmaStyle::loadTheme(const std::pair<QString, QString> &theme)
+{
+    const auto &[path, variant] = theme;
     if (path.isEmpty())
         return;
     if (path.endsWith(QLatin1String(".theme"), Qt::CaseInsensitive)) {
@@ -287,28 +374,39 @@ const QImage *XPlasmaStyle::partImage(const PartRef &ref, QSize logical, qreal d
 {
     const QSize size = (QSizeF(logical) * dpr).toSize();
     const int dpi = qRound(96 * dpr);
-    const QString key = QStringLiteral("%1|%2|%3|%4|%5x%6@%7")
-                            .arg(inContext(ref).sub, ref.cls).arg(ref.part).arg(ref.state)
-                            .arg(size.width()).arg(size.height()).arg(dpi);
-    QImage *image = m_cache.object(key);
-    if (!image) {
-        // XP scrollbar geometry is expressed in logical 96-DPI pixels.
-        // Feeding a physical HiDPI rectangle to the theme triggers its
-        // TrueSizeScalingType=Size arrow enlargement while leaving the grip
-        // and nine-slice borders at their original physical pixel sizes.
-        // Render the complete part at its logical size, then scale all its
-        // details together, preserving the original bitmap pixel edges.
-        if (ref.cls == QLatin1String("scrollbar")) {
-            const QImage logicalImage = m_renderer->background(inContext(ref), logical, 96);
-            image = new QImage(logicalImage.scaled(size, Qt::IgnoreAspectRatio, Qt::FastTransformation));
-        } else {
-            image = new QImage(m_renderer->background(inContext(ref), size, dpi));
-        }
-        image->setDevicePixelRatio(dpr);
-        m_cache.insert(key, image, int(qMin<qint64>(image->sizeInBytes(), INT_MAX)));
-        image = m_cache.object(key);
+    const PartRef part = inContext(ref);
+    const bool scrollBar = ref.cls == QLatin1String("scrollbar");
+    const PartKey key{part.sub, ref.cls, ref.part, ref.state, size.width(), size.height(), dpi,
+                      scrollBar && m_liveEnabled && m_liveAccent.isValid() ? m_liveAccent.rgba() : 0};
+    if (QImage *image = m_cache.object(key))
+        return image;
+    if (!m_large.isNull() && key == m_largeKey)
+        return &m_large;
+    QImage image;
+    // XP scrollbar geometry is expressed in logical 96-DPI pixels.
+    // Feeding a physical HiDPI rectangle to the theme triggers its
+    // TrueSizeScalingType=Size arrow enlargement while leaving the grip
+    // and nine-slice borders at their original physical pixel sizes.
+    // Render the complete part at its logical size, then scale all its
+    // details together, preserving the original bitmap pixel edges.
+    if (scrollBar) {
+        image = m_renderer->background(part, logical, 96).scaled(size, Qt::IgnoreAspectRatio, Qt::FastTransformation);
+        tintScrollPart(image, ref);
+    } else {
+        image = m_renderer->background(part, size, dpi);
     }
-    return image;
+    image.setDevicePixelRatio(dpr);
+    // Small parts share the cache; a big one (a frame the size of a window,
+    // re-rendered at every size while it's resized) has a slot of its own.
+    const qint64 bytes = image.sizeInBytes();
+    if (bytes <= 1024 * 1024) {
+        QImage *cached = new QImage(std::move(image));
+        m_cache.insert(key, cached, int(bytes));
+        return cached;
+    }
+    m_largeKey = key;
+    m_large = std::move(image);
+    return &m_large;
 }
 
 QSize XPlasmaStyle::trueSize(const PartRef &ref) const
@@ -326,10 +424,15 @@ QColor XPlasmaStyle::themeColour(const PartRef &ref, QStringView property, const
 
 QColor XPlasmaStyle::sysColour(QStringView name, const QColor &fallback) const
 {
+    const QColor &accent=m_liveAccent;
+    if(m_liveEnabled && accent.isValid()){
+        if(name==u"highlight" || name==u"hilight" || name==u"hottracking")return accent;
+        if(name==u"highlighttext" || name==u"hilighttext")return .299*accent.redF()+.587*accent.greenF()+.114*accent.blueF()<.5?QColor(Qt::white):QColor(Qt::black);
+    }
     if (classic())
         return xpl::ClassicScheme::colourIndex(name) >= 0 ? m_scheme->colour(name) : fallback;
     QRgb rgb;
-    if (m_renderer && xpl::parseColour(m_renderer->theme().property(u"sysmetrics", u"", u"", name).value_or(QString()), &rgb))
+    if (m_renderer && xpl::parseColour(themeProperty(u"sysmetrics", name).value_or(QString()), &rgb))
         return QColor(rgb);
     return fallback;
 }
@@ -373,8 +476,20 @@ QFont XPlasmaStyle::sysFont(QStringView name, const QFont &fallback) const
     }
     QString spec;
     if (m_renderer)
-        spec = m_renderer->theme().property(u"sysmetrics", u"", u"", name).value_or(QString());
+        spec = themeProperty(u"sysmetrics", name).value_or(QString());
     return fontFromMetric(spec, fallback);
+}
+
+std::optional<QString> XPlasmaStyle::themeProperty(QStringView cls, QStringView property) const
+{
+    if (!m_renderer)
+        return std::nullopt;
+    const QString key = cls.toString() + QLatin1Char('|') + property.toString();
+    if (auto it = m_themeProperties.constFind(key); it != m_themeProperties.cend())
+        return it.value();
+    const auto value = m_renderer->theme().property(cls, u"", u"", property);
+    m_themeProperties.insert(key, value);
+    return value;
 }
 
 int XPlasmaStyle::sysMetric(QStringView name, int fallback) const
@@ -394,7 +509,7 @@ int XPlasmaStyle::sysMetric(QStringView name, int fallback) const
         return v > 0 ? v : fallback;
     }
     bool ok = false;
-    const int v = m_renderer ? m_renderer->theme().property(u"sysmetrics", u"", u"", name).value_or(QString()).toInt(&ok) : 0;
+    const int v = m_renderer ? themeProperty(u"sysmetrics", name).value_or(QString()).toInt(&ok) : 0;
     return ok && v > 0 ? v : fallback;
 }
 
@@ -509,7 +624,7 @@ void XPlasmaStyle::unkern(QApplication *app)
         font=app->property("_xplasmaSmoothUiFont").value<QFont>();
         app->setProperty("_xplasmaSmoothUiFont",QVariant());
     }
-    if(!QSettings(rcPath(),QSettings::IniFormat).value(QStringLiteral("Text/Kerning"),true).toBool())font.setKerning(false);
+    if(!m_kerning)font.setKerning(false);
     if(font!=app->font())app->setFont(font);
 }
 
@@ -523,18 +638,26 @@ void XPlasmaStyle::unpolish(QApplication *app)
     QProxyStyle::unpolish(app);
 }
 
+// Installed on the application: this sees every event of every object, so
+// each case is picked by the event's type before anything else is asked.
 bool XPlasmaStyle::eventFilter(QObject *watched, QEvent *event)
 {
-    if (event->type() == QEvent::ApplicationFontChange && watched == qApp)
-        QTimer::singleShot(0, this, [this] { unkern(qApp); });
-    if (event->type() == QEvent::DynamicPropertyChange && !m_anyContext
-        && static_cast<QDynamicPropertyChangeEvent *>(event)->propertyName() == "xplasma-class") {
-        m_anyContext = true;
-        if (auto *w = qobject_cast<QWidget *>(watched))
-            w->update();
-    }
-    if (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease
-        || event->type() == QEvent::ApplicationStateChange || event->type() == QEvent::WindowDeactivate) {
+    switch (event->type()) {
+    case QEvent::ApplicationFontChange:
+        if (watched == qApp)
+            QTimer::singleShot(0, this, [this] { unkern(qApp); });
+        break;
+    case QEvent::DynamicPropertyChange:
+        if (!m_anyContext && static_cast<QDynamicPropertyChangeEvent *>(event)->propertyName() == "xplasma-class") {
+            m_anyContext = true;
+            if (auto *w = qobject_cast<QWidget *>(watched))
+                w->update();
+        }
+        break;
+    case QEvent::KeyPress:
+    case QEvent::KeyRelease:
+    case QEvent::ApplicationStateChange:
+    case QEvent::WindowDeactivate: {
         bool cues = m_cues;
         if (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease) {
             const auto *key = static_cast<QKeyEvent *>(event);
@@ -545,57 +668,65 @@ bool XPlasmaStyle::eventFilter(QObject *watched, QEvent *event)
         }
         if (cues != m_cues) {
             m_cues = cues;
+            // The window repaints its children with it; only the windows it
+            // owns (its menus) and native children paint apart from it.
             if (QWidget *window = QApplication::activeWindow()) {
                 window->update();
                 for (QWidget *w : window->findChildren<QWidget *>())
-                    w->update();
+                    if ((w->isWindow() || w->internalWinId()) && w->isVisible())
+                        w->update();
             }
         }
+        break;
     }
-    // A disabled list view or tree view: the button face behind its items,
-    // as comctl32 fills them (a list box keeps the window colour).
-    if (event->type() == QEvent::Paint && (m_renderer || classic()) && watched->isWidgetType()) {
-        auto *viewport = static_cast<QWidget *>(watched);
-        if (auto *view = qobject_cast<QAbstractItemView *>(viewport->parentWidget());
-            view && view->viewport() == viewport && !view->isEnabled()) {
-            if (const int extra = itemRowExtra(view); extra == 1 || extra == 3) {
-                QPainter p(viewport);
-                p.fillRect(static_cast<QPaintEvent *>(event)->rect(), sysColour(u"btnface", view->palette().color(QPalette::Button)));
+    case QEvent::Paint: {
+        if (!(m_renderer || classic()) || !watched->isWidgetType())
+            break;
+        auto *widget = static_cast<QWidget *>(watched);
+        if (auto *view = qobject_cast<QAbstractItemView *>(widget->parentWidget()); view && view->viewport() == widget) {
+            // A disabled list view or tree view: the button face behind its
+            // items, as comctl32 fills them (a list box keeps the window colour).
+            if (!view->isEnabled()) {
+                if (const int extra = itemRowExtra(view); extra == 1 || extra == 3) {
+                    QPainter p(widget);
+                    p.fillRect(static_cast<QPaintEvent *>(event)->rect(), sysColour(u"btnface", view->palette().color(QPalette::Button)));
+                }
+            }
+            // The Places bar: its background across the whole panel (the
+            // viewport shows its share of it).
+            if (m_renderer && isPlacesBar(view)) {
+                QPainter p(widget);
+                p.setClipRegion(static_cast<QPaintEvent *>(event)->region());
+                p.translate(-widget->mapTo(view, QPoint(0, 0)));
+                drawPart(&p, {QStringLiteral("toolbar"), 0, 0, QStringLiteral("placesbar")}, view->rect());
             }
         }
-    }
-    // The Places bar: its background across the whole panel (the viewport
-    // shows its share of it).
-    if (event->type() == QEvent::Paint && m_renderer && watched->isWidgetType()) {
-        auto *viewport = static_cast<QWidget *>(watched);
-        if (auto *view = qobject_cast<QAbstractItemView *>(viewport->parentWidget());
-            view && view->viewport() == viewport && isPlacesBar(view)) {
-            QPainter p(viewport);
-            p.setClipRegion(static_cast<QPaintEvent *>(event)->region());
-            p.translate(-viewport->mapTo(view, QPoint(0, 0)));
-            drawPart(&p, {QStringLiteral("toolbar"), 0, 0, QStringLiteral("placesbar")}, view->rect());
-        }
-    }
-    // A property sheet's page: a tab widget's page in a dialog is painted
-    // with the tab body (TABP_BODY), as EnableThemeDialogTexture has it.
-    if (event->type() == QEvent::Paint && m_renderer && watched->isWidgetType()) {
-        auto *page = static_cast<QWidget *>(watched);
+        // A property sheet's page: a tab widget's page in a dialog is painted
+        // with the tab body (TABP_BODY), as EnableThemeDialogTexture has it.
         // (A pattern brush of the body at its true size, from the page's
         // corner: Luna's 600px gradient shows only its top on most pages.)
-        const PartRef body{QStringLiteral("tab"), 10, 0, {}};
-        if (const QSize tile = trueSize(body); tile.isValid() && !tile.isEmpty() && isTabBody(page)) {
-            if (const QImage *image = partImage(body, tile, page->devicePixelRatioF())) {
-                QPainter p(page);
-                p.setClipRegion(static_cast<QPaintEvent *>(event)->region());
-                p.fillRect(page->rect(), QBrush(*image));
+        if (m_renderer && isTabBody(widget)) {
+            const PartRef body{QStringLiteral("tab"), 10, 0, {}};
+            if (const QSize tile = trueSize(body); tile.isValid() && !tile.isEmpty()) {
+                if (const QImage *image = partImage(body, tile, widget->devicePixelRatioF())) {
+                    QPainter p(widget);
+                    p.setClipRegion(static_cast<QPaintEvent *>(event)->region());
+                    p.fillRect(widget->rect(), QBrush(*image));
+                }
             }
         }
+        break;
     }
-    if (auto *bar = qobject_cast<QStatusBar *>(watched);
-        bar && m_renderer && (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Show)) {
-        const int want = xpTextHeight(bar->font()) + 10;
-        if (bar->minimumHeight() != want)
-            bar->setMinimumHeight(want);
+    case QEvent::LayoutRequest:
+    case QEvent::Show:
+        if (auto *bar = qobject_cast<QStatusBar *>(watched); bar && m_renderer) {
+            const int want = xpTextHeight(bar->font()) + 10;
+            if (bar->minimumHeight() != want)
+                bar->setMinimumHeight(want);
+        }
+        break;
+    default:
+        break;
     }
     return QProxyStyle::eventFilter(watched, event);
 }
@@ -701,12 +832,15 @@ void XPlasmaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *o
                 // a checkerboard (1px wider and taller than Qt's focus rect).
                 const QRect r = option->rect.adjusted(0, 0, 1, 1);
                 const QPoint origin = painter->deviceTransform().map(QPoint(0, 0));
+                QVarLengthArray<QRect, 1024> dots;
+                for (int y = r.top(); y <= r.bottom(); ++y)
+                    for (int x = r.left() + ((r.left() + y + origin.x() + origin.y() + 1) & 1); x <= r.right(); x += 2)
+                        dots.append(QRect(x, y, 1, 1));
                 painter->save();
                 painter->setCompositionMode(QPainter::RasterOp_SourceXorDestination);
-                for (int y = r.top(); y <= r.bottom(); ++y)
-                    for (int x = r.left(); x <= r.right(); ++x)
-                        if ((x + y + origin.x() + origin.y()) & 1)
-                            painter->fillRect(x, y, 1, 1, Qt::white);
+                painter->setPen(Qt::NoPen);
+                painter->setBrush(Qt::white);
+                painter->drawRects(dots.constData(), int(dots.size()));
                 painter->restore();
                 return;
             }
@@ -1510,9 +1644,9 @@ void XPlasmaStyle::drawProgressChunks(const QStyleOptionProgressBar *bar, QPaint
     const qint64 range = qint64(bar->maximum) - bar->minimum;
     if (range <= 0 || content.isEmpty())
         return;   // busy indicator: the classic base draws it for now
-    const int size = qMax(1, m_renderer->theme().property(u"progress", u"", u"", u"progresschunksize")
+    const int size = qMax(1, themeProperty(u"progress", u"progresschunksize")
                                  .value_or(QStringLiteral("8")).toInt());
-    const int space = qMax(0, m_renderer->theme().property(u"progress", u"", u"", u"progressspacesize")
+    const int space = qMax(0, themeProperty(u"progress", u"progressspacesize")
                                   .value_or(QStringLiteral("2")).toInt());
     const int length = horizontal ? bar->rect.width() : bar->rect.height();
     const qint64 value = qBound<qint64>(0, qint64(bar->progress) - bar->minimum, range);
@@ -1535,6 +1669,18 @@ void XPlasmaStyle::drawProgressChunks(const QStyleOptionProgressBar *bar, QPaint
 void XPlasmaStyle::drawComplexControl(ComplexControl control, const QStyleOptionComplex *option, QPainter *painter,
                                       const QWidget *widget) const
 {
+    if(control==CC_ScrollBar && !m_renderer && !m_safe && (m_liveEnabled || (classic() && m_scheme->shellColors))){
+        if(const auto *bar=qstyleoption_cast<const QStyleOptionSlider*>(option)){
+            const QColor accent=m_liveEnabled?m_liveAccent:(*m_scheme->shellColors)[1];
+            if(accent.isValid()){
+                QStyleOptionSlider copy=*bar;
+                copy.palette.setColor(QPalette::Button,accent);copy.palette.setColor(QPalette::Light,accent.lighter(160));
+                copy.palette.setColor(QPalette::Midlight,accent.lighter(125));copy.palette.setColor(QPalette::Dark,accent.darker(160));
+                copy.palette.setColor(QPalette::ButtonText,accent.lightnessF()<.5?Qt::white:Qt::black);
+                QProxyStyle::drawComplexControl(control,&copy,painter,widget);return;
+            }
+        }
+    }
     const ContextScope context(this, widget, option);
     if (classic() && drawClassicComplex(control, option, painter, widget))
         return;
@@ -2084,7 +2230,7 @@ int XPlasmaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, co
             // the classic 2px sunken edge.
             if (const QString cls = frameClass(widget); !cls.isEmpty()) {
                 bool ok = false;
-                const int border = m_renderer->theme().property(cls, u"", u"", u"bordersize").value_or(QString()).toInt(&ok);
+                const int border = themeProperty(cls, u"bordersize").value_or(QString()).toInt(&ok);
                 // A list view's, tree view's or list box's client edge keeps
                 // a 1px ring of its fill inside the border: the client starts
                 // at 2,2 (invisible until a selection shows where rows start).
@@ -2562,6 +2708,11 @@ void XPlasmaStyle::drawTreeBranch(const QStyleOption *option, QPainter *painter,
 // happens to agree (13).
 int XPlasmaStyle::xpTextHeight(const QFont &font) const
 {
+    // (Asked at every layout of a status bar or tab bar; the font's tables
+    // are copied out to answer it.)
+    if (auto it = m_textHeights.constFind(font); it != m_textHeights.cend())
+        return it.value();
+    int height;
     const QRawFont raw = QRawFont::fromFont(font);
     const QByteArray os2 = raw.isValid() ? raw.fontTable("OS/2") : QByteArray();
     if (os2.size() >= 78 && raw.unitsPerEm() > 0) {
@@ -2569,10 +2720,13 @@ int XPlasmaStyle::xpTextHeight(const QFont &font) const
         const int winAscent = p[74] << 8 | p[75];
         const int winDescent = p[76] << 8 | p[77];
         const qreal scale = raw.pixelSize() / raw.unitsPerEm();
-        return qRound(winAscent * scale) + qRound(winDescent * scale);
+        height = qRound(winAscent * scale) + qRound(winDescent * scale);
+    } else {
+        const QFontMetrics fm(font);
+        height = fm.ascent() + fm.descent();
     }
-    const QFontMetrics fm(font);
-    return fm.ascent() + fm.descent();
+    m_textHeights.insert(font, height);
+    return height;
 }
 
 // Label + 12 wide (TCM_GETITEMRECT: 49/70/60 for General/Appearance/
@@ -2871,7 +3025,7 @@ QRect XPlasmaStyle::xpTabRect(const QStyleOptionTab *tab) const
 
 bool XPlasmaStyle::flatMenus() const
 {
-    return m_renderer && xpl::parseBool(m_renderer->theme().property(u"sysmetrics", u"", u"", u"flatmenus").value_or(QString()));
+    return m_renderer && xpl::parseBool(themeProperty(u"sysmetrics", u"flatmenus").value_or(QString()));
 }
 
 
@@ -3627,14 +3781,15 @@ void XPlasmaStyle::drawFocusDots(QPainter *painter, const QRect &r, const QColor
     if (r.width() < 1 || r.height() < 1)
         return;
     const QPoint origin = painter->deviceTransform().map(QPoint(0, 0));
-    painter->save();
-    painter->setCompositionMode(QPainter::RasterOp_SourceXorDestination);
     const bool evenToo = even.rgb() != QColor(Qt::black).rgb();
+    // Each dot a 1x1 rect, as before, but one drawRects() per colour rather
+    // than a fillRect() per pixel.
+    QVarLengthArray<QRect, 512> dots[2];
     auto dot = [&](int x, int y) {
         if ((x + y + origin.x() + origin.y()) & 1)
-            painter->fillRect(x, y, 1, 1, odd);
+            dots[0].append(QRect(x, y, 1, 1));
         else if (evenToo)
-            painter->fillRect(x, y, 1, 1, even);
+            dots[1].append(QRect(x, y, 1, 1));
     };
     for (int x = r.left(); x <= r.right(); ++x) {
         dot(x, r.top());
@@ -3645,6 +3800,15 @@ void XPlasmaStyle::drawFocusDots(QPainter *painter, const QRect &r, const QColor
         dot(r.left(), y);
         if (r.right() != r.left())
             dot(r.right(), y);
+    }
+    painter->save();
+    painter->setCompositionMode(QPainter::RasterOp_SourceXorDestination);
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(odd);
+    painter->drawRects(dots[0].constData(), int(dots[0].size()));
+    if (!dots[1].isEmpty()) {
+        painter->setBrush(even);
+        painter->drawRects(dots[1].constData(), int(dots[1].size()));
     }
     painter->restore();
 }

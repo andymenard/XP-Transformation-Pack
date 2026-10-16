@@ -1,0 +1,11 @@
+{
+    "KPlugin": {
+        "Description": "Windows XP window borders, drawn natively from the look XPlasma has applied",
+        "EnabledByDefault": true,
+        "Name": "XPlasma"
+    },
+    "org.kde.kdecoration3": {
+        "blur": false,
+        "recommendedBorderSize": "None"
+    }
+}

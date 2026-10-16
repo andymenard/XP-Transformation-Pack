@@ -82,6 +82,18 @@ Item {
             }
         }
         function onDataChanged(topLeft, bottomRight, roles) {
+            // Titles, icons and progress change all the time; only these
+            // roles can change what a window is or which sound it plays.
+            if (roles && roles.length > 0) {
+                const watched = [TaskManager.AbstractTasksModel.IsMinimized, TaskManager.AbstractTasksModel.IsMaximized,
+                                 TaskManager.AbstractTasksModel.IsWindow, TaskManager.AbstractTasksModel.IsStartup,
+                                 TaskManager.AbstractTasksModel.WinIdList];
+                let relevant = false;
+                for (let i = 0; i < roles.length && !relevant; ++i)
+                    relevant = watched.indexOf(roles[i]) >= 0;
+                if (!relevant)
+                    return;
+            }
             for (let row = topLeft.row; row <= bottomRight.row; ++row) {
                 const k = sounds.key(row);
                 if (!k || !sounds.isWindow(row))
