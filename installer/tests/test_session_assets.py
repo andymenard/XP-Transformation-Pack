@@ -26,6 +26,17 @@ class SessionArtworkTests(unittest.TestCase):
         hot = [image.getpixel((x, 5 * 32 + 31))[3] for x in range(32)]
         self.assertEqual(hot, normal, 'Log Off hover frame is misaligned')
 
+    @unittest.skipUnless((ROOT / 'payload/templates/sddm').exists(), 'Requires complete private installer payload')
+    def test_bitmaps_have_no_opaque_color_key(self):
+        from PIL import Image
+        folders = [ROOT / 'payload/templates/sddm/assets',
+                   ROOT / 'payload/templates/session/contents/logout/assets']
+        for path in sorted(p for folder in folders for p in folder.glob('*.png')):
+            image = Image.open(path).convert('RGBA')
+            keyed = image.getcolors(image.width * image.height) or []
+            self.assertFalse([c for c in keyed if c[1] == (255, 0, 255, 255)],
+                             'Opaque magenta color key in ' + path.name)
+
 
 if __name__ == '__main__':
     unittest.main()

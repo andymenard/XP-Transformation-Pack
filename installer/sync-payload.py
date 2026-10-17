@@ -38,11 +38,11 @@ def collect_wallpapers(source, saved_wallpapers):
     (saved_wallpapers/'WALLPAPERS.json').write_text(json.dumps(photos,indent=2)+'\n')
 
 
-def normalize_session_sprites(folder):
+def normalize_session_sprites(folder, names=('20150.png', '14356.png')):
     # XP draws these bitmaps with TransparentBlt's exact RGB(255,0,255) key.
     # PNG/QML needs an alpha channel instead; preserve all other pixels.
     from PIL import Image
-    for name in ['20150.png', '14356.png']:
+    for name in names:
         path=Path(folder)/name
         if not path.is_file():continue
         image=Image.open(path).convert('RGBA')
@@ -173,6 +173,9 @@ def sync(suite, icons=None, wallpapers=None):
     if session_assets.is_dir():
         shutil.copytree(session_assets, session / 'assets', dirs_exist_ok=True)
     normalize_session_sprites(session/'assets')
+    # Logon/lock screen bitmaps (password box, scroll arrows) share that key.
+    sddm=suite/'payload/templates/sddm/assets'
+    normalize_session_sprites(sddm,sorted(p.name for p in sddm.glob('*.png')))
     for qml in session.glob('*.qml'):
         for asset in re.findall(r'"(assets/[^"\n]+)"', qml.read_text()):
             if not (session / asset).is_file():
