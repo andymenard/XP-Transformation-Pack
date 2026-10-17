@@ -12,7 +12,15 @@ bool apply(Session &session,bool enabled,QString *error) {
  const QString file=paths::config()+QStringLiteral("/fontconfig/xplasma-crisp-text.conf");
  if(enabled) {
   QDir().mkpath(QFileInfo(file).absolutePath());QSaveFile target(file);
-  const QByteArray xml=R"(<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd"><fontconfig><match target="font"><test name="family" compare="eq"><string>MS Sans Serif</string></test><edit name="antialias" mode="assign"><bool>false</bool></edit><edit name="hinting" mode="assign"><bool>true</bool></edit><edit name="hintstyle" mode="assign"><const>hintfull</const></edit><edit name="rgba" mode="assign"><const>none</const></edit></match><match target="font"><test name="family" compare="eq"><string>MS Sans Serif Bold</string></test><edit name="antialias" mode="assign"><bool>false</bool></edit><edit name="hinting" mode="assign"><bool>true</bool></edit><edit name="hintstyle" mode="assign"><const>hintfull</const></edit><edit name="rgba" mode="assign"><const>none</const></edit></match></fontconfig>)";
+  QByteArray xml=R"(<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd"><fontconfig><match target="font"><test name="family" compare="eq"><string>MS Sans Serif</string></test><edit name="antialias" mode="assign"><bool>false</bool></edit><edit name="hinting" mode="assign"><bool>true</bool></edit><edit name="hintstyle" mode="assign"><const>hintfull</const></edit><edit name="rgba" mode="assign"><const>none</const></edit></match><match target="font"><test name="family" compare="eq"><string>MS Sans Serif Bold</string></test><edit name="antialias" mode="assign"><bool>false</bool></edit><edit name="hinting" mode="assign"><bool>true</bool></edit><edit name="hintstyle" mode="assign"><const>hintfull</const></edit><edit name="rgba" mode="assign"><const>none</const></edit></match><match target="font"><test name="family" compare="eq"><string>XPlasma Tahoma Pixel</string></test><edit name="antialias" mode="assign"><bool>false</bool></edit><edit name="hinting" mode="assign"><bool>true</bool></edit><edit name="autohint" mode="assign"><bool>false</bool></edit><edit name="hintstyle" mode="assign"><const>hintfull</const></edit><edit name="rgba" mode="assign"><const>none</const></edit></match></fontconfig>)";
+  // Optical pixel faces need the same hard-edge rules in GTK and Firefox.
+  const QByteArray rule=xml.mid(xml.indexOf("<match target=\"font\"><test name=\"family\" compare=\"eq\"><string>XPlasma Tahoma Pixel"));
+  const QByteArray optical=rule.left(rule.indexOf("</match>")+8);
+  for(int size : {14,17,19,25,28}) {
+   QByteArray match=optical;QByteArray family("XPlasma Tahoma Pixel ");family+=QByteArray::number(size);family+="</string>";
+   match.replace("XPlasma Tahoma Pixel</string>",family);match+="</fontconfig>";
+   xml.replace("</fontconfig>",match);
+  }
   if(!target.open(QIODevice::WriteOnly)||target.write(xml)!=xml.size()||!target.commit()){if(error)*error=target.errorString();return false;}
  } else if(QFile::exists(file)&&!QFile::remove(file)){if(error)*error=QStringLiteral("Could not remove the crisp-font rule");return false;}
  // Load after KDE's general font settings, which otherwise override smoothing.

@@ -4,6 +4,8 @@ import QtQuick
 // Pure presentation shared by the Plasma launcher and the isolated preview.
 FocusScope {
     id: menu
+    XpTextStyle { id: pixelTextStyle }
+    readonly property var xpTextStyle: pixelTextStyle
     required property var themeData
     property string userName: "User"
     property url userPicture
@@ -116,9 +118,9 @@ FocusScope {
         }
     }
 
-    component Label: Text {
-        font.family: menu.themeData.font.family
-        font.pixelSize: menu.themeData.font.pixels
+    component Label: XpText {
+        xpFamily: menu.themeData.font.family
+        xpPixels: menu.themeData.font.pixels
         renderType: Text.NativeRendering
         elide: Text.ElideRight
     }
@@ -181,7 +183,7 @@ FocusScope {
             Label {
                 width: parent.width
                 text: entry.entryData.label
-                font.bold: entry.bold
+                xpBold: entry.bold
                 color: entry.highlighted ? menu.xpColors.highlightText : entry.textColor
             }
             Label {
@@ -289,10 +291,10 @@ FocusScope {
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width - x - 10
             text: menu.userName
-            font.family: menu.themeData.userFont.family
-            font.pixelSize: menu.themeData.userFont.pixels
-            font.bold: menu.themeData.userFont.bold
-            font.italic: menu.themeData.userFont.italic
+            xpFamily: menu.themeData.userFont.family
+            xpPixels: menu.themeData.userFont.pixels
+            xpBold: menu.themeData.userFont.bold
+            xpItalic: menu.themeData.userFont.italic
             color: menu.xpColors.userText
         }
     }
@@ -456,9 +458,9 @@ FocusScope {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "All Programs"
                 color: more.highlighted ? menu.xpColors.highlightText : menu.xpColors.programText
-                font.family: menu.themeData.moreFont.family
-                font.pixelSize: menu.themeData.moreFont.pixels
-                font.bold: menu.themeData.moreFont.bold
+                xpFamily: menu.themeData.moreFont.family
+                xpPixels: menu.themeData.moreFont.pixels
+                xpBold: menu.themeData.moreFont.bold
             }
             Image {
                 source: (more.highlighted && menu.parts["moreprogramsarrow-hot"]

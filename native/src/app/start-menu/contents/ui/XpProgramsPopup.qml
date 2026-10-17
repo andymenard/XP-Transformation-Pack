@@ -9,6 +9,7 @@ import org.kde.kitemmodels as KItemModels
 // category model. Leaf actions retain the original model and stable identity.
 Kicker.SubMenu {
     id: popup
+    property var xpTextStyle: null
     required property var themeData
     property var sourceModel: null
     property string title: "All Programs"
@@ -100,7 +101,7 @@ Kicker.SubMenu {
         const component = Qt.createComponent(Qt.resolvedUrl("XpProgramsPopup.qml"));
         if (component.status !== Component.Ready) { console.warn(component.errorString()); return; }
         childPopup = component.createObject(popup, {
-            themeData: themeData, sourceModel: item.childModel, title: item.label,
+            themeData: themeData, xpTextStyle: popup.xpTextStyle, sourceModel: item.childModel, title: item.label,
             ownerPopup: popup, visualParent: anchor, menuOpenDelay: menuOpenDelay, contextMenu: contextMenu
         });
         if (!childPopup) return;
@@ -202,12 +203,13 @@ Kicker.SubMenu {
             }
             Rectangle { anchors.fill: parent; z: -1; color: "white"; border.color: "#1665cb" }
         }
-        Text {
+        XpText {
+            xpStyle: popup.xpTextStyle
             x: 10; y: 6; width: parent.width - 20
             text: popup.title
-            font.family: popup.themeData.font.family
-            font.pixelSize: popup.themeData.font.pixels
-            font.bold: true
+            xpFamily: popup.themeData.font.family
+            xpPixels: popup.themeData.font.pixels
+            xpBold: true
             color: popup.themeData.palette.submenuText
             elide: Text.ElideRight
         }
@@ -239,14 +241,15 @@ Kicker.SubMenu {
                     source: row.modelData.childModel ? "folder-programs" : row.modelData.icon
                     smooth: false
                 }
-                Text {
+                XpText {
+                    xpStyle: popup.xpTextStyle
                     objectName: "programLabel"
                     x: 25; width: parent.width - x - 18
                     anchors.verticalCenter: parent.verticalCenter
                     text: row.modelData.label
                     color: row.selected ? popup.themeData.palette.submenuHighlightText : popup.themeData.palette.submenuText
-                    font.family: popup.themeData.font.family
-                    font.pixelSize: popup.themeData.font.pixels
+                    xpFamily: popup.themeData.font.family
+                    xpPixels: popup.themeData.font.pixels
                     renderType: Text.NativeRendering
                     elide: Text.ElideRight
                 }
@@ -297,13 +300,14 @@ Kicker.SubMenu {
                 }
             }
         }
-        Text {
+        XpText {
+            xpStyle: popup.xpTextStyle
             anchors.centerIn: parent
             visible: entries.count === 0
             text: "No items yet"
             color: popup.themeData.palette.submenuText
-            font.family: popup.themeData.font.family
-            font.pixelSize: popup.themeData.font.pixels
+            xpFamily: popup.themeData.font.family
+            xpPixels: popup.themeData.font.pixels
         }
         Keys.onEscapePressed: popup.back()
         Keys.onLeftPressed: popup.back()

@@ -176,6 +176,7 @@ Item {
     }
     XpProgramsPopup {
         id: submenu
+        xpTextStyle: menu.xpTextStyle
         themeData: root.launcher.themeData
         visualParent: categoriesOnly ? menu.allProgramsItem : menu.recentFilesItem
         anchorHovered: categoriesOnly ? menu.allProgramsHovered : menu.recentFilesHovered

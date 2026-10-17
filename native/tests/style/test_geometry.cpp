@@ -27,6 +27,18 @@ class GeometryTest : public QObject {
     QString classicFile;
 private Q_SLOTS:
     void initTestCase() {
+        const QString pixels=qEnvironmentVariable("XPLASMA_TAHOMA_PIXELS");
+        if(!pixels.isEmpty()) {
+            QVERIFY(QFontDatabase::addApplicationFont(pixels+"/xplasma-tahoma-pixel.ttf")>=0);
+            QVERIFY(QFontDatabase::addApplicationFont(pixels+"/xplasma-tahoma-pixel-bold.ttf")>=0);
+            for(int size : {14,17,19,25,28}) {
+                const QString prefix=pixels+QStringLiteral("/xplasma-tahoma-pixel-%1").arg(size);
+                if(QFile::exists(prefix+".ttf")) {
+                    QVERIFY(QFontDatabase::addApplicationFont(prefix+".ttf")>=0);
+                    QVERIFY(QFontDatabase::addApplicationFont(prefix+"-bold.ttf")>=0);
+                }
+            }
+        }
         classicFile = directory.filePath(QStringLiteral("Classic.theme"));
         QFile file(classicFile);
         QVERIFY(file.open(QIODevice::WriteOnly));
@@ -151,6 +163,20 @@ private Q_SLOTS:
             const QImage fractional = render(1.5);
             QVERIFY(!fractional.isNull());
             QCOMPARE(fractional.size(), (QSizeF(size)*1.5).toSize());
+        }
+    }
+    void xpPixelTahomaKeepsWeightAndFractionalPixelSizes() {
+        if(qEnvironmentVariable("XPLASMA_TAHOMA_PIXELS").isEmpty())QSKIP("Set XPLASMA_TAHOMA_PIXELS to XP-captured generated fonts");
+        for(qreal dpr : {1.0,1.25,1.5,1.75,2.0,2.25,2.5,3.0}) {
+            for(auto weight : {QFont::Normal,QFont::Bold}) {
+                const auto font=xpl::crispUiFont(QFont("Tahoma",8,weight),dpr);
+                const QString optical=QStringLiteral("XPlasma Tahoma Pixel %1").arg(qRound(11*dpr));
+                const QString expected=QFontDatabase::families().contains(optical)?optical:QStringLiteral("XPlasma Tahoma Pixel");
+                QCOMPARE(font.family(),expected);
+                QCOMPARE(font.weight(),weight);
+                const qreal physical=font.pointSizeF()*96.0/72.0*dpr;
+                QVERIFY(qAbs(physical-qRound(11*dpr))<.001);
+            }
         }
     }
     void crispTextHasNoGreyEdgesAtFractionalScales() {

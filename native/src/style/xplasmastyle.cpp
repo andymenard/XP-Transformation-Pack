@@ -614,7 +614,7 @@ void XPlasmaStyle::polish(QApplication *app)
 void XPlasmaStyle::unkern(QApplication *app)
 {
     QFont font=app->font();
-    const bool pixel=font.family()==QStringLiteral("MS Sans Serif") || font.family()==QStringLiteral("MS Sans Serif Bold");
+    const bool pixel=font.family()==QStringLiteral("MS Sans Serif") || font.family()==QStringLiteral("MS Sans Serif Bold") || font.family().startsWith(QStringLiteral("XPlasma Tahoma Pixel"));
     if(m_crispEnabled) {
         if(!pixel)app->setProperty("_xplasmaSmoothUiFont",font);
         const QFont original=app->property("_xplasmaSmoothUiFont").value<QFont>();
