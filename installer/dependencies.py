@@ -15,7 +15,7 @@ def packages(family,features,bootstrap=False,native_ready=False,caption_ready=Fa
   if set(features)&NATIVE and not native_ready:groups+=['native']
   if set(features)&({'explorer','control_panel','updates'}|APPS):groups+=['gui']
   groups += [x for x in ['firefox','login','boot','apps'] if x in features]
-  if set(features)&{'lock','session'}:groups+=['qml']
+  if set(features)&{'lock','session','taskbar'}:groups+=['qml']
  result=set(' '.join(r[g] for g in groups).split())
  extras={
  'apt':{'updates':'openssl','paint':'python3-pyqt6.qtwebengine','media_player':'vlc vlc-plugin-skins2','sound_recorder':'python3-pyqt6.qtmultimedia libqt6multimedia6','volume_control':'pulseaudio-utils python3-pyqt6.qtmultimedia','command_prompt':'konsole','task_manager':'python3-psutil','games':'build-essential cmake ninja-build libsdl2-dev','pinball':'libsdl2-mixer-dev','solitaire':'qt6-base-dev qt6-multimedia-dev'},
