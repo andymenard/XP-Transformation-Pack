@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Prepare the bounded, feature-gated Alpha 2 OTA and native setup inventory."""
+"""Prepare the bounded, feature-gated Alpha OTA and native setup inventory."""
 import argparse,hashlib,json,shutil
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 PREFIX='.local/share/xp-accessories/alpha-update/'
+VERSION='1.0.0-alpha.4'
+NOTES='public-alpha/ALPHA-4.md'
 
 def prepare(bundle,previous,out):
  bundle,previous,out=map(lambda p:Path(p).resolve(),(bundle,previous,out));out.mkdir(parents=True,exist_ok=True)
@@ -14,14 +16,21 @@ def prepare(bundle,previous,out):
   shutil.copy2(bundle/name,helpers/name)
  (helpers/'source').mkdir(exist_ok=True);shutil.copy2(bundle/'source/xplasma-source.tar.gz',helpers/'source/xplasma-source.tar.gz')
  for archive in (bundle/'source').glob('plasma-*.tar.xz'):shutil.copy2(archive,helpers/'source'/archive.name)
+ # backend.py imports its bundled tomlkit; Kubuntu does not ship it by default.
+ shutil.copytree(bundle/'lib',helpers/'lib',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
+ # Verified CI binaries let matching systems skip compilers and development packages.
+ if (bundle/'prebuilt').is_dir():shutil.copytree(bundle/'prebuilt',helpers/'prebuilt',dirs_exist_ok=True)
+ shutil.copytree(bundle/'payload/caption-animation',helpers/'payload/caption-animation',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
+ shutil.copytree(bundle/'payload/templates/session',stage/'session',dirs_exist_ok=True)
  (stage/'fonts').mkdir(exist_ok=True)
- for name in ['ms_sans_serif.woff','ms_sans_serif_bold.woff','CRISP-FONT-CREDITS.md']:
-  shutil.copy2(bundle/'payload/assets/fonts'/name,stage/'fonts'/name)
+ fonts=bundle/'payload/assets/fonts'
+ for name in ['ms_sans_serif.woff','ms_sans_serif_bold.woff','CRISP-FONT-CREDITS.md',*sorted(p.name for p in fonts.glob('xplasma-tahoma-pixel*'))]:
+  shutil.copy2(fonts/name,stage/'fonts'/name)
  shutil.copy2(ROOT/'public-alpha/update-setup.py',stage/'setup.py')
  inventory={str(p.relative_to(stage)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(stage.rglob('*')) if p.is_file() and p.name!='files.json' and '__pycache__' not in p.parts}
  (stage/'files.json').write_text(json.dumps(inventory,indent=2)+'\n')
  desktop=out/'update-setup.desktop'
- desktop.write_text('[Desktop Entry]\nType=Application\nName=XP Alpha Update Setup\nComment=Build the signed Alpha 2 fixes for this computer\nExec=sh -c "cd && exec python3 .local/share/xp-accessories/alpha-update/setup.py --interactive"\nIcon=preferences-desktop-theme\nTerminal=true\nCategories=Settings;\n')
+ desktop.write_text('[Desktop Entry]\nType=Application\nName=XP Alpha Update Setup\nComment=Install the signed Alpha native updates for this computer\nExec=sh -c "cd && exec python3 .local/share/xp-accessories/alpha-update/setup.py --interactive"\nIcon=preferences-desktop-theme\nTerminal=true\nCategories=Settings;\n')
  files=[]
  def add(source,target,feature,old=None,mode=0o644,features_any=None):
   item={'source':str(source),'target':target,'feature':feature,'mode':mode}
@@ -43,9 +52,9 @@ def prepare(bundle,previous,out):
   if p.is_file():add(p,'.local/share/xplasma-updater/app/'+name,'updates',previous/'payload/updater'/name)
  total=sum(Path(f['source']).stat().st_size for f in files)
  if total>512*1024*1024:raise RuntimeError('OTA exceeds client limit')
- notes=(ROOT/'public-alpha/ALPHA-2.md').read_text()
+ notes=(ROOT/NOTES).read_text()
  notes='\n'.join('**Existing installation:** close XPlasma Properties, then install through the current XPlasma Update client. Native setup runs in the same window with live output and a coordinated rollback backup. Use Finish pending native setup for an older applied update. If the updater updates itself, reopen it once to load the new client. Log out/in after native changes.' if line.startswith('**Existing Alpha 1.0 installation:**') else line for line in notes.splitlines())+'\n'
- spec={'version':'1.0.0-alpha.2','notes':notes,'files':files,'native_setup':{'script':PREFIX+'setup.py','backup':'.local/share/xplasma/maintenance/alpha-1.0.0-alpha.2'}}
+ spec={'version':VERSION,'notes':notes,'files':files,'native_setup':{'script':PREFIX+'setup.py','backup':'.local/share/xplasma/maintenance/alpha-'+VERSION}}
  (out/'spec.json').write_text(json.dumps(spec,indent=2)+'\n')
  print('Prepared',len(files),'OTA resources;',total,'uncompressed bytes')
 

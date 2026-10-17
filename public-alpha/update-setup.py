@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Build signed Alpha 2 native updates against the receiver's Qt installation."""
+"""Install signed Alpha native updates, reusing matching prebuilt binaries or building against the receiver's Qt."""
 import argparse,hashlib,json,os,shutil,subprocess,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent
-VERSION='1.0.0-alpha.2'
+VERSION='1.0.0-alpha.4'
 
 def verify():
  for name,sha in json.loads((ROOT/'files.json').read_text()).items():
@@ -37,11 +37,17 @@ def main():
  import build_cache
  kind='taskbar' if 'taskbar' in features else 'core'
  cached=build_cache.find(ROOT/'installer',kind);ready=bool(cached and build_cache.usable(cached))
- b.root('dependencies',{'apps'}|({'taskbar'} if kind=='taskbar' else set()),native_ready=ready)
- build=home/'.cache/xplasma-alpha-2'
+ caption='caption_animation' in features
+ caption_binary=build_cache.find_caption(ROOT/'installer') if caption else None
+ b.root('dependencies',{'apps'}|({'taskbar'} if kind=='taskbar' else set())|({'caption_animation'} if caption else set()),native_ready=ready,caption_ready=bool(caption_binary))
+ # A shared build directory keeps later alpha updates incremental.
+ build=home/'.cache/xplasma-alpha-update'
  b.run([ROOT/'installer/build-native.sh',build,kind])
  runtime=str(state.relative_to(home))+'/runtime'
  paths=[runtime,'.local/lib/qt6/plugins/plasma/applets','.local/lib/qt6/plugins/styles','.local/share/fonts/xp','.local/share/plasma/plasmoids/fyi.hotsocket.xplasma.start','.config/kwinrc',str(state.relative_to(home))+'/after.json']
+ session='session' in features and (state/'templates/session').is_dir()
+ if session:paths+=[str(state.relative_to(home))+'/templates/session','.local/share/plasma/look-and-feel/local.xp.session.desktop']
+ if caption:paths+=['.local/share/kwin/xplasma/caption-source','.local/lib/qt6/plugins/kwin/effects/plugins/xp-caption-animation.so']
  flatpak=home/'.local/share/flatpak/extension/org.kde.KStyle.XPlasma'
  if flatpak.exists():paths.append(str(flatpak.relative_to(home)))
  for name in paths:
@@ -70,6 +76,17 @@ def main():
    b.copy(build/'runtime/lib/xplasma/start-menu/libxpmenuguard.so',target/'libxpmenuguard.so')
   if features&{'fonts','apps','theme_manager'}:
    b.copy(ROOT/'fonts',home/'.local/share/fonts/xp');b.run(['fc-cache','-f'])
+  if session:
+   # The session-theme watcher restores from the state copy after theme changes.
+   b.copy(ROOT/'session',state/'templates/session')
+   b.copy(ROOT/'session',home/'.local/share/plasma/look-and-feel/local.xp.session.desktop')
+  if caption:
+   b.copy(ROOT/'installer/payload/caption-animation',home/'.local/share/kwin/xplasma/caption-source')
+   effect=home/'.local/lib/qt6/plugins/kwin/effects/plugins/xp-caption-animation.so'
+   if caption_binary:b.copy(caption_binary,effect)
+   else:
+    b.run([sys.executable,home/'.local/share/kwin/xplasma/caption-source/build-local.py'])
+    build_cache.store_component(effect,'lib/xplasma/caption/xp-caption-animation.so',build_cache.caption_component_identity(ROOT/'installer'))
   if 'behavior' in features:
    for effect in ['overview','windowview','slide','windowaperture']:
     b.config('kwinrc','Plugins',effect+'Enabled','true')
@@ -87,7 +104,7 @@ def main():
   snapshot.finish()
  except BaseException:
   snapshot.finish();snapshot.restore();raise
- print('Alpha 2 native fixes installed. Log out and back in to reload them. Backup:',backup)
+ print('Alpha native updates installed. Log out and back in to reload them. Backup:',backup)
 
 if __name__=='__main__':
  try:main()
