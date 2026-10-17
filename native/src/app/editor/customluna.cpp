@@ -78,15 +78,18 @@ QByteArray accentIni(const QByteArray &resource, const std::array<QColor,4> &col
     system.insert(QStringLiteral("inactivecaptiontext"), rgbText(textFor(colours[2],2)));
     for (const QString &name : std::as_const(names)) {
         auto &props = ordered[name];
-        if (name == QLatin1String("startpanel.userpane") || name == QLatin1String("startpanel.logoff")) {
-            props.insert(QStringLiteral("textcolor"), rgbText(menuText(accent)));
-            if (props.contains(QStringLiteral("textshadowcolor"))) props[QStringLiteral("textshadowcolor")] = rgbText(menuText(accent)==QColor(Qt::white)?QColor(Qt::black):QColor(Qt::white));
+        // The user pane and Log Off bar are the taskbar's surface, so its
+        // text; Start menu text is for the lists between them.
+        const bool band = name == QLatin1String("startpanel.userpane") || name == QLatin1String("startpanel.logoff");
+        if (band) {
+            props.insert(QStringLiteral("textcolor"), rgbText(textFor(accent,1)));
+            if (props.contains(QStringLiteral("textshadowcolor"))) props[QStringLiteral("textshadowcolor")] = rgbText(textFor(accent,1)==QColor(Qt::white)?QColor(Qt::black):QColor(Qt::white));
         }
         if (name.startsWith(QLatin1String("startpanel.")) || name.startsWith(QLatin1String("startmenu::"))) {
             const QColor surface = menuSurface(accent, name);
             if (props.contains(QStringLiteral("fillcolor"))) props[QStringLiteral("fillcolor")] = rgbText(surface);
             if (props.contains(QStringLiteral("bordercolor"))) props[QStringLiteral("bordercolor")] = rgbText(surface.darker(140));
-            props[QStringLiteral("textcolor")] = rgbText(menuText(surface));
+            if (!band) props[QStringLiteral("textcolor")] = rgbText(menuText(surface));
             if (props.contains(QStringLiteral("captiontext"))) props[QStringLiteral("captiontext")] = rgbText(menuTextMode ? menuText(surface) : (menuText(surface) == QColor(Qt::white) ? QColor("#b8b8b8") : QColor("#555555")));
         }
         if ((name.startsWith(QLatin1String("window.caption")) || name.startsWith(QLatin1String("window.smallcaption"))) && !name.contains(QLatin1String("button"))) {
@@ -205,7 +208,7 @@ QString customLuna(const QString &source, const std::array<QColor, 4> &colours,
     QJsonArray palette;
     for (const QColor &c : colours) palette.append(c.name());
     QJsonArray modes; for (int mode : textModes) modes.append(mode);
-    const QByteArray metadata = QJsonDocument(QJsonObject{{"source", source}, {"sourceHash", QString::fromLatin1(QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex())}, {"colours", palette}, {"generator", 15}, {"colorModel", "baked-live-luminance"}, {"startMenuText", menuTextMode}, {"textMode", textMode}, {"textModes", modes}, {"variant", selectedVariant}}).toJson();
+    const QByteArray metadata = QJsonDocument(QJsonObject{{"source", source}, {"sourceHash", QString::fromLatin1(QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex())}, {"colours", palette}, {"generator", kCustomLunaGenerator}, {"colorModel", "baked-live-luminance"}, {"startMenuText", menuTextMode}, {"textMode", textMode}, {"textModes", modes}, {"variant", selectedVariant}}).toJson();
     const QString id = QString::fromLatin1(QCryptographicHash::hash(QByteArray(bytes + metadata), QCryptographicHash::Sha256).toHex());
     const QString path = directory + QLatin1Char('/') + id + QStringLiteral(".msstyles");
     if (QFileInfo::exists(path) && QFileInfo::exists(path + QStringLiteral(".json"))) return path;

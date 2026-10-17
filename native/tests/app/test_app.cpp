@@ -2244,6 +2244,8 @@ private Q_SLOTS:
         QVERIFY(result->renderer->background(scrollbar,QSize(17,40))!=base->renderer->background(scrollbar,QSize(17,40)));
         const auto theme=Theme::load(result->stylePath,result->variant);QVERIFY(theme);QRgb text;
         QVERIFY(parseColour(theme->property(u"startpanel",u"placeslist",u"",u"textcolor").value_or(QString()),&text));QCOMPARE(QColor(text),QColor(Qt::white));
+        // The user pane and Log Off bar are taskbar-coloured: the taskbar's text.
+        for(const auto &band : {u"userpane",u"logoff"}){QVERIFY(parseColour(theme->property(u"startpanel",band,u"",u"textcolor").value_or(QString()),&text));QCOMPARE(QColor(text),QColor(Qt::black));}
         QVERIFY(parseColour(theme->property(u"sysmetrics",u"",u"",u"highlighttext").value_or(QString()),&text));QCOMPARE(QColor(text),QColor(Qt::black));
         const auto panel=panelArt(*result);
         QCOMPARE(panel.textColour,QColor(Qt::black));QCOMPARE(panel.trayTextColour,QColor(Qt::black));
@@ -2253,6 +2255,7 @@ private Q_SLOTS:
         const auto inverseLook=editor::staticColorLook(*base,inverse,&error);QVERIFY2(inverseLook,qPrintable(error));
         const auto inversePanel=panelArt(*inverseLook);QCOMPARE(inversePanel.textColour,QColor(Qt::white));QCOMPARE(inversePanel.trayTextColour,QColor(Qt::white));
         const auto inverseMenu=writeStartPanel(*inverseLook,paths::data()+"/text-save-inverse",&error);QVERIFY2(!inverseMenu.isEmpty(),qPrintable(error));QCOMPARE(inverseMenu.value("palette").toObject().value("programText").toString(),QString("#000000"));
+        for(const char *band : {"userText","footerText"})QCOMPARE(inverseMenu.value("palette").toObject().value(QLatin1String(band)).toString(),QString("#ffffff"));
         QCOMPARE(QJsonDocument::fromJson(readFile(result->stylePath+".json")).object().value("startMenuText").toInt(),1);
         const auto repeated=editor::staticColorLook(*result,colors,&error);QVERIFY(repeated);QCOMPARE(repeated->stylePath,result->stylePath);
         auto classic=editor::staticColorLook(Look::fromScheme(ClassicScheme()),colors,&error);QVERIFY(classic);QCOMPARE(classic->system.shellMenuTextMode,1);
@@ -2270,7 +2273,7 @@ private Q_SLOTS:
         const QString imported=paths::data()+"/imported.msstyles";QVERIFY(QFile::copy(baked->stylePath,imported));
         QVERIFY(QFile::remove(baked->stylePath+".json"));
         const auto importedLook=Look::fromStyle(imported,baked->variant);QVERIFY(importedLook);
-        const auto metadata=editor::colorMetadata(imported,baked->variant);QCOMPARE(metadata.value("generator").toInt(),15);
+        const auto metadata=editor::colorMetadata(imported,baked->variant);QCOMPARE(metadata.value("generator").toInt(),editor::kCustomLunaGenerator);
         const auto repeat=editor::staticColorLook(*importedLook,colors,&error);QVERIFY2(repeat,qPrintable(error));
         QCOMPARE(decorationArt(*repeat).element("decoration-top"),pixels);
         // A missing original may be viewed/reapplied, but never tinted twice.

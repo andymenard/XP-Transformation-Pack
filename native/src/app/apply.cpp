@@ -739,11 +739,15 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
             QFile metadata(look.stylePath+QStringLiteral(".json"));
             if(metadata.open(QIODevice::ReadOnly)){
                 const auto baked=QJsonDocument::fromJson(metadata.readAll()).object();
-                rebuild=baked.value("generator").toInt()<13 && QFileInfo::exists(baked.value("source").toString());
+                rebuild=baked.value("generator").toInt()<editor::kCustomLunaGenerator && QFileInfo::exists(baked.value("source").toString());
             }
         }
         if(colors.value("enabled").toBool() && rebuild){
             auto baked=editor::staticColorLook(look,colors,error);if(!baked)return false;look=*baked;
+            // A saved theme names its rebuilt style, so keeps it (and the old one goes).
+            if(colors.value("rendering").toString()==QLatin1String("static") && presets::owned(o.themeFile)){
+                auto saved=*preset;saved.setValue(u"VisualStyles",u"Path",QFileInfo(look.stylePath).absoluteFilePath());saved.save(o.themeFile);
+            }
         }
     }
     const bool colorOnly=o.allowColorOnly && sameColorBase(look,state)
