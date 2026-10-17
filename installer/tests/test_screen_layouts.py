@@ -21,18 +21,29 @@ function assert(ok, message){if(!ok)throw new Error(message||'geometry assertion
 for(const [w,h] of [[640,480],[800,600],[1024,768],[1280,800],[1366,768],[1920,1080],[3840,2160]]){
  Math.Int=Math.floor;
  const ctx={Math:Math,Window:{GetWidth:()=>w,GetHeight:()=>h,SetBackgroundTopColor(){},SetBackgroundBottomColor(){}},Plymouth:{SetRefreshFunction(f){this.refresh=f},SetDisplayPasswordFunction(){},SetDisplayQuestionFunction(){},SetDisplayNormalFunction(){},SetMessageFunction(){}}};
- ctx.Image=function(name){return {w:name==='boot.png'?640:22,h:name==='boot.png'?480:9,Scale(w,h){this.w=Math.floor(w);this.h=Math.floor(h);return this},GetWidth(){return this.w},GetHeight(){return this.h}}};
- ctx.Sprite=function(){return {SetZ(){},SetPosition(x,y){this.x=x;this.y=y},SetOpacity(){}}};
- const run=new Function('Window','Image','Sprite','Plymouth','Math', 'var scale,canvas,base,origin_x,origin_y,segment_image,segment,phase,prompting,message_sprite,input_sprite;'+SCRIPT+';return {canvas:canvas,origin_x:origin_x,origin_y:origin_y,scale:scale,segment:segment};');
+ function image(w,h){return {w:w,h:h,Scale(w,h){return image(Math.floor(w),Math.floor(h))},Crop(x,y,w,h){assert(x>=0&&y>=0&&x+w<=this.w&&y+h<=this.h,'invalid crop');return image(w,h)},GetWidth(){return this.w},GetHeight(){return this.h}}}; ctx.Image=name=>image(name==='boot.png'?640:22,name==='boot.png'?480:9);
+ ctx.Sprite=function(image){return {image:image,opacity:1,SetImage(image){this.image=image},SetZ(){},SetPosition(x,y){this.x=x;this.y=y},SetOpacity(v){this.opacity=v}}};
+ const run=new Function('Window','Image','Sprite','Plymouth','Math', 'var scale,canvas,base,origin_x,origin_y,segment_image,segment,phase,prompting,message_sprite,input_sprite,wrapped_segment,track_left,track_right,track_width,offset;'+SCRIPT+';return {canvas:canvas,origin_x:origin_x,origin_y:origin_y,scale:scale,segment:segment,wrapped:wrapped_segment,track_left:track_left,track_right:track_right};');
  Object.assign(ctx,run(ctx.Window,ctx.Image,ctx.Sprite,ctx.Plymouth,Math));
  assert(ctx.canvas.w<=w&&ctx.canvas.h<=h);
  assert(Math.abs(ctx.canvas.w-w)<=1||Math.abs(ctx.canvas.h-h)<=1,'frame underfills screen');
  assert(Math.abs(ctx.origin_x*2+ctx.canvas.w-w)<=1);
  assert(Math.abs(ctx.origin_y*2+ctx.canvas.h-h)<=1);
- for(let i=0;i<100;i++){
-  ctx.Plymouth.refresh();const x=(ctx.segment.x-ctx.origin_x)/ctx.scale,y=(ctx.segment.y-ctx.origin_y)/ctx.scale;
-  assert(x>=258&&x+22<=379&&y>=352&&y<=353.01,'segment outside original track');
+ let split=false,wrapped=false,last;
+ for(let i=0;i<240;i++){
+  ctx.Plymouth.refresh();let width=0,visible=0;
+  for(const sprite of [ctx.segment,ctx.wrapped]){
+   if(!sprite.opacity)continue;
+   assert(sprite.x>=ctx.track_left&&sprite.x+sprite.image.w<=ctx.track_right,'segment outside original track');
+   assert(sprite.y===ctx.origin_y+Math.floor(353*ctx.scale));
+   width+=sprite.image.w;visible++;
+  }
+  assert(width===Math.floor(22*ctx.scale),'blocks vanish at wrap boundary');
+  if(visible===2)split=true;
+  if(last!==undefined&&ctx.segment.x<last)wrapped=true;
+  last=ctx.segment.x;
  }
+ assert(split&&wrapped,'animation never tested a split wrap');
 }
 '''.replace('SCRIPT',json.dumps(script))
   runner='from PyQt6.QtCore import QCoreApplication\nfrom PyQt6.QtQml import QJSEngine\nimport sys\napp=QCoreApplication([]); engine=QJSEngine(); result=engine.evaluate(sys.stdin.read())\nif result.isError(): raise RuntimeError(result.toString())\n'

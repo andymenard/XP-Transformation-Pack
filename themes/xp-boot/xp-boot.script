@@ -12,6 +12,11 @@ base.SetPosition(origin_x, origin_y, 0);
 segment_image = Image("segment.png").Scale(Math.Int(22 * scale), Math.Int(9 * scale));
 segment = Sprite(segment_image);
 segment.SetZ(1);
+wrapped_segment = Sprite(segment_image);
+wrapped_segment.SetZ(1);
+track_left = origin_x + Math.Int(259 * scale);
+track_right = origin_x + Math.Int(378 * scale);
+track_width = track_right - track_left;
 phase = 0;
 prompting = 0;
 message_sprite = Sprite();
@@ -19,12 +24,31 @@ message_sprite.SetZ(20);
 input_sprite = Sprite();
 input_sprite.SetZ(21);
 
+// Clip each end independently: the leading blocks enter at the left while
+// the trailing blocks leave at the right. Never jump the whole sprite.
+fun draw_segment(sprite, offset) {
+    source_x = 0;
+    if (offset < 0) source_x = -offset;
+    x = offset;
+    if (x < 0) x = 0;
+    width = segment_image.GetWidth() - source_x;
+    if (width > track_width - x) width = track_width - x;
+    if (width > 0) {
+        sprite.SetImage(segment_image.Crop(source_x, 0, width, segment_image.GetHeight()));
+        sprite.SetPosition(track_left + x, origin_y + Math.Int(353 * scale), 1);
+        sprite.SetOpacity(1);
+    } else sprite.SetOpacity(0);
+}
 fun refresh() {
     if (!prompting) {
-        phase = (phase + 2) % 98;
-        segment.SetPosition(origin_x + Math.Int((259 + phase) * scale), origin_y + Math.Int(353 * scale), 1);
-        segment.SetOpacity(1);
-    } else segment.SetOpacity(0);
+        phase = (phase + 2) % 119;
+        offset = Math.Int(phase * track_width / 119);
+        draw_segment(segment, offset);
+        draw_segment(wrapped_segment, offset - track_width);
+    } else {
+        segment.SetOpacity(0);
+        wrapped_segment.SetOpacity(0);
+    }
 }
 Plymouth.SetRefreshFunction(refresh);
 
