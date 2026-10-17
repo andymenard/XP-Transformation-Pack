@@ -150,17 +150,9 @@ bool recolour(QByteArray &dib, QColor target, QColor base, const QColor &backdro
                 return;
             }
         }
-        if(keepRed){
-            // Keep the original neutral bevel, including the inactive outline.
-            // Inactive Luna faces are purple: recolor the whole face rather
-            // than preserving isolated pink pixels as though they were red.
-            if(originalColor.hsvSaturationF()<.12)return;
-            const int logicalY=height>0?qAbs(height)-1-y:y;
-            const int columns=frame.width()>0?qMax(1,width/frame.width()):1;
-            const int state=(frame.height()>0?logicalY/frame.height():0)*columns+(frame.width()>0?x/frame.width():0);
-            const bool inactive=state>=4;
-            if(!inactive && originalColor.red()>originalColor.green()*1.2 && originalColor.red()>originalColor.blue()*1.15)return;
-        }
+        // Close keeps Luna's own artwork, inactive included; only its
+        // symbol follows the buttons' text choice (above).
+        if(keepRed)return;
         QColor destination = target, reference = base;
         // Luna antialiases the rounded Start edge against the blue taskbar.
         // These pixels belong to a mixture of the two surfaces.
@@ -213,7 +205,7 @@ QString customLuna(const QString &source, const std::array<QColor, 4> &colours,
     QJsonArray palette;
     for (const QColor &c : colours) palette.append(c.name());
     QJsonArray modes; for (int mode : textModes) modes.append(mode);
-    const QByteArray metadata = QJsonDocument(QJsonObject{{"source", source}, {"sourceHash", QString::fromLatin1(QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex())}, {"colours", palette}, {"generator", 14}, {"colorModel", "baked-live-luminance"}, {"startMenuText", menuTextMode}, {"textMode", textMode}, {"textModes", modes}, {"variant", selectedVariant}}).toJson();
+    const QByteArray metadata = QJsonDocument(QJsonObject{{"source", source}, {"sourceHash", QString::fromLatin1(QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex())}, {"colours", palette}, {"generator", 15}, {"colorModel", "baked-live-luminance"}, {"startMenuText", menuTextMode}, {"textMode", textMode}, {"textModes", modes}, {"variant", selectedVariant}}).toJson();
     const QString id = QString::fromLatin1(QCryptographicHash::hash(QByteArray(bytes + metadata), QCryptographicHash::Sha256).toHex());
     const QString path = directory + QLatin1Char('/') + id + QStringLiteral(".msstyles");
     if (QFileInfo::exists(path) && QFileInfo::exists(path + QStringLiteral(".json"))) return path;

@@ -44,3 +44,11 @@ inactive. This extends the existing Plasma renderer protection to another
 consumer of the active SVG theme. The reported 19:11 KRunner buffer-overflow
 abort coincided with Apply; its main-thread stack was damaged, so this is a
 preventive fix rather than a confirmed diagnosis of the original overflow.
+
+Close keeps the skin's artwork (generator 15, 2026-10-16): Custom Colors no
+longer repaints Close at all -- active, inactive, hot and pressed are the
+skin's own bitmaps (Luna's faded mauve on an inactive window, Royale's own).
+Only its symbol follows the titlebar buttons' White/Black choice. Earlier
+generators reddened the inactive frames against the active red's tone, which
+came out darker and more saturated than the active button. Tests:
+`closeKeepsSkinArtwork`, and Royale's Close compared against Royale's own.

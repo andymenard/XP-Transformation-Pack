@@ -2156,7 +2156,7 @@ private Q_SLOTS:
         const QString imported=paths::data()+"/imported.msstyles";QVERIFY(QFile::copy(baked->stylePath,imported));
         QVERIFY(QFile::remove(baked->stylePath+".json"));
         const auto importedLook=Look::fromStyle(imported,baked->variant);QVERIFY(importedLook);
-        const auto metadata=editor::colorMetadata(imported,baked->variant);QCOMPARE(metadata.value("generator").toInt(),14);
+        const auto metadata=editor::colorMetadata(imported,baked->variant);QCOMPARE(metadata.value("generator").toInt(),15);
         const auto repeat=editor::staticColorLook(*importedLook,colors,&error);QVERIFY2(repeat,qPrintable(error));
         QCOMPARE(decorationArt(*repeat).element("decoration-top"),pixels);
         // A missing original may be viewed/reapplied, but never tinted twice.
@@ -2263,30 +2263,22 @@ private Q_SLOTS:
         }
     }
 
-    void inactiveCloseKeepsNeutralBevel()
+    void closeKeepsSkinArtwork()
     {
+        // Custom colors leave Close as the skin draws it, an inactive
+        // window's included: only the other buttons take the color.
         const QString source=m_realThemes+"/Luna/luna.msstyles";if(!QFileInfo::exists(source))QSKIP("needs Luna");
         QString error;const auto base=Look::fromStyle(source,"NORMALBLUE_INI",&error);QVERIFY(base);
         const std::array<QColor,4> colors{QColor("#eb9d00"),QColor("#7c7c5c"),QColor("#7c7c5c"),QColor("#d99100")};
         const auto file=editor::customLuna(source,colors,paths::data()+"/custom-luna",&error,base->variant);QVERIFY2(!file.isEmpty(),qPrintable(error));
         const auto result=Look::fromStyle(file,base->variant,&error);QVERIFY(result);
         const auto before=decorationArt(*base),after=decorationArt(*result);
-        auto close=[](const DecorationArt &art,const QString &state){for(const auto &button:art.buttons)if(button.first=="close")for(const auto &part:button.second)if(part.first==state)return part.second.convertToFormat(QImage::Format_ARGB32);return QImage();};
-        const auto original=close(before,"inactive-center"),baked=close(after,"inactive-center");QVERIFY(!original.isNull());QCOMPARE(baked.size(),original.size());
-        int neutral=0,red=0,purple=0;
-        for(int y=0;y<baked.height();++y)for(int x=0;x<baked.width();++x){
-            const auto a=original.pixelColor(x,y),b=baked.pixelColor(x,y);QCOMPARE(a.alpha(),b.alpha());
-
-            if(b.alpha()>200 && b.hsvSaturationF()>.3){if(b.red()>b.green()*1.2 && b.red()>b.blue()*1.15)++red;else if(b.hsvHueF()>.7 && b.hsvHueF()<.97)++purple;}
+        auto button=[](const DecorationArt &art,const QString &name,const QString &state){for(const auto &b:art.buttons)if(b.first==name)for(const auto &part:b.second)if(part.first==state)return part.second.convertToFormat(QImage::Format_ARGB32);return QImage();};
+        for(const QString state:{"active-center","inactive-center","hover-inactive-center","pressed-inactive-center"}){
+            const auto original=button(before,"close",state);QVERIFY(!original.isNull());
+            QCOMPARE(button(after,"close",state),original);
         }
-        const auto bitmap=base->renderer->theme().property(u"window",u"closebutton",u"",u"imagefile");QVERIFY(bitmap);
-        const auto rawBefore=base->renderer->theme().bitmap(*bitmap).image.convertToFormat(QImage::Format_ARGB32);
-        const auto rawAfter=result->renderer->theme().bitmap(*bitmap).image.convertToFormat(QImage::Format_ARGB32);
-        QCOMPARE(rawBefore.size(),rawAfter.size());
-        for(int y=0;y<rawBefore.height();++y)for(int x=0;x<rawBefore.width();++x){const auto a=rawBefore.pixelColor(x,y);if(a.alpha()>200 && a.hsvSaturationF()<.12){QCOMPARE(rawAfter.pixelColor(x,y),a);++neutral;}}
-        QVERIFY(neutral>10);QVERIFY(red>30);QCOMPARE(purple,0);
-        const auto activeBefore=close(before,"active-center"),activeAfter=close(after,"active-center");QCOMPARE(activeBefore.size(),activeAfter.size());
-        for(int y=0;y<activeBefore.height();++y)for(int x=0;x<activeBefore.width();++x)QCOMPARE(qAlpha(activeBefore.pixel(x,y)),qAlpha(activeAfter.pixel(x,y)));
+        QVERIFY(button(after,"minimize","inactive-center")!=button(before,"minimize","inactive-center"));
     }
 
     void customRoyalePreservesIconsAndLiveShading()
@@ -2320,14 +2312,10 @@ private Q_SLOTS:
                 QVERIFY2(qAbs(pixel.red()-pixel.green())<=1 && qAbs(pixel.green()-pixel.blue())<=1,qPrintable(ref.cls+QLatin1String(" retained an unwanted hue")));
             }
         }
+        Renderer original(before);
         for(int state : {1,5}) {
-            const auto image=renderer.background({QStringLiteral("window"),schema::partId(u"window",u"closebutton"),state,{}},QSize(23,23));
-            int red=0,opaque=0;
-            for(int y=0;y<image.height();++y) for(int x=0;x<image.width();++x) if(qAlpha(image.pixel(x,y))) {
-                ++opaque;const QColor c(image.pixel(x,y));
-                if(c.hsvSaturationF()>.3 && (c.hsvHueF()<.09 || c.hsvHueF()>.92)) ++red;
-            }
-            QVERIFY2(opaque>0 && red>opaque/2,"Close must stay red in active and inactive windows");
+            const PartRef close{QStringLiteral("window"),schema::partId(u"window",u"closebutton"),state,{}};
+            QVERIFY2(renderer.background(close,QSize(23,23))==original.background(close,QSize(23,23)),"Close keeps Royale's own artwork");
         }
         QRgb text;
         QVERIFY(parseColour(after->property(u"startpanel",u"placeslist",u"",u"textcolor").value_or(QString()),&text));
