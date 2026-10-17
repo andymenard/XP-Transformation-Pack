@@ -1,0 +1,1 @@
+Plymouth script using the original 640x480 XP boot frame and 22x9 blue-block asset from the separately supplied ISO payload. The artwork and segment share one aspect-preserving scale and origin, including framebuffer sizes between integer scale factors. No installation icon-resolution choice changes boot geometry. A real boot is required to confirm firmware/display handoff.

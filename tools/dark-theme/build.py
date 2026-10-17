@@ -56,15 +56,33 @@ def neutral(r,g,b):
    value=round(a+(z-a)*(light-low)/(high-low));break
  return max(0,value-3),value,min(255,value+8)
 
-def bitmap(data,name):
+def surface_section(section):
+ return any(section.startswith('['+name) for name in ['combobox','edit','spin','tab','header','scrollbar','button.pushbutton','toolbar.button','rebar','status'])
+
+def artwork_color(r,g,b,glyph=False,surface=False,keys=()):
+ if (r,g,b) in keys or (r,g,b) in {(255,0,0),(255,0,255),(242,241,231)}:return r,g,b
+ if glyph:
+  if max(r,g,b)<150:return 224,232,243
+  if min(r,g,b)>200:return r,g,b
+ if surface and (r,g,b)!=(0,0,0):
+  # Colored control backgrounds need the same dark curve as neutral ones.
+  # Retain a small source-theme tint and all original bevel/state geometry.
+  light=round(.2126*r+.7152*g+.0722*b)
+  base=neutral(light,light,light)
+  return tuple(max(0,min(255,round(v+.10*(c-light)))) for v,c in zip(base,(r,g,b)))
+ return neutral(r,g,b)
+
+def bitmap(data,name,surface=False,keys=()):
  out=bytearray(data)
  if len(out)<40 or U32(out,0)<40:return data
  bpp=U16(out,14);compression=U32(out,16)
+ glyph=any(x in name.upper() for x in ['GLYPH','CHECKMARK'])
+ def color(r,g,b):return artwork_color(r,g,b,glyph,surface,keys)
  if bpp in (4,8):
   count=U32(out,32) or (1<<bpp);start=U32(out,0)
   if start+count*4>len(out):return data
   for at in range(start,start+count*4,4):
-   b,g,r=out[at:at+3];r,g,b=neutral(r,g,b);out[at:at+3]=bytes((b,g,r))
+   b,g,r=out[at:at+3];r,g,b=color(r,g,b);out[at:at+3]=bytes((b,g,r))
   return bytes(out)
  if bpp not in (24,32) or compression not in (0,3):return data
  width,height=struct.unpack_from('<ii',out,4);height=abs(height)
@@ -73,34 +91,40 @@ def bitmap(data,name):
  if compression==3 and U32(out,0)==40:start+=12
  stride=((width*bpp+31)//32)*4
  if start+stride*height>len(out):return data
- glyph=any(x in name.upper() for x in ['GLYPH','CHECKMARK'])
- uses_alpha=bpp==32 and any(out[start+y*stride+x*4+3] for y in range(height) for x in range(width))
+ # Match uxtheme/Renderer::frame: 0/255-only alpha is not a blend mask.
+ uses_alpha=bpp==32 and any(0<out[start+y*stride+x*4+3]<255 for y in range(height) for x in range(width))
  for y in range(height):
   for x in range(width):
    at=start+y*stride+x*(bpp//8);b,g,r=out[at:at+3]
-   # Transparent pixels and existing bright glyphs must retain their masks.
-   if (r,g,b) in {(0,0,0),(255,0,0),(255,0,255),(242,241,231)} and not (glyph and (r,g,b)==(0,0,0)):
-    continue
    if uses_alpha and out[at+3]==0:continue
-   if glyph and max(r,g,b)-min(r,g,b)<=46:
-    if max(r,g,b)<60:r,g,b=224,232,243
-    elif min(r,g,b)>200:pass
-    else:r,g,b=neutral(r,g,b)
-   else:r,g,b=neutral(r,g,b)
-   out[at:at+3]=bytes((b,g,r))
+   r,g,b=color(r,g,b);out[at:at+3]=bytes((b,g,r))
  return bytes(out)
 
 def build(source,destination):
  blob=bytearray(Path(source).read_bytes());entries,sections,opt=resources(blob)
- shell_images=set()
- for keys,_,begin,size in entries:
-  if keys[0].upper()!='TEXTFILE' or keys[1].upper()=='THEMES_INI':continue
-  section=''
+ shell_images=set();surface_images=set();image_keys={}
+ resource_name=lambda value:re.sub(r'[^A-Z0-9]','_',value.strip().upper())
+ for names,_,begin,size in entries:
+  if names[0].upper()!='TEXTFILE' or names[1].upper()=='THEMES_INI':continue
+  sections_ini={};section=''
   for line in bytes(blob[begin:begin+size]).decode('utf-16le').splitlines():
-   if line.strip().startswith('['):section=line.strip().lower()
-   if shell_section(section):
-    match=re.match(r'(?i)\s*(?:glyph)?imagefile\d*\s*=\s*(.*?)\s*(?:;.*)?$',line)
-    if match:shell_images.add(re.sub(r'[^A-Z0-9]','_',match[1].strip().upper()))
+   line=line.split(';',1)[0].strip()
+   if line.startswith('['):section=line.lower();sections_ini.setdefault(section,{})
+   elif '=' in line:
+    key,value=line.split('=',1);sections_ini.setdefault(section,{})[key.strip().lower()]=value.strip()
+  for section,props in sections_ini.items():
+   base=re.sub(r'\([^)]*\)','',section)
+   parent=base.split('.',1)[0].rstrip(']')+']'
+   inherited={**sections_ini.get(parent,{}),**sections_ini.get(base,{}),**props}
+   for key,value in props.items():
+    if not re.fullmatch(r'(?:glyph)?imagefile\d*',key):continue
+    name=resource_name(value)
+    if shell_section(section):shell_images.add(name)
+    elif surface_section(section) and not key.startswith('glyph'):surface_images.add(name)
+    mask_key='glyphtransparentcolor' if key.startswith('glyph') else 'transparentcolor'
+    mask=inherited.get(mask_key,'255 0 255')
+    values=re.findall(r'\d+',mask)
+    if len(values)==3:image_keys.setdefault(name,set()).add(tuple(map(int,values)))
  palette=configparser.ConfigParser();palette.read(ROOT/'palette.theme')
  colors={k.lower():v for k,v in palette['Control Panel\\Colors'].items()}
  last=max(sections,key=lambda s:s[1]+s[2]);va,raw,_,section=last
@@ -112,6 +136,8 @@ def build(source,destination):
   data=bytes(blob[begin:begin+size]);updated=data
   if keys[0].upper()=='TEXTFILE':
    text=data.decode('utf-16le').rstrip('\0')
+   keep_accent='[xplasmacustomluna]' in text.lower()
+   protected=SHELL_COLORS | ({'hilight','hilighttext','hottrackingcolor'} if keep_accent else set())
    in_metrics=False;section_name='';lines=[]
    for line in text.splitlines():
     if line.strip().startswith('['):
@@ -121,9 +147,9 @@ def build(source,destination):
      key=m[2].lower();rgb=tuple(map(int,m.group(4,5,6)))
      aliases={'highlight':'hilight','highlighttext':'hilighttext','btnface':'buttonface','btnshadow':'buttonshadow','btnhighlight':'buttonhilight','btndkshadow':'buttondkshadow','btnlight':'buttonlight','btntext':'buttontext','activecaption':'activetitle','captiontext':'titletext','inactivecaption':'inactivetitle','inactivecaptiontext':'inactivetitletext','gradientactivecaption':'gradientactivetitle','gradientinactivecaption':'gradientinactivetitle','dkshadow3d':'buttondkshadow','light3d':'buttonlight'}
      canonical=aliases.get(key,key)
-     if in_metrics and canonical in colors and canonical not in SHELL_COLORS:values=tuple(map(int,colors[canonical].split()))
+     if in_metrics and canonical in colors and canonical not in SHELL_COLORS and not (keep_accent and canonical in {'hilight','hilighttext','hottrackingcolor'}):values=tuple(map(int,colors[canonical].split()))
      elif key in {'textcolor','glyphtextcolor'} and max(rgb)<150:values=(233,237,244)
-     elif key in {'fillcolor','bordercolor','edgefillcolor','edgehighlightcolor','edgelightcolor','edgeshadowcolor','edgedkshadowcolor','gradientcolor1','gradientcolor2','gradientcolor3','gradientcolor4','gradientcolor5'}:values=neutral(*rgb)
+     elif key in {'fillcolor','bordercolor','edgefillcolor','edgehighlightcolor','edgelightcolor','edgeshadowcolor','edgedkshadowcolor','gradientcolor1','gradientcolor2','gradientcolor3','gradientcolor4','gradientcolor5'}:values=artwork_color(*rgb,surface=surface_section(section_name))
      else:values=rgb
      line=m[1]+m[2]+m[3]+', '.join(map(str,values))+m[7]
     lines.append(line)
@@ -132,11 +158,11 @@ def build(source,destination):
     joined=re.sub(r'(?im)^(DisplayName\s*=).*',r'\1Zune Dark',joined,count=1)
     lines=joined.splitlines()
    else:
-    lines+=['','[SysMetrics]']+[key+' = '+value for key,value in colors.items() if key not in SHELL_COLORS]
+    lines+=['','[SysMetrics]']+[key+' = '+value for key,value in colors.items() if key not in protected]
     mapping={'btnface':'buttonface','btntext':'buttontext','highlight':'hilight','highlighttext':'hilighttext','activecaption':'activetitle','captiontext':'titletext','inactivecaption':'inactivetitle','inactivecaptiontext':'inactivetitletext','gradientactivecaption':'gradientactivetitle','gradientinactivecaption':'gradientinactivetitle','btnshadow':'buttonshadow','btnhighlight':'buttonhilight','dkshadow3d':'buttondkshadow','light3d':'buttonlight'}
-    lines+=[key+' = '+colors[value] for key,value in mapping.items() if value not in SHELL_COLORS]
+    lines+=[key+' = '+colors[value] for key,value in mapping.items() if value not in protected]
    updated=('\r\n'.join(lines)+'\r\n\0').encode('utf-16le')
-  elif keys[0]=='2' and keys[1].upper() not in shell_images:updated=bitmap(data,keys[1])
+  elif keys[0]=='2' and keys[1].upper() not in shell_images:updated=bitmap(data,keys[1],keys[1].upper() in surface_images,image_keys.get(keys[1].upper(),()))
   if updated==data:continue
   changed+=1
   if len(updated)<=size:

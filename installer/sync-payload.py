@@ -38,6 +38,20 @@ def collect_wallpapers(source, saved_wallpapers):
     (saved_wallpapers/'WALLPAPERS.json').write_text(json.dumps(photos,indent=2)+'\n')
 
 
+def normalize_session_sprites(folder):
+    # XP draws these bitmaps with TransparentBlt's exact RGB(255,0,255) key.
+    # PNG/QML needs an alpha channel instead; preserve all other pixels.
+    from PIL import Image
+    for name in ['20150.png', '14356.png']:
+        path=Path(folder)/name
+        if not path.is_file():continue
+        image=Image.open(path).convert('RGBA')
+        pixels=list(image.getdata())
+        fixed=[(r,g,b,0) if (r,g,b)==(255,0,255) else (r,g,b,a) for r,g,b,a in pixels]
+        if fixed!=pixels:
+            image.putdata(fixed);image.save(path)
+
+
 def sync(suite, icons=None, wallpapers=None):
     suite = Path(suite).resolve()
     if not (suite / 'payload/assets').is_dir() or not (suite / 'source').is_dir():
@@ -65,6 +79,9 @@ def sync(suite, icons=None, wallpapers=None):
             if source.exists():
                 target.add(source, arcname='xplasma/' + str(Path(relative).relative_to('native')), recursive=False)
     temporary.replace(archive)
+    # Source-controlled layouts are authoritative; never retain stale bundle QML.
+    shutil.copytree(ROOT/'themes/xp-session/contents/logout',suite/'payload/templates/session/contents/logout',dirs_exist_ok=True)
+    shutil.copytree(ROOT/'themes/xp-boot',suite/'payload/templates/boot',dirs_exist_ok=True)
     shutil.copytree(ROOT/'themes/xp-welcome',suite/'payload/templates/welcome-splash',dirs_exist_ok=True)
     shutil.copytree(ROOT/'effects/xp-caption-animation',suite/'payload/caption-animation',dirs_exist_ok=True,
                     ignore=shutil.ignore_patterns('__pycache__'))
@@ -140,6 +157,7 @@ def sync(suite, icons=None, wallpapers=None):
     session = suite / 'payload/templates/session/contents/logout'
     if session_assets.is_dir():
         shutil.copytree(session_assets, session / 'assets', dirs_exist_ok=True)
+    normalize_session_sprites(session/'assets')
     for qml in session.glob('*.qml'):
         for asset in re.findall(r'"(assets/[^"\n]+)"', qml.read_text()):
             if not (session / asset).is_file():

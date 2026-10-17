@@ -1,0 +1,63 @@
+Window.SetBackgroundTopColor(0, 0, 0);
+Window.SetBackgroundBottomColor(0, 0, 0);
+// Fit the complete original 640x480 frame uniformly. Integer-only scaling
+// left the bar too small and too close to the middle on 1024x768 displays.
+scale = Window.GetWidth() / 640;
+if (Window.GetHeight() / 480 < scale) scale = Window.GetHeight() / 480;
+canvas = Image("boot.png").Scale(640 * scale, 480 * scale);
+base = Sprite(canvas);
+origin_x = Math.Int((Window.GetWidth() - canvas.GetWidth()) / 2);
+origin_y = Math.Int((Window.GetHeight() - canvas.GetHeight()) / 2);
+base.SetPosition(origin_x, origin_y, 0);
+segment_image = Image("segment.png").Scale(Math.Int(22 * scale), Math.Int(9 * scale));
+segment = Sprite(segment_image);
+segment.SetZ(1);
+phase = 0;
+prompting = 0;
+message_sprite = Sprite();
+message_sprite.SetZ(20);
+input_sprite = Sprite();
+input_sprite.SetZ(21);
+
+fun refresh() {
+    if (!prompting) {
+        phase = (phase + 2) % 98;
+        segment.SetPosition(origin_x + Math.Int((259 + phase) * scale), origin_y + Math.Int(353 * scale), 1);
+        segment.SetOpacity(1);
+    } else segment.SetOpacity(0);
+}
+Plymouth.SetRefreshFunction(refresh);
+
+fun show_message(text) {
+    image = Image.Text(text, 1, 1, 1);
+    message_sprite.SetImage(image);
+    message_sprite.SetPosition((Window.GetWidth() - image.GetWidth()) / 2, origin_y + 400 * scale, 20);
+    message_sprite.SetOpacity(1);
+}
+fun password(prompt, count) {
+    prompting = 1;
+    show_message(prompt);
+    stars = "";
+    for (i = 0; i < count; i++) stars += "*";
+    image = Image.Text(stars, 1, 1, 1);
+    input_sprite.SetImage(image);
+    input_sprite.SetPosition((Window.GetWidth() - image.GetWidth()) / 2, origin_y + 420 * scale, 21);
+    input_sprite.SetOpacity(1);
+}
+fun question(prompt, text) {
+    prompting = 1;
+    show_message(prompt);
+    image = Image.Text(text, 1, 1, 1);
+    input_sprite.SetImage(image);
+    input_sprite.SetPosition((Window.GetWidth() - image.GetWidth()) / 2, origin_y + 420 * scale, 21);
+    input_sprite.SetOpacity(1);
+}
+fun normal() {
+    prompting = 0;
+    message_sprite.SetOpacity(0);
+    input_sprite.SetOpacity(0);
+}
+Plymouth.SetDisplayPasswordFunction(password);
+Plymouth.SetDisplayQuestionFunction(question);
+Plymouth.SetDisplayNormalFunction(normal);
+Plymouth.SetMessageFunction(show_message);

@@ -237,6 +237,11 @@ def prepare_native(home,state,selected,theme,asset_options=None):
  copy(build/'runtime',state/'runtime')
  cli=state/'runtime/bin/xplasma';choice=presets(home)/(theme+'.theme')
  if selected&LOOK:phase('Applying selected desktop features');run(look_args(cli,choice,selected))
+ # Apply explicitly after the desktop operation: its sound step is optional,
+ # and optimized/repeated applies can skip it. Installation must report failures.
+ if 'sounds' in selected:
+  phase('Activating Windows XP sounds')
+  run([cli,'sounds','Windows Default'])
  if 'pointers' in selected:run([cli,'pointers','Windows Default'])
  if 'fonts' in selected:
   if shutil.which('gsettings'):
