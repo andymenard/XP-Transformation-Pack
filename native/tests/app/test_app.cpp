@@ -1911,14 +1911,14 @@ private Q_SLOTS:
         if (m_realFonts.isEmpty())
             QSKIP("no XP fonts on this machine");
         const QString rules = QString::fromUtf8(xptext::rules(m_realFonts));
-        QVERIFY(!rules.contains(QLatin1String("<alias")));
+        QVERIFY(rules.contains(QLatin1String("<family>sans-serif</family>")));
         QVERIFY(!rules.contains(QLatin1String("<string>Arial</string>")));
         QVERIFY(!rules.contains(QLatin1String("<string>Times New Roman</string>")));
         QVERIFY(rules.contains(QLatin1String("<const>hintfull</const>")));
         QVERIFY(rules.contains(QLatin1String("<const>none</const>")));
         bool crisp11 = false, kern = false;
         for (const QString &block : rules.split(QLatin1String("<match target=\"font\">"))) {
-            if (!block.contains(QLatin1String("<string>Tahoma</string>")))
+            if (!block.contains(QLatin1String("<string>Tahoma OS</string>")))
                 continue;
             kern |= block.contains(QLatin1String("kern off"));
             if (!block.contains(QLatin1String("name=\"antialias\"><bool>false")))
@@ -1937,7 +1937,7 @@ private Q_SLOTS:
         const QString doubled = QString::fromUtf8(xptext::rules(m_realFonts, 2.0));
         bool crisp11At2 = false, crisp7At2 = false;
         for (const QString &block : doubled.split(QLatin1String("<match target=\"font\">"))) {
-            if (!block.contains(QLatin1String("<string>Tahoma</string>")) || !block.contains(QLatin1String("name=\"antialias\"><bool>false")))
+            if (!block.contains(QLatin1String("<string>Tahoma OS</string>")) || !block.contains(QLatin1String("name=\"antialias\"><bool>false")))
                 continue;
             const QRegularExpression lo(QStringLiteral("more_eq\"><double>([0-9.]+)")), hi(QStringLiteral("less\"><double>([0-9.]+)"));
             const auto l = lo.match(block), h = hi.match(block);
@@ -2001,11 +2001,11 @@ private Q_SLOTS:
         QVERIFY2(xptext::apply(session, state, &error), qPrintable(error));
         QCOMPARE(session.config.value(QStringLiteral("kdeglobals|General|XftHintStyle")), QStringLiteral("hintslight"));
         QCOMPARE(session.config.value(QStringLiteral("kdeglobals|General|XftSubPixel")), QStringLiteral("rgb"));
-        QCOMPARE(state.settings.value(QStringLiteral("xpTextRulesVersion")).toInt(), 2);
+        QCOMPARE(state.settings.value(QStringLiteral("xpTextRulesVersion")).toInt(), 3);
         // Same-scale maintenance must migrate old policies too.
         state.settings.remove(QStringLiteral("xpTextRulesVersion"));
         QVERIFY(xptext::refresh(session, state));
-        QCOMPARE(state.settings.value(QStringLiteral("xpTextRulesVersion")).toInt(), 2);
+        QCOMPARE(state.settings.value(QStringLiteral("xpTextRulesVersion")).toInt(), 3);
         // A customized legacy configuration must not be overwritten.
         const QString legacyFile = paths::config() + QLatin1String("/fontconfig/conf.d/99-xp-fonts.conf");
         const QByteArray custom = "<fontconfig><!-- user customization --></fontconfig>";

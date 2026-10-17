@@ -1,32 +1,27 @@
-# Font rendering
+# Separate Tahoma interface and content rendering
 
-XP desktop controls explicitly select their interface fonts. Generic sans-serif,
-serif and monospace families retain the distribution's normal font preferences,
-so browsers and document viewers do not silently inherit Tahoma or XP smoothing.
+**Tahoma OS** regular and bold use the original Tahoma glyph outlines, metrics,
+hinting programs and style weights. Only naming records and the required SFNT
+checksums change. Copyright, trademark, license and embedding metadata remain
+unchanged; the files are not relicensed under GPL. Fonts and source/derived hashes
+are included under installer/assets/fonts/tahoma-os/.
 
-XPlasma's fontconfig policy applies full hinting and the fonts' legacy size-based
-smoothing only to Tahoma, Trebuchet MS and Lucida Console. The separate opt-in
-pixel-font rules remain scoped to their explicit pixel families. Arial, Times
-New Roman and other imported document fonts retain modern system rendering.
+The standard-library-only generator is native/src/app/data/fonts/tahoma_os.py,
+with an identical installer copy. Native apply generates/refreshes the local
+faces from the originals and registers them before selecting desktop fonts.
 
-The installer no longer copies the broad legacy xp-fonts.conf payload. Native
-updates migrate the original installer rule and unchanged global Xft overrides;
-customized legacy files and later user preference edits are preserved. The
-maintenance refresh checks the policy version even when display scale is
-unchanged.
+Desktop/interface font choices that specify Tahoma select Tahoma OS instead.
+Ordinary Tahoma has antialiasing and full hinting enabled. Generic sans-serif
+prefers ordinary Tahoma; serif, monospace and explicit document/code choices
+retain their existing defaults. Legacy fontconfig rules match the OS family,
+not ordinary Tahoma. Custom font choices remain unchanged.
 
-Fully quit and reopen apps after applying the update. Running apps can cache
-font selection and rendering settings. A logout/login may be needed to refresh
-all desktop processes.
+The **Crisp XP text** toggle is separate: when enabled it selects the existing
+XP-captured pixel family (including optical sizes), with its existing fallback.
+When disabled it restores the Tahoma OS outline family, size and weight. Qt
+widget UI and QML Start-menu/clock text recognize Tahoma OS. No web-content font
+rule is tied to the crispy toggle.
 
-A useful check on affected systems is:
-
-```bash
-fc-match -v sans-serif
-fc-match -v 'Arial:pixelsize=14'
-fc-match -v 'Tahoma:pixelsize=11'
-```
-
-On the reported machine, the repaired generic family resolves to Noto Sans with
-antialiasing enabled; Arial is also smoothed, while Tahoma at 11 pixels retains
-its crisp XP interface rendering.
+Versioned migration runs even when the display scale is unchanged, and retains
+later user edits to global rendering settings. Fully quit and reopen applications
+to refresh font caches; logout/login refreshes all desktop font selections.

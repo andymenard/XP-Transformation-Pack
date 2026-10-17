@@ -33,3 +33,10 @@ access; an XP ISO is not needed. Desktop is selected by default; Firefox is opti
 The release is a testing prerelease, with compatibility and validation limits
 listed in its notes. Signed checksums authenticate the installer download; this
 release does not activate an OTA payload.
+
+## Interface fonts
+
+The installer includes **Tahoma OS** regular and bold, renamed from Microsoft
+Tahoma to separate XP interface rendering from smooth Tahoma app content. The
+font assets retain their separate Microsoft rights; see
+[font provenance and notices](installer/assets/fonts/tahoma-os/NOTICE.txt).

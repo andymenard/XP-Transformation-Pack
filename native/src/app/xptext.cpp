@@ -11,6 +11,7 @@
 #include <QJsonObject>
 #include <QMap>
 #include <QRawFont>
+#include <QFontDatabase>
 #include <QRegularExpression>
 #include <QSaveFile>
 #include <QSet>
@@ -24,7 +25,7 @@ namespace xpl::xptext {
 namespace {
 
 constexpr const char *kRulesName = "xplasma-xp-text.conf";
-constexpr int kRulesVersion = 2;
+constexpr int kRulesVersion = 3;
 const char *const kXftKeys[] = {"XftHintStyle", "XftSubPixel", "XftAntialias", "fixedFont"};
 
 QString fontconfigDir()
@@ -94,7 +95,7 @@ QByteArray rules(const QString &fontsDir, double scale)
         "<!-- XPlasma interface fonts only; generic and document fonts retain system rendering. -->\n"
         "<fontconfig>\n");
     for (auto it = families.cbegin(); it != families.cend(); ++it) {
-        const QString family = QStringLiteral("  <test name=\"family\"><string>%1</string></test>\n").arg(escape(it.key()));
+        const QString family = QStringLiteral("  <test name=\"family\"><string>%1</string></test>\n").arg(escape(it.key() == QLatin1String("Tahoma") ? QStringLiteral("Tahoma OS") : it.key()));
         out += QStringLiteral(" <match target=\"font\">\n") + family
                + QStringLiteral("  <edit mode=\"assign\" name=\"hinting\"><bool>true</bool></edit>\n"
                                 "  <edit mode=\"assign\" name=\"hintstyle\"><const>hintfull</const></edit>\n"
@@ -109,13 +110,38 @@ QByteArray rules(const QString &fontsDir, double scale)
             from = maxPpem + 1;
         }
     }
-    out += QStringLiteral("</fontconfig>\n");
+    out += QStringLiteral(" <match target=\"font\"><test name=\"family\"><string>Tahoma</string></test>"
+                          "<edit name=\"antialias\" mode=\"assign\"><bool>true</bool></edit>"
+                          "<edit name=\"hinting\" mode=\"assign\"><bool>true</bool></edit>"
+                          "<edit name=\"hintstyle\" mode=\"assign\"><const>hintfull</const></edit></match>\n"
+                          " <alias><family>sans-serif</family><prefer><family>Tahoma</family></prefer></alias>\n"
+                          "</fontconfig>\n");
     return out.toUtf8();
 }
 
 bool apply(Session &session, State &state, QString *error)
 {
     const QString dir = fontconfigDir();
+    const QString source = paths::xpFonts();
+    if (QFileInfo::exists(source + QLatin1String("/tahoma.ttf"))) {
+        QFile generator(QStringLiteral(":/fonts/tahoma_os.py"));
+        if (!generator.open(QIODevice::ReadOnly)) {
+            if (error) *error = QStringLiteral("Missing Tahoma OS generator");
+            return false;
+        }
+        const QString script = paths::cache() + QLatin1String("/fonts/tahoma_os.py");
+        if (!write(script, generator.readAll())) return false;
+        const QString destination = source + QLatin1String("/tahoma-os");
+        const auto result = session.run({QStringLiteral("python3"), script, source, destination});
+        if (!result.ok()) {
+            if (error) *error = QStringLiteral("Could not create Tahoma OS from the original fonts");
+            return false;
+        }
+        session.run({QStringLiteral("fc-cache"), QStringLiteral("-f"), destination});
+        for (const auto &name : {QStringLiteral("tahoma-os.ttf"), QStringLiteral("tahoma-os-bold.ttf")})
+            if (QFileInfo::exists(destination + QLatin1Char('/') + name))
+                QFontDatabase::addApplicationFont(destination + QLatin1Char('/') + name);
+    }
     const double scale = displayScale();
     if (!write(dir + QLatin1Char('/') + QLatin1String(kRulesName), rules(paths::xpFonts(), scale))) {
         if (error)
@@ -182,6 +208,16 @@ bool apply(Session &session, State &state, QString *error)
             const QString previous = previousFonts.value(it.key()).toString();
             if (previous.isEmpty()) session.deleteConfig(QStringLiteral("kdeglobals"), general, it.key());
             else session.writeConfig(QStringLiteral("kdeglobals"), general, it.key(), previous);
+        }
+    }
+    for (const auto &group : {QStringLiteral("General"), QStringLiteral("WM")}) {
+        const QStringList keys = group == QLatin1String("General")
+            ? QStringList{QStringLiteral("font"), QStringLiteral("menuFont"), QStringLiteral("toolBarFont"), QStringLiteral("smallestReadableFont")}
+            : QStringList{QStringLiteral("activeFont"), QStringLiteral("inactiveFont")};
+        for (const auto &key : keys) {
+            const QString current = session.readConfig(QStringLiteral("kdeglobals"), {group}, key);
+            if (current.startsWith(QLatin1String("Tahoma,"), Qt::CaseInsensitive))
+                session.writeConfig(QStringLiteral("kdeglobals"), {group}, key, QStringLiteral("Tahoma OS,") + current.mid(7));
         }
     }
     state.settings.insert(QStringLiteral("xpTextRulesVersion"), kRulesVersion);

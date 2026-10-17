@@ -61,6 +61,7 @@ def sync(suite, icons=None, wallpapers=None):
     for source in (ROOT / 'installer').iterdir():
         if source.is_file():
             shutil.copy2(source, suite / source.name)
+    shutil.copytree(ROOT/'installer/assets/fonts/tahoma-os',suite/'payload/assets/fonts/tahoma-os',dirs_exist_ok=True)
     prebuilts=ROOT/'private-assets/prebuilt'
     if prebuilts.is_dir():
         shutil.copytree(prebuilts,suite/'prebuilt',dirs_exist_ok=True,symlinks=True)

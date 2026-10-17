@@ -34,7 +34,8 @@ def source(destination):
   if p.parts[0]=='.github' and name!='.github/workflows/prebuilt-kubuntu.yml':continue
   if name in PRIVATE_RELEASE_TESTS:continue
   if name.startswith('tools/dark-theme/tests/') or '__pycache__' in p.parts:continue
-  if p.suffix.lower() in {'.exe','.dll','.ttf','.msstyles','.vlt'}:continue
+  included_os_font = name in {'installer/assets/fonts/tahoma-os/tahoma-os.ttf','installer/assets/fonts/tahoma-os/tahoma-os-bold.ttf'}
+  if p.suffix.lower() in {'.exe','.dll','.ttf','.msstyles','.vlt'} and not included_os_font:continue
   if p.suffix=='.pem' and name!='updater/release-key.pem':continue
   source=ROOT/p
   if source.is_symlink():raise RuntimeError('Source links must be reviewed before public export: '+name)
@@ -60,6 +61,7 @@ def bundle(suite,destination):
   folder=destination/'payload'/name
   if folder.exists():shutil.rmtree(folder)
  configure(destination)
+ shutil.copytree(ROOT/'installer/assets/fonts/tahoma-os',destination/'payload/assets/fonts/tahoma-os',dirs_exist_ok=True)
  config={'repository':PROFILE['repository'],'channel':'alpha','access':'public'}
  for p in (ROOT/'updater').iterdir():
   if p.is_file():shutil.copy2(p,destination/'payload/updater'/p.name)

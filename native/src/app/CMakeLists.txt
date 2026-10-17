@@ -149,3 +149,6 @@ install(FILES data/fyi.hotsocket.xplasma.updates.desktop DESTINATION share/xplas
 install(FILES ${PROJECT_SOURCE_DIR}/LICENSE ${PROJECT_SOURCE_DIR}/THIRD-PARTY-NOTICES DESTINATION share/licenses/xplasma)
 
 qt_add_resources(xplasma-app "darkmode" PREFIX /dark-mode BASE data/dark-mode FILES data/dark-mode/build.py data/dark-mode/palette.theme)
+
+# Generate the interface family from the original Tahoma faces.
+qt_add_resources(xplasma-app "interfacefonts" PREFIX /fonts BASE data/fonts FILES data/fonts/tahoma_os.py)

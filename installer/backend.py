@@ -245,7 +245,7 @@ def prepare_native(home,state,selected,theme,asset_options=None):
  if 'pointers' in selected:run([cli,'pointers','Windows Default'])
  if 'fonts' in selected:
   if shutil.which('gsettings'):
-   run(['gsettings','set','org.gnome.desktop.interface','font-name','Tahoma 8'],check=False)
+   run(['gsettings','set','org.gnome.desktop.interface','font-name','Tahoma OS 8'],check=False)
    run(['gsettings','set','org.gnome.desktop.interface','monospace-font-name','Lucida Console 10'],check=False)
  if 'theme_manager' in selected:
   for p in (state/'runtime/share/applications').glob('*.desktop'):
@@ -259,14 +259,16 @@ def config(file,group,key,value):
 def basic(home,selected,native=False,asset_options=None):
  if 'fonts' in selected:
   copy(BASE/'payload/assets/fonts',home/'.local/share/fonts/xp')
+  from tahoma_os import generate
+  generate(home/'.local/share/fonts/xp',home/'.local/share/fonts/xp/tahoma-os')
   font_rules=home/'.config/fontconfig/conf.d/99-xp-fonts.conf'
   font_rules.parent.mkdir(parents=True,exist_ok=True)
   font_rules.write_text('<?xml version="1.0"?><fontconfig><!-- XP interface fonts are selected explicitly; keep system generic defaults. --></fontconfig>\n')
-  for key,value in {'font':'Tahoma,8,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0','menuFont':'Tahoma,8,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0','smallestReadableFont':'Tahoma,8,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0','toolBarFont':'Tahoma,8,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0','fixedFont':'Lucida Console,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0'}.items():config('kdeglobals','General',key,value)
+  for key,value in {'font':'Tahoma OS,8,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0','menuFont':'Tahoma OS,8,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0','smallestReadableFont':'Tahoma OS,8,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0','toolBarFont':'Tahoma OS,8,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0','fixedFont':'Lucida Console,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0'}.items():config('kdeglobals','General',key,value)
   if not native:
    for key in ['activeFont','inactiveFont']:config('kdeglobals','WM',key,'Trebuchet MS,10,-1,5,700,0,0,0,0,0,0,0,0,0,0,1,,0,0')
   if shutil.which('gsettings'):
-   for key,value in [('font-name','Tahoma 8'),('monospace-font-name','Lucida Console 10')]:run(['gsettings','set','org.gnome.desktop.interface',key,value],check=False)
+   for key,value in [('font-name','Tahoma OS 8'),('monospace-font-name','Lucida Console 10')]:run(['gsettings','set','org.gnome.desktop.interface',key,value],check=False)
   run(['fc-cache','-f'])
  if 'icons' in selected and not native:
   copy(BASE/'payload/basic/icons',home/'.local/share/icons/xplasma-icons');config('kdeglobals','Icons','Theme','xplasma-icons')

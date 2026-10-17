@@ -37,3 +37,10 @@ release does not activate an OTA payload.
 ## Boot splash troubleshooting
 
 If the boot splash stays black or flickers, see [Boot splash troubleshooting](BOOT-SPLASH-TROUBLESHOOTING.md) for the optional Intel early-driver workaround confirmed on a docked laptop. This is a manual troubleshooting step; the installer does not apply it automatically.
+
+## Interface fonts
+
+The installer includes **Tahoma OS** regular and bold, renamed from Microsoft
+Tahoma to separate XP interface rendering from smooth Tahoma app content. The
+font assets retain their separate Microsoft rights; see
+[font provenance and notices](installer/assets/fonts/tahoma-os/NOTICE.txt).

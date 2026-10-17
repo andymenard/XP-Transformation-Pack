@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "app/gdifont.h"
+#include "core/crispfont.h"
 
 #include <QRawFont>
 #include <QtEndian>
@@ -79,6 +80,7 @@ bool gdiSmooths(const QFont &font)
 
 QFont gdiFont(QFont font)
 {
+    font = osUiFont(font);
     font.setHintingPreference(QFont::PreferFullHinting);
     if (!gdiSmooths(font))
         font.setStyleStrategy(QFont::NoAntialias);

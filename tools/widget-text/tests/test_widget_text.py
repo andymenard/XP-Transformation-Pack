@@ -7,7 +7,10 @@ from pathlib import Path
 import tempfile
 import time
 import unittest
-from PySide6 import QtCore, QtGui, QtQml, QtQuick
+try:
+    from PySide6 import QtCore, QtGui, QtQml, QtQuick
+except ImportError:
+    from PyQt6 import QtCore, QtGui, QtQml, QtQuick
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = QtGui.QGuiApplication.instance() or QtGui.QGuiApplication([])
@@ -59,15 +62,16 @@ class WidgetTextTest(unittest.TestCase):
                 expected = f'XPlasma Tahoma Pixel {physical}' if physical != 22 else 'XPlasma Tahoma Pixel'
                 self.assertEqual(font.family(),expected)
                 self.assertAlmostEqual(font.pointSizeF()*96/72*dpr,physical,places=4)
-                self.assertEqual(font.weight(),QtGui.QFont.Bold)
+                self.assertEqual(font.weight(),QtGui.QFont.Weight.Bold)
                 self.assertFalse(label.property('antialiasing'))
             label.setProperty('xpFamily','Trebuchet MS')
             self.assertFalse(label.property('xpActive'))
             self.assertEqual(label.property('font').family(),'Trebuchet MS')
-            label.setProperty('xpFamily','Tahoma')
+            label.setProperty('xpFamily','Tahoma OS')
+            self.assertTrue(label.property('xpActive'))
             write(False)
             wait_for(False)
-            self.assertEqual(label.property('font').family(),'Tahoma')
+            self.assertEqual(label.property('font').family(),'Tahoma OS')
             self.assertTrue(label.property('antialiasing'))
             self.assertFalse(errors, errors)
             obj.deleteLater()

@@ -8,7 +8,7 @@ import "timer.js" as AutoTriggerTimer
 AbstractButton {
     id: button
     width: 75; height: Math.max(52, 39 + label.implicitHeight)
-    font.family: "Tahoma"
+    font.family: "Tahoma OS"
     font.pixelSize: 11
     // Sprites hold three 32px states per button: normal, pressed, hot.
     // 20150 (msgina): Turn Off 0, Stand By 3, Restart 6, disabled 9. 14356 (shell32): Switch User 0, Log Off 3.

@@ -145,7 +145,7 @@ Item {
         Text {
             x: 11; y: (42 - height) / 2
             text: root.powerMode ? "Turn off computer" : "Log Off Windows"
-            color: "white"; font.family: "Tahoma"; font.pixelSize: 20; font.bold: true
+            color: "white"; font.family: "Tahoma OS"; font.pixelSize: 20; font.bold: true
         }
         Image { source: "assets/20141.png"; x: 265; y: 1; width: 48; height: 40 }
     }
@@ -159,7 +159,7 @@ Item {
         spacing: 2
 
         PlasmaComponents.Label {
-            font.family: "Tahoma"
+            font.family: "Tahoma OS"
             font.pixelSize: 11
             color: "white"
             Layout.alignment: Qt.AlignHCenter
@@ -176,7 +176,7 @@ Item {
         }
 
         PlasmaComponents.Label {
-            font.family: "Tahoma"
+            font.family: "Tahoma OS"
             font.pixelSize: 11
             color: "white"
             Layout.alignment: Qt.AlignHCenter
@@ -196,7 +196,7 @@ Item {
         }
 
         PlasmaComponents.Label {
-            font.family: "Tahoma"
+            font.family: "Tahoma OS"
             font.pixelSize: 11
             color: "white"
             Layout.alignment: Qt.AlignHCenter
@@ -210,7 +210,7 @@ Item {
         }
 
         PlasmaComponents.Label {
-            font.family: "Tahoma"
+            font.family: "Tahoma OS"
             font.pixelSize: 11
             color: "white"
             Layout.alignment: Qt.AlignHCenter
@@ -391,7 +391,7 @@ Item {
         x: frame.x + 242; y: frame.y + 167 + root.extraHeight
         width: 60; height: 20
         text: "Cancel"
-        font.family: "Tahoma"; font.pixelSize: 11
+        font.family: "Tahoma OS"; font.pixelSize: 11
         onClicked: root.cancelRequested()
 
         Keys.onPressed: AutoTriggerTimer.cancelAutoTrigger()
