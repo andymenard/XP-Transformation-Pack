@@ -62,6 +62,30 @@ QString share(const QString &relative)
     return paths::localShare() + QLatin1Char('/') + relative;
 }
 
+// Plasma keeps memory for every desktop theme name it is shown and never
+// gives it back (~2 MB a name, measured): with a name per look, each new
+// custom color grew the shell. The taskbar takes turns in two fixed slots
+// instead, the one not in use refilled with the look's (cached) theme.
+constexpr const char *kTaskbarSlots[] = {"xplasma-taskbar-a", "xplasma-taskbar-b"};
+
+bool install(const QString &from, const QString &to, QString *error);
+bool fillTaskbarSlot(const QString &theme, const QString &slot, QString *error)
+{
+    const QString dest = share(QStringLiteral("plasma/desktoptheme/")) + slot;
+    if (!install(theme, dest, error))
+        return false;
+    QFile meta(dest + QLatin1String("/metadata.json"));
+    QJsonObject json = meta.open(QIODevice::ReadOnly) ? QJsonDocument::fromJson(meta.readAll()).object() : QJsonObject();
+    meta.close();
+    QJsonObject plugin = json.value(QStringLiteral("KPlugin")).toObject();
+    plugin.insert(QStringLiteral("Id"), slot);
+    json.insert(QStringLiteral("KPlugin"), plugin);
+    QSaveFile out(dest + QLatin1String("/metadata.json"));
+    if (!out.open(QIODevice::WriteOnly) || out.write(QJsonDocument(json).toJson()) < 0 || !out.commit())
+        return fail(error, QStringLiteral("%1: %2").arg(out.fileName(), out.errorString()));
+    return true;
+}
+
 // A package directory built under `from` moved into place at `to`.
 // Copied in beside the old one, then swapped for it in one step: whatever
 // is watching (every app, for an icon theme in use) never finds it missing
@@ -775,6 +799,9 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
 
     const QString auroraeDest = share(QStringLiteral("aurorae/themes/")) + look.id;
     const QString panelDest = share(QStringLiteral("plasma/desktoptheme/")) + look.id + QLatin1String("-taskbar");
+    const QString activeTaskbar = session.readConfig(QStringLiteral("plasmarc"), {QStringLiteral("Theme")}, QStringLiteral("name"));
+    const QString taskbarSlot = QLatin1String(activeTaskbar == QLatin1String(kTaskbarSlots[0]) ? kTaskbarSlots[1] : kTaskbarSlots[0]);
+    const QString slotDest = share(QStringLiteral("plasma/desktoptheme/")) + taskbarSlot;
     // --- generate ------------------------------------------------------------
     report(o, QStringLiteral("Generating %1 ...").arg(look.name));
     // (With XPlasma's own decoration KWin draws the look from xplasmarc: no
@@ -904,7 +931,8 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
                 return fail(error, QStringLiteral("%1: %2").arg(colorsDest, f.errorString()));
         }
         if (o.taskbar) {
-            if ((!QFileInfo::exists(startDir) && !install(startStaging, startDir, error)) || (!QFileInfo::exists(panelDest) && !install(panel, panelDest, error)) || (!colorOnly && (!installStartPlasmoid(share(QStringLiteral("plasma/plasmoids")), error)
+            if ((!QFileInfo::exists(startDir) && !install(startStaging, startDir, error)) || (!QFileInfo::exists(panelDest) && !install(panel, panelDest, error))
+                || !fillTaskbarSlot(panelDest, taskbarSlot, error) || (!colorOnly && (!installStartPlasmoid(share(QStringLiteral("plasma/plasmoids")), error)
                 || !installClockPlasmoid(share(QStringLiteral("plasma/plasmoids")), error))))
                 return false;
             if (!colorOnly && !overrides::installPanelWidgets(share(QStringLiteral("plasma/plasmoids")), &why))
@@ -956,11 +984,12 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
                 report(o, QStringLiteral("  ") + line);
         }
         if (o.taskbar) {
-            const QString panelId = look.id + QLatin1String("-taskbar");
-            session.run({QStringLiteral("plasma-apply-desktoptheme"), panelId});
             const QString cache = paths::home() + QLatin1String("/.cache/");
-            QFile::remove(cache + QLatin1String("plasma_theme_") + panelId + QLatin1String(".kcache"));
-            primeSizeHints(panelDest + QLatin1String("/widgets"), cache + QLatin1String("ksvg-elements"));
+            // (The slot's pixmaps from the look it last held.)
+            for (const QString &stale : QDir(cache).entryList({QLatin1String("plasma_theme_") + taskbarSlot + QLatin1String("*.kcache")}, QDir::Files))
+                QFile::remove(cache + stale);
+            session.run({QStringLiteral("plasma-apply-desktoptheme"), taskbarSlot});
+            primeSizeHints(slotDest + QLatin1String("/widgets"), cache + QLatin1String("ksvg-elements"));
             if(!colorOnly)settleTaskbars(session, shellArt.height);
             for (const auto &[panelNumber, order] : orders)
                 session.writeConfig(QStringLiteral("plasma-org.kde.plasma.desktop-appletsrc"),
@@ -997,7 +1026,7 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
 
     // Leave immutable profile assets cached for subsequent switches. Remove
     // legacy packages only after both renderers have switched away from them.
-    if(!colorOnly)for(const QString &stale:generatedPackages({auroraeDest,colorsDest,panelDest,iconsDest})) {
+    if(!colorOnly)for(const QString &stale:generatedPackages({auroraeDest,colorsDest,panelDest,iconsDest,share(QStringLiteral("plasma/desktoptheme/"))+QLatin1String(kTaskbarSlots[0]),share(QStringLiteral("plasma/desktoptheme/"))+QLatin1String(kTaskbarSlots[1])})) {
         if(QFileInfo(stale).fileName().startsWith(QLatin1String("xplasma-v2-")))continue;
         if(QFileInfo(stale).isDir())QDir(stale).removeRecursively();else QFile::remove(stale);
     }
