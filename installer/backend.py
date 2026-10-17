@@ -16,7 +16,7 @@ THEMES={'Luna Blue':('Luna/luna.msstyles','NormalColor'),'Luna Silver':('Luna/lu
  'Luna Olive Green':('Luna/luna.msstyles','HomeStead'),'Royale':('Royale/Royale.msstyles','NormalColor'),
  'Royale Noir':('Royale Noir/Royale Noir.msstyles','Metallic'),'Zune':('Zune/Zune.msstyles','NormalColor'),
  'Embedded':('Embedded/Embedded.msstyles','NormalColor')}
-USER_PATHS=['.local/share/xplasma-updater/app','.local/share/xplasma-updater/config.json','.local/share/applications/xplasma-update.desktop','.local/share/applications/fyi.hotsocket.xp.accessories.desktop','.local/share/xp-accessories','.config/menus/applications-merged/xp-accessories.menu','.local/share/desktop-directories/xp-accessories.directory','.local/share/desktop-directories/xp-entertainment.directory','.local/share/desktop-directories/xp-games.directory','.local/share/konsole/XP Command Prompt.profile','.local/share/konsole/XP Command Prompt.colorscheme',*[('.local/share/applications/fyi.hotsocket.xp.'+key.replace('_','-')+'.desktop') for key in sorted(ACCESSORIES)],'.config/kdeglobals','.config/mimeapps.list','.config/kwinrc','.config/kwinrulesrc','.config/klaunchrc','.config/kcminputrc',
+USER_PATHS=['.local/share/applications/fyi.hotsocket.xp.accessories.desktop','.local/share/xp-accessories','.config/menus/applications-merged/xp-accessories.menu','.local/share/desktop-directories/xp-accessories.directory','.local/share/desktop-directories/xp-entertainment.directory','.local/share/desktop-directories/xp-games.directory','.local/share/konsole/XP Command Prompt.profile','.local/share/konsole/XP Command Prompt.colorscheme',*[('.local/share/applications/fyi.hotsocket.xp.'+key.replace('_','-')+'.desktop') for key in sorted(ACCESSORIES)],'.config/kdeglobals','.config/mimeapps.list','.config/kwinrc','.config/kwinrulesrc','.config/klaunchrc','.config/kcminputrc',
  '.config/plasmashellrc','.config/plasma-org.kde.plasma.desktop-appletsrc','.config/ksplashrc','.local/share/plasma/look-and-feel/local.xp.welcome.desktop','.config/xplasmarc','.config/plasma_workspace.notifyrc','.config/ksmserver.notifyrc',
  '.config/gtk-3.0','.config/gtk-4.0','.config/fontconfig','.config/plasma-workspace/env',
  '.local/share/applications/fyi.hotsocket.xp.caption-animation.desktop','.config/autostart/xp-decoration-compatibility.desktop','.config/systemd/user/xp-session-theme.path','.config/systemd/user/xp-session-theme.service',
@@ -492,20 +492,6 @@ def codex(home,selected):
   copy(BASE/'payload/codex/clippy',dest)
   desk['selected-avatar-id']='custom:clippy';desk['avatar-overlay-pet-visible']=True;desk['pet-visibility']='always-visible'
  path.write_text(tomlkit.dumps(doc))
-def update_client(home):
- import importlib.util
- source=BASE/'payload/updater'
- # The bootstrap's core module is local to its standalone payload.
- sys.path.insert(0,str(source))
- try:
-  spec=importlib.util.spec_from_file_location('xp_update_bootstrap',source/'install.py')
-  module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
-  if (BASE/'edition.json').is_file():
-   module.register(home,source,require_existing=False,switch_feed=True)
-  else:
-   module.register(home,source,require_existing=False)
- finally:sys.path.remove(str(source))
-
 def install(selected,theme,asset_options=None):
  asset_options=asset_options or {}
  selected=validate_selection(selected,theme);phase('Checking system and package');preflight(selected);verify()
@@ -553,7 +539,6 @@ def install(selected,theme,asset_options=None):
   if 'taskbar' in selected:phase('Setting default taskbar shortcuts');taskbar_defaults(home,selected)
   if 'desktop_icons' in selected:phase('Adding XP desktop shortcuts');shortcuts(home,state,selected,asset_options)
   if selected&{'codex_colors','clippy'}:phase('Configuring Codex extras');codex(home,selected)
-  if 'updates' in selected:phase('Installing signed XPlasma update client');update_client(home)
   if selected&{'login','boot'}:
    run(['kwriteconfig6','--file','ksplashrc','--group','KSplash','--key','Engine','none'])
    phase('Installing selected login and boot screens');root('screens',selected)

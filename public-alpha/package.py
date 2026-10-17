@@ -10,6 +10,7 @@ def package(bundle,output):
  if not re.fullmatch(r'\d+\.\d+\.\d+-alpha\.\d+',version):raise ValueError('Expected an alpha semantic version')
  features=json.loads((bundle/'features.json').read_text())
  if any(f.get('project') not in {'desktop','firefox','shared'} for f in features):raise ValueError('Excluded project remains in bundle')
+ if any(f['id']=='updates' for f in features) or (bundle/'payload/updater').exists():raise ValueError('OTA updater is excluded from prereleases')
  manifest=json.loads((bundle/'SHA256SUMS.json').read_text())
  for relative,expected in manifest.items():
   file=bundle/relative

@@ -1,7 +1,7 @@
 # Alpha installer
 
-The public edition includes Desktop by default, optional IE6 Firefox, and signed
-public update support. XP applications, custom tray menus, Codex colors and
+The public edition includes Desktop by default and optional IE6 Firefox.
+OTA updates are excluded from prereleases. XP applications, custom tray menus, Codex colors and
 Clippy are excluded. See the root README and CREDITS for scope and attribution.
 
 This source checkout alone is not the complete asset-bearing installer. Local
@@ -22,7 +22,6 @@ dracut or update-initramfs; mkinitcpio-only boot configurations are not supporte
 The Welcome splash is separate from login and boot screens and appears as Plasma
 starts. Remove an older overlapping installer before switching installation managers.
 
-Updates use andymenard/XP-Transformation-Pack anonymously; GitHub CLI and a GitHub
-account are not required. Installer backups include the updater feed configuration.
-Selecting public update support explicitly switches an existing private update feed
-in this new installation; it does not change clients on other computers.
+New versions are distributed as complete installers on GitHub. Properties links
+to that releases page; no OTA updater or updater feed is installed. Follow each
+release's migration notes and remove an overlapping installation before reinstalling.

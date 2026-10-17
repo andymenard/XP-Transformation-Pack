@@ -152,13 +152,5 @@
     "default": false,
     "native": false,
     "project": "firefox"
-  },
-  {
-    "id": "updates",
-    "name": "XPlasma Update",
-    "description": "Signed alpha updates from the public XP Transformation Pack repository. No GitHub account required.",
-    "default": true,
-    "native": false,
-    "project": "shared"
   }
 ]

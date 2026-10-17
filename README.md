@@ -18,15 +18,20 @@ This public repository is source only. Original Microsoft fonts, visual styles, 
 
 Build Desktop with `cmake -S native -B build/desktop -G Ninja -DQT_MAJOR=6` and `cmake --build build/desktop`. Native components must match the receiving machine's KDE/Qt. The optional browser sources are under `browser/ie6`. Source includes the caption effect and original third-party notices.
 
-## Updates
+## New releases
 
-The public updater uses anonymous HTTPS GitHub release requests to `andymenard/XP-Transformation-Pack`; users do not need GitHub CLI or an account. Alpha releases use semantic versions such as `1.0.0-alpha.1`. The alpha channel can select complete signed prereleases; stable clients do not select prereleases. The bundled publisher key still verifies release manifests and file hashes before installation. No private signing key or authentication token is shipped.
+Prereleases use complete installer downloads. OTA updates are not included and
+there is no background update client. **Download New Releases** in Properties
+opens the GitHub releases page in your browser. Signed checksums are provided
+for verifying each installer download.
 
-Until a complete signed alpha release is published, Check for updates reports that no complete signed alpha update is available. Public-repository creation does not publish proprietary assets or make the private development repository public.
+Read the new release's installation and migration notes before changing an
+existing installation. The current installer requires removal of an overlapping
+installation before reinstalling; an in-place upgrade is not supported yet.
 
 ## Download the alpha installer
 
-See [Alpha 1.0](https://github.com/andymenard/XP-Transformation-Pack/releases/tag/v1.0.0-alpha.6).
+See [Alpha 1.0](https://github.com/andymenard/XP-Transformation-Pack/releases/tag/v1.0.0-alpha.7).
 Extract the installer tar.gz, then launch **Start-Installer.desktop** from the
 extracted folder as your desktop user. Linux dependencies require internet
 access; an XP ISO is not needed. Desktop is selected by default; Firefox is optional.

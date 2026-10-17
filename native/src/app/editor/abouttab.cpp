@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "app/editor/abouttab.h"
 
-#include "app/editor/updatenotifier.h"
 
 #include "app/desktop.h"
 #include "app/project.h"
@@ -11,8 +10,6 @@
 #include <QApplication>
 #include <QDesktopServices>
 #include <QDir>
-#include <QFileInfo>
-#include <QProcess>
 #include <QUrl>
 #include <QClipboard>
 #include <QDialog>
@@ -113,12 +110,10 @@ AboutTab::AboutTab(QWidget *parent)
     legal->addWidget(notices);
     legal->addStretch(1);
     {
-        auto *updates = new QPushButton(QStringLiteral("Check for &Updates"));
+        auto *updates = new QPushButton(QStringLiteral("&Download New Releases"));
         legal->addWidget(updates);
         connect(updates, &QPushButton::clicked, this, [] {
-            const QString client = QDir::homePath() + QStringLiteral("/.local/share/xplasma-updater/app/gui.py");
-            if (!QFileInfo::exists(client) || !QProcess::startDetached(QStringLiteral("python3"), {client}))
-                QDesktopServices::openUrl(QUrl(QStringLiteral("https://github.com/andymenard/XP-Transformation-Pack/releases")));
+            QDesktopServices::openUrl(QUrl(QStringLiteral("https://github.com/andymenard/XP-Transformation-Pack/releases")));
         });
     }
     layout->addLayout(legal);

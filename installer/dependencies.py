@@ -13,15 +13,15 @@ def packages(family,features,bootstrap=False,native_ready=False,caption_ready=Fa
  r=RECIPES[family];groups=['gui'] if bootstrap else ['base']
  if not bootstrap:
   if set(features)&NATIVE and not native_ready:groups+=['native']
-  if set(features)&({'explorer','control_panel','updates'}|APPS):groups+=['gui']
+  if set(features)&({'explorer','control_panel'}|APPS):groups+=['gui']
   groups += [x for x in ['firefox','login','boot','apps'] if x in features]
   if set(features)&{'lock','session','taskbar'}:groups+=['qml']
  result=set(' '.join(r[g] for g in groups).split())
  extras={
- 'apt':{'updates':'openssl','paint':'python3-pyqt6.qtwebengine','media_player':'vlc vlc-plugin-skins2','sound_recorder':'python3-pyqt6.qtmultimedia libqt6multimedia6','volume_control':'pulseaudio-utils python3-pyqt6.qtmultimedia','command_prompt':'konsole','task_manager':'python3-psutil','games':'build-essential cmake ninja-build libsdl2-dev','pinball':'libsdl2-mixer-dev','solitaire':'qt6-base-dev qt6-multimedia-dev'},
- 'dnf':{'updates':'openssl','paint':'python3-pyqt6-webengine','media_player':'vlc vlc-gui-skins2','sound_recorder':'qt6-qtmultimedia','volume_control':'pulseaudio-utils qt6-qtmultimedia','command_prompt':'konsole','task_manager':'python3-psutil','games':'gcc-c++ cmake ninja-build SDL2-devel','pinball':'SDL2_mixer-devel','solitaire':'qt6-qtbase-devel qt6-qtmultimedia-devel'},
- 'pacman':{'updates':'openssl','paint':'python-pyqt6-webengine','media_player':'vlc vlc-gui-skins2 vlc-gui-qt vlc-plugin-ffmpeg','sound_recorder':'qt6-multimedia qt6-multimedia-ffmpeg','volume_control':'libpulse qt6-multimedia','command_prompt':'konsole','task_manager':'python-psutil','games':'base-devel cmake ninja sdl2','pinball':'sdl2_mixer','solitaire':'qt6-base qt6-multimedia'},
- 'zypper':{'updates':'openssl','paint':'python3-qt6-webengine','media_player':'vlc','sound_recorder':'qt6-multimedia','volume_control':'pulseaudio-utils qt6-multimedia','command_prompt':'konsole','task_manager':'python3-psutil','games':'gcc-c++ cmake ninja libSDL2-devel','pinball':'libSDL2_mixer-devel','solitaire':'qt6-base-devel qt6-multimedia-devel'}
+ 'apt':{'paint':'python3-pyqt6.qtwebengine','media_player':'vlc vlc-plugin-skins2','sound_recorder':'python3-pyqt6.qtmultimedia libqt6multimedia6','volume_control':'pulseaudio-utils python3-pyqt6.qtmultimedia','command_prompt':'konsole','task_manager':'python3-psutil','games':'build-essential cmake ninja-build libsdl2-dev','pinball':'libsdl2-mixer-dev','solitaire':'qt6-base-dev qt6-multimedia-dev'},
+ 'dnf':{'paint':'python3-pyqt6-webengine','media_player':'vlc vlc-gui-skins2','sound_recorder':'qt6-qtmultimedia','volume_control':'pulseaudio-utils qt6-qtmultimedia','command_prompt':'konsole','task_manager':'python3-psutil','games':'gcc-c++ cmake ninja-build SDL2-devel','pinball':'SDL2_mixer-devel','solitaire':'qt6-qtbase-devel qt6-qtmultimedia-devel'},
+ 'pacman':{'paint':'python-pyqt6-webengine','media_player':'vlc vlc-gui-skins2 vlc-gui-qt vlc-plugin-ffmpeg','sound_recorder':'qt6-multimedia qt6-multimedia-ffmpeg','volume_control':'libpulse qt6-multimedia','command_prompt':'konsole','task_manager':'python-psutil','games':'base-devel cmake ninja sdl2','pinball':'sdl2_mixer','solitaire':'qt6-base qt6-multimedia'},
+ 'zypper':{'paint':'python3-qt6-webengine','media_player':'vlc','sound_recorder':'qt6-multimedia','volume_control':'pulseaudio-utils qt6-multimedia','command_prompt':'konsole','task_manager':'python3-psutil','games':'gcc-c++ cmake ninja libSDL2-devel','pinball':'libSDL2_mixer-devel','solitaire':'qt6-base-devel qt6-multimedia-devel'}
  }
  extras[family]['explorer']={
  'apt':'build-essential cmake ninja-build extra-cmake-modules qt6-base-dev libkf6kio-dev libkf6solid-dev kio-extras udisks2',
