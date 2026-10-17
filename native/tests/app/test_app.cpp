@@ -76,6 +76,14 @@ using namespace xpl;
 
 namespace {
 
+// A pixel a style's blue made, as custom colors recolour Close and the button
+// symbols: blue to mauve, but not the pinks antialiased against magenta.
+bool lunaBlueMade(QRgb rgb)
+{
+    const QColor c(rgb);
+    return c.hsvSaturationF() >= .12f && c.hsvHueF() * 360.f >= 180.f && !(c.red() >= 0xe0 && c.blue() >= 0xe0);
+}
+
 void writeFile(const QString &path, const QByteArray &bytes)
 {
     QDir().mkpath(QFileInfo(path).absolutePath());
@@ -2404,10 +2412,11 @@ private Q_SLOTS:
         }
     }
 
-    void closeKeepsSkinArtwork()
+    void closeKeepsItsRedNotLunasBlue()
     {
-        // Custom colors leave Close as the skin draws it, an inactive
-        // window's included: only the other buttons take the color.
+        // Custom colors keep Close's red, but what Luna blended with its blue
+        // caption -- the edges, the inactive state's mauve -- takes the
+        // buttons' colour, as the other buttons do.
         const QString source=m_realThemes+"/Luna/luna.msstyles";if(!QFileInfo::exists(source))QSKIP("needs Luna");
         QString error;const auto base=Look::fromStyle(source,"NORMALBLUE_INI",&error);QVERIFY(base);
         const std::array<QColor,4> colors{QColor("#eb9d00"),QColor("#7c7c5c"),QColor("#7c7c5c"),QColor("#d99100")};
@@ -2415,10 +2424,19 @@ private Q_SLOTS:
         const auto result=Look::fromStyle(file,base->variant,&error);QVERIFY(result);
         const auto before=decorationArt(*base),after=decorationArt(*result);
         auto button=[](const DecorationArt &art,const QString &name,const QString &state){for(const auto &b:art.buttons)if(b.first==name)for(const auto &part:b.second)if(part.first==state)return part.second.convertToFormat(QImage::Format_ARGB32);return QImage();};
-        for(const QString state:{"active-center","inactive-center","hover-inactive-center","pressed-inactive-center"}){
-            const auto original=button(before,"close",state);QVERIFY(!original.isNull());
-            QCOMPARE(button(after,"close",state),original);
+        for(const QString state:{"active-center","inactive-center","hover-center","hover-inactive-center","pressed-center","pressed-inactive-center"}){
+            const auto original=button(before,"close",state),changed=button(after,"close",state);QVERIFY(!original.isNull());QCOMPARE(changed.size(),original.size());
+            int red=0,blue=0;
+            for(int y=0;y<original.height();++y)for(int x=0;x<original.width();++x){
+                // (An inactive state's symbol is drawn over recoloured pixels:
+                // only an active one's red, and its symbol, are exactly Luna's.)
+                if(!state.contains(QLatin1String("inactive")) && !lunaBlueMade(original.pixel(x,y))){QCOMPARE(changed.pixel(x,y),original.pixel(x,y));++red;}
+                if(qAlpha(changed.pixel(x,y))>128 && lunaBlueMade(changed.pixel(x,y)))++blue;
+            }
+            QVERIFY2(state.contains(QLatin1String("inactive")) || red>0,qPrintable(state));
+            QVERIFY2(blue==0,qPrintable(state+QStringLiteral(": Luna's blue is left")));
         }
+        QVERIFY(button(after,"close","inactive-center")!=button(before,"close","inactive-center"));
         QVERIFY(button(after,"minimize","inactive-center")!=button(before,"minimize","inactive-center"));
     }
 
@@ -2434,8 +2452,19 @@ private Q_SLOTS:
         const auto after=Theme::load(generated,QStringLiteral("NORMALROYALE_INI"));
         QVERIFY(before && after);
         int protectedImages=0;
+        // Button symbols keep their art; only what the style's blue made (an
+        // inactive symbol's tint) turns grey, readable on any colour.
+        static const QRegularExpression buttonSymbol(QStringLiteral("(CLOSE|MINIMIZE|MAXIMIZE|RESTORE|HELP)GLYPH"));
         for(const auto &name:before->bitmapNames()) if(name.contains(QLatin1String("GLYPH"))) {
-            QCOMPARE(after->bitmap(name).image,before->bitmap(name).image); ++protectedImages;
+            const bool symbol=buttonSymbol.match(name).hasMatch();
+            const QImage original=before->bitmap(name).image.convertToFormat(QImage::Format_RGB32),changed=after->bitmap(name).image.convertToFormat(QImage::Format_RGB32);
+            QCOMPARE(changed.size(),original.size());
+            for(int y=0;y<original.height();++y)for(int x=0;x<original.width();++x){
+                const QRgb was=original.pixel(x,y),now=changed.pixel(x,y);
+                if(symbol && lunaBlueMade(was))QVERIFY2(qRed(now)==qGreen(now) && qGreen(now)==qBlue(now),qPrintable(name));
+                else QVERIFY2(now==was,qPrintable(name));
+            }
+            ++protectedImages;
         }
         for(auto it=before->ini().sections().cbegin();it!=before->ini().sections().cend();++it)
             if(it.key().cls==QLatin1String("startpanel") && (it.key().part.contains(QLatin1String("arrow")) || it.key().part==QLatin1String("logoffbuttons")))
@@ -2453,11 +2482,19 @@ private Q_SLOTS:
                 QVERIFY2(qAbs(pixel.red()-pixel.green())<=1 && qAbs(pixel.green()-pixel.blue())<=1,qPrintable(ref.cls+QLatin1String(" retained an unwanted hue")));
             }
         }
-        Renderer original(before);
-        for(int state : {1,5}) {
-            const PartRef close{QStringLiteral("window"),schema::partId(u"window",u"closebutton"),state,{}};
-            QVERIFY2(renderer.background(close,QSize(23,23))==original.background(close,QSize(23,23)),"Close keeps Royale's own artwork");
+        // Close keeps Royale's red, every frame of it; what its blue made (the
+        // inactive and disabled frames) follows the colour, no blue left.
+        // (In its bitmap: drawn at another size, red and white blend to pink.)
+        const QString closeFile=before->property(u"window",u"closebutton",u"",u"imagefile").value_or(QString());
+        const QImage closeWas=before->bitmap(closeFile).image,closeNow=after->bitmap(closeFile).image;
+        QVERIFY(!closeWas.isNull());QCOMPARE(closeNow.size(),closeWas.size());
+        int kept=0,recoloured=0;
+        for(int y=0;y<closeWas.height();++y) for(int x=0;x<closeWas.width();++x) {
+            const QRgb was=closeWas.pixel(x,y),now=closeNow.pixel(x,y);
+            if(!lunaBlueMade(was)){QVERIFY2(now==was,"Close keeps Royale's red");++kept;}
+            else{QVERIFY2(!lunaBlueMade(now),"Close retained Royale's blue");++recoloured;}
         }
+        QVERIFY(kept>0 && recoloured>0);
         QRgb text;
         QVERIFY(parseColour(after->property(u"startpanel",u"placeslist",u"",u"textcolor").value_or(QString()),&text));
         QCOMPARE(QColor(text),QColor(Qt::white));

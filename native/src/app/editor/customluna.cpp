@@ -125,7 +125,8 @@ QByteArray accentIni(const QByteArray &resource, const std::array<QColor,4> &col
     return out;
 }
 // frameBase: the tone dark (frame) pixels are mapped with, where a bitmap
-// shares its outline with others drawn beside it.
+// shares its outline with others drawn beside it. keepRed: only the pixels
+// Luna's blue made (Close's blue edges, its inactive mauve) follow `target`.
 bool recolour(QByteArray &dib, QColor target, QColor base, const QColor &backdrop = QColor(), bool glyphs = false, QSize frame = QSize(), QRgb keyColor = qRgb(255,0,255), bool keepRed = false, bool glyphOnly = false, int foregroundMode = 0, const QColor &frameBase = QColor())
 {
     if (dib.size() < 40) return false;
@@ -157,9 +158,24 @@ bool recolour(QByteArray &dib, QColor target, QColor base, const QColor &backdro
                 return;
             }
         }
-        // Close keeps Luna's own artwork, inactive included; only its
-        // symbol follows the buttons' text choice (above).
-        if(keepRed)return;
+        // Close keeps Luna's red, and its symbol follows the buttons' text
+        // choice (above). What Luna blended with its blue caption -- the edges'
+        // antialiasing, the inactive and disabled states' mauve and blue --
+        // follows the buttons' colour instead, as the other buttons do.
+        if (keepRed) {
+            // (Pinks with full red and blue are antialiasing against the
+            // magenta transparency key, not Luna's blue: they stay.)
+            const float hue = originalColor.hsvHueF() * 360.f;
+            if (originalColor.hsvSaturationF() < .12f || hue < 180.f
+                || (originalColor.red() >= 0xe0 && originalColor.blue() >= 0xe0))
+                return;
+            // (No colour, for symbols: their lavender is a faded white, grey.)
+            if (!target.isValid()) {
+                const int grey = qGray(input);
+                p[0] = grey; p[1] = grey; p[2] = grey;
+                return;
+            }
+        }
         QColor destination = target, reference = base;
         if (frameBase.isValid() && .2126*originalColor.redF()+.7152*originalColor.greenF()+.0722*originalColor.blueF() <= frameBase.redF()+.1)
             reference = frameBase;
@@ -297,9 +313,15 @@ QString customLuna(const QString &source, const std::array<QColor, 4> &colours,
         }
         if (r.type != QLatin1String("2")) continue;
         const QString n = r.name.toUpper();
-        if (glyphs.contains(n) && textModes[3]) {
+        if (glyphs.contains(n)) {
+            // A chosen text colour draws the symbols; Auto keeps Luna's, but
+            // their blue-made tints (the inactive and disabled symbols'
+            // lavender, a faded white) turn grey, readable on any colour.
             QByteArray bitmap=r.data;
-            if (!recolour(bitmap,textModes[3]==1 ? QColor(Qt::white) : QColor(Qt::black),QColor("#808080"),QColor(),false,QSize(),glyphs[n],false,true))
+            const bool drawn = textModes[3]
+                ? recolour(bitmap,textModes[3]==1 ? QColor(Qt::white) : QColor(Qt::black),QColor("#808080"),QColor(),false,QSize(),glyphs[n],false,true)
+                : recolour(bitmap,QColor(),QColor(),QColor(),false,QSize(),glyphs[n],true);
+            if (!drawn)
                 return fail(QStringLiteral("Unsupported button glyph: %1").arg(n));
             bytes.replace(r.fileOffset,bitmap.size(),bitmap);continue;
         }
@@ -318,7 +340,8 @@ QString customLuna(const QString &source, const std::array<QColor, 4> &colours,
             else if(section.startsWith("taskband") || section.startsWith("task::"))tone=taskTone;
         }
         if(part==3 || part==4){
-            const QString name=part==4?QString("close"):n.contains("MIN")?QString("minimize"):n.contains("MAX")?QString("maximize"):n.contains("RESTORE")?QString("restore"):QString("help");
+            // (Close's recoloured pixels shade like the buttons beside it.)
+            const QString name=part==4?QString("minimize"):n.contains("MIN")?QString("minimize"):n.contains("MAX")?QString("maximize"):n.contains("RESTORE")?QString("restore"):QString("help");
             for(const auto &button:decoration.buttons)if(button.first==name)tone=elementTone(button.second,{"active-center"});
         }
         QColor frameBase;
@@ -327,7 +350,8 @@ QString customLuna(const QString &source, const std::array<QColor, 4> &colours,
             else frameBase=QColor::fromRgbF(frameTone,frameTone,frameTone);
         }
         const QColor base=QColor::fromRgbF(tone,tone,tone);
-        QColor target=part==4 ? QColor("#d84427") : colours[part];
+        // (Close: its red stays; its blue-made pixels take the buttons' colour.)
+        QColor target=part==4 ? colours[3] : colours[part];
         if (part==1 && (surfaces[n].startsWith(QLatin1String("startpanel")) || surfaces[n].startsWith(QLatin1String("startmenu::"))))
             target=menuSurface(colours[1],surfaces[n]);
         if (!recolour(bitmap,target,base,part==0 && blueLuna ? colours[1] : QColor(),part==3 || part==4 || n.contains(QLatin1String("CHEVRON")),frames[n],keys.value(n,qRgb(255,0,255)),part==4,false,(part==3 || part==4) ? textModes[3] : 0,frameBase))
