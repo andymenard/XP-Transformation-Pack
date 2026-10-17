@@ -169,6 +169,8 @@ struct Preset
 bool save(const Preset &preset, QString *path = nullptr, QString *error = nullptr);
 // A preset XPlasma saved (and so may delete).
 bool owned(const QString &path);
+// The visual styles the saved presets name (absolute paths).
+QStringList savedStyles();
 
 } // namespace presets
 

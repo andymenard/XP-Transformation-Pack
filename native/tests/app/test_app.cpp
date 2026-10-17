@@ -690,6 +690,76 @@ private Q_SLOTS:
         QVERIFY(!presets::owned(s.base));
     }
 
+    void unsavedCustomLooksArePruned()
+    {
+        // Custom colors build a style and a set of packages per choice: kept
+        // while saved or applied (and the look just replaced), else removed.
+        const QString share = paths::localShare(), luna = paths::data() + QLatin1String("/custom-luna/");
+        const QString saved = luna + QLatin1String("saved.msstyles"), applied = luna + QLatin1String("applied.msstyles"),
+                      previous = luna + QLatin1String("previous.msstyles"), unsaved = luna + QLatin1String("unsaved.msstyles");
+        for (const QString &style : {saved, applied, previous, unsaved}) {
+            writeFile(style, "style");
+            writeFile(style + QLatin1String(".json"), "{}");
+        }
+        presets::Preset p;
+        p.name = QStringLiteral("Mine");
+        p.style = saved;
+        QVERIFY(presets::save(p));
+        const auto install = [&](const QString &id) {
+            writeFile(share + QLatin1String("/aurorae/themes/") + id + QLatin1String("/metadata.json"), "{\"xplasma\":1}");
+            writeFile(share + QLatin1String("/plasma/desktoptheme/") + id + QLatin1String("-taskbar/metadata.json"), "{}");
+            writeFile(share + QLatin1String("/color-schemes/") + id + QLatin1String(".colors"), "[General]");
+            writeFile(paths::data() + QLatin1String("/start/") + id + QLatin1String("/theme.json"), "{}");
+            writeFile(share + QLatin1String("/themes/XPlasma-") + id + QLatin1String("-dark-applications/index.theme"), "");
+            writeFile(paths::build() + QLatin1Char('/') + id + QLatin1String("/aurorae/x"), "");
+        };
+        const QStringList ids{QStringLiteral("xplasma-v2-saved"), QStringLiteral("xplasma-v2-applied"), QStringLiteral("xplasma-v2-previous"),
+                              QStringLiteral("xplasma-v2-unsaved"), QStringLiteral("xplasma-v2-stock"), QStringLiteral("xplasma-v2-legacy")};
+        for (const QString &id : ids) install(id);
+        writeFile(paths::schemes() + QLatin1String("/Custom Rose 0123456789.theme"), "[Theme]\nDisplayName=Custom Rose 0123456789\n");
+        writeFile(paths::schemes() + QLatin1String("/Rose Plus.theme"), "[Theme]\nDisplayName=Rose Plus\n");
+        const QString dark = paths::cache() + QLatin1String("/dark-mode/");
+        writeFile(dark + QLatin1String("unsaved/source.json"), "{\"source\":\"" + unsaved.toUtf8() + "\",\"builder\":\"x\"}");
+        writeFile(dark + QLatin1String("unmarked/applications.msstyles"), "");
+        writeFile(dark + QLatin1String("in-use/applications.msstyles"), "");
+        writeFile(paths::config() + QLatin1String("/xplasmarc"), "[Theme]\nSource=" + dark.toUtf8() + "in-use/applications.msstyles\n");
+
+        State state;
+        state.appliedKind = QStringLiteral("style");
+        state.style = applied;
+        state.settings.insert(QStringLiteral("appliedPackageId"), ids.at(1));
+        state.settings.insert(QLatin1String(kGeneratedLooksKey), QJsonObject{{ids.at(0), saved}, {ids.at(1), applied}, {ids.at(2), previous},
+                                                                            {ids.at(3), unsaved}, {ids.at(4), QStringLiteral("/x/luna.msstyles")}});
+        pruneGeneratedLooks(state, ids.at(2), previous);
+
+        for (const QString &kept : {saved, applied, previous})
+            QVERIFY2(QFileInfo::exists(kept) && QFileInfo::exists(kept + QLatin1String(".json")), qPrintable(kept));
+        QVERIFY(!QFileInfo::exists(unsaved) && !QFileInfo::exists(unsaved + QLatin1String(".json")));
+        for (const QString &id : ids) {
+            const bool keep = id != ids.at(3) && id != ids.at(5);
+            for (const QString &path : QStringList{share + QLatin1String("/aurorae/themes/") + id, share + QLatin1String("/plasma/desktoptheme/") + id + QLatin1String("-taskbar"),
+                                        share + QLatin1String("/color-schemes/") + id + QLatin1String(".colors"), paths::data() + QLatin1String("/start/") + id,
+                                        share + QLatin1String("/themes/XPlasma-") + id + QLatin1String("-dark-applications")})
+                QVERIFY2(QFileInfo::exists(path) == keep, qPrintable(path));
+            QVERIFY2(!QFileInfo::exists(paths::build() + QLatin1Char('/') + id), qPrintable(id));   // (staging)
+        }
+        QCOMPARE(QStringList(state.settings.value(QLatin1String(kGeneratedLooksKey)).toObject().keys()),
+                 (QStringList{ids.at(1), ids.at(2), ids.at(0), ids.at(4)}));
+        QVERIFY(!QFileInfo::exists(paths::schemes() + QLatin1String("/Custom Rose 0123456789.theme")));
+        QVERIFY(QFileInfo::exists(paths::schemes() + QLatin1String("/Rose Plus.theme")));
+        QVERIFY(!QFileInfo::exists(dark + QLatin1String("unsaved")));
+        QVERIFY(!QFileInfo::exists(dark + QLatin1String("unmarked")));
+        QVERIFY(QFileInfo::exists(dark + QLatin1String("in-use")));
+
+        // Deleting the saved theme lets its colors go once nothing wears them.
+        QVERIFY(QFile::remove(paths::themes() + QLatin1String("/Saved/Mine.theme")));
+        pruneGeneratedLooks(state);
+        QVERIFY(!QFileInfo::exists(saved));
+        QVERIFY(!QFileInfo::exists(share + QLatin1String("/aurorae/themes/") + ids.at(0)));
+        QVERIFY(QFileInfo::exists(applied));
+        QVERIFY(!QFileInfo::exists(previous));
+    }
+
     void realStyles()
     {
         if (m_realThemes.isEmpty())

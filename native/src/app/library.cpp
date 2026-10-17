@@ -854,6 +854,17 @@ bool owned(const QString &path)
     return file && file->value(u"XPlasma", u"Saved") == QLatin1String("1");
 }
 
+QStringList savedStyles()
+{
+    QStringList styles;
+    const QDir saved(savedDir());
+    for (const QString &name : saved.entryList({QStringLiteral("*.theme")}, QDir::Files))
+        if (const auto file = ThemeFile::load(saved.filePath(name)))
+            if (const QString style = file->value(u"VisualStyles", u"Path"); !style.isEmpty())
+                styles << QFileInfo(style).absoluteFilePath();
+    return styles;
+}
+
 } // namespace presets
 
 } // namespace xpl

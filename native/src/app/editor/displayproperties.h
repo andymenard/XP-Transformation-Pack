@@ -58,6 +58,7 @@ private:
     QLabel *m_customBaseLabel;
     QLabel *m_customColorLabels[4];
     void customLunaChanged();
+    bool customLunaPruned() const;
     void scheduleCustomColors();
     QJsonObject liveStartColors() const;
     void liveStartColorsChanged();

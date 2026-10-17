@@ -52,6 +52,8 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &options, 
 // the desktop wears an older XPlasma's make of it: Apply is wanted, and
 // XPlasma Properties keeps it ready until it's done.
 constexpr const char *kAppliedWithKey = "appliedWith";
+// Generated look ids -> what each was built from (pruneGeneratedLooks).
+constexpr const char *kGeneratedLooksKey = "generatedLooks";
 bool lookOutdated(const State &state);
 // What of the whole XP look this Plasma can't take (empty: all of it) --
 // what applyLook checks before changing anything; and, `taskbar` asked
@@ -82,5 +84,11 @@ QString scriptFrom(const QString &name, const QVariantMap &values);
 // The generated packages XPlasma (or xp2plasma) left under ~/.local/share,
 // except those named in `keep`.
 QStringList generatedPackages(const QStringList &keep = {});
+
+// Custom colors build a style and packages for every choice. Those stay while
+// a saved theme names them, or while applied (the current look, and
+// `previousId`/`previousSource`, the one it replaced); stock looks stay
+// cached, the newest 32. Records what remains in state's settings.
+void pruneGeneratedLooks(State &state, const QString &previousId = {}, const QString &previousSource = {});
 
 } // namespace xpl

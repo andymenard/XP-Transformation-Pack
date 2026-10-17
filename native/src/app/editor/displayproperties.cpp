@@ -603,6 +603,14 @@ void DisplayProperties::scheduleCustomColors()
     QTimer::singleShot(0,this,[this]{if(m_customColorsPending)customLunaChanged();});
 }
 
+// Unsaved custom colors are pruned once another look is applied; this
+// window's, if it has some, are built again (the same file) when needed.
+bool DisplayProperties::customLunaPruned() const
+{
+    return m_customLunaEnabled->isChecked() && !m_customClassic && !m_customLunaPath.isEmpty()
+        && !QFileInfo::exists(m_customLunaPath);
+}
+
 void DisplayProperties::customLunaChanged()
 {
     m_customColorsPending=false;
@@ -1279,7 +1287,7 @@ void DisplayProperties::openAdvanced()
 
 void DisplayProperties::saveAs()
 {
-    if(m_customColorsPending)customLunaChanged();
+    if(m_customColorsPending || customLunaPruned())customLunaChanged();
     bool ok = false;
     const QString name = QInputDialog::getText(this, QStringLiteral("Save Theme"), QStringLiteral("Save this theme as:"), QLineEdit::Normal,
                                                m_themes->currentText(), &ok)
@@ -1342,9 +1350,11 @@ void DisplayProperties::deleteTheme()
     State state = State::load();
     if (state.themeFile == path) {
         state.themeFile.clear();
-        if (!state.save(&error)) QMessageBox::warning(this, QStringLiteral("Delete Theme"), error);
         m_appliedThemeFile.clear();
     }
+    // (Its custom colors go too, unless they're what the desktop wears.)
+    pruneGeneratedLooks(state);
+    if (!state.save(&error)) QMessageBox::warning(this, QStringLiteral("Delete Theme"), error);
     const QSignalBlocker blockThemeSelection(m_themes);
     m_loading = true;
     loadLibrary();
@@ -1358,7 +1368,7 @@ void DisplayProperties::deleteTheme()
 
 bool DisplayProperties::apply()
 {
-    if(m_customColorsPending)customLunaChanged();
+    if(m_customColorsPending || customLunaPruned())customLunaChanged();
     if (m_customLunaEnabled->isChecked() && m_customLunaPath.isEmpty()) {
         QMessageBox::warning(this, QStringLiteral("Custom Colors"), m_customLunaStatus->text());
         return false;

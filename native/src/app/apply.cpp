@@ -605,25 +605,115 @@ QString versionedId(const Look &look,const State &state)
     }
     return "xplasma-v2-"+hash+"-s"+active.name(QColor::HexArgb).mid(1)+'_'+inactive.name(QColor::HexArgb).mid(1)+'_'+QString::number(x)+'_'+QString::number(y);
 }
-void pruneColorAssets(const QString &active,const QString &previous)
+// What a generated look was built from: its style, or "classic:" and its scheme.
+QString lookSource(const Look &look)
 {
-    // Bound disk caches while retaining both sides of the current switch.
-    const QDir themes(share(QStringLiteral("aurorae/themes")));
-    const auto generated=generatedPackages();
-    int retained=0;
-    for(const auto &entry:themes.entryInfoList({QStringLiteral("xplasma-v2-*")},QDir::Dirs|QDir::NoDotAndDotDot,QDir::Time)) {
-        if(!generated.contains(entry.absoluteFilePath()))continue;
-        const QString id=entry.fileName();
-        if(id==active || id==previous || retained++<32)continue;
-        QDir(entry.absoluteFilePath()).removeRecursively();
-        QDir(share(QStringLiteral("plasma/desktoptheme/"))+id+QStringLiteral("-taskbar")).removeRecursively();
-        QFile::remove(share(QStringLiteral("color-schemes/"))+id+QStringLiteral(".colors"));
-        QDir(paths::data()+QStringLiteral("/start/")+id).removeRecursively();
-        for(const auto &suffix:{QString(),QStringLiteral("-dark-applications")})
-            QDir(share(QStringLiteral("themes/XPlasma-"))+id+suffix).removeRecursively();
-    }
+    return look.classic() ? QStringLiteral("classic:") + look.system.name : QFileInfo(look.stylePath).absoluteFilePath();
+}
+QString appliedSource(const State &state)
+{
+    if (state.appliedKind == QLatin1String("classic")) return QStringLiteral("classic:") + state.scheme;
+    return state.style.isEmpty() ? QString() : QFileInfo(state.style).absoluteFilePath();
+}
+QString customLunaDir()
+{
+    return paths::data() + QStringLiteral("/custom-luna/");
+}
+// Custom colors: a recoloured style, or a Classic scheme the editor named.
+bool customScheme(const QString &name)
+{
+    static const QRegularExpression custom(QStringLiteral("^Custom .+ [0-9a-f]{10}$"));
+    return custom.match(name).hasMatch();
+}
+bool customSource(const QString &source)
+{
+    return source.startsWith(customLunaDir()) || (source.startsWith(QLatin1String("classic:")) && customScheme(source.mid(8)));
+}
+void removeLook(const QString &id)
+{
+    QDir(share(QStringLiteral("aurorae/themes/")) + id).removeRecursively();
+    QDir(share(QStringLiteral("plasma/desktoptheme/")) + id + QStringLiteral("-taskbar")).removeRecursively();
+    QFile::remove(share(QStringLiteral("color-schemes/")) + id + QStringLiteral(".colors"));
+    QFile::remove(paths::home() + QStringLiteral("/.cache/plasma_theme_") + id + QStringLiteral("-taskbar.kcache"));
+    QDir(paths::data() + QStringLiteral("/start/") + id).removeRecursively();
+    for (const auto &suffix : {QString(), QStringLiteral("-dark-applications")})
+        QDir(share(QStringLiteral("themes/XPlasma-")) + id + suffix).removeRecursively();
 }
 
+}
+
+void pruneGeneratedLooks(State &state, const QString &previousId, const QString &previousSource)
+{
+    const QString activeId = state.settings.value(QStringLiteral("appliedPackageId")).toString();
+    // Styles to keep: the saved themes', the applied ones, and the originals
+    // the custom ones among them were recoloured from.
+    QSet<QString> styles;
+    for (const QString &style : presets::savedStyles()) styles.insert(style);
+    const QStringList applied{appliedSource(state), previousSource};
+    for (const QString &source : applied)
+        if (!source.isEmpty()) styles.insert(source);
+    for (const QString &style : QStringList(styles.begin(), styles.end()))
+        if (style.startsWith(customLunaDir()))
+            if (const QString base = editor::colorMetadata(style).value(QStringLiteral("source")).toString(); !base.isEmpty())
+                styles.insert(QFileInfo(base).absoluteFilePath());
+    const auto wanted = [&](const QString &source) { return !customSource(source) || styles.contains(source); };
+
+    // Looks, by id, from every place one is installed; each with its last use.
+    QHash<QString, QDateTime> looks;
+    const auto found = [&](const QFileInfo &f, QString id) {
+        if (!id.startsWith(QLatin1String("xplasma-v2-"))) return;
+        looks[id] = qMax(looks.value(id), f.lastModified());
+    };
+    const QStringList prefix{QStringLiteral("xplasma-v2-*")};
+    for (const QFileInfo &f : QDir(share(QStringLiteral("aurorae/themes"))).entryInfoList(prefix, QDir::Dirs | QDir::NoDotAndDotDot))
+        found(f, f.fileName());
+    for (const QFileInfo &f : QDir(share(QStringLiteral("plasma/desktoptheme"))).entryInfoList({QStringLiteral("xplasma-v2-*-taskbar")}, QDir::Dirs | QDir::NoDotAndDotDot))
+        found(f, f.fileName().chopped(8));
+    for (const QFileInfo &f : QDir(share(QStringLiteral("color-schemes"))).entryInfoList({QStringLiteral("xplasma-v2-*.colors")}, QDir::Files))
+        found(f, f.fileName().chopped(7));
+    for (const QFileInfo &f : QDir(paths::data() + QStringLiteral("/start")).entryInfoList(prefix, QDir::Dirs | QDir::NoDotAndDotDot))
+        found(f, f.fileName());
+    for (const QFileInfo &f : QDir(share(QStringLiteral("themes"))).entryInfoList({QStringLiteral("XPlasma-xplasma-v2-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
+        found(f, f.fileName().mid(8).remove(QRegularExpression(QStringLiteral("-dark-applications$"))));
+    // (Build staging is all installed by now: none of it is kept.)
+    for (const QFileInfo &f : QDir(paths::build()).entryInfoList(prefix, QDir::Dirs | QDir::NoDotAndDotDot))
+        QDir(f.absoluteFilePath()).removeRecursively();
+
+    QJsonObject sources = state.settings.value(QLatin1String(kGeneratedLooksKey)).toObject();
+    QList<std::pair<QDateTime, QString>> cached;
+    for (auto it = looks.cbegin(); it != looks.cend(); ++it) {
+        const QString &id = it.key();
+        if (id == activeId || id == previousId) continue;
+        // (Without a record, a look predates them: built again when chosen.)
+        const QString source = sources.value(id).toString();
+        if (source.isEmpty() || !wanted(source)) {
+            removeLook(id);
+            sources.remove(id);
+        } else if (!customSource(source)) {
+            cached.append({it.value(), id});
+        }
+    }
+    std::sort(cached.begin(), cached.end(), [](const auto &a, const auto &b) { return a.first > b.first; });
+    for (qsizetype i = 32; i < cached.size(); ++i) {
+        removeLook(cached.at(i).second);
+        sources.remove(cached.at(i).second);
+    }
+    for (const QString &id : sources.keys())
+        if (!looks.contains(id)) sources.remove(id);
+    state.settings.insert(QLatin1String(kGeneratedLooksKey), sources);
+
+    // The recoloured styles themselves, and their dark-application builds.
+    for (const QFileInfo &f : QDir(customLunaDir()).entryInfoList({QStringLiteral("*.msstyles")}, QDir::Files))
+        if (!styles.contains(f.absoluteFilePath())) {
+            QFile::remove(f.absoluteFilePath());
+            QFile::remove(f.absoluteFilePath() + QStringLiteral(".json"));
+        }
+    darkmode::pruneCache(wanted);
+    // Classic custom colors are saved as schemes when applied.
+    for (const QFileInfo &f : QDir(paths::schemes()).entryInfoList({QStringLiteral("*.theme")}, QDir::Files))
+        if (const auto file = ThemeFile::load(f.absoluteFilePath()))
+            if (const QString name = file->value(u"Theme", u"DisplayName"); customScheme(name) && !wanted(QStringLiteral("classic:") + name))
+                QFile::remove(f.absoluteFilePath());
 }
 
 bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &requestedOptions, QString *error)
@@ -917,7 +1007,9 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
             report(o, QStringLiteral("  XP's sounds stay off: %1").arg(why));
     }
 
-    pruneColorAssets(look.id,state.settings.value(QStringLiteral("appliedPackageId")).toString());
+    const QString previousId = state.settings.value(QStringLiteral("appliedPackageId")).toString();
+    const QString previousSource = appliedSource(state);
+    QDir(build).removeRecursively();   // (staging: all of it is installed)
     state.appliedKind = look.classic() ? QStringLiteral("classic") : QStringLiteral("style");
     state.style = look.stylePath;
     state.variant = look.variant;
@@ -926,6 +1018,10 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
     state.settings.insert(QStringLiteral("appliedPackageId"),look.id);
     state.settings.insert(QLatin1String(kAppliedWithKey), project::kVersion);
     state.settings.insert(QStringLiteral("darkMode"), dark);
+    QJsonObject sources = state.settings.value(QLatin1String(kGeneratedLooksKey)).toObject();
+    sources.insert(look.id, lookSource(look));
+    state.settings.insert(QLatin1String(kGeneratedLooksKey), sources);
+    pruneGeneratedLooks(state, previousId, previousSource);
     state.save();
     // Keep legacy profile data in the .theme file, but never enable overlays.
     if(state.settings.contains(QLatin1String(kLiveStartColorsKey)))state.settings.insert(QStringLiteral("retiredColorProfile"),state.settings.value(QLatin1String(kLiveStartColorsKey)));
