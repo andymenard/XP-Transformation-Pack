@@ -16,6 +16,8 @@ jobs:
       XP_BUILD_CACHE: /tmp/xp-native-cache
     steps:
       - uses: actions/checkout@v4
+      - name: Check shared credits and licenses
+        run: python3 tools/sync-legal.py --check
       - name: Restore verified component caches
         uses: actions/cache@v4
         with:

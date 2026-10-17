@@ -34,4 +34,24 @@ class GuiTests(unittest.TestCase):
   self.assertFalse(self.window.pages.isAncestorOf(self.window.terminal_log))
   self.assertIn('Building component 1 of 4',self.window.terminal_log.toPlainText())
   self.assertTrue(self.window.terminal_log.isReadOnly())
+
+ def test_credits_and_all_licenses_are_readable(self):
+  def inspect(dialog):
+   selector=dialog.findChild(g.QtWidgets.QComboBox)
+   browser=dialog.findChild(g.QtWidgets.QTextBrowser)
+   self.assertGreaterEqual(selector.count(),11)
+   for i in range(selector.count()):
+    selector.setCurrentIndex(i)
+    self.assertTrue(browser.toPlainText().strip())
+    self.assertNotIn('missing from',browser.toPlainText())
+   selector.setCurrentIndex(0)
+   self.assertIn('Credits and licenses',browser.toPlainText())
+   self.assertNotIn('posting credits',browser.toPlainText())
+   return 0
+  with patch.object(g.QtWidgets.QDialog,'exec',inspect):self.window.show_credits()
+ def test_live_log_does_not_need_details_button(self):
+  self.window.append_log('Installation failed: recovery information')
+  self.assertIn('recovery information',self.window.terminal_log.toPlainText())
+  self.assertFalse(any(b.text() in ['Show details','Hide details'] for b in self.window.findChildren(g.QtWidgets.QPushButton)))
+
 if __name__=='__main__':unittest.main()

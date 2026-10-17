@@ -53,6 +53,7 @@ def normalize_session_sprites(folder):
 
 
 def sync(suite, icons=None, wallpapers=None):
+    subprocess.run(['python3',str(ROOT/'tools/sync-legal.py'),'--check'],check=True)
     suite = Path(suite).resolve()
     if not (suite / 'payload/assets').is_dir() or not (suite / 'source').is_dir():
         raise ValueError('Expected a complete installer with asset and source inputs')
@@ -61,6 +62,10 @@ def sync(suite, icons=None, wallpapers=None):
     for source in (ROOT / 'installer').iterdir():
         if source.is_file():
             shutil.copy2(source, suite / source.name)
+    shutil.copy2(ROOT/'CREDITS.md',suite/'CREDITS.md')
+    shutil.copy2(ROOT/'native/LICENSE',suite/'LICENSE')
+    shutil.copy2(ROOT/'native/THIRD-PARTY-NOTICES',suite/'THIRD-PARTY-NOTICES')
+    shutil.copytree(ROOT/'native/LICENSES',suite/'LICENSES',dirs_exist_ok=True)
     prebuilts=ROOT/'private-assets/prebuilt'
     if prebuilts.is_dir():
         shutil.copytree(prebuilts,suite/'prebuilt',dirs_exist_ok=True,symlinks=True)

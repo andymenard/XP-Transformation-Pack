@@ -16,6 +16,8 @@
 #include <QUrl>
 #include <QClipboard>
 #include <QDialog>
+#include <QComboBox>
+#include <QTextBrowser>
 #include <QDialogButtonBox>
 #include <QFile>
 #include <QFontDatabase>
@@ -102,6 +104,11 @@ AboutTab::AboutTab(QWidget *parent)
     auto *legal = new QHBoxLayout;
     auto *licence = new QPushButton(QStringLiteral("&License..."));
     auto *notices = new QPushButton(QStringLiteral("&Third-Party Notices..."));
+    auto *credits = new QPushButton(QStringLiteral("&Credits..."));
+    legal->addWidget(credits);
+    connect(credits, &QPushButton::clicked, this, [this] {
+        showText(QStringLiteral("Credits"), QStringLiteral(":/licenses/CREDITS.md"));
+    });
     legal->addWidget(licence);
     legal->addWidget(notices);
     legal->addStretch(1);
@@ -173,11 +180,27 @@ void AboutTab::showText(const QString &title, const QString &resource)
     QDialog d(this);
     d.setWindowTitle(title);
     auto *layout = new QVBoxLayout(&d);
-    auto *text = new QPlainTextEdit;
-    text->setReadOnly(true);
-    text->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-    QFile f(resource);
-    text->setPlainText(f.open(QIODevice::ReadOnly) ? QString::fromUtf8(f.readAll()) : QStringLiteral("(missing from this build)"));
+    auto *documents = new QComboBox;
+    documents->addItem(QStringLiteral("Credits"), QStringLiteral(":/licenses/CREDITS.md"));
+    documents->addItem(QStringLiteral("Project license"), QStringLiteral(":/licenses/LICENSE"));
+    documents->addItem(QStringLiteral("Third-party notices"), QStringLiteral(":/licenses/THIRD-PARTY-NOTICES"));
+    const QDir licenses(QStringLiteral(":/licenses/LICENSES"));
+    for (const auto &file : licenses.entryList({QStringLiteral("*.txt")}, QDir::Files, QDir::Name))
+        documents->addItem(file, licenses.filePath(file));
+    layout->addWidget(documents);
+    auto *text = new QTextBrowser;
+    text->setOpenExternalLinks(true);
+    const auto display = [text, documents] {
+        const auto path = documents->currentData().toString();
+        QFile f(path);
+        const auto content = f.open(QIODevice::ReadOnly) ? QString::fromUtf8(f.readAll())
+                             : QStringLiteral("This document is missing from this build.");
+        if (path.endsWith(QStringLiteral(".md"))) text->setMarkdown(content);
+        else text->setPlainText(content);
+    };
+    connect(documents, &QComboBox::currentIndexChanged, this, [display](int) { display(); });
+    documents->setCurrentIndex(documents->findData(resource));
+    display();
     layout->addWidget(text);
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close);
     connect(buttons, &QDialogButtonBox::rejected, &d, &QDialog::reject);
