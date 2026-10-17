@@ -33,3 +33,7 @@ access; an XP ISO is not needed. Desktop is selected by default; Firefox is opti
 The release is a testing prerelease, with compatibility and validation limits
 listed in its notes. Signed checksums authenticate the installer download; this
 release does not activate an OTA payload.
+
+## Boot splash troubleshooting
+
+If the boot splash stays black or flickers, see [Boot splash troubleshooting](BOOT-SPLASH-TROUBLESHOOTING.md) for the optional Intel early-driver workaround confirmed on a docked laptop. This is a manual troubleshooting step; the installer does not apply it automatically.
