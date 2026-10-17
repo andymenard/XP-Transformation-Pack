@@ -16,8 +16,6 @@ jobs:
       XP_BUILD_CACHE: /tmp/xp-native-cache
     steps:
       - uses: actions/checkout@v4
-      - name: Check shared credits and licenses
-        run: python3 tools/sync-legal.py --check
       - name: Restore verified component caches
         uses: actions/cache@v4
         with:
@@ -34,6 +32,9 @@ jobs:
           import dependencies
           dependencies.install('apt',{'taskbar','caption_animation'},lambda args:subprocess.run(args,check=True))
           PY
+      - name: Check shared credits and licenses
+        # (After the dependencies: the bare container has no python3 before.)
+        run: python3 tools/sync-legal.py --check
       - name: Prepare Linux-only build inputs
         run: |
           mkdir -p /tmp/xp-suite/source /tmp/xp-suite/payload/caption-animation
