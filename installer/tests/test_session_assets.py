@@ -18,6 +18,14 @@ class SessionArtworkTests(unittest.TestCase):
             self.assertTrue((folder / name).is_file(), 'Missing artwork: ' + name)
             self.assertGreater((folder / name).stat().st_size, 0)
 
+    @unittest.skipUnless((ROOT / 'payload/templates/session').exists(), 'Requires complete private installer payload')
+    def test_log_off_hot_frame_keeps_its_outline(self):
+        from PIL import Image
+        image = Image.open(ROOT / 'payload/templates/session/contents/logout/assets/14356.png').convert('RGBA')
+        normal = [image.getpixel((x, 3 * 32 + 31))[3] for x in range(32)]
+        hot = [image.getpixel((x, 5 * 32 + 31))[3] for x in range(32)]
+        self.assertEqual(hot, normal, 'Log Off hover frame is misaligned')
+
 
 if __name__ == '__main__':
     unittest.main()
