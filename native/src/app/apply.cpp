@@ -451,6 +451,10 @@ bool applyStartButton(Session &session, const Look &look, QString *error)
         return false;
     session.script(scriptFrom(QStringLiteral("start-theme"),
                               {{QStringLiteral("START"), QLatin1String(kStartPlasmoidId)}, {QStringLiteral("THEME"), theme.toVariantMap()}}));
+    // (The Start menu now draws from this folder, until the next look.)
+    State state = State::load();
+    state.settings.insert(QLatin1String(kStartButtonLookKey), look.id);
+    state.save();
     return true;
 }
 
@@ -676,8 +680,14 @@ void pruneGeneratedLooks(State &state, const QString &previousId, const QString 
     for (const QFileInfo &f : QDir(share(QStringLiteral("themes"))).entryInfoList({QStringLiteral("XPlasma-xplasma-v2-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
         found(f, f.fileName().mid(8).remove(QRegularExpression(QStringLiteral("-dark-applications$"))));
     // (Build staging is all installed by now: none of it is kept.)
-    for (const QFileInfo &f : QDir(paths::build()).entryInfoList(prefix, QDir::Dirs | QDir::NoDotAndDotDot))
+    for (const QFileInfo &f : QDir(paths::build()).entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot))
         QDir(f.absoluteFilePath()).removeRecursively();
+    // Start buttons by older names (and retired live previews) go, but for
+    // the one a Start-button-only apply left the menu drawing from.
+    const QString startLook = state.settings.value(QLatin1String(kStartButtonLookKey)).toString();
+    for (const QFileInfo &f : QDir(paths::data() + QStringLiteral("/start")).entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot))
+        if (!f.fileName().startsWith(QLatin1String("xplasma-v2-")) && f.fileName() != startLook)
+            QDir(f.absoluteFilePath()).removeRecursively();
 
     QJsonObject sources = state.settings.value(QLatin1String(kGeneratedLooksKey)).toObject();
     QList<std::pair<QDateTime, QString>> cached;
@@ -1018,6 +1028,7 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
     state.settings.insert(QStringLiteral("appliedPackageId"),look.id);
     state.settings.insert(QLatin1String(kAppliedWithKey), project::kVersion);
     state.settings.insert(QStringLiteral("darkMode"), dark);
+    state.settings.remove(QLatin1String(kStartButtonLookKey));
     QJsonObject sources = state.settings.value(QLatin1String(kGeneratedLooksKey)).toObject();
     sources.insert(look.id, lookSource(look));
     state.settings.insert(QLatin1String(kGeneratedLooksKey), sources);

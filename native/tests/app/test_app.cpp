@@ -716,6 +716,10 @@ private Q_SLOTS:
         const QStringList ids{QStringLiteral("xplasma-v2-saved"), QStringLiteral("xplasma-v2-applied"), QStringLiteral("xplasma-v2-previous"),
                               QStringLiteral("xplasma-v2-unsaved"), QStringLiteral("xplasma-v2-stock"), QStringLiteral("xplasma-v2-legacy")};
         for (const QString &id : ids) install(id);
+        writeFile(paths::build() + QLatin1String("/windows-xp-style-silver/start/x"), "");
+        writeFile(paths::data() + QLatin1String("/start/live-preview-1792110882864/theme.json"), "{}");
+        writeFile(paths::data() + QLatin1String("/start/windows-xp-style-silver/theme.json"), "{}");
+        writeFile(paths::data() + QLatin1String("/start/royale-royale/theme.json"), "{}");
         writeFile(paths::schemes() + QLatin1String("/Custom Rose 0123456789.theme"), "[Theme]\nDisplayName=Custom Rose 0123456789\n");
         writeFile(paths::schemes() + QLatin1String("/Rose Plus.theme"), "[Theme]\nDisplayName=Rose Plus\n");
         const QString dark = paths::cache() + QLatin1String("/dark-mode/");
@@ -728,6 +732,7 @@ private Q_SLOTS:
         state.appliedKind = QStringLiteral("style");
         state.style = applied;
         state.settings.insert(QStringLiteral("appliedPackageId"), ids.at(1));
+        state.settings.insert(QLatin1String(kStartButtonLookKey), QStringLiteral("royale-royale"));
         state.settings.insert(QLatin1String(kGeneratedLooksKey), QJsonObject{{ids.at(0), saved}, {ids.at(1), applied}, {ids.at(2), previous},
                                                                             {ids.at(3), unsaved}, {ids.at(4), QStringLiteral("/x/luna.msstyles")}});
         pruneGeneratedLooks(state, ids.at(2), previous);
@@ -745,6 +750,10 @@ private Q_SLOTS:
         }
         QCOMPARE(QStringList(state.settings.value(QLatin1String(kGeneratedLooksKey)).toObject().keys()),
                  (QStringList{ids.at(1), ids.at(2), ids.at(0), ids.at(4)}));
+        QVERIFY(!QFileInfo::exists(paths::build() + QLatin1String("/windows-xp-style-silver")));
+        QVERIFY(!QFileInfo::exists(paths::data() + QLatin1String("/start/live-preview-1792110882864")));
+        QVERIFY(!QFileInfo::exists(paths::data() + QLatin1String("/start/windows-xp-style-silver")));
+        QVERIFY(QFileInfo::exists(paths::data() + QLatin1String("/start/royale-royale")));   // (the menu's)
         QVERIFY(!QFileInfo::exists(paths::schemes() + QLatin1String("/Custom Rose 0123456789.theme")));
         QVERIFY(QFileInfo::exists(paths::schemes() + QLatin1String("/Rose Plus.theme")));
         QVERIFY(!QFileInfo::exists(dark + QLatin1String("unsaved")));

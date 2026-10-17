@@ -54,6 +54,8 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &options, 
 constexpr const char *kAppliedWithKey = "appliedWith";
 // Generated look ids -> what each was built from (pruneGeneratedLooks).
 constexpr const char *kGeneratedLooksKey = "generatedLooks";
+// The look a Start-button-only apply drew the menu from, until the next look.
+constexpr const char *kStartButtonLookKey = "startButtonLook";
 bool lookOutdated(const State &state);
 // What of the whole XP look this Plasma can't take (empty: all of it) --
 // what applyLook checks before changing anything; and, `taskbar` asked
