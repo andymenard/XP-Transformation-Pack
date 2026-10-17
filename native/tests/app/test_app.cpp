@@ -2256,6 +2256,9 @@ private Q_SLOTS:
         const auto inversePanel=panelArt(*inverseLook);QCOMPARE(inversePanel.textColour,QColor(Qt::white));QCOMPARE(inversePanel.trayTextColour,QColor(Qt::white));
         const auto inverseMenu=writeStartPanel(*inverseLook,paths::data()+"/text-save-inverse",&error);QVERIFY2(!inverseMenu.isEmpty(),qPrintable(error));QCOMPARE(inverseMenu.value("palette").toObject().value("programText").toString(),QString("#000000"));
         for(const char *band : {"userText","footerText"})QCOMPARE(inverseMenu.value("palette").toObject().value(QLatin1String(band)).toString(),QString("#ffffff"));
+        QCOMPARE(inverseMenu.value("palette").toObject().value("userShadow").toString(),QString("#000000"));   // (white text: XP's shadow)
+        QCOMPARE(menu.value("palette").toObject().value("userText").toString(),QString("#000000"));
+        QCOMPARE(menu.value("palette").toObject().value("userShadow").toString(),QString("#00000000"));   // (black text: none)
         QCOMPARE(QJsonDocument::fromJson(readFile(result->stylePath+".json")).object().value("startMenuText").toInt(),1);
         const auto repeated=editor::staticColorLook(*result,colors,&error);QVERIFY(repeated);QCOMPARE(repeated->stylePath,result->stylePath);
         auto classic=editor::staticColorLook(Look::fromScheme(ClassicScheme()),colors,&error);QVERIFY(classic);QCOMPARE(classic->system.shellMenuTextMode,1);

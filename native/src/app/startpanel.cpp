@@ -260,7 +260,7 @@ QJsonObject writeStartPanel(const Look &look, const QString &directory, QString 
             const QString key = QLatin1String(name) + (hot ? QLatin1String("-hot") : QLatin1String(""));
             image.convertToFormat(QImage::Format_ARGB32).save(dir.filePath(key + QLatin1String(".png")));
             QJsonObject properties;
-            for (const char *p : {"textcolor", "font", "textshadowcolor", "textshadowoffset", "captiontext", "imagefile"})
+            for (const char *p : {"textcolor", "font", "textshadowcolor", "textshadowoffset", "textshadowtype", "captiontext", "imagefile"})
                 if (const auto v = r.property(ref, QString::fromLatin1(p)))
                     properties.insert(QLatin1String(p), *v);
             QJsonObject spec{{QStringLiteral("url"), QString(base + key + QLatin1String(".png"))},
@@ -344,7 +344,9 @@ QJsonObject writeStartPanel(const Look &look, const QString &directory, QString 
         {QStringLiteral("secondaryText"), hex(prop("proglist", "captiontext", QStringLiteral("128 128 128")), qRgb(128, 128, 128))},
         {QStringLiteral("placesText"), hex(prop("placeslist", "textcolor"), qRgb(0, 0, 0))},
         {QStringLiteral("userText"), hex(prop("userpane", "textcolor"), qRgb(255, 255, 255))},
-        {QStringLiteral("userShadow"), hex(prop("userpane", "textshadowcolor", QStringLiteral("0 0 0")), qRgb(0, 0, 0))},
+        {QStringLiteral("userShadow"), prop("userpane", "textshadowtype").compare(QLatin1String("none"), Qt::CaseInsensitive) == 0
+                                           ? QStringLiteral("#00000000")
+                                           : hex(prop("userpane", "textshadowcolor", QStringLiteral("0 0 0")), qRgb(0, 0, 0))},
         {QStringLiteral("footerText"), hex(prop("logoff", "textcolor"), qRgb(255, 255, 255))},
         {QStringLiteral("highlight"), hex(sys("highlight", QStringLiteral("49 106 197")), qRgb(49, 106, 197))},
         {QStringLiteral("highlightText"), hex(r.theme().property(u"xplasmacustomluna",u"",u"",u"menutext").value_or(sys("highlighttext", QStringLiteral("255 255 255"))), qRgb(255, 255, 255))},

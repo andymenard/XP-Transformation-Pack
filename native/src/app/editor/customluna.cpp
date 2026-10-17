@@ -81,9 +81,11 @@ QByteArray accentIni(const QByteArray &resource, const std::array<QColor,4> &col
         // The user pane and Log Off bar are the taskbar's surface, so its
         // text; Start menu text is for the lists between them.
         const bool band = name == QLatin1String("startpanel.userpane") || name == QLatin1String("startpanel.logoff");
+        // (XP's shadow lifts white text off a dark band: black text has none.)
         if (band) {
             props.insert(QStringLiteral("textcolor"), rgbText(textFor(accent,1)));
-            if (props.contains(QStringLiteral("textshadowcolor"))) props[QStringLiteral("textshadowcolor")] = rgbText(textFor(accent,1)==QColor(Qt::white)?QColor(Qt::black):QColor(Qt::white));
+            if (textFor(accent,1)==QColor(Qt::black)) props[QStringLiteral("textshadowtype")] = QStringLiteral("none");
+            else if (props.contains(QStringLiteral("textshadowcolor"))) props[QStringLiteral("textshadowcolor")] = rgbText(QColor(Qt::black));
         }
         if (name.startsWith(QLatin1String("startpanel.")) || name.startsWith(QLatin1String("startmenu::"))) {
             const QColor surface = menuSurface(accent, name);
