@@ -957,11 +957,24 @@ private Q_SLOTS:
             for (int x = 80; x < 99; ++x)
                 QCOMPARE(art->hover.pixel(x, y), xp.pixel(x, y));
         QVERIFY(art->pressed != art->normal);
+        // For a HiDPI screen: twice the pixels, XP's own made bigger.
+        const auto twice = xpl::startButton(*look, flag, QStringLiteral("start"), &error, 2);
+        QVERIFY2(twice, qPrintable(error));
+        QCOMPARE(twice->normal.size(), QSize(198, 60));
+        QCOMPARE(twice->normal.deviceIndependentSize().toSize(), QSize(99, 30));
+        QCOMPARE(twice->normal.pixel(20, 10), qRgb(255, 0, 0));
+        QVERIFY(twice->normal.pixel(19, 10) != qRgb(255, 0, 0));
+        for (int y = 0; y < 60; ++y)
+            for (int x = 160; x < 198; ++x)
+                QCOMPARE(twice->hover.pixel(x, y), xp.pixel(x / 2, y / 2));
 
         const Look classic = Look::fromScheme(ClassicScheme());
         const auto classicArt = xpl::startButton(classic, flag, QStringLiteral("start"), &error);
         QVERIFY2(classicArt, qPrintable(error));
         QCOMPARE(classicArt->normal.height(), 30);
+        const auto classicTwice = xpl::startButton(classic, flag, QStringLiteral("start"), &error, 2);
+        QVERIFY2(classicTwice, qPrintable(error));
+        QCOMPARE(classicTwice->normal.size(), classicArt->normal.size() * 2);
 
         // Extras: none is XP's own button; a longer label, a wider one; a
         // logo of characters or a picture in the flag's place, its height.

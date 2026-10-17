@@ -203,6 +203,8 @@ DisplayProperties::DisplayProperties(QWidget *parent)
     m_darkMode->setChecked(m_appliedDark);
     m_appliedCrisp = state.settings.value(QStringLiteral("crispText")).toBool();
     m_crispText->setChecked(m_appliedCrisp);
+    m_appliedHiDpiStart = state.settings.value(QLatin1String(kHiDpiStartKey)).toBool();
+    m_hidpiStart->setChecked(m_appliedHiDpiStart);
     if (state.appliedKind == QLatin1String("classic")) {
         if (const auto s = schemes::load(state.scheme))
             m_scheme = *s;
@@ -705,6 +707,10 @@ QWidget *DisplayProperties::appearanceTab()
     m_crispText->setToolTip(QStringLiteral("Pixel-style interface text for XPlasma widgets and IE6 Firefox. Aligns glyph sizes to physical pixels at fractional scaling; preserves explicit document and code font choices."));
     layout->addWidget(m_crispText);
     connect(m_crispText,&QCheckBox::toggled,this,[this]{updateApply();});
+    m_hidpiStart = new QCheckBox(QStringLiteral("Sharp Start button on &HiDPI screens"));
+    m_hidpiStart->setToolTip(QStringLiteral("Draws the Start button's label and logo at the screen's own resolution when the display is scaled; XP's button stays its own pixels, made bigger."));
+    layout->addWidget(m_hidpiStart);
+    connect(m_hidpiStart,&QCheckBox::toggled,this,[this]{updateApply();});
     connect(m_darkMode, &QCheckBox::toggled, this, [this] { renderAppearance(); updateApply(); });
     layout->addStretch(1);
     connect(m_style, &QComboBox::activated, this, [this] {
@@ -1366,26 +1372,28 @@ bool DisplayProperties::apply()
     const bool pointersChanged = pointersDiffer() || (everything && m_pointers.has_value());
     const bool startChanged = m_startExtras != m_appliedStartExtras;
     const bool crispChanged = m_crispText->isChecked() != m_appliedCrisp;
+    const bool hidpiChanged = m_hidpiStart->isChecked() != m_appliedHiDpiStart;
     const bool darkChanged = m_darkMode->isChecked() != m_appliedDark;
     const bool linkChanged=m_linkTitleColor->isChecked()!=m_appliedTitleLink;
     const bool liveChanged=liveStartColors()!=m_appliedLiveStart;
-    if (!lookChanged && !desktopChanged && !pointersChanged && !startChanged && !darkChanged && !crispChanged && !liveChanged && !linkChanged && m_themeFile == m_appliedThemeFile)
+    if (!lookChanged && !desktopChanged && !pointersChanged && !startChanged && !darkChanged && !crispChanged && !hidpiChanged && !liveChanged && !linkChanged && m_themeFile == m_appliedThemeFile)
         return m_sounds->apply();
 
     QString error;
     bool ok = true;
-    if (startChanged) {
+    if (startChanged || hidpiChanged) {
         // (Kept first: a look applied now draws its Start button with them.)
         State state = State::load();
         if (m_startExtras.isDefault())
             state.settings.remove(QLatin1String(kStartButtonKey));
         else
             state.settings.insert(QLatin1String(kStartButtonKey), m_startExtras.toJson());
+        state.settings.insert(QLatin1String(kHiDpiStartKey), m_hidpiStart->isChecked());
         state.save();
     }
     if (lookChanged) {
         ApplyOptions o;
-        o.allowColorOnly=!everything && !startChanged && !m_outdated;
+        o.allowColorOnly=!everything && !startChanged && !hidpiChanged && !m_outdated;
         o.darkMode = m_darkMode->isChecked();
         if (desktopChanged)
             o.wallpaper = desktop;
@@ -1412,7 +1420,7 @@ bool DisplayProperties::apply()
         state.themeFile = m_themeFile;
         state.save();
     }
-    if (startChanged && !lookChanged) {
+    if ((startChanged || hidpiChanged) && !lookChanged) {
         ok = runJob(this, QStringLiteral("Applying the Start button"), [&](const JobContext &, QString *e) {
             LiveSession session;
             return applyStartButton(session, l, e);
@@ -1446,6 +1454,8 @@ bool DisplayProperties::apply()
     if (ok) m_appliedDark = m_darkMode->isChecked();
     if (ok && startChanged)
         m_appliedStartExtras = m_startExtras;
+    if (ok && hidpiChanged)
+        m_appliedHiDpiStart = m_hidpiStart->isChecked();
     if (ok) {
         if (lookChanged) {
             m_appliedLook = lookKey(l);
@@ -1484,7 +1494,8 @@ void DisplayProperties::updateApply()
                                    : QStringLiteral("Hold Shift to rebuild and apply everything, changed or not."));
     m_apply->setEnabled(shiftHeld() || lookKey(look()) != m_appliedLook || !sameDesktop(wallpaper(), m_appliedDesktop)
                         || m_themeFile != m_appliedThemeFile || pointersDiffer() || m_startExtras != m_appliedStartExtras
-                        || m_linkTitleColor->isChecked()!=m_appliedTitleLink || liveStartColors()!=m_appliedLiveStart || m_sounds->pending() || m_darkMode->isChecked() != m_appliedDark || m_crispText->isChecked() != m_appliedCrisp);
+                        || m_linkTitleColor->isChecked()!=m_appliedTitleLink || liveStartColors()!=m_appliedLiveStart || m_sounds->pending() || m_darkMode->isChecked() != m_appliedDark || m_crispText->isChecked() != m_appliedCrisp
+                        || m_hidpiStart->isChecked() != m_appliedHiDpiStart);
 }
 
 bool DisplayProperties::eventFilter(QObject *watched, QEvent *event)
