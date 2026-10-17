@@ -144,8 +144,7 @@ set_tests_properties(setup-screenshots PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=of
 # plugins) and the launcher; install.sh points the launcher at the real path.
 install(TARGETS xplasma-cli xplasma-edit xplasma-setup RUNTIME DESTINATION bin)
 install(FILES data/fyi.hotsocket.xplasma.desktop data/fyi.hotsocket.xplasma.datetime.desktop DESTINATION share/applications)
-# (run at login: installed into ~/.config/autostart by Setup and install.sh)
-install(FILES data/fyi.hotsocket.xplasma.updates.desktop DESTINATION share/xplasma/autostart)
+# Prereleases provide manual downloads; no update-check autostart is installed.
 # (the licence and the third-party notices, with the programs)
 install(FILES ${PROJECT_SOURCE_DIR}/CREDITS.md ${PROJECT_SOURCE_DIR}/LICENSE ${PROJECT_SOURCE_DIR}/THIRD-PARTY-NOTICES DESTINATION share/licenses/xplasma)
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/LICENSES DESTINATION share/licenses/xplasma)

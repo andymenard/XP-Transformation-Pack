@@ -41,7 +41,6 @@ def source(destination):
   if source.is_file():
    target=destination/p;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target)
  configure(destination/'installer')
- (destination/'installer/dependencies.py').write_text((destination/'installer/dependencies.py').read_text().replace("'updates':'openssl gh'","'updates':'openssl'").replace("'updates':'openssl github-cli'","'updates':'openssl'"))
  shutil.copy2(ROOT/'CREDITS.md',destination/'CREDITS.md')
  (destination/'LICENSE').write_text((ROOT/'native/LICENSE').read_text())
  (destination/'README.md').write_text((ROOT/'public-alpha/README.md').read_text())

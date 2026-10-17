@@ -67,7 +67,7 @@ bool copyTree(const QString &from, const QString &to, QString *error)
 // (The Setup wizard is a program of its own, not installed: run again, it
 // repairs or removes, as a Windows Installer package does.)
 const QStringList kPrograms{QStringLiteral("xplasma"), QStringLiteral("xplasma-edit")};
-// What runs at login (~/.config/autostart): the update check.
+// Legacy update-check entry: retained only for uninstall cleanup.
 const char *const kAutostart[] = {"fyi.hotsocket.xplasma.updates.desktop"};
 // Desktop entries earlier XPlasmas installed, gone since: removed on install.
 const char *const kRetiredEntries[] = {"fyi.hotsocket.xplasma.sounds.desktop"};   // (now XPlasma Properties' Sounds tab)
