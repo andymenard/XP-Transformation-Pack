@@ -2,7 +2,7 @@
   {
     "id": "theme_manager",
     "name": "Theme library and custom XP theme installer",
-    "description": "XPlasma Properties with stock themes and Install Theme\u2026 for XP archives, .theme and .msstyles files.",
+    "description": "XPlasma Plus Properties with stock themes and Install Theme\u2026 for XP archives, .theme and .msstyles files.",
     "default": true,
     "native": true,
     "project": "desktop"

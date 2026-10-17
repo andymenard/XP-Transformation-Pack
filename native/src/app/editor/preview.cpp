@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "app/editor/preview.h"
+#include <cmath>
 
 #include "app/media.h"
 #include "app/decoration.h"
@@ -82,11 +83,33 @@ QStyle *Previewer::styleFor(const Look &look)
     return style;
 }
 
-QImage windowDecoration(const Look &look, QSize size, const QString &title, bool active, bool dialog)
+namespace {
+QColor liveText(const QColor &background,int mode){return mode==1?QColor(Qt::white):mode==2?QColor(Qt::black):(.299*background.redF()+.587*background.greenF()+.114*background.blueF()<.5?QColor(Qt::white):QColor(Qt::black));}
+QImage liveImage(QImage image,const QColor &target,bool glyph=false,const QColor &edge=QColor()){
+    if(image.isNull() || !target.isValid())return image;
+    image=image.convertToFormat(QImage::Format_ARGB32);double sum=0,count=0;
+    for(int y=0;y<image.height();++y)for(int x=0;x<image.width();++x){const auto c=image.pixelColor(x,y);if(c.alpha()>200){sum+=.2126*c.redF()+.7152*c.greenF()+.0722*c.blueF();++count;}}
+    const qreal tone=qBound(.05,count?sum/count:.5,.95);
+    for(int y=0;y<image.height();++y){auto *line=reinterpret_cast<QRgb*>(image.scanLine(y));for(int x=0;x<image.width();++x){const auto pixel=line[x];if(!qAlpha(pixel))continue;const auto c=QColor::fromRgba(pixel);
+        if(glyph && x>image.width()*.2 && x<image.width()*.8 && y>image.height()*.2 && y<image.height()*.8 && c.hsvSaturationF()<.12 && (c.valueF()>.96 || c.valueF()<.06))continue;
+        qreal mix=0;if(edge.isValid() && x>=image.width()-9 && c.hsvSaturationF()>.12)mix=qBound(0.,(c.hsvHueF()*360.-125.)/95.,1.);
+        const QColor tint(qRound(target.red()*(1-mix)+edge.red()*mix),qRound(target.green()*(1-mix)+edge.green()*mix),qRound(target.blue()*(1-mix)+edge.blue()*mix));
+        const qreal center=tone*(1-mix)+.354402745*mix;
+        const qreal value=.2126*c.redF()+.7152*c.greenF()+.0722*c.blueF();const qreal shade=value<center?std::pow(value/center,1.1):1;const qreal shine=value<center?0:.65*(value-center)/(1-center);
+        auto channel=[&](int v){return qBound(0,qRound(v*shade*(1-shine)+255*shine),255);};line[x]=qRgba(channel(tint.red()),channel(tint.green()),channel(tint.blue()),qAlpha(pixel));
+    }}return image;
+}
+QImage colorMask(QImage image,const QColor &color){QPainter p(&image);p.setCompositionMode(QPainter::CompositionMode_SourceIn);p.fillRect(image.rect(),color);return image;}
+}
+
+QImage windowDecoration(const Look &look, QSize size, const QString &title, bool active, bool dialog, const QJsonObject &live)
 {
     const DecorationLayout layout = decorationLayout(look);
     const DecorationArt art = decorationArt(look);
     QImage image = composeFrame(art.frame, active ? QStringLiteral("decoration-") : QStringLiteral("decoration-inactive-"), size);
+    const bool tinted=live.value("enabled").toBool();
+    const QColor titleColor(live.value("title").toString(live.value("menu").toString()));
+    if(tinted)image=liveImage(image,titleColor);
     QPainter painter(&image);
     int right = size.width() - layout.frame - 2;
     for (const QString &button : {QStringLiteral("close"), QStringLiteral("maximize"), QStringLiteral("minimize")}) {
@@ -96,7 +119,13 @@ QImage windowDecoration(const Look &look, QSize size, const QString &title, bool
             for (const auto &[state, pixels] : states)
                 if (state == (active ? QStringLiteral("active-center") : QStringLiteral("inactive-center"))) {
                     right -= layout.button.width();
-                    painter.drawImage(QPoint(right, layout.frame + 2), pixels);
+                    QImage buttonPixels=pixels;
+                    if(tinted){
+                        buttonPixels=liveImage(buttonPixels,name==QLatin1String("close")?QColor("#d84427"):QColor(live.value("buttons").toString()),true);
+                        const int mode=live.value("buttonsText").toInt();
+                        if(mode)for(int y=buttonPixels.height()/5;y<buttonPixels.height()*4/5;++y)for(int x=buttonPixels.width()/5;x<buttonPixels.width()*4/5;++x){const auto c=pixels.pixelColor(x,y);if(c.hsvSaturationF()<.12 && (c.valueF()>.96 || c.valueF()<.06))buttonPixels.setPixelColor(x,y,QColor(mode==1?Qt::white:Qt::black));}
+                    }
+                    painter.drawImage(QPoint(right, layout.frame + 2), buttonPixels);
                     right -= look.classic() && button == QLatin1String("maximize") ? 0 : layout.buttonGap;
                     break;
                 }
@@ -115,18 +144,20 @@ QImage windowDecoration(const Look &look, QSize size, const QString &title, bool
             const QPoint offset(xy.value(0).trimmed().toInt(), xy.value(1, xy.value(0)).trimmed().toInt());
             QRgb shadow = qRgb(128, 128, 128);
             parseColour(look.renderer->property(caption, u"textshadowcolor").value_or(QStringLiteral("128 128 128")), &shadow);
-            painter.setPen(QColor::fromRgb(shadow));
+            painter.setPen(tinted ? QColor("#77000000") : QColor::fromRgb(shadow));
             painter.drawText(label.translated(offset), flags, text);
         }
     }
-    painter.setPen(look.system.colour(active ? u"TitleText" : u"InactiveTitleText"));
+    painter.setPen(tinted ? liveText(titleColor,live.value("titleText").toInt()) : look.system.colour(active ? u"TitleText" : u"InactiveTitleText"));
     painter.drawText(label, flags, text);
     return image;
 }
 
-QImage Previewer::windows(const Look &look, QSize size, const QImage &behind)
+QImage Previewer::windows(const Look &look, QSize size, const QImage &behind, const QJsonObject &live)
 {
     QStyle *style = styleFor(look);
+    if(style && style->metaObject()->indexOfMethod("setLiveColors(QVariantMap)")>=0)
+        QMetaObject::invokeMethod(style,"setLiveColors",Q_ARG(QVariantMap,live.toVariantMap()));
     QImage out = behind.isNull() ? QImage(size, QImage::Format_ARGB32_Premultiplied) : behind;
     if (behind.isNull()) out.fill(look.system.colour(u"Background"));
     const auto frame = decorationLayout(look);
@@ -146,7 +177,7 @@ QImage Previewer::windows(const Look &look, QSize size, const QImage &behind)
         if (content->layout()) content->layout()->activate();
         painter.fillRect(client.translated(geometry.topLeft()), look.system.colour(u"ButtonFace"));
         content->render(&painter, geometry.topLeft() + client.topLeft());
-        painter.drawImage(geometry.topLeft(), windowDecoration(look, geometry.size(), title, active, dialog));
+        painter.drawImage(geometry.topLeft(), windowDecoration(look, geometry.size(), title, active, dialog,live));
         delete content;
     };
     auto text = [](const QString &s) {
@@ -167,11 +198,11 @@ QImage Previewer::windows(const Look &look, QSize size, const QImage &behind)
     return out;
 }
 
-QImage Previewer::appearance(const Look &look, QSize size, const QColor &background)
+QImage Previewer::appearance(const Look &look, QSize size, const QColor &background,const QJsonObject &live)
 {
     QImage behind(size, QImage::Format_ARGB32_Premultiplied);
     behind.fill(background);
-    return windows(look, size, behind);
+    return windows(look, size, behind,live);
 }
 
 QImage placeWallpaper(const QImage &image, int fill, const QColor &colour, QSize size)
@@ -239,7 +270,7 @@ QImage Previewer::desktop(const Wallpaper &wallpaper, QSize size)
     return out;
 }
 
-QImage Previewer::theme(const Look &look, const Wallpaper &desktop, QSize size, const StartButtonExtras &start)
+QImage Previewer::theme(const Look &look, const Wallpaper &desktop, QSize size, const StartButtonExtras &start,const QJsonObject &live)
 {
     // The screen scaled down: the wallpaper, the windows, the taskbar with
     // the Start button along the bottom.
@@ -250,13 +281,25 @@ QImage Previewer::theme(const Look &look, const Wallpaper &desktop, QSize size, 
     QImage full(size, QImage::Format_ARGB32_Premultiplied);
     full.fill(Qt::black);
     QPainter p(&full);
-    p.drawImage(0, 0, windows(look, screen, placeWallpaper(image, desktop.fill.value_or(0), desktop.colour, screen)));
+    p.drawImage(0, 0, windows(look, screen, placeWallpaper(image, desktop.fill.value_or(0), desktop.colour, screen),live));
     p.setRenderHint(QPainter::SmoothPixmapTransform);
-    p.drawImage(QRect(0, screen.height(), size.width(), barHeight), composeFrame(art.panel, QString(), QSize(800, art.height)));
+    QImage panel=composeFrame(art.panel,QString(),QSize(800,art.height));
+    if(live.value("enabled").toBool())panel=liveImage(panel,QColor(live.value("menu").toString()));
+    p.drawImage(QRect(0,screen.height(),size.width(),barHeight),panel);
     const auto flag = look.classic() ? media::classicStartFlag() : media::startFlag();
     if (flag)
-        if (const auto button = startButton(look, *flag, start))
-            p.drawImage(QRect(0, screen.height(), button->normal.width() * barHeight / button->normal.height(), barHeight), button->normal);
+        if (const auto button = startButton(look, *flag, start)){
+            QImage pixels=button->normal;
+            if(live.value("enabled").toBool()){
+                const QColor tint(live.value("start").toString());
+                const bool edge=QFileInfo(look.stylePath).baseName().compare("luna",Qt::CaseInsensitive)==0 && look.variant.contains("BLUE",Qt::CaseInsensitive);
+                pixels=liveImage(button->backgrounds[0],tint,false,edge?QColor(live.value("menu").toString()):QColor());
+                QPainter layers(&pixels);const QColor text=liveText(tint,live.value("startText").toInt());
+                if(text==QColor(Qt::white))layers.drawImage(0,0,colorMask(button->shadowMasks[0],QColor("#73000000")));
+                layers.drawImage(0,0,button->foregrounds[0]);layers.drawImage(0,0,colorMask(button->textMasks[0],text));
+            }
+            p.drawImage(QRect(0,screen.height(),button->normal.width()*barHeight/button->normal.height(),barHeight),pixels);
+        }
     return full;
 }
 

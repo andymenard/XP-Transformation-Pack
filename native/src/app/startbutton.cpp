@@ -40,6 +40,44 @@ QFont fontFrom(const QString &spec, const QFont &fallback)
     return gdiFont(font);
 }
 
+// Drawn `scale` times over, for a HiDPI screen: smoothed, as no font is
+// bi-level that large.
+QFont scaledFont(QFont font, int scale)
+{
+    if (scale > 1)
+        font.setStyleStrategy(QFont::PreferAntialias);
+    return font;
+}
+
+// The art at `scale`: drawn on in the bar's pixels (devicePixelRatio), its
+// bitmaps -- XP's button and flag -- their own pixels, made bigger.
+QImage scaledUp(const QImage &image, int scale)
+{
+    QImage out = scale == 1 ? image : image.scaled(image.size() * scale, Qt::IgnoreAspectRatio, Qt::FastTransformation);
+    out.setDevicePixelRatio(scale);
+    return out;
+}
+
+QImage blank(QSize size, int scale)
+{
+    QImage out(size * scale, QImage::Format_ARGB32_Premultiplied);
+    out.setDevicePixelRatio(scale);
+    out.fill(Qt::transparent);
+    return out;
+}
+
+QSize logical(const QImage &image)
+{
+    return image.deviceIndependentSize().toSize();
+}
+
+// The bar's height of it (the button is 2px taller).
+QImage barHeight(const QImage &image, int width)
+{
+    const int scale = qRound(image.devicePixelRatio());
+    return image.copy(0, 0, width * scale, kTaskbarHeight * scale);
+}
+
 // A box blur of an alpha mask, `radius` wide, twice: uxtheme's "continuous"
 // text shadow is the text's shape softened, not an outline.
 QImage blurred(const QImage &mask, int radius)
@@ -76,7 +114,9 @@ void drawLabel(QPainter &p, const QRect &rect, const QString &label, const QFont
         p.setPen(shadowColour);
         p.drawText(origin + shadowOffset, label);
     } else if (shadowType.compare(QLatin1String("continuous"), Qt::CaseInsensitive) == 0) {
+        const qreal dpr = p.device()->devicePixelRatioF();
         QImage mask(p.device()->width(), p.device()->height(), QImage::Format_ARGB32_Premultiplied);
+        mask.setDevicePixelRatio(dpr);
         mask.fill(Qt::transparent);
         {
             QPainter m(&mask);
@@ -84,7 +124,7 @@ void drawLabel(QPainter &p, const QRect &rect, const QString &label, const QFont
             m.setPen(Qt::black);
             m.drawText(origin + shadowOffset, label);
         }
-        QImage shadow = blurred(mask, 1);
+        QImage shadow = blurred(mask, qRound(dpr));
         QPainter s(&shadow);
         s.setCompositionMode(QPainter::CompositionMode_SourceIn);
         s.fillRect(shadow.rect(), shadowColour);
@@ -97,8 +137,8 @@ void drawLabel(QPainter &p, const QRect &rect, const QString &label, const QFont
 
 // Characters as a logo, `height` tall: drawn large and scaled down, in
 // `colour` -- the label's -- or their own colours where the font has them
-// (an emoji).
-QImage characters(const QString &text, int height, const QColor &colour)
+// (an emoji). At `scale`, like the rest.
+QImage characters(const QString &text, int height, const QColor &colour, int scale)
 {
     QFont font;
     font.setPixelSize(height * 4);
@@ -119,22 +159,28 @@ QImage characters(const QString &text, int height, const QColor &colour)
                 box |= QRect(x, y, 1, 1);
     if (box.isEmpty())
         return QImage();
-    return big.copy(box).scaledToHeight(height, Qt::SmoothTransformation);
+    QImage out = big.copy(box).scaledToHeight(height * scale, Qt::SmoothTransformation);
+    out.setDevicePixelRatio(scale);
+    return out;
 }
 
-// A picture as a logo: `height` tall (no wider than three times that).
-QImage picture(const QString &file, int height)
+// A picture as a logo: `height` tall (no wider than three times that), at
+// `scale`.
+QImage picture(const QString &file, int height, int scale)
 {
     const QImage image(file);
     if (image.isNull())
         return QImage();
+    height *= scale;
     const QImage scaled = image.scaledToHeight(height, Qt::SmoothTransformation);
-    return (scaled.width() > 3 * height ? image.scaled(3 * height, height, Qt::KeepAspectRatio, Qt::SmoothTransformation) : scaled)
+    QImage out = (scaled.width() > 3 * height ? image.scaled(3 * height, height, Qt::KeepAspectRatio, Qt::SmoothTransformation) : scaled)
         .convertToFormat(QImage::Format_ARGB32_Premultiplied);
+    out.setDevicePixelRatio(scale);
+    return out;
 }
 
 std::optional<StartButtonArt> styleButton(const Look &look, QImage flag, const QString &label, const QString &logoText,
-                                          QString *error)
+                                          int scale, QString *error)
 {
     const Renderer &r = *look.renderer;
     const PartRef normal{QStringLiteral("button"), schema::partId(u"button", u"pushbutton"), 1, QStringLiteral("start")};
@@ -142,16 +188,18 @@ std::optional<StartButtonArt> styleButton(const Look &look, QImage flag, const Q
         fail(error, QStringLiteral("%1 has no Start button").arg(look.name));
         return std::nullopt;
     }
-    const QFont font = fontFrom(r.property(normal, u"font").value_or(QString()),
-                                QFont(QStringLiteral("Franklin Gothic Medium")));
+    const QFont font = scaledFont(fontFrom(r.property(normal, u"font").value_or(QString()),
+                                           QFont(QStringLiteral("Franklin Gothic Medium"))),
+                                  scale);
     QRgb text = qRgb(255, 255, 255), shadow = qRgb(0, 0, 0);
     parseColour(r.property(normal, u"textcolor").value_or(QString()), &text);
     parseColour(r.property(normal, u"textshadowcolor").value_or(QString()), &shadow);
     const QStringList off = r.property(normal, u"textshadowoffset").value_or(QStringLiteral("1, 1")).split(QLatin1Char(','));
     const QPoint shadowOffset(off.value(0).trimmed().toInt(), off.value(1, off.value(0)).trimmed().toInt());
     const QString shadowType = r.property(normal, u"textshadowtype").value_or(QString());
-    if (const QImage logo = characters(logoText, flag.height(), QColor(text)); !logoText.isEmpty() && !logo.isNull())
+    if (const QImage logo = characters(logoText, logical(flag).height(), QColor(text), scale); !logoText.isEmpty() && !logo.isNull())
         flag = logo;
+    const QSize flagSize = logical(flag);
 
     // Measured (Luna, 800 x 600): the button is its content margins round
     // the flag and the label with a pixel either side of it, 2px taller than
@@ -159,21 +207,38 @@ std::optional<StartButtonArt> styleButton(const Look &look, QImage flag, const Q
     // content's left, centred.
     const QMargins cm = r.contentMargins(normal);
     const int textWidth = gdiTextWidth(font, label) + 2;
-    const QSize size(cm.left() + flag.width() + textWidth + cm.right(), kTaskbarHeight + 2);
+    const QSize size(cm.left() + flagSize.width() + textWidth + cm.right(), kTaskbarHeight + 2);
     const QRect content = QRect(QPoint(), size).marginsRemoved(cm);
 
     StartButtonArt art;
+    art.scale = scale;
     QImage *out[] = {&art.normal, &art.hover, &art.pressed};
     for (int state = 1; state <= 3; ++state) {
-        QImage img = r.background({normal.cls, normal.part, state, normal.sub}, size);
+        QImage img = scaledUp(r.background({normal.cls, normal.part, state, normal.sub}, size), scale);
+        art.backgrounds[state-1] = barHeight(img,size.width());
+        art.textColor = QColor(text);
+        QImage foreground=blank(size,scale);
+        QImage mask=blank(size,scale);
+        const QRect labelRect(content.left()+flagSize.width(),content.top(),textWidth,content.height());
+        {
+            QPainter p(&foreground);p.setRenderHint(QPainter::TextAntialiasing);
+            p.drawImage(content.left(),content.top()+(content.height()-flagSize.height())/2,flag);
+            QImage shadowMask=blank(size,scale);
+            {QPainter shadowPainter(&shadowMask);shadowPainter.setRenderHint(QPainter::TextAntialiasing);
+             drawLabel(shadowPainter,labelRect,label,font,Qt::transparent,shadowType,Qt::white,shadowOffset);}
+            art.shadowMasks[state-1]=barHeight(shadowMask,size.width());
+            QPainter glyph(&mask);glyph.setRenderHint(QPainter::TextAntialiasing);
+            drawLabel(glyph,labelRect,label,font,Qt::white,QString(),QColor(),QPoint());
+        }
+        art.foregrounds[state-1]=barHeight(foreground,size.width());
+        art.textMasks[state-1]=barHeight(mask,size.width());
         {
             QPainter p(&img);
             p.setRenderHint(QPainter::TextAntialiasing);
-            p.drawImage(content.left(), content.top() + (content.height() - flag.height()) / 2, flag);
-            const QRect labelRect(content.left() + flag.width(), content.top(), textWidth, content.height());
+            p.drawImage(content.left(), content.top() + (content.height() - flagSize.height()) / 2, flag);
             drawLabel(p, labelRect, label, font, QColor(text), shadowType, QColor(shadow), shadowOffset);
         }
-        *out[state - 1] = img.copy(0, 0, size.width(), kTaskbarHeight);
+        *out[state - 1] = barHeight(img, size.width());
     }
     return art;
 }
@@ -182,31 +247,50 @@ std::optional<StartButtonArt> styleButton(const Look &look, QImage flag, const Q
 // 22px tall, 2px in and 4px down the 30px bar; the small flag (bitmap 176)
 // 2px into it, centred; a pixel after it "Start" in bold Tahoma, centred in
 // a slot 2px wider than the text; 2px after that. Pushed, the contents move 1px down and right.
-std::optional<StartButtonArt> classicButton(const Look &look, QImage flag, const QString &label, const QString &logoText)
+std::optional<StartButtonArt> classicButton(const Look &look, QImage flag, const QString &label, const QString &logoText,
+                                            int scale)
 {
     const ClassicScheme &s = look.system;
-    const QPalette pal = s.palette();
-    if (const QImage logo = characters(logoText, flag.height(), s.colour(u"ButtonText")); !logoText.isEmpty() && !logo.isNull())
+    const QPalette pal = s.shellPalette(0);
+    if (const QImage logo = characters(logoText, logical(flag).height(), s.colour(u"ButtonText"), scale); !logoText.isEmpty() && !logo.isNull())
         flag = logo;
+    const QSize flagSize = logical(flag);
     QFont font(s.metrics.messageFont.face);
     font.setPixelSize(-s.metrics.messageFont.height);
     font.setBold(true);
-    font = gdiFont(font);
+    font = scaledFont(gdiFont(font), scale);
     const int textWidth = gdiTextWidth(font, label) + 2;
-    const QRect button(2, 4, 2 + flag.width() + 1 + textWidth + 2, 22);
+    const QRect button(2, 4, 2 + flagSize.width() + 1 + textWidth + 2, 22);
+    const QSize size(button.right() + 1, kTaskbarHeight);
     StartButtonArt art;
+    art.scale = scale;
     QImage *out[] = {&art.normal, &art.hover, &art.pressed};
     for (int state = 0; state < 3; ++state) {
-        QImage img(button.right() + 1, kTaskbarHeight, QImage::Format_ARGB32_Premultiplied);
-        img.fill(Qt::transparent);
-        QPainter p(&img);
         const bool down = state == 2;
-        classic::pushEdge(&p, button, pal, down);
+        QImage edge(size, QImage::Format_ARGB32_Premultiplied);
+        edge.fill(Qt::transparent);
+        {
+            QPainter e(&edge);
+            classic::pushEdge(&e, button, pal, down);
+        }
+        QImage img = scaledUp(edge, scale);
+        QPainter p(&img);
+        art.backgrounds[state]=img.copy();
+        art.textColor=pal.color(QPalette::ButtonText);
         const QPoint shift = down ? QPoint(1, 1) : QPoint();
-        p.drawImage(button.topLeft() + QPoint(2, (button.height() - flag.height()) / 2) + shift, flag);
+        QImage fg=blank(size,scale);
+        QImage mask=blank(size,scale);
+        {
+            QPainter fp(&fg);fp.drawImage(button.topLeft()+QPoint(2,(button.height()-flagSize.height())/2)+shift,flag);
+            QPainter mp(&mask);mp.setRenderHint(QPainter::TextAntialiasing);
+            drawLabel(mp,QRect(button.left()+2+flagSize.width()+1,button.top(),textWidth,button.height()).translated(shift),
+                label,font,Qt::white,QString(),QColor(),QPoint());
+        }
+        art.foregrounds[state]=fg;art.textMasks[state]=mask;art.shadowMasks[state]=blank(size,scale);
+        p.drawImage(button.topLeft() + QPoint(2, (button.height() - flagSize.height()) / 2) + shift, flag);
         p.setRenderHint(QPainter::TextAntialiasing);
-        drawLabel(p, QRect(button.left() + 2 + flag.width() + 1, button.top(), textWidth, button.height()).translated(shift),
-                  label, font, s.colour(u"ButtonText"), QString(), QColor(), QPoint());
+        drawLabel(p, QRect(button.left() + 2 + flagSize.width() + 1, button.top(), textWidth, button.height()).translated(shift),
+                  label, font, pal.color(QPalette::ButtonText), QString(), QColor(), QPoint());
         p.end();
         *out[state] = img;
     }
@@ -215,32 +299,35 @@ std::optional<StartButtonArt> classicButton(const Look &look, QImage flag, const
 
 } // namespace
 
-std::optional<StartButtonArt> startButton(const Look &look, const QImage &flag, const QString &label, QString *error)
+std::optional<StartButtonArt> startButton(const Look &look, const QImage &flag, const QString &label, QString *error,
+                                          int scale)
 {
     if (flag.isNull()) {
         fail(error, QStringLiteral("no Start flag: XPlasma needs the Windows XP media for it"));
         return std::nullopt;
     }
-    const QImage premultiplied = flag.convertToFormat(QImage::Format_ARGB32_Premultiplied);
-    return look.classic() ? classicButton(look, premultiplied, label, QString()) : styleButton(look, premultiplied, label, QString(), error);
+    const QImage premultiplied = scaledUp(flag.convertToFormat(QImage::Format_ARGB32_Premultiplied), scale);
+    return look.classic() ? classicButton(look, premultiplied, label, QString(), scale)
+                          : styleButton(look, premultiplied, label, QString(), scale, error);
 }
 
-std::optional<StartButtonArt> startButton(const Look &look, const QImage &flag, const StartButtonExtras &extras, QString *error)
+std::optional<StartButtonArt> startButton(const Look &look, const QImage &flag, const StartButtonExtras &extras, QString *error,
+                                          int scale)
 {
     if (flag.isNull()) {
         fail(error, QStringLiteral("no Start flag: XPlasma needs the Windows XP media for it"));
         return std::nullopt;
     }
-    QImage logo = flag.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+    QImage logo = scaledUp(flag.convertToFormat(QImage::Format_ARGB32_Premultiplied), scale);
     QString logoText = extras.logoText;
     if (!extras.logoFile.isEmpty()) {
         // (A picture that's gone or unreadable: XP's flag, not no button.)
-        if (const QImage pic = picture(extras.logoFile, flag.height()); !pic.isNull())
+        if (const QImage pic = picture(extras.logoFile, flag.height(), scale); !pic.isNull())
             logo = pic;
         logoText.clear();
     }
     const QString label = !extras.label.isEmpty() ? extras.label : look.classic() ? QStringLiteral("Start") : QStringLiteral("start");
-    return look.classic() ? classicButton(look, logo, label, logoText) : styleButton(look, logo, label, logoText, error);
+    return look.classic() ? classicButton(look, logo, label, logoText, scale) : styleButton(look, logo, label, logoText, scale, error);
 }
 
 StartButtonExtras StartButtonExtras::fromJson(const QJsonObject &o)

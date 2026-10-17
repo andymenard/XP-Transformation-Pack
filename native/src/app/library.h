@@ -95,6 +95,8 @@ public:
 
     QList<StyleInfo> styles;     // readable or not; official first, then by label
     QList<ThemeBundle> themes;   // by label
+    QList<ThemeBundle> themeChoices() const; // XP defaults first; Luna variants live under Appearance
+    static bool stockTheme(const ThemeBundle &theme);
 
     // One style, through the cache.
     static StyleInfo style(const QString &path);
@@ -159,6 +161,7 @@ struct Preset
     QString size;
     ClassicScheme scheme;    // for Classic
     Desktop desktop;
+    QJsonObject liveColors;  // XPlasma live colors and independent text selectors
     QString base;            // a .theme to start from (its icons, sounds...), optional
 };
 

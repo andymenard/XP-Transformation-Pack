@@ -78,6 +78,7 @@ bool copyTree(const QString &from, const QString &to)
 
 bool writeText(const QString &path, const QString &text)
 {
+    if (readText(path) == text) return true;
     QDir().mkpath(QFileInfo(path).absolutePath());
     QSaveFile f(path);
     return f.open(QIODevice::WriteOnly) && f.write(text.toUtf8()) >= 0 && f.commit();
@@ -404,6 +405,7 @@ bool installTitleShadows(const QString &themes, const QString &target, QString *
     QJsonObject shadows;
     QJsonArray ours;
     for (const QFileInfo &pkg : QDir(themes).entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        if(pkg.fileName().startsWith(QLatin1String("xplasma-v2-")))continue;
         const QString rcPath = pkg.filePath() + QLatin1Char('/') + pkg.fileName() + QLatin1String("rc");
         QSettings rc(rcPath, QSettings::IniFormat);
         if (!rc.contains(QLatin1String(kGeneratedKey) + QLatin1String("/Look")) && !readText(pkg.filePath() + QLatin1String("/metadata.desktop")).contains(QLatin1String("XPlasma")))
@@ -443,6 +445,7 @@ bool installTitleShadows(const QString &themes, const QString &target, QString *
     for (const QString &list : buttonLists)
         source.replace(list, QStringLiteral("buttons: root.xpButtons(%1)").arg(list.mid(int(qstrlen("buttons: ")))));
     source.replace(anchor, resource(QStringLiteral("title-shadow.qml")) + anchor);
+    source.replace(QStringLiteral("id: caption\n"),QStringLiteral("id: caption\n        objectName: \"xplasma-caption\"\n"));
     if (!writeText(target, QLatin1String(kShadowMarker) + QLatin1Char('\n') + source))
         return fail(error, QStringLiteral("can't write %1").arg(target));
     return true;

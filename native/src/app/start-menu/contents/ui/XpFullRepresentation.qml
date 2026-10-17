@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Layouts
-import "popupguard" as PopupGuard
+import "popupguard-v8" as PopupGuard
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.private.kicker as Kicker
@@ -176,6 +176,7 @@ Item {
     }
     XpProgramsPopup {
         id: submenu
+        xpTextStyle: menu.xpTextStyle
         themeData: root.launcher.themeData
         visualParent: categoriesOnly ? menu.allProgramsItem : menu.recentFilesItem
         anchorHovered: categoriesOnly ? menu.allProgramsHovered : menu.recentFilesHovered

@@ -2,6 +2,8 @@
 #include "app/editor/jobs.h"
 
 #include <QDialogButtonBox>
+#include <QEventLoop>
+#include <QApplication>
 #include <QLabel>
 #include <QPlainTextEdit>
 #include <QProgressBar>
@@ -86,6 +88,26 @@ bool runJob(QWidget *parent, const QString &title, const std::function<bool(cons
     if (!worker.ok && error)
         *error = worker.error;
     return worker.ok;
+}
+
+bool runResponsiveTask(QWidget *parent,const std::function<bool(QString *)> &work,QString *error)
+{
+    class CloseGuard final : public QObject {
+        QWidget *m_window;
+    public:
+        explicit CloseGuard(QWidget *window):m_window(window){if(window)window->installEventFilter(this);}
+        ~CloseGuard() override {if(m_window)m_window->removeEventFilter(this);}
+        bool eventFilter(QObject *object,QEvent *event) override {if(object==m_window && event->type()==QEvent::Close){event->ignore();return true;}return false;}
+    } guard(parent);
+    bool ok=false;QString result;QEventLoop loop;
+    QThread *worker=QThread::create([&]{ok=work(&result);});
+    QObject::connect(worker,&QThread::finished,&loop,&QEventLoop::quit,Qt::QueuedConnection);
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    worker->start();loop.exec(QEventLoop::ExcludeUserInputEvents);
+    worker->wait();delete worker;
+    QApplication::restoreOverrideCursor();
+    if(!ok && error)*error=result;
+    return ok;
 }
 
 } // namespace xpl::editor

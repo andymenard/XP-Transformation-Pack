@@ -471,6 +471,46 @@ Library Library::scan(const QStringList &roots)
     return lib;
 }
 
+bool Library::stockTheme(const ThemeBundle &theme)
+{
+    if(presets::owned(theme.path) || QFileInfo(theme.path).dir().dirName()==QLatin1String("Saved"))return false;
+    const QFileInfo file(theme.path);
+    return (theme.label==QLatin1String("Windows XP") && file.fileName().compare("Luna.theme",Qt::CaseInsensitive)==0 && file.dir().dirName().compare("Luna",Qt::CaseInsensitive)==0)
+        || (theme.label==QLatin1String("Windows Classic") && theme.classic() && file.fileName().compare("Windows Classic.theme",Qt::CaseInsensitive)==0);
+}
+
+QList<ThemeBundle> Library::themeChoices() const
+{
+    auto identity=[](const QString &path){if(path.isEmpty())return QString();const QFileInfo file(path);const auto real=file.canonicalFilePath();return real.isEmpty()?file.absoluteFilePath():real;};
+    QString luna;
+    for(const auto &theme:themes)if(stockTheme(theme) && theme.label==QLatin1String("Windows XP") && !theme.style.isEmpty())luna=identity(theme.style);
+    QList<ThemeBundle> choices;
+    for(const auto &theme:themes){
+        const QFileInfo path(theme.path);
+        bool redundant=false;
+        if(!luna.isEmpty() && !theme.style.isEmpty() && identity(theme.style)==luna && path.dir().dirName()==QLatin1String("XP Presets")
+            && QStringList{"Luna Blue","Luna Olive Green","Luna Silver","Windows Luna Blue","Windows Luna Olive Green","Windows Luna Silver"}.contains(theme.label)){
+            // Only our minimal convenience presets are folded into Appearance.
+            // Saved/imported themes with custom icons, sounds or colors remain.
+            if(const auto file=ThemeFile::load(theme.path)){
+                redundant=true;
+                for(const auto &section:file->sections())if(!QStringList{"theme","visualstyles","control panel/desktop"}.contains(section.split(QLatin1Char('\\'),Qt::SkipEmptyParts).join(QLatin1Char('/')).toLower()))redundant=false;
+                // A different desktop is a real theme, not a color shortcut.
+                for(const auto &stock:themes)if(stockTheme(stock) && stock.label==QLatin1String("Windows XP"))
+                    if((identity(theme.wallpaper)!=identity(stock.wallpaper)
+                        && !(stock.wallpaper.isEmpty() && identity(theme.wallpaper)==identity(QFileInfo(stock.path).dir().absoluteFilePath("../../wallpapers/Bliss.jpg")))) || theme.fill!=stock.fill)redundant=false;
+            }
+        }
+        if(!redundant)choices.append(theme);
+    }
+    QHash<QString,int> labels;
+    for(const auto &theme:choices)++labels[theme.label.toCaseFolded()];
+    for(auto &theme:choices)if(labels.value(theme.label.toCaseFolded())>1 && QFileInfo(theme.path).dir().dirName()==QLatin1String("Saved"))theme.label+=QStringLiteral(" (saved)");
+    auto rank=[](const ThemeBundle &theme){return stockTheme(theme)?(theme.label==QLatin1String("Windows XP")?0:1):2;};
+    std::stable_sort(choices.begin(),choices.end(),[&](const auto &a,const auto &b){const int ar=rank(a),br=rank(b);return ar!=br?ar<br:a.label.compare(b.label,Qt::CaseInsensitive)<0;});
+    return choices;
+}
+
 // --- assets ---------------------------------------------------------------------------
 
 QString resolveAsset(const QString &themeFile, const QString &windowsPath, const QStringList &preferred)
@@ -771,6 +811,7 @@ bool save(const Preset &preset, QString *path, QString *error)
     }
     file.setValue(u"Theme", u"DisplayName", preset.name);
     file.setValue(u"XPlasma", u"Saved", QStringLiteral("1"));
+    file.setValue(u"XPlasma",u"LiveColors",QString::fromUtf8(QJsonDocument(preset.liveColors).toJson(QJsonDocument::Compact)));
     if (preset.style.isEmpty()) {
         file.removeSection(u"VisualStyles");
         preset.scheme.writeTo(file);

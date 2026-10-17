@@ -5,7 +5,13 @@
 // when xp2plasma or XPlasma downloaded one on this machine, is used for the
 // real-media tests (skipped otherwise).
 #include "app/adopt.h"
+#include "app/colors.h"
 #include "app/apply.h"
+#include "app/editor/customluna.h"
+#include "app/startpanel.h"
+#include "core/theme.h"
+#include "core/render.h"
+#include "core/schema.h"
 #include "app/darkmode.h"
 #include "app/controls.h"
 #include "app/overrides.h"
@@ -169,14 +175,20 @@ public:
     QStringList calls;
     QHash<QString, QString> config;   // "file|group/group|key" -> value
     QString layoutReply = QStringLiteral("{\"log\":[\"laid out\"],\"panels\":[{\"panel\":1,\"order\":[3,4,5]}]}");
+    std::function<void()> onShellStop;
+    bool existingPanel = false;
     bool systemd = true;   // (the session's plasmashell a systemd user unit)
+    bool runnerActive = false;
     QList<QStringList> detached;
 
     host::Result run(const QStringList &argv) override
     {
+        if (onShellStop && argv.value(0) == QLatin1String("systemctl") && argv.contains(QStringLiteral("stop"))) onShellStop();
         runs << argv;
         host::Result r;
         r.exitCode = 0;
+        if (argv.contains(QStringLiteral("plasma-krunner.service")) && argv.contains(QStringLiteral("is-active")))
+            r.out = runnerActive ? "active\n" : "inactive\n";
         if (argv.value(0) == QLatin1String("systemctl") && argv.contains(QStringLiteral("LoadState")))
             r.out = systemd ? "loaded\n" : "not-found\n";
         if (argv.value(0) == QLatin1String("kreadconfig6") || argv.value(0) == QLatin1String("kwriteconfig6")) {
@@ -200,6 +212,8 @@ public:
         scripts << js;
         if (js.contains(QLatin1String("print('up')")))
             return QStringLiteral("up");
+        if (js.contains(QLatin1String("XPLASMA_EXISTING_PANEL")))
+            return existingPanel ? QStringLiteral("ready") : QStringLiteral("missing");
         if (js.contains(QLatin1String("LAUNCHER_KEYS")))
             return layoutReply;
         return QString();
@@ -666,8 +680,10 @@ private Q_SLOTS:
         s.colorStyle = QStringLiteral("Metallic");
         s.size = QStringLiteral("NormalSize");
         s.base = m_home.filePath(QStringLiteral("b/Base.theme"));
+        s.liveColors={{"enabled",true},{"start","#efab00"},{"menu","#315c43"},{"title","#315c43"},{"buttons","#806030"},{"startText",2},{"menuText",1},{"startMenuText",2},{"titleText",1},{"buttonsText",0},{"linkTitleToTaskbar",true}};
         QVERIFY2(presets::save(s, &path, &error), qPrintable(error));
         const ThemeFile saved = *ThemeFile::load(path);
+        QCOMPARE(QJsonDocument::fromJson(saved.value(u"XPlasma",u"LiveColors").toUtf8()).object(),s.liveColors);
         QCOMPARE(saved.value(u"VisualStyles", u"ColorStyle"), QStringLiteral("Metallic"));
         QCOMPARE(saved.value(u"Theme", u"DisplayName"), QStringLiteral("Styled"));
         QCOMPARE(saved.value(u"Control Panel\\Cursors", u"Arrow"), m_home.filePath(QStringLiteral("b/Base/arrow.cur")));
@@ -714,6 +730,29 @@ private Q_SLOTS:
         if (QFileInfo::exists(m_realThemes + QLatin1String("/Royale Noir")))
             QVERIFY(lib.styles.size() >= 5);
         QVERIFY(lib.styles.first().official);
+    }
+
+    void stockThemeChoices()
+    {
+        Library library;
+        ThemeBundle xp;xp.path=paths::themes()+"/Luna/Luna.theme";xp.label="Windows XP";xp.style="/styles/luna.msstyles";xp.wallpaper="/wallpaper/Bliss.jpg";xp.fill=2;
+        auto classic=xp;classic.path=paths::themes()+"/Windows Classic.theme";classic.label="Windows Classic";classic.style.clear();
+        library.themes={classic,xp};
+        for(const auto &name:{QString("Luna Blue"),QString("Luna Silver"),QString("Luna Olive Green")}){
+            auto shortcut=xp;shortcut.label=name;shortcut.path=paths::themes()+"/XP Presets/"+name+".theme";
+            QDir().mkpath(QFileInfo(shortcut.path).absolutePath());ThemeFile file;file.setValue(u"Theme",u"DisplayName",name);file.setValue(u"VisualStyles",u"Path",xp.style);QVERIFY(file.save(shortcut.path));library.themes.append(shortcut);
+        }
+        auto saved=xp;saved.label="My Blue";saved.path=paths::themes()+"/Saved/My-Blue.theme";library.themes.append(saved);
+        auto extra=xp;extra.label="Embedded";extra.path=paths::themes()+"/XP Presets/Embedded.theme";extra.style="/styles/embedded.msstyles";library.themes.append(extra);
+        auto choices=library.themeChoices();QCOMPARE(choices.size(),4);QCOMPARE(choices[0].label,QString("Windows XP"));QCOMPARE(choices[1].label,QString("Windows Classic"));QCOMPARE(choices[2].label,QString("Embedded"));QCOMPARE(choices[3].label,QString("My Blue"));QCOMPARE(library.themes.size(),7);
+        // A customized shortcut is a separate theme and must remain available.
+        auto file=*ThemeFile::load(library.themes[2].path);file.setValue(u"XPlasma",u"LiveColors",QStringLiteral("{\"enabled\":true}"));QVERIFY(file.save(library.themes[2].path));QCOMPARE(library.themeChoices().size(),5);
+        if(!m_realThemes.isEmpty()){
+            QDir(paths::themes()).removeRecursively();
+            const auto installed=Library::scan({m_realThemes});
+            QStringList names;for(const auto &theme:installed.themeChoices())names<<theme.label;qInfo()<<"Theme choices:"<<names;
+            QVERIFY(!names.contains("Luna Blue"));QVERIFY(!names.contains("Luna Silver"));QVERIFY(!names.contains("Luna Olive Green"));QVERIFY(names.contains("Windows XP"));
+        }
     }
 
     // --- generators -------------------------------------------------------------
@@ -918,11 +957,24 @@ private Q_SLOTS:
             for (int x = 80; x < 99; ++x)
                 QCOMPARE(art->hover.pixel(x, y), xp.pixel(x, y));
         QVERIFY(art->pressed != art->normal);
+        // For a HiDPI screen: twice the pixels, XP's own made bigger.
+        const auto twice = xpl::startButton(*look, flag, QStringLiteral("start"), &error, 2);
+        QVERIFY2(twice, qPrintable(error));
+        QCOMPARE(twice->normal.size(), QSize(198, 60));
+        QCOMPARE(twice->normal.deviceIndependentSize().toSize(), QSize(99, 30));
+        QCOMPARE(twice->normal.pixel(20, 10), qRgb(255, 0, 0));
+        QVERIFY(twice->normal.pixel(19, 10) != qRgb(255, 0, 0));
+        for (int y = 0; y < 60; ++y)
+            for (int x = 160; x < 198; ++x)
+                QCOMPARE(twice->hover.pixel(x, y), xp.pixel(x / 2, y / 2));
 
         const Look classic = Look::fromScheme(ClassicScheme());
         const auto classicArt = xpl::startButton(classic, flag, QStringLiteral("start"), &error);
         QVERIFY2(classicArt, qPrintable(error));
         QCOMPARE(classicArt->normal.height(), 30);
+        const auto classicTwice = xpl::startButton(classic, flag, QStringLiteral("start"), &error, 2);
+        QVERIFY2(classicTwice, qPrintable(error));
+        QCOMPARE(classicTwice->normal.size(), classicArt->normal.size() * 2);
 
         // Extras: none is XP's own button; a longer label, a wider one; a
         // logo of characters or a picture in the flag's place, its height.
@@ -1159,7 +1211,7 @@ private Q_SLOTS:
         QVERIFY2(installStartPlasmoid(plasmoids, &error), qPrintable(error));
         const QString pkg = plasmoids + QLatin1String("/fyi.hotsocket.xplasma.start");
         QVERIFY(!QFileInfo::exists(pkg + QLatin1String("/contents/ui/Kickoff-leftover.qml")));
-        QFile guard(pkg + QLatin1String("/contents/ui/popupguard/libxpmenuguard.so"));
+        QFile guard(pkg + QLatin1String("/contents/ui/popupguard-v8/libxpmenuguard.so"));
         QVERIFY(guard.open(QIODevice::ReadOnly));
         QCOMPARE(guard.read(4), QByteArray("\x7f" "ELF", 4));
         for (const char *file : {"metadata.json", "contents/config/main.xml", "contents/ui/main.qml", "contents/ui/StartButton.qml",
@@ -1558,12 +1610,12 @@ private Q_SLOTS:
             QVERIFY2(QFileInfo(notifications + QLatin1String(f)).size() > 0, f);
         QVERIFY(text.contains("XpNotificationIcons {"));
         QVERIFY(QFileInfo::exists(plasmoids + QLatin1String("/org.kde.plasma.systemtray/contents/ui/XpNotificationIcons.qml")));
-        // The desktop's menu: XPlasma Properties, starting the editor outside the shell.
+        // The desktop's menu: XPlasma Plus Properties, starting the editor outside the shell.
         QVERIFY2(overrides::installDesktopMenu(plasmoids, QStringLiteral("/opt/it's here/xplasma-edit"), &error), qPrintable(error));
         QFile layer(plasmoids + QLatin1String("/org.kde.desktopcontainment/contents/ui/FolderViewLayer.qml"));
         QVERIFY(layer.open(QIODevice::ReadOnly));
         const QByteArray desktop = layer.readAll();
-        QVERIFY(desktop.contains("text: \"XPlasma Properties\""));
+        QVERIFY(desktop.contains("text: \"XPlasma Plus Properties\""));
         QVERIFY2(desktop.contains(R"(connectSource("systemd-run --user --collect --quiet -- '/opt/it'\\''s here/xplasma-edit' || '/opt/it'\\''s here/xplasma-edit'"))"),
                  desktop.mid(desktop.indexOf("connectSource"), 160).constData());
         QVERIFY(desktop.contains("Plasmoid.contextualActions.push(xpPropertiesAction)") && !desktop.contains("@LAUNCH@") && !desktop.contains("{{"));
@@ -1696,6 +1748,80 @@ private Q_SLOTS:
             QVERIFY2(run.contains(QStringLiteral("plasmashell")) && run.contains(QStringLiteral("--version")), qPrintable(run.join(QLatin1Char(' '))));
         QVERIFY(session.config.isEmpty());
         QVERIFY(session.scripts.isEmpty());
+    }
+
+    void retiredLiveColorsOnlyDisableConfiguration()
+    {
+        struct LiveSessionRecorder : RecordingSession {
+            bool available=true;
+            std::optional<QString> script(const QString &js,QString *) override {scripts<<js;return available ? QStringLiteral("1") : QStringLiteral("0");}
+        } session;
+        QString error;
+        const QJsonObject colors{{QStringLiteral("enabled"),true},{QStringLiteral("start"),QStringLiteral("#3a7040")},
+            {QStringLiteral("menu"),QStringLiteral("#26384a")},{QStringLiteral("startText"),1},{QStringLiteral("menuText"),2}};
+        QVERIFY2(applyLiveStartColors(session,colors,&error),qPrintable(error));
+        QVERIFY(session.runs.isEmpty());
+        QVERIFY(session.scripts.last().contains(QLatin1String("writeConfig('liveColors'")));
+        QVERIFY(!session.scripts.last().contains(QLatin1String("#26384a")));
+        QCOMPARE(QJsonDocument::fromJson(readFile(paths::config()+"/xplasma-live-colors.json")).object(),QJsonObject());
+        QVERIFY(applyLiveStartColors(session,{},&error));
+        session.available=false;
+        QVERIFY(!applyLiveStartColors(session,colors,&error));
+        QVERIFY(error.contains(QLatin1String("Apply the base theme once")));
+    }
+
+    void liveSystemPaletteRestoresOwnedKeys()
+    {
+        QTemporaryDir directory;QVERIFY(directory.isValid());
+        QSettings base(directory.filePath("kdeglobals"),QSettings::IniFormat);
+        writeFile(directory.filePath("kdeglobals"),"[Colors:Selection]\nBackgroundNormal=49,106,197\n[Colors:Window]\nBackgroundNormal=236,233,216\n[General]\nfont=Tahoma,8\n");base.sync();
+        bool changed=false;QString error;
+        QJsonObject colors{{"enabled",true},{"menu","#315c43"},{"menuText",2},{"title","#644576"},{"titleText",1}};
+        QVERIFY2(applyLiveSystemColors(colors,directory.path(),&changed,&error),qPrintable(error));QVERIFY(changed);
+        base.sync();QCOMPARE(base.value("Colors:Selection/BackgroundNormal").toStringList().join(','),QString("49,92,67"));
+        QCOMPARE(base.value("Colors:Selection/ForegroundNormal").toStringList().join(','),QString("255,255,255"));
+        QCOMPARE(base.value("WM/activeBackground").toStringList().join(','),QString("100,69,118"));
+        QCOMPARE(base.value("Colors:Window/BackgroundNormal").toStringList().join(','),QString("236,233,216"));
+        QCOMPARE(base.value("font").toStringList().join(','),QString("Tahoma,8"));
+        QVERIFY(applyLiveSystemColors(colors,directory.path(),&changed,&error));QVERIFY(!changed);
+        colors.insert("menu","#644576");QVERIFY(applyLiveSystemColors(colors,directory.path(),&changed,&error));
+        QFile raw(directory.filePath("kdeglobals"));QVERIFY(raw.open(QIODevice::ReadOnly));auto bytes=raw.readAll();raw.close();
+        QVERIFY(bytes.contains("[Colors:Selection]"));QVERIFY(!bytes.contains("%3A"));QVERIFY(bytes.contains("BackgroundNormal=100,69,118"));
+        bytes.replace("ForegroundLink=100,69,118","ForegroundLink=9,8,7");writeFile(directory.filePath("kdeglobals"),bytes);base.sync(); // External edits are preserved.
+        QVERIFY(applyLiveSystemColors({},directory.path(),&changed,&error));base.sync();
+        QCOMPARE(base.value("Colors:Selection/BackgroundNormal").toStringList().join(','),QString("49,106,197"));
+        QCOMPARE(base.value("Colors:View/ForegroundLink").toStringList().join(','),QString("9,8,7"));
+        QVERIFY(!base.contains("WM/activeBackground"));QVERIFY(!QFileInfo::exists(directory.filePath("xplasma-live-system-base.json")));
+    }
+
+    void liveSystemPaletteRepairsLegacyQtEncoding()
+    {
+        QTemporaryDir directory;const QString path=directory.filePath("kdeglobals");
+        writeFile(path,"[Colors%3ASelection]\nBackgroundNormal=49,106,197\n[Colors%3AWindow]\nBackgroundNormal=236, 233, 216\n[General]\nfont=Tahoma,8\n");
+        bool changed=false;QString error;
+        QVERIFY2(applyLiveSystemColors({{"enabled",true},{"menu","#315c43"}},directory.path(),&changed,&error),qPrintable(error));
+        QFile file(path);QVERIFY(file.open(QIODevice::ReadOnly));auto data=file.readAll();file.close();
+        QVERIFY(!data.contains("%3A"));QVERIFY(data.contains("[Colors:Window]"));QVERIFY(data.contains("BackgroundNormal=236, 233, 216"));QVERIFY(data.contains("BackgroundNormal=49,92,67"));
+        QVERIFY(applyLiveSystemColors({},directory.path(),&changed,&error));QVERIFY(file.open(QIODevice::ReadOnly));data=file.readAll();
+        QVERIFY(data.contains("BackgroundNormal=49,106,197"));QVERIFY(data.contains("font=Tahoma,8"));
+    }
+
+    void themeUpdateStopsRunningKRunner()
+    {
+        RecordingSession session;
+        session.runnerActive = true;
+        const QStringList stop{QStringLiteral("systemctl"), QStringLiteral("--user"), QStringLiteral("stop"), QStringLiteral("plasma-krunner.service")};
+        const QStringList start{QStringLiteral("systemctl"), QStringLiteral("--user"), QStringLiteral("start"), QStringLiteral("plasma-krunner.service")};
+        session.restartPlasmaShell([&] {
+            QVERIFY(session.runs.contains(stop));
+            QVERIFY(!session.runs.contains(start));
+        });
+        QVERIFY(session.runs.indexOf(start) > session.runs.indexOf(stop));
+        session.runs.clear();
+        session.runnerActive = false;
+        session.restartPlasmaShell([] {});
+        QVERIFY(!session.runs.contains(stop));
+        QVERIFY(!session.runs.contains(start));
     }
 
     void restartWithoutSystemd()
@@ -1991,6 +2117,303 @@ private Q_SLOTS:
         }
     }
 
+    void savedLiveProfilesBecomeStaticStyles()
+    {
+        const QString source=m_realThemes+"/Royale/Royale.msstyles";
+        if(!QFileInfo::exists(source))QSKIP("needs Royale");
+        QString error;const auto base=Look::fromStyle(source,"NORMALROYALE_INI",&error);QVERIFY2(base,qPrintable(error));
+        const QJsonObject colors{{"enabled",true},{"start","#315c43"},{"menu","#644576"},{"title","#445566"},{"buttons","#728392"},{"linkTitleToTaskbar",false},{"menuText",2},{"startMenuText",1}};
+        const auto result=editor::staticColorLook(*base,colors,&error);QVERIFY2(result,qPrintable(error));QVERIFY(result->stylePath!=source);
+        QCOMPARE(result->system.colour(u"Hilight"),QColor("#644576"));
+        QCOMPARE(result->system.colour(u"HotTrackingColor"),QColor("#644576"));
+        const PartRef scrollbar{QStringLiteral("scrollbar"),schema::partId(u"scrollbar",u"thumbbtnvert"),1,{}};
+        QVERIFY(result->renderer->background(scrollbar,QSize(17,40))!=base->renderer->background(scrollbar,QSize(17,40)));
+        const auto theme=Theme::load(result->stylePath,result->variant);QVERIFY(theme);QRgb text;
+        QVERIFY(parseColour(theme->property(u"startpanel",u"placeslist",u"",u"textcolor").value_or(QString()),&text));QCOMPARE(QColor(text),QColor(Qt::white));
+        QVERIFY(parseColour(theme->property(u"sysmetrics",u"",u"",u"highlighttext").value_or(QString()),&text));QCOMPARE(QColor(text),QColor(Qt::black));
+        const auto panel=panelArt(*result);
+        QCOMPARE(panel.textColour,QColor(Qt::black));QCOMPARE(panel.trayTextColour,QColor(Qt::black));
+        const auto menu=writeStartPanel(*result,paths::data()+"/text-save-probe",&error);
+        QVERIFY2(!menu.isEmpty(),qPrintable(error));QCOMPARE(menu.value("palette").toObject().value("programText").toString(),QString("#ffffff"));
+        auto inverse=colors;inverse.insert("menuText",1);inverse.insert("startMenuText",2);
+        const auto inverseLook=editor::staticColorLook(*base,inverse,&error);QVERIFY2(inverseLook,qPrintable(error));
+        const auto inversePanel=panelArt(*inverseLook);QCOMPARE(inversePanel.textColour,QColor(Qt::white));QCOMPARE(inversePanel.trayTextColour,QColor(Qt::white));
+        const auto inverseMenu=writeStartPanel(*inverseLook,paths::data()+"/text-save-inverse",&error);QVERIFY2(!inverseMenu.isEmpty(),qPrintable(error));QCOMPARE(inverseMenu.value("palette").toObject().value("programText").toString(),QString("#000000"));
+        QCOMPARE(QJsonDocument::fromJson(readFile(result->stylePath+".json")).object().value("startMenuText").toInt(),1);
+        const auto repeated=editor::staticColorLook(*result,colors,&error);QVERIFY(repeated);QCOMPARE(repeated->stylePath,result->stylePath);
+        auto classic=editor::staticColorLook(Look::fromScheme(ClassicScheme()),colors,&error);QVERIFY(classic);QCOMPARE(classic->system.shellMenuTextMode,1);
+        ThemeFile saved;classic->system.writeTo(saved);QCOMPARE(ClassicScheme::fromThemeFile(saved).shellMenuTextMode,1);
+    }
+
+    void bakedProfileWithoutSidecar()
+    {
+        const QString source=m_realThemes+"/Luna/luna.msstyles";
+        if(!QFileInfo::exists(source))QSKIP("needs Luna");
+        QString error;const auto base=Look::fromStyle(source,"NORMALBLUE_INI",&error);QVERIFY(base);
+        QJsonObject colors{{"enabled",true},{"rendering","static"},{"menu","#644576"},{"startMenuText",2}};
+        const auto baked=editor::staticColorLook(*base,colors,&error);QVERIFY2(baked,qPrintable(error));
+        const auto pixels=decorationArt(*baked).element("decoration-top");
+        const QString imported=paths::data()+"/imported.msstyles";QVERIFY(QFile::copy(baked->stylePath,imported));
+        QVERIFY(QFile::remove(baked->stylePath+".json"));
+        const auto importedLook=Look::fromStyle(imported,baked->variant);QVERIFY(importedLook);
+        const auto metadata=editor::colorMetadata(imported,baked->variant);QCOMPARE(metadata.value("generator").toInt(),15);
+        const auto repeat=editor::staticColorLook(*importedLook,colors,&error);QVERIFY2(repeat,qPrintable(error));
+        QCOMPARE(decorationArt(*repeat).element("decoration-top"),pixels);
+        // A missing original may be viewed/reapplied, but never tinted twice.
+        const QString originalCopy=paths::data()+"/neutral.msstyles";QVERIFY(QFile::copy(source,originalCopy));
+        const auto localBase=Look::fromStyle(originalCopy,base->variant);QVERIFY(localBase);
+        const auto localBaked=editor::staticColorLook(*localBase,colors,&error);QVERIFY2(localBaked,qPrintable(error));
+        QVERIFY(QFile::remove(originalCopy));QVERIFY(QFile::remove(localBaked->stylePath+".json"));
+        const auto preserved=editor::staticColorLook(*localBaked,colors,&error);QVERIFY2(preserved,qPrintable(error));QCOMPARE(preserved->stylePath,localBaked->stylePath);
+        colors.insert("menu","#123456");QVERIFY(!editor::staticColorLook(*localBaked,colors,&error));QVERIFY(error.contains("original"));
+        const auto direct=editor::customLuna(localBaked->stylePath,{Qt::red,Qt::red,Qt::red,Qt::red},paths::data()+"/bad",&error,base->variant);QVERIFY(direct.isEmpty());
+    }
+
+    void colorOnlyApplyPreservesRuntimeAndCaches()
+    {
+        const QString source=m_realThemes+"/Luna/luna.msstyles";
+        if(!QFileInfo::exists(source))QSKIP("needs Luna");
+        QString error;const auto base=Look::fromStyle(source,"NORMALBLUE_INI",&error);QVERIFY(base);
+        State state;state.media=m_realIso;state.appliedKind="style";state.style=source;state.variant=base->variant;state.settings.insert(kAppliedWithKey,project::kVersion);QVERIFY(state.save());
+        const QString share=paths::localShare();
+        QVERIFY(overrides::installTitleShadows(share+"/aurorae/themes",share+"/kwin/aurorae/aurorae.qml",&error));
+        const QString unrelated="[some-other-application.svg]\nLastModified=123\nelement=16x16,\n";
+        writeFile(paths::home()+"/.cache/ksvg-elements",unrelated.toUtf8());
+        const QJsonObject colors{{"enabled",true},{"menu","#644576"},{"startMenuText",2}};
+        const auto baked=editor::staticColorLook(*base,colors,&error);QVERIFY2(baked,qPrintable(error));
+        RecordingSession session;session.existingPanel=true;
+        session.config.insert("kdeglobals|KDE|widgetStyle","XPlasma");
+        session.config.insert("kwinrc|org.kde.kdecoration2|theme","__aurorae__svg__old");
+        ApplyOptions options;options.icons=false;options.fonts=false;options.sounds=false;options.widgets=false;
+        QStringList progress;options.progress=[&](const QString &line){progress<<line;};
+        QVERIFY2(applyLook(session,*baked,options,&error),qPrintable(error));
+        QVERIFY(progress.join(' ').contains("installed theme runtime"));
+        QVERIFY(!session.ran("systemctl"));QVERIFY(!session.calls.contains("/KDEPlatformTheme refreshFonts"));
+        QVERIFY(!session.config.contains("kwinrulesrc|General|rules"));
+        QVERIFY(session.scripts.filter("LAUNCHER_KEYS").isEmpty());
+        QVERIFY(!session.scripts.filter("JSON.stringify").isEmpty());
+        const QString id=State::load().settings.value("appliedPackageId").toString();QVERIFY(id.startsWith("xplasma-v2-"));
+        const bool native=session.config.value("kwinrc|org.kde.kdecoration2|library")=="fyi.hotsocket.xplasma.decoration";
+        QString asset;
+        if(native)asset=paths::stylePluginRoot(6)+"/org.kde.kdecoration3/fyi.hotsocket.xplasma.decoration.so";
+        else asset=share+"/aurorae/themes/"+id+"/decoration.svg";
+        const auto before=QFileInfo(asset).lastModified();QVERIFY(before.isValid());
+        QVERIFY(readFile(paths::home()+"/.cache/ksvg-elements").contains(unrelated.toUtf8()));
+        // Applying again reuses the immutable artwork; no mapped file is replaced.
+        QVERIFY2(applyLook(session,*baked,options,&error),qPrintable(error));QCOMPARE(QFileInfo(asset).lastModified(),before);
+        QCOMPARE(editor::colorMetadata(State::load().style).value("startMenuText").toInt(),2);
+    }
+
+    void independentThemeTextModes()
+    {
+        const QString source=m_realThemes+QLatin1String("/Royale/Royale.msstyles");
+        if(!QFileInfo::exists(source)) QSKIP("needs Royale");
+        const QColor gray("#464646");
+        for(const auto &modes : {std::array<int,4>{1,2,1,2},std::array<int,4>{2,1,2,1}}) {
+            QString error;const auto path=editor::customLuna(source,{gray,gray,gray,gray},paths::data()+QLatin1String("/custom-luna"),&error,QStringLiteral("NORMALROYALE_INI"),0,modes);
+            QVERIFY2(!path.isEmpty(),qPrintable(error));const auto t=Theme::load(path,QStringLiteral("NORMALROYALE_INI"));QVERIFY(t);
+            const auto expected=[&](int part){return QColor(modes[part]==1?Qt::white:Qt::black);};
+            QRgb text;
+            QVERIFY(parseColour(t->property(u"button",u"pushbutton",u"",u"textcolor",u"start").value_or(QString()),&text));QCOMPARE(QColor(text),expected(0));
+            QVERIFY(parseColour(t->property(u"startpanel",u"placeslist",u"",u"textcolor").value_or(QString()),&text));QCOMPARE(QColor(text),expected(1));
+            QVERIFY(parseColour(t->property(u"sysmetrics",u"",u"",u"captiontext").value_or(QString()),&text));QCOMPARE(QColor(text),expected(2));
+            Renderer renderer(t);
+            const auto glyph=renderer.stateImage({QStringLiteral("window"),schema::partId(u"window",u"closebutton"),1,{}},true,QSize(12,12));
+            const auto original=Theme::load(source,QStringLiteral("NORMALROYALE_INI"));Renderer before(original);
+            const auto oldGlyph=before.stateImage({QStringLiteral("window"),schema::partId(u"window",u"closebutton"),1,{}},true,QSize(12,12));
+            QCOMPARE(glyph.size(),oldGlyph.size());int visible=0;
+            for(int y=0;y<glyph.height();++y)for(int x=0;x<glyph.width();++x){
+                const auto pixel=glyph.pixel(x,y);QCOMPARE(qAlpha(pixel),qAlpha(oldGlyph.pixel(x,y)));
+                if(qAlpha(pixel)){++visible;const int value=modes[3]==1?qAlpha(pixel):0;QCOMPARE(qRed(pixel),value);QCOMPARE(qGreen(pixel),value);QCOMPARE(qBlue(pixel),value);}
+            }
+            QVERIFY(visible>0);
+            const auto meta=QJsonDocument::fromJson(readFile(path+QLatin1String(".json"))).object().value(QStringLiteral("textModes")).toArray();QCOMPARE(meta.size(),4);
+            ClassicScheme scheme;scheme.shellColors=std::array<QColor,4>{gray,gray,gray,gray};scheme.shellTextModes=modes;
+            ThemeFile file;scheme.writeTo(file);const auto restored=ClassicScheme::fromThemeFile(file);
+            for(int i=0;i<4;++i){QCOMPARE(meta[i].toInt(),modes[i]);QCOMPARE(restored.shellTextModes[i],modes[i]);QCOMPARE(restored.shellPalette(i).color(QPalette::ButtonText),expected(i));}
+        }
+    }
+
+    void customThemeTextModes()
+    {
+        const QString source=m_realThemes+QLatin1String("/Royale/Royale.msstyles");
+        if (!QFileInfo::exists(source)) QSKIP("needs Royale");
+        const QColor gray("#464646"); QString previous;
+        for(int mode : {0,1,2}) {
+            QString error;
+            const auto generated=editor::customLuna(source,{gray,gray,gray,gray},paths::data()+QLatin1String("/custom-luna"),&error,QStringLiteral("NORMALROYALE_INI"),mode);
+            QVERIFY2(!generated.isEmpty(),qPrintable(error)); QVERIFY(generated!=previous);previous=generated;
+            const auto theme=Theme::load(generated,QStringLiteral("NORMALROYALE_INI")); QVERIFY(theme);
+            const QColor expected=mode==2 ? QColor(Qt::black) : QColor(Qt::white);
+            QRgb text;
+            for(const auto &part : {QStringLiteral("proglist"),QStringLiteral("placeslist"),QStringLiteral("userpane"),QStringLiteral("logoff")}) {
+                QVERIFY(parseColour(theme->property(u"startpanel",part,u"",u"textcolor").value_or(QString()),&text));
+                QCOMPARE(QColor(text),expected);
+            }
+            QVERIFY(parseColour(theme->property(u"sysmetrics",u"",u"",u"captiontext").value_or(QString()),&text)); QCOMPARE(QColor(text),expected);
+            QVERIFY(parseColour(theme->property(u"toolbar",u"",u"",u"textcolor",u"startmenu").value_or(QString()),&text)); QCOMPARE(QColor(text),expected);
+            const auto look=Look::fromStyle(generated,QStringLiteral("NORMALROYALE_INI"),&error); QVERIFY(look);
+            const auto dark=darkmode::applicationLook(*look,true,&error); QVERIFY2(dark,qPrintable(error));
+            QCOMPARE(dark->system.colour(u"HilightText"),expected);
+            const auto metadata=QJsonDocument::fromJson(readFile(generated+QLatin1String(".json"))).object();
+            QCOMPARE(metadata.value(QStringLiteral("textMode")).toInt(),mode);
+            ClassicScheme scheme;scheme.shellColors=std::array<QColor,4>{gray,gray,gray,gray};scheme.shellTextMode=mode;
+            ThemeFile file;scheme.writeTo(file);const auto restored=ClassicScheme::fromThemeFile(file);
+            QCOMPARE(restored.shellTextMode,mode);QCOMPARE(restored.shellPalette(1).color(QPalette::ButtonText),expected);
+        }
+    }
+
+    void closeKeepsSkinArtwork()
+    {
+        // Custom colors leave Close as the skin draws it, an inactive
+        // window's included: only the other buttons take the color.
+        const QString source=m_realThemes+"/Luna/luna.msstyles";if(!QFileInfo::exists(source))QSKIP("needs Luna");
+        QString error;const auto base=Look::fromStyle(source,"NORMALBLUE_INI",&error);QVERIFY(base);
+        const std::array<QColor,4> colors{QColor("#eb9d00"),QColor("#7c7c5c"),QColor("#7c7c5c"),QColor("#d99100")};
+        const auto file=editor::customLuna(source,colors,paths::data()+"/custom-luna",&error,base->variant);QVERIFY2(!file.isEmpty(),qPrintable(error));
+        const auto result=Look::fromStyle(file,base->variant,&error);QVERIFY(result);
+        const auto before=decorationArt(*base),after=decorationArt(*result);
+        auto button=[](const DecorationArt &art,const QString &name,const QString &state){for(const auto &b:art.buttons)if(b.first==name)for(const auto &part:b.second)if(part.first==state)return part.second.convertToFormat(QImage::Format_ARGB32);return QImage();};
+        for(const QString state:{"active-center","inactive-center","hover-inactive-center","pressed-inactive-center"}){
+            const auto original=button(before,"close",state);QVERIFY(!original.isNull());
+            QCOMPARE(button(after,"close",state),original);
+        }
+        QVERIFY(button(after,"minimize","inactive-center")!=button(before,"minimize","inactive-center"));
+    }
+
+    void customRoyalePreservesIconsAndLiveShading()
+    {
+        const QString source=m_realThemes+QLatin1String("/Royale/Royale.msstyles");
+        if (!QFileInfo::exists(source)) QSKIP("needs Royale");
+        QString error;
+        const QColor gray("#464646");
+        const auto generated=editor::customLuna(source,{gray,gray,gray,gray},paths::data()+QLatin1String("/custom-luna"),&error,QStringLiteral("NORMALROYALE_INI"));
+        QVERIFY2(!generated.isEmpty(),qPrintable(error));
+        const auto before=Theme::load(source,QStringLiteral("NORMALROYALE_INI"));
+        const auto after=Theme::load(generated,QStringLiteral("NORMALROYALE_INI"));
+        QVERIFY(before && after);
+        int protectedImages=0;
+        for(const auto &name:before->bitmapNames()) if(name.contains(QLatin1String("GLYPH"))) {
+            QCOMPARE(after->bitmap(name).image,before->bitmap(name).image); ++protectedImages;
+        }
+        for(auto it=before->ini().sections().cbegin();it!=before->ini().sections().cend();++it)
+            if(it.key().cls==QLatin1String("startpanel") && (it.key().part.contains(QLatin1String("arrow")) || it.key().part==QLatin1String("logoffbuttons")))
+                for(auto p=it.value().cbegin();p!=it.value().cend();++p) if(p.key().startsWith(QLatin1String("imagefile"))) {
+                    QCOMPARE(after->bitmap(p.value()).image,before->bitmap(p.value()).image); ++protectedImages;
+                }
+        QVERIFY(protectedImages>0);
+        Renderer renderer(after);
+        for(const auto &ref:{PartRef{QStringLiteral("startpanel"),schema::partId(u"startpanel",u"userpane"),1,{}},
+                            PartRef{QStringLiteral("taskbar"),schema::partId(u"taskbar",u"backgroundbottom"),0,{}},
+                            PartRef{QStringLiteral("window"),schema::partId(u"window",u"caption"),1,{}}}) {
+            auto image=renderer.background(ref,QSize(100,30)); QVERIFY(!image.isNull());
+            for(int y=0;y<image.height();++y) for(int x=0;x<image.width();++x) if(qAlpha(image.pixel(x,y))) {
+                const QColor pixel(image.pixel(x,y));
+                QVERIFY2(qAbs(pixel.red()-pixel.green())<=1 && qAbs(pixel.green()-pixel.blue())<=1,qPrintable(ref.cls+QLatin1String(" retained an unwanted hue")));
+            }
+        }
+        Renderer original(before);
+        for(int state : {1,5}) {
+            const PartRef close{QStringLiteral("window"),schema::partId(u"window",u"closebutton"),state,{}};
+            QVERIFY2(renderer.background(close,QSize(23,23))==original.background(close,QSize(23,23)),"Close keeps Royale's own artwork");
+        }
+        QRgb text;
+        QVERIFY(parseColour(after->property(u"startpanel",u"placeslist",u"",u"textcolor").value_or(QString()),&text));
+        QCOMPARE(QColor(text),QColor(Qt::white));
+        QVERIFY(parseColour(after->property(u"startpanel",u"proglist",u"",u"textcolor").value_or(QString()),&text));
+        QCOMPARE(QColor(text),QColor(Qt::white));
+    }
+
+    void customColorsForInstalledSkins()
+    {
+        if (m_realThemes.isEmpty()) QSKIP("needs the default theme library");
+        int checked = 0;
+        QDirIterator files(m_realThemes, {QStringLiteral("*.msstyles")}, QDir::Files, QDirIterator::Subdirectories);
+        const std::array<QColor,4> colors{QColor("#123456"), QColor("#8a257a"), QColor("#409b52"), QColor("#ad7a10")};
+        while (files.hasNext()) {
+            const QString source = files.next();
+            if (source.contains(QLatin1String("/Custom/")) || source.contains(QLatin1String("/__MACOSX/"))) continue;
+            const auto theme = Theme::load(source); if (!theme) continue;
+            for (const auto &variant : theme->variants().iniNames) {
+                if (variant == QLatin1String("THEMES_INI")) continue;
+                QString error;
+                const auto generated = editor::customLuna(source, colors, paths::data() + QLatin1String("/custom-luna"), &error, variant);
+                QVERIFY2(!generated.isEmpty(), qPrintable(source + QLatin1Char(':') + variant + QLatin1Char(' ') + error));
+                const auto custom = Theme::load(generated, variant); QVERIFY(custom);
+                QRgb color;
+                QVERIFY(parseColour(custom->property(u"sysmetrics", u"", u"", u"highlight").value_or(QString()), &color));
+                QCOMPARE(QColor(color), colors[1]);
+                QCOMPARE(custom->bitmapNames(), theme->bitmapNames());
+                const auto originalVariant = Theme::load(source, variant); QVERIFY(originalVariant);
+                Renderer before(originalVariant), after(custom);
+                for (const auto &ref : {PartRef{QStringLiteral("button"), 1, 1, QStringLiteral("start")},
+                    PartRef{QStringLiteral("taskbar"), schema::partId(u"taskbar",u"backgroundbottom"),0,{}},
+                    PartRef{QStringLiteral("window"), schema::partId(u"window",u"caption"),1,{}}}) {
+                    const auto oldImage = before.background(ref,QSize(100,30)), image = after.background(ref,QSize(100,30));
+                    QCOMPARE(image.size(),oldImage.size());
+                    QVERIFY2(image != oldImage, qPrintable(source + QLatin1Char(':') + variant + QLatin1Char(' ') + ref.cls));
+                }
+                ++checked;
+                // (Each style is ~4 MB, and there is one per variant of every theme.)
+                QFile::remove(generated);
+                QFile::remove(generated + QStringLiteral(".json"));
+            }
+        }
+        QVERIFY(checked > 0);
+        qInfo() << "Custom colors checked for" << checked << "installed style variants";
+    }
+
+    void customClassicShellColors()
+    {
+        int checked = 0;
+        for (const auto &entry : schemes::list()) {
+            if (!entry.stock) continue;
+            auto scheme = schemes::load(entry.name); QVERIFY(scheme);
+            const auto original = *scheme;
+            scheme->shellBaseName = entry.name;
+            scheme->shellColors = std::array<QColor,4>{QColor("#163656"), QColor("#8a257a"), QColor("#409b52"), QColor("#ad7a10")};
+            ThemeFile file; scheme->writeTo(file);
+            const auto loaded = ClassicScheme::fromThemeFile(file);
+            QVERIFY(loaded.shellColors == scheme->shellColors);
+            QCOMPARE(loaded.shellBaseName,entry.name);
+            QCOMPARE(loaded.shellPalette(0).color(QPalette::Button),(*scheme->shellColors)[0]);
+            QCOMPARE(loaded.shellPalette(1).color(QPalette::Button),(*scheme->shellColors)[1]);
+            QCOMPARE(loaded.shellPalette(3).color(QPalette::Button),(*scheme->shellColors)[3]);
+            QCOMPARE(loaded.shellPalette(4).color(QPalette::Button),QColor("#c75032"));
+            QCOMPARE(loaded.palette().color(QPalette::Button),original.palette().color(QPalette::Button));
+            ++checked;
+        }
+        QVERIFY(checked > 0);
+        qInfo() << "Classic overrides checked for" << checked << "stock schemes";
+    }
+
+    void customLunaAccentSurvivesDarkMode()
+    {
+        if (m_realThemes.isEmpty()) QSKIP("needs an installed XP visual style");
+        for (const QColor accent : {QColor("#005500"), QColor("#ffde90")}) {
+            const std::array<QColor, 4> palette{QColor("#242424"), accent, QColor("#8a2828"), QColor("#287a28")};
+            QString error;
+            const QString file = editor::customLuna(m_realThemes + QLatin1String("/Luna/luna.msstyles"), palette,
+                                                    paths::data() + QLatin1String("/custom-luna"), &error);
+            QVERIFY2(!file.isEmpty(), qPrintable(error));
+            const auto look = Look::fromStyle(file, QStringLiteral("NORMALBLUE_INI"), &error);
+            QVERIFY2(look, qPrintable(error));
+            QCOMPARE(look->system.colour(u"Hilight"), accent);
+            const auto apps = darkmode::applicationLook(*look, true, &error);
+            QVERIFY2(apps, qPrintable(error));
+            QCOMPARE(apps->system.colour(u"Hilight"), accent);
+            QCOMPARE(apps->system.colour(u"HilightText"), look->system.colour(u"HilightText"));
+            const QColor text = look->system.colour(u"HilightText");
+            QCOMPARE(text, accent == QColor("#005500") ? QColor(Qt::white) : QColor(Qt::black));
+            if (!m_realIso.isEmpty()) {
+                State state; state.media = m_realIso; QVERIFY(state.save());
+                const auto start = writeStartPanel(*look, paths::build() + QLatin1String("/start"), &error);
+                QVERIFY2(!start.isEmpty(), qPrintable(error));
+                QCOMPARE(start.value(QStringLiteral("palette")).toObject().value(QStringLiteral("highlight")).toString(), accent.name());
+            }
+        }
+    }
+
     void applyAndReset()
     {
         if (m_realThemes.isEmpty() || m_realIso.isEmpty())
@@ -2005,25 +2428,39 @@ private Q_SLOTS:
         const auto look = Look::fromStyle(m_realThemes + QLatin1String("/Luna/luna.msstyles"), QStringLiteral("NORMALMETALLIC_INI"));
         QVERIFY(look);
         RecordingSession session;
+        session.existingPanel = true;
         session.config.insert(QStringLiteral("kwinrulesrc|General|rules"), QStringLiteral("someone-elses"));
         session.config.insert(QStringLiteral("kdeglobals|KDE|widgetStyle"), QStringLiteral("Breeze"));
         session.config.insert(QStringLiteral("kdeglobals|Icons|Theme"), QStringLiteral("Papirus"));
+        const QString liveSvg = share + QLatin1String("/plasma/desktoptheme/windows-xp-style-silver-taskbar/widgets/panel-background.svg");
+        writeFile(liveSvg, "old-renderer-still-uses-this");
+        session.onShellStop = [&] { QCOMPARE(readFile(liveSvg), QByteArray("old-renderer-still-uses-this")); };
         ApplyOptions o;
         o.wallpaper = Wallpaper{m_home.filePath(QStringLiteral("bliss.jpg")), 2, QColor(0, 0, 0)};
         QStringList said;
         o.progress = [&](const QString &line) { said << line; };
         QString error;
         QVERIFY2(applyLook(session, *look, o, &error), qPrintable(error + said.join(QLatin1Char('\n'))));
+        session.onShellStop = {};
+        int shellStops = 0;
+        for (const auto &command : session.runs)
+            if (command.value(0) == QLatin1String("systemctl") && command.contains(QStringLiteral("stop"))
+                && command.contains(QStringLiteral("plasma-plasmashell.service"))) ++shellStops;
+        QCOMPARE(shellStops, 1); // Artwork and AppletOrder share one restart.
         QVERIFY(!xpl::lookOutdated(State::load()));   // (applied by this XPlasma)
 
+        const QString installedId=State::load().settings.value("appliedPackageId").toString();QVERIFY(installedId.startsWith("xplasma-v2-"));
         // Installed where Plasma looks.
-        QVERIFY(QFileInfo::exists(share + QLatin1String("/aurorae/themes/windows-xp-style-silver/decoration.svg")));
-        QVERIFY(QFileInfo::exists(share + QLatin1String("/color-schemes/windows-xp-style-silver.colors")));
-        QVERIFY(QFileInfo::exists(share + QLatin1String("/plasma/desktoptheme/windows-xp-style-silver-taskbar/widgets/tasks.svg")));
+        if(session.config.value("kwinrc|org.kde.kdecoration2|library")=="fyi.hotsocket.xplasma.decoration")
+            QVERIFY(QFileInfo::exists(paths::stylePluginRoot(6)+"/org.kde.kdecoration3/fyi.hotsocket.xplasma.decoration.so"));
+        else
+            QVERIFY(QFileInfo::exists(share + (QStringLiteral("/aurorae/themes/")+installedId+QStringLiteral("/decoration.svg"))));
+        QVERIFY(QFileInfo::exists(share + (QStringLiteral("/color-schemes/")+installedId+QStringLiteral(".colors"))));
+        QVERIFY(QFileInfo::exists(share + (QStringLiteral("/plasma/desktoptheme/")+installedId+QStringLiteral("-taskbar/widgets/tasks.svg"))));
         {
             // KSvg's cache primed with the theme's size variants (the check
             // box's 16px box), stamped with the SVG's own time.
-            const QString button = share + QLatin1String("/plasma/desktoptheme/windows-xp-style-silver-taskbar/widgets/button.svg");
+            const QString button = share + (QStringLiteral("/plasma/desktoptheme/")+installedId+QStringLiteral("-taskbar/widgets/button.svg"));
             QFile cache(paths::home() + QLatin1String("/.cache/ksvg-elements"));
             QVERIFY(cache.open(QIODevice::ReadOnly));
             const QString text = QString::fromUtf8(cache.readAll());
@@ -2034,7 +2471,7 @@ private Q_SLOTS:
         }
         {
             // A Plasma 5+ theme, or Plasma gives its colour sets the Button colours.
-            QFile meta(share + QLatin1String("/plasma/desktoptheme/windows-xp-style-silver-taskbar/metadata.json"));
+            QFile meta(share + (QStringLiteral("/plasma/desktoptheme/")+installedId+QStringLiteral("-taskbar/metadata.json")));
             QVERIFY(meta.open(QIODevice::ReadOnly));
             QCOMPARE(QJsonDocument::fromJson(meta.readAll()).object().value(QStringLiteral("X-Plasma-API")).toString(), QStringLiteral("6.0"));
         }
@@ -2043,7 +2480,10 @@ private Q_SLOTS:
         QVERIFY(!QFileInfo::exists(share + QLatin1String("/aurorae/themes/old-look")));
         QVERIFY(QFileInfo::exists(share + QLatin1String("/aurorae/themes/Mine")));
         // Switched to.
-        QCOMPARE(session.config.value(QStringLiteral("kwinrc|org.kde.kdecoration2|theme")), QStringLiteral("__aurorae__svg__windows-xp-style-silver"));
+        if(session.config.value("kwinrc|org.kde.kdecoration2|library")=="fyi.hotsocket.xplasma.decoration")
+            QCOMPARE(session.config.value("kwinrc|org.kde.kdecoration2|theme"),QString());
+        else
+            QCOMPARE(session.config.value(QStringLiteral("kwinrc|org.kde.kdecoration2|theme")), QStringLiteral("__aurorae__svg__")+installedId);
         // The copy dialog's and the editor's rules, beside the user's own.
         QCOMPARE(session.config.value(QStringLiteral("kwinrulesrc|General|rules")),
                  QStringLiteral("someone-elses,xplasma-copy-dialog,xplasma-display-properties"));
@@ -2097,8 +2537,8 @@ private Q_SLOTS:
         RecordingSession resetSession;
         resetSession.config = session.config;
         QVERIFY2(resetDesktop(resetSession, {}, &error), qPrintable(error));
-        QVERIFY(!QFileInfo::exists(share + QLatin1String("/aurorae/themes/windows-xp-style-silver")));
-        QVERIFY(!QFileInfo::exists(share + QLatin1String("/color-schemes/windows-xp-style-silver.colors")));
+        QVERIFY(!QFileInfo::exists(share + (QStringLiteral("/aurorae/themes/")+installedId+QStringLiteral(""))));
+        QVERIFY(!QFileInfo::exists(share + (QStringLiteral("/color-schemes/")+installedId+QStringLiteral(".colors"))));
         QVERIFY(!QFileInfo::exists(share + QLatin1String("/plasma/plasmoids/fyi.hotsocket.xplasma.start")));
         QVERIFY(!QFileInfo::exists(share + QLatin1String("/icons/xplasma-icons")));
         QVERIFY(!QFileInfo::exists(paths::config() + QLatin1String("/xplasmarc")));
@@ -2112,7 +2552,6 @@ private Q_SLOTS:
         }));
         QCOMPARE(State::load().appliedKind, QString());
     }
-
     void resetUnloadsForksFirst()
     {
         // XPlasma's builds of Plasma's widgets go with the shell down, and
@@ -2196,7 +2635,8 @@ private Q_SLOTS:
         State state;
         state.media = m_realIso;
         QVERIFY(state.save());
-        const QString editor = QCoreApplication::applicationDirPath() + QLatin1String("/../../src/app/xplasma-edit");
+        QString editor = QCoreApplication::applicationDirPath() + QLatin1String("/../../src/app/xplasma-edit");
+        if(!QFileInfo(editor).isExecutable())editor=QCoreApplication::applicationDirPath()+QLatin1String("/xplasma-edit");
         if (!QFileInfo(editor).isExecutable())
             QSKIP("xplasma-edit isn't built here");
         const QString out = m_home.filePath(QStringLiteral("datetime"));

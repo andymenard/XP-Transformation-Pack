@@ -20,14 +20,17 @@ struct Resource
     QString type;   // a string type ("TEXTFILE") or a decimal id ("2" is RT_BITMAP)
     QString name;   // likewise; string names are kept as written in the file
     QByteArray data;
+    qint64 fileOffset = -1; // bounds-checked resource payload position
 };
 
 class PeResources
 {
 public:
     // The first language of every (type, name) -- the same one pefile-based
-    // code (xp2plasma's msstyles_parse) takes.
-    static std::optional<PeResources> parse(const QByteArray &file, QString *error = nullptr);
+    // code (xp2plasma's msstyles_parse) takes. With `borrow`, each
+    // resource's data points into `file`'s bytes instead of copying them:
+    // the caller keeps those alive and unchanged for as long as it uses any.
+    static std::optional<PeResources> parse(const QByteArray &file, QString *error = nullptr, bool borrow = false);
 
     const QList<Resource> &all() const { return m_resources; }
 

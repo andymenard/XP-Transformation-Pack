@@ -1,7 +1,10 @@
+#include "editor/customluna.h"
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "app/apply.h"
+#include "app/library.h"
 
 #include "app/colors.h"
+#include "core/themefile.h"
 #include "app/darkmode.h"
 #include "app/crisptext.h"
 #include "app/controls.h"
@@ -22,6 +25,8 @@
 #include "core/schema.h"
 
 #include <QCoreApplication>
+#include <QCryptographicHash>
+#include <QSettings>
 #include <QDir>
 #include <QDirIterator>
 #include <QElapsedTimer>
@@ -110,13 +115,77 @@ void report(const ApplyOptions &o, const QString &line)
         o.progress(line);
 }
 
-// KWin: Aurorae, with the look's theme. (Aurorae keeps one QML renderer for
+// XPlasma's own window decoration: drawn natively from the look xplasmarc
+// names, it follows a new look or new colours by itself -- no theme for KWin
+// to load, no reconfigure, none of the pause an Aurorae switch puts on the
+// whole desktop. Bound to the KDecoration it was built against, so used
+// only on that Plasma series; otherwise taken out again (an Aurorae theme
+// stands in).
+const QString kNativeDecoration = QStringLiteral("fyi.hotsocket.xplasma.decoration");
+
+QString nativeDecorationPath()
+{
+    return paths::stylePluginRoot(6) + QLatin1String("/org.kde.kdecoration3/") + kNativeDecoration + QLatin1String(".so");
+}
+
+// Whether this copy ships the decoration built for the running Plasma's series.
+bool nativeDecorationUsable(Session &session)
+{
+    const QString shipped = paths::shippedDecoration();
+    QString builtFor;
+    // (Its stamp beside it: fyi.hotsocket.xplasma.decoration.plasma.)
+    const QFileInfo plugin(shipped);
+    if (QFile stamp(plugin.dir().filePath(plugin.completeBaseName() + QLatin1String(".plasma")));
+        !shipped.isEmpty() && stamp.open(QIODevice::ReadOnly))
+        builtFor = QString::fromUtf8(stamp.readAll()).trimmed();
+    const QString running = forks::runningPlasma(session);
+    return !builtFor.isEmpty() && !running.isEmpty() && forks::seriesOf(builtFor) == forks::seriesOf(running);
+}
+
+bool installNativeDecoration(Session &session)
+{
+    const QString shipped = paths::shippedDecoration();
+    const QString installed = nativeDecorationPath();
+    if (!nativeDecorationUsable(session)) {
+        QFile::remove(installed);
+        return false;
+    }
+    QFile current(installed), from(shipped);
+    if (current.size() == from.size() && current.open(QIODevice::ReadOnly) && from.open(QIODevice::ReadOnly)
+        && current.readAll() == from.readAll())
+        return true;
+    // (A fresh name, then a rename: KWin keeps the copy it has loaded.)
+    QDir().mkpath(QFileInfo(installed).absolutePath());
+    const QString staged = installed + QLatin1String(".new");
+    QFile::remove(staged);
+    return QFile::copy(shipped, staged)
+           && std::rename(QFile::encodeName(staged).constData(), QFile::encodeName(installed).constData()) == 0;
+}
+
+void removeNativeDecoration()
+{
+    QFile::remove(nativeDecorationPath());
+    paths::removeEmptyDirs(QFileInfo(nativeDecorationPath()).absolutePath(), QFileInfo(paths::localShare()).absolutePath());
+}
+
+// KWin: XPlasma's own decoration where it can be; otherwise Aurorae, with the
+// look's theme. (Aurorae keeps one QML renderer for
 // every SVG theme, with its shadow palette cached: switching straight from
 // one of ours to another kept the old one's, so it goes by Breeze first.)
-void applyDecoration(Session &session, const QString &id)
+void applyDecoration(Session &session, const QString &id, bool reloadEngine = true)
 {
     const QStringList group{QStringLiteral("org.kde.kdecoration2")};
-    if (session.readConfig(QStringLiteral("kwinrc"), group, QStringLiteral("theme")).startsWith(QLatin1String("__aurorae__svg__"))) {
+    if (installNativeDecoration(session)) {
+        // Once it's KWin's decoration, a look is only xplasmarc, which it
+        // follows: KWin is told nothing.
+        if (session.readConfig(QStringLiteral("kwinrc"), group, QStringLiteral("library")) != kNativeDecoration) {
+            session.writeConfig(QStringLiteral("kwinrc"), group, QStringLiteral("library"), kNativeDecoration);
+            session.writeConfig(QStringLiteral("kwinrc"), group, QStringLiteral("theme"), QString());
+            session.reconfigureKWin();
+        }
+        return;
+    }
+    if (reloadEngine && session.readConfig(QStringLiteral("kwinrc"), group, QStringLiteral("theme")).startsWith(QLatin1String("__aurorae__svg__"))) {
         session.writeConfig(QStringLiteral("kwinrc"), group, QStringLiteral("library"), QStringLiteral("org.kde.breeze"));
         session.writeConfig(QStringLiteral("kwinrc"), group, QStringLiteral("theme"), QStringLiteral("Breeze"));
         // Long enough for KWin to drop every Aurorae border: only then does
@@ -144,7 +213,6 @@ void applyDecoration(Session &session, const QString &id)
         const QString text = info->toString();
         const qsizetype at = text.indexOf(theme);
         if (at >= 0 && (at + theme.size() == text.size() || text.at(at + theme.size()) == QLatin1Char('\n'))) {
-            QThread::msleep(500);   // (and its windows' borders made anew)
             return;
         }
         QThread::msleep(200);
@@ -153,7 +221,7 @@ void applyDecoration(Session &session, const QString &id)
 
 // KWin rules for XPlasma's own windows that XP gave no minimize or maximize
 // box: the copy dialog (plasmashell's, titled "Copying..." and the like) and
-// the editor (XPlasma Properties and its dialogs, and Date and Time
+// the editor (XPlasma Plus Properties and its dialogs, and Date and Time
 // Properties, property sheets on XP).
 // Wayland has no way for a window to say so itself. With neither box, the
 // decoration shows Close alone, as XP does. Other rules are left as they are.
@@ -177,7 +245,7 @@ const QList<std::pair<QString, Rule>> kRules{
           {QStringLiteral("titlematch"), QStringLiteral("3")}}        // regular expression
          + kNoBoxes},
     {QStringLiteral("xplasma-display-properties"),
-     Rule{{QStringLiteral("Description"), QStringLiteral("XPlasma: XPlasma Properties, Date and Time Properties (Close only)")},
+     Rule{{QStringLiteral("Description"), QStringLiteral("XPlasma: XPlasma Plus Properties, Date and Time Properties (Close only)")},
           {QStringLiteral("wmclass"), QStringLiteral("^fyi\\.hotsocket\\.xplasma(\\.datetime)?$")},
           {QStringLiteral("wmclassmatch"), QStringLiteral("3")}}      // regular expression
          + kNoBoxes},
@@ -228,7 +296,7 @@ void applyFonts(Session &session, const QList<ConfigValue> &fonts)
     session.reconfigureKWin();
 }
 
-// This XPlasma's editor (XPlasma Properties, Date and Time Properties),
+// This XPlasma's editor (XPlasma Plus Properties, Date and Time Properties),
 // beside this program; or whichever is on the PATH.
 QString editorPath()
 {
@@ -357,8 +425,19 @@ static void primeSizeHints(const QString &widgets, const QString &cacheFile)
     }
     if (out.isEmpty())
         return;
+    // Preserve unrelated applications' warm SVG entries. Only replace the
+    // sections belonging to these generated files.
+    QFile existing(cacheFile);
+    QString retained;
+    if(existing.open(QIODevice::ReadOnly)) {
+        bool keep=true;
+        for(const auto &line:QString::fromUtf8(existing.readAll()).split(QLatin1Char('\n'))) {
+            if(line.startsWith(QLatin1Char('[')))keep=!line.startsWith(QLatin1Char('[')+widgets+QLatin1Char('/'));
+            if(keep)retained+=line+QLatin1Char('\n');
+        }
+    }
     QSaveFile f(cacheFile);
-    if (f.open(QIODevice::WriteOnly) && f.write(out.toUtf8()) >= 0)
+    if (f.open(QIODevice::WriteOnly) && f.write((retained+out).toUtf8()) >= 0)
         f.commit();   // (a cache: failing to prime it isn't failing)
 }
 
@@ -475,37 +554,166 @@ bool lookOutdated(const State &state)
     return !state.appliedKind.isEmpty() && state.settings.value(QLatin1String(kAppliedWithKey)).toInt() < project::kVersion;
 }
 
-bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QString *error)
+namespace {
+QByteArray styleDigest(const QString &path)
 {
+    QFile file(path);
+    return file.open(QIODevice::ReadOnly)?QCryptographicHash::hash(file.readAll(),QCryptographicHash::Sha256).toHex():QByteArray();
+}
+QByteArray neutralDigest(const QString &path,const QString &variant)
+{
+    const auto meta=editor::colorMetadata(path,variant);
+    if(meta.isEmpty()) {
+        const auto theme=Theme::load(path,variant);
+        if(!theme || theme->property(u"xplasmacustomluna",u"",u"",u"accent"))return {};
+        return styleDigest(path);
+    }
+    const auto hash=meta.value("sourceHash").toString().toLatin1();
+    return hash.isEmpty()?styleDigest(meta.value("source").toString()):hash;
+}
+bool sameColorBase(const Look &look,const State &state)
+{
+    if(lookOutdated(state))return false;
+    if(look.classic()) {
+        if(state.appliedKind!=QLatin1String("classic"))return false;
+        const auto old=schemes::load(state.scheme);if(!old)return false;
+        const QString previousBase=old->shellBaseName.isEmpty()?old->name:old->shellBaseName;
+        const QString nextBase=look.system.shellBaseName.isEmpty()?look.system.name:look.system.shellBaseName;
+        return previousBase==nextBase && old->metrics==look.system.metrics && old->icons==look.system.icons;
+    }
+    if(state.appliedKind!=QLatin1String("style") || state.variant!=look.variant)return false;
+    const auto digest=neutralDigest(look.stylePath,look.variant);
+    return !digest.isEmpty() && digest==neutralDigest(state.style,state.variant);
+}
+QString versionedId(const Look &look,const State &state)
+{
+    QByteArray data=styleDigest(look.stylePath)+look.variant.toUtf8()+QJsonDocument(state.settings.value(QLatin1String(kStartButtonKey)).toObject()).toJson();
+    if(look.classic()) {ThemeFile profile;look.system.writeTo(profile);data+=profile.toBytes();}
+    // Increment when the generated SVG/layout format changes.
+    const QString hash=QString::fromLatin1(QCryptographicHash::hash(QByteArray(data+"assets-v2"),QCryptographicHash::Sha256).toHex().left(24));
+    QColor active(Qt::transparent), inactive(Qt::transparent);int x=0,y=0;
+    if(look.renderer) {
+        const PartRef ref{QStringLiteral("window"),schema::partId(u"window",u"caption"),1,{}};
+        if(look.renderer->property(ref,u"textshadowtype").value_or(QString()).compare("single",Qt::CaseInsensitive)==0) {
+            QRgb a=qRgb(0,0,0),i=a;
+            parseColour(look.renderer->property(ref,u"textshadowcolor").value_or(QString()),&a);
+            auto other=ref;other.state=2;
+            parseColour(look.renderer->property(other,u"textshadowcolor").value_or(QString()),&i);
+            active=QColor(a);inactive=QColor(i);
+            const auto xy=look.renderer->property(ref,u"textshadowoffset").value_or("1, 1").split(',');x=xy.value(0).trimmed().toInt();y=xy.value(1,xy.value(0)).trimmed().toInt();
+        }
+    }
+    return "xplasma-v2-"+hash+"-s"+active.name(QColor::HexArgb).mid(1)+'_'+inactive.name(QColor::HexArgb).mid(1)+'_'+QString::number(x)+'_'+QString::number(y);
+}
+void pruneColorAssets(const QString &active,const QString &previous)
+{
+    // Bound disk caches while retaining both sides of the current switch.
+    const QDir themes(share(QStringLiteral("aurorae/themes")));
+    const auto generated=generatedPackages();
+    int retained=0;
+    for(const auto &entry:themes.entryInfoList({QStringLiteral("xplasma-v2-*")},QDir::Dirs|QDir::NoDotAndDotDot,QDir::Time)) {
+        if(!generated.contains(entry.absoluteFilePath()))continue;
+        const QString id=entry.fileName();
+        if(id==active || id==previous || retained++<32)continue;
+        QDir(entry.absoluteFilePath()).removeRecursively();
+        QDir(share(QStringLiteral("plasma/desktoptheme/"))+id+QStringLiteral("-taskbar")).removeRecursively();
+        QFile::remove(share(QStringLiteral("color-schemes/"))+id+QStringLiteral(".colors"));
+        QDir(paths::data()+QStringLiteral("/start/")+id).removeRecursively();
+        for(const auto &suffix:{QString(),QStringLiteral("-dark-applications")})
+            QDir(share(QStringLiteral("themes/XPlasma-"))+id+suffix).removeRecursively();
+    }
+}
+
+}
+
+bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &requestedOptions, QString *error)
+{
+    QElapsedTimer elapsed;elapsed.start();
+    ApplyOptions o=requestedOptions;
+    State state=State::load();
+    Look look=requestedLook;
+    if(!o.themeFile.isEmpty())if(const auto preset=ThemeFile::load(o.themeFile)){
+        const auto colors=QJsonDocument::fromJson(preset->value(u"XPlasma",u"LiveColors").toUtf8()).object();
+        bool rebuild=colors.value("rendering").toString()!=QLatin1String("static");
+        if(!rebuild){
+            QFile metadata(look.stylePath+QStringLiteral(".json"));
+            if(metadata.open(QIODevice::ReadOnly)){
+                const auto baked=QJsonDocument::fromJson(metadata.readAll()).object();
+                rebuild=baked.value("generator").toInt()<13 && QFileInfo::exists(baked.value("source").toString());
+            }
+        }
+        if(colors.value("enabled").toBool() && rebuild){
+            auto baked=editor::staticColorLook(look,colors,error);if(!baked)return false;look=*baked;
+        }
+    }
+    const bool colorOnly=o.allowColorOnly && sameColorBase(look,state)
+        && (!o.taskbar || session.script(QStringLiteral("// XPLASMA_EXISTING_PANEL\nprint(panels().some(function(p){return p.location==='bottom' && p.widgets().some(function(w){return w.type==='fyi.hotsocket.xplasma.start';});}) ? 'ready' : 'missing');")).value_or(QString()).trimmed()==QLatin1String("ready"))
+        && QFileInfo::exists(share(QStringLiteral("kwin/aurorae/aurorae.qml")))
+        && session.readConfig(QStringLiteral("kdeglobals"),{QStringLiteral("KDE")},QStringLiteral("widgetStyle")).compare(QLatin1String(qtstyle::kStyleKey),Qt::CaseInsensitive)==0;
+    // Every asset path identifies its content, even for built-in styles.
+    look.id=versionedId(look,state);
+    if(colorOnly) {
+        o.properties=false;o.fonts=false;o.icons=false;o.sounds=false;
+        report(o,QStringLiteral("Updating colors using the installed theme runtime ..."));
+    }
     // The whole XP look or none of it: what this Plasma can't take is known
     // before anything changes.
     std::optional<forks::Choice> builds;
-    if (const QStringList cannot = cannotTake(session, o.taskbar, &builds, o.properties, o.decoration); !cannot.isEmpty())
+    if (const QStringList cannot = cannotTake(session, o.taskbar && !colorOnly, &builds, o.properties, o.decoration); !cannot.isEmpty())
         return fail(error, QStringLiteral("this Plasma can't take the whole XP look yet, so nothing was changed:\n  ")
                                + cannot.join(QStringLiteral("\n  ")));
-    State state = State::load();
     const bool dark = o.darkMode.value_or(state.settings.value(QStringLiteral("darkMode")).toBool());
     const auto applications = darkmode::applicationLook(look, dark, error);
     if (!applications) return false;
+    const auto shellArt=panelArt(look);
     const QString build = paths::build() + QLatin1Char('/') + look.id;
     QDir(build).removeRecursively();
 
+    const QString auroraeDest = share(QStringLiteral("aurorae/themes/")) + look.id;
+    const QString panelDest = share(QStringLiteral("plasma/desktoptheme/")) + look.id + QLatin1String("-taskbar");
     // --- generate ------------------------------------------------------------
     report(o, QStringLiteral("Generating %1 ...").arg(look.name));
-    const QString decoration = writeDecoration(look, build + QLatin1String("/aurorae"), error);
+    // (With XPlasma's own decoration KWin draws the look from xplasmarc: no
+    // Aurorae theme is made for it, or installed.)
+    const bool nativeDecoration = o.decoration && nativeDecorationUsable(session);
+    const QString decoration = nativeDecoration || QFileInfo::exists(auroraeDest) ? auroraeDest
+                                                                                 : writeDecoration(look, build + QLatin1String("/aurorae"), error);
     if (decoration.isEmpty())
         return false;
-    const QString panel = o.taskbar ? writePanelTheme(look, build + QLatin1String("/desktoptheme"), error) : QString();
+    const QString panel = o.taskbar ? (QFileInfo::exists(panelDest) ? panelDest : writePanelTheme(look, build + QLatin1String("/desktoptheme"), error)) : QString();
     if (o.taskbar && panel.isEmpty())
         return false;
     const QString startDir = paths::data() + QLatin1String("/start/") + look.id;
+    const QString startStaging = build + QLatin1String("/start");
     QJsonObject startTheme;
-    if (o.taskbar) {
-        QDir(startDir).removeRecursively();
-        startTheme = writeStartTheme(look, startDir, error,
+    if(o.taskbar) {
+        QFile cached(startDir+QStringLiteral("/theme.json"));
+        if(cached.open(QIODevice::ReadOnly))startTheme=QJsonDocument::fromJson(cached.readAll()).object();
+    }
+    if (o.taskbar && startTheme.isEmpty()) {
+        startTheme = writeStartTheme(look, startStaging, error,
                                      StartButtonExtras::fromJson(state.settings.value(QLatin1String(kStartButtonKey)).toObject()));
-        if (startTheme.isEmpty())
-            return false;
+        if (startTheme.isEmpty()) return false;
+        const QString from = QUrl::fromLocalFile(startStaging + QLatin1Char('/')).toString();
+        const QString to = QUrl::fromLocalFile(startDir + QLatin1Char('/')).toString();
+        std::function<QJsonValue(QJsonValue)> relocate = [&](QJsonValue value) -> QJsonValue {
+            if (value.isString() && value.toString().startsWith(from)) return QString(to + value.toString().mid(from.size()));
+            if (value.isObject()) {
+                auto object = value.toObject();
+                for (auto it = object.begin(); it != object.end(); ++it) it.value() = relocate(it.value());
+                return object;
+            }
+            if (value.isArray()) {
+                auto array = value.toArray();
+                for (int i = 0; i < array.size(); ++i) array[i] = relocate(array[i]);
+                return array;
+            }
+            return value;
+        };
+        startTheme = relocate(startTheme).toObject();
+        QSaveFile themeJson(startStaging + QLatin1String("/theme.json"));
+        if (!themeJson.open(QIODevice::WriteOnly) || themeJson.write(QJsonDocument(startTheme).toJson()) < 0 || !themeJson.commit())
+            return fail(error, themeJson.errorString());
     }
     QString iconTheme;
     if (o.icons) {
@@ -517,101 +725,21 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
             state.settings.insert(QStringLiteral("previousIconTheme"), previous);
         QString why;
         // (the tray's icons XP has no art for, in the tray's text colour)
-        iconTheme = writeIconTheme(build + QLatin1String("/icons"), previous, panelArt(look).trayTextColour, &why, spinIcons(look));
+        iconTheme = writeIconTheme(build + QLatin1String("/icons"), previous, shellArt.trayTextColour, &why, spinIcons(look));
         if (iconTheme.isEmpty())
             report(o, QStringLiteral("  no XP icons: %1").arg(why));
     }
 
-    // --- install ---------------------------------------------------------------
-    report(o, QStringLiteral("Installing ..."));
-    const QString auroraeDest = share(QStringLiteral("aurorae/themes/")) + look.id;
     const QString colorsDest = share(QStringLiteral("color-schemes/")) + look.id + QLatin1String(".colors");
-    const QString panelDest = share(QStringLiteral("plasma/desktoptheme/")) + look.id + QLatin1String("-taskbar");
     const QString iconsDest = share(QStringLiteral("icons/")) + QLatin1String(kIconThemeId);
-    if (!install(decoration, auroraeDest, error))
-        return false;
-    QDir().mkpath(QFileInfo(colorsDest).absolutePath());
-    {
-        QSaveFile f(colorsDest);
-        if (!f.open(QIODevice::WriteOnly) || f.write(colorScheme(applications->system, look.id, {panelArt(look).panelColour, panelArt(look).textColour})) < 0 || !f.commit())
-            return fail(error, QStringLiteral("%1: %2").arg(colorsDest, f.errorString()));
-    }
-    if (o.taskbar) {
-        if (!install(panel, panelDest, error) || !installStartPlasmoid(share(QStringLiteral("plasma/plasmoids")), error)
-            || !installClockPlasmoid(share(QStringLiteral("plasma/plasmoids")), error))
-            return false;
-        QString why;
-        if (!overrides::installPanelWidgets(share(QStringLiteral("plasma/plasmoids")), &why))
-            for (const QString &line : why.split(QLatin1Char('\n')))
-                report(o, QStringLiteral("  left as Plasma's own: %1").arg(line));
-        if (builds) {
-            if (!forks::install(session, *builds, state, error))
-                return false;
-            report(o, QStringLiteral("  Plasma's %1 as XPlasma builds them (Plasma %2)")
-                          .arg(QStringList(builds->plugins.keys()).join(QStringLiteral(", ")), builds->series));
-        } else {
-            forks::remove(state);   // (none wanted: an older Plasma's, if any, go)
-        }
-    }
-    if (!iconTheme.isEmpty() && !install(iconTheme, iconsDest, error))
-        return false;
     QString why;
-    // XP's Properties on the desktop's menu: this XPlasma's editor.
-    const QString editor = QCoreApplication::applicationDirPath() + QLatin1String("/xplasma-edit");
-    if (!QFileInfo(editor).isExecutable())
-        report(o, QStringLiteral("  no XPlasma Properties on the desktop: %1 isn't there").arg(editor));
-    else if (o.properties && !overrides::installDesktopMenu(share(QStringLiteral("plasma/plasmoids")), editor, &why))
-        report(o, QStringLiteral("  no XPlasma Properties on the desktop: %1").arg(why));
-    if (o.decoration && !overrides::installTitleShadows(share(QStringLiteral("aurorae/themes")), share(QStringLiteral("kwin/aurorae/aurorae.qml")), &why))
-        report(o, QStringLiteral("  no title shadows: %1").arg(why));
-    // Other looks' packages go: one of each at a time.
-    for (const QString &stale : generatedPackages({auroraeDest, colorsDest, panelDest, iconsDest})) {
-        if (QFileInfo(stale).isDir())
-            QDir(stale).removeRecursively();
-        else
-            QFile::remove(stale);
-    }
-
-    // --- apply -------------------------------------------------------------------
-    report(o, QStringLiteral("Applying ..."));
-    // Components are independently selectable by the GUI installer.
-    if (o.fonts && !xptext::apply(session, state, &why))
-        report(o, QStringLiteral("  text stays as it was: %1").arg(why));
-    if (o.decoration) installWindowRules(session);
-    if (o.colours) {
-        session.writeConfig(QStringLiteral("kdeglobals"), {QStringLiteral("General")}, QStringLiteral("ColorScheme"), QString(), false);
-        if (!session.run({QStringLiteral("plasma-apply-colorscheme"), look.id}).ok())
-            report(o, QStringLiteral("  plasma-apply-colorscheme failed"));
-    }
-    if (o.fonts) applyFonts(session, fontSettings(look.system));
-    if (o.decoration) applyDecoration(session, look.id);
-    if (o.widgets) {
-        QStringList log;
-        if (!qtstyle::apply(session, *applications, state, &log, &why))
-            report(o, QStringLiteral("  Qt apps keep their style: %1").arg(why));
-        // (GTK's too: a failure there isn't the look's.)
-        if (!gtk::apply(session, *applications, state, &log, &why))
-            report(o, QStringLiteral("  GTK apps keep their theme: %1").arg(why));
-        for (const QString &line : std::as_const(log))
-            report(o, QStringLiteral("  ") + line);
-    }
-    if (o.taskbar) {
-        const QString panelId = look.id + QLatin1String("-taskbar");
-        session.run({QStringLiteral("plasma-apply-desktoptheme"), panelId});
-        // A running plasmashell neither finds a theme package that appeared
-        // after it started nor re-reads the current one's SVGs, and caches
-        // them by the theme's name (another colour of the same style came up
-        // in the old one's art): it restarts, its caches gone while it's down.
-        report(o, QStringLiteral("Restarting Plasma's shell for the taskbar ..."));
-        session.restartPlasmaShell([&] {
-            const QString cache = paths::home() + QLatin1String("/.cache/");
-            QFile::remove(cache + QLatin1String("plasma_theme_") + panelId + QLatin1String(".kcache"));
-            QFile::remove(cache + QLatin1String("ksvg-elements"));
-            primeSizeHints(panelDest + QLatin1String("/widgets"), cache + QLatin1String("ksvg-elements"));
-            settleTaskbars(session, panelArt(look).height);
-        });
-        // (Again through the running shell, for panels it hadn't saved yet.)
-        session.script(scriptFrom(QStringLiteral("panel"), {{QStringLiteral("HEIGHT"), panelArt(look).height}}));
+    QList<std::pair<QString, QString>> orders;
+    const bool existingPanel = o.taskbar && session.script(QStringLiteral(
+        "// XPLASMA_EXISTING_PANEL\n"
+        "var ready = panels().some(function(p) { return p.location === 'bottom' && "
+        "p.widgets().some(function(w) { return w.type === 'fyi.hotsocket.xplasma.start'; }); }); "
+        "print(ready ? 'ready' : 'missing');")).value_or(QString()).trimmed() == QLatin1String("ready");
+    const auto prepareLayout = [&] {
         // The clock in the style's clock font (Classic: the status font).
         LogFont clock = look.system.metrics.statusFont;
         if (!look.classic()) {
@@ -628,7 +756,7 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
                                                        {QStringLiteral("CLOCK_WEIGHT"), clock.weight},
                                                        {QStringLiteral("CLOCK"), QLatin1String(kClockPlasmoidId)},
                                                        {QStringLiteral("DESKTOP_FILES"), desktopFiles()},
-                                                       {QStringLiteral("CLOCK_COLOR"), panelArt(look).trayTextColour.name()},
+                                                       {QStringLiteral("CLOCK_COLOR"), shellArt.trayTextColour.name()},
                                                        {QStringLiteral("CLOCK_COMMAND"), overrides::launchCommand(editorPath(), {QStringLiteral("--date-time")})}}),
                                            &why);
         if (!layout) {
@@ -639,7 +767,6 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
                 report(o, QStringLiteral("  ") + line.toString());
             // Plasma's scripting can't reorder a panel: its AppletOrder is
             // written with the shell down (it saves its own on the way out).
-            QList<std::pair<QString, QString>> orders;
             for (const QJsonValue &p : result.value(QStringLiteral("panels")).toArray()) {
                 QStringList ids;
                 for (const QJsonValue &id : p.toObject().value(QStringLiteral("order")).toArray())
@@ -651,8 +778,109 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
                     != wanted)
                     orders.append({panelNumber, wanted});
             }
+        }
+    };
+    if (existingPanel && !colorOnly) prepareLayout();
+    // KSvg retains renderers for the active theme. Never replace those files,
+    // packages or plugins, or announce new colors, while the shell uses them.
+    const auto installAndApply = [&]() -> bool {
+        // --- install ---------------------------------------------------------------
+        report(o, QStringLiteral("Installing ..."));
+        if (look.classic() && look.system.shellColors && !schemes::save(look.system, nullptr, error)) return false;
+        if (!nativeDecoration && !QFileInfo::exists(auroraeDest) && !install(decoration, auroraeDest, error))
+            return false;
+        QDir().mkpath(QFileInfo(colorsDest).absolutePath());
+        {
+            QSaveFile f(colorsDest);
+            const auto &art=shellArt;
+            std::pair<QColor,QColor> complementary{art.panelColour,art.textColour};
+            if((look.classic() && look.system.shellColors) || (look.renderer && look.renderer->theme().property(u"xplasmacustomluna",u"",u"",u"accent")))
+                complementary={look.system.colour(u"Hilight"),look.system.colour(u"HilightText")};
+            if (!f.open(QIODevice::WriteOnly) || f.write(colorScheme(applications->system, look.id, complementary)) < 0 || !f.commit())
+                return fail(error, QStringLiteral("%1: %2").arg(colorsDest, f.errorString()));
+        }
+        if (o.taskbar) {
+            if ((!QFileInfo::exists(startDir) && !install(startStaging, startDir, error)) || (!QFileInfo::exists(panelDest) && !install(panel, panelDest, error)) || (!colorOnly && (!installStartPlasmoid(share(QStringLiteral("plasma/plasmoids")), error)
+                || !installClockPlasmoid(share(QStringLiteral("plasma/plasmoids")), error))))
+                return false;
+            if (!colorOnly && !overrides::installPanelWidgets(share(QStringLiteral("plasma/plasmoids")), &why))
+                for (const QString &line : why.split(QLatin1Char('\n')))
+                    report(o, QStringLiteral("  left as Plasma's own: %1").arg(line));
+            if (builds) {
+                if (!forks::install(session, *builds, state, error))
+                    return false;
+                report(o, QStringLiteral("  Plasma's %1 as XPlasma builds them (Plasma %2)")
+                              .arg(QStringList(builds->plugins.keys()).join(QStringLiteral(", ")), builds->series));
+            } else if(!colorOnly) {
+                forks::remove(state);   // (none wanted: an older Plasma's, if any, go)
+            }
+        }
+        if (!iconTheme.isEmpty() && !install(iconTheme, iconsDest, error))
+            return false;
+        // XP's Properties on the desktop's menu: this XPlasma's editor.
+        const QString editor = QCoreApplication::applicationDirPath() + QLatin1String("/xplasma-edit");
+        if (!QFileInfo(editor).isExecutable())
+            report(o, QStringLiteral("  no XPlasma Plus Properties on the desktop: %1 isn't there").arg(editor));
+        else if (o.properties && !overrides::installDesktopMenu(share(QStringLiteral("plasma/plasmoids")), editor, &why))
+            report(o, QStringLiteral("  no XPlasma Plus Properties on the desktop: %1").arg(why));
+        const QString shadowFile=share(QStringLiteral("kwin/aurorae/aurorae.qml"));
+        const QByteArray oldOverride=styleDigest(shadowFile);
+        if (o.decoration && !overrides::installTitleShadows(share(QStringLiteral("aurorae/themes")), share(QStringLiteral("kwin/aurorae/aurorae.qml")), &why))
+            report(o, QStringLiteral("  no title shadows: %1").arg(why));
+        const bool overrideChanged=oldOverride!=styleDigest(shadowFile);
+        // --- apply -------------------------------------------------------------------
+        report(o, QStringLiteral("Applying ..."));
+        // Components are independently selectable by the GUI installer.
+        if (o.fonts && !xptext::apply(session, state, &why))
+            report(o, QStringLiteral("  text stays as it was: %1").arg(why));
+        if (o.decoration && !colorOnly) installWindowRules(session);
+        if (o.colours) {
+            session.writeConfig(QStringLiteral("kdeglobals"), {QStringLiteral("General")}, QStringLiteral("ColorScheme"), QString(), false);
+            if (!session.run({QStringLiteral("plasma-apply-colorscheme"), look.id}).ok())
+                report(o, QStringLiteral("  plasma-apply-colorscheme failed"));
+        }
+        if (o.fonts) applyFonts(session, fontSettings(look.system));
+        if (o.decoration) applyDecoration(session, look.id, overrideChanged);
+        if (o.widgets) {
+            QStringList log;
+            if (!qtstyle::apply(session, *applications, state, &log, &why, !colorOnly))
+                report(o, QStringLiteral("  Qt apps keep their style: %1").arg(why));
+            // (GTK's too: a failure there isn't the look's.)
+            if (!gtk::apply(session, *applications, state, &log, &why))
+                report(o, QStringLiteral("  GTK apps keep their theme: %1").arg(why));
+            for (const QString &line : std::as_const(log))
+                report(o, QStringLiteral("  ") + line);
+        }
+        if (o.taskbar) {
+            const QString panelId = look.id + QLatin1String("-taskbar");
+            session.run({QStringLiteral("plasma-apply-desktoptheme"), panelId});
+            const QString cache = paths::home() + QLatin1String("/.cache/");
+            QFile::remove(cache + QLatin1String("plasma_theme_") + panelId + QLatin1String(".kcache"));
+            primeSizeHints(panelDest + QLatin1String("/widgets"), cache + QLatin1String("ksvg-elements"));
+            if(!colorOnly)settleTaskbars(session, shellArt.height);
+            for (const auto &[panelNumber, order] : orders)
+                session.writeConfig(QStringLiteral("plasma-org.kde.plasma.desktop-appletsrc"),
+                                    {QStringLiteral("Containments"), panelNumber, QStringLiteral("General")},
+                                    QStringLiteral("AppletOrder"), order, false);
+        }
+        return true;
+    };
+    bool installed = false;
+    if (o.taskbar && !colorOnly) {
+        report(o, QStringLiteral("Stopping Plasma's shell before replacing theme artwork ..."));
+        session.restartPlasmaShell([&] { installed = installAndApply(); });
+    } else installed = installAndApply();
+    if (!installed) return false;
+    if(colorOnly && o.taskbar) {
+        session.script(scriptFrom(QStringLiteral("start-theme"),{{QStringLiteral("START"),QLatin1String(kStartPlasmoidId)},{QStringLiteral("THEME"),startTheme.toVariantMap()}}));
+        // Update only existing clock configuration; leave panel layout alone.
+        session.script(QStringLiteral("panels().forEach(function(p){p.widgets('%1').forEach(function(w){w.currentConfigGroup=['General'];w.writeConfig('textColor','%2');});});").arg(QLatin1String(kClockPlasmoidId),shellArt.trayTextColour.name()));
+    }
+    if (o.taskbar && !colorOnly) {
+        session.script(scriptFrom(QStringLiteral("panel"), {{QStringLiteral("HEIGHT"), shellArt.height}}));
+        if (!existingPanel) {
+            prepareLayout();
             if (!orders.isEmpty()) {
-                report(o, QStringLiteral("Restarting Plasma's shell for the taskbar's order ..."));
                 session.restartPlasmaShell([&] {
                     for (const auto &[panelNumber, order] : orders)
                         session.writeConfig(QStringLiteral("plasma-org.kde.plasma.desktop-appletsrc"),
@@ -662,6 +890,14 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
             }
         }
     }
+
+    // Leave immutable profile assets cached for subsequent switches. Remove
+    // legacy packages only after both renderers have switched away from them.
+    if(!colorOnly)for(const QString &stale:generatedPackages({auroraeDest,colorsDest,panelDest,iconsDest})) {
+        if(QFileInfo(stale).fileName().startsWith(QLatin1String("xplasma-v2-")))continue;
+        if(QFileInfo(stale).isDir())QDir(stale).removeRecursively();else QFile::remove(stale);
+    }
+
     if (o.wallpaper)
         applyWallpaper(session, *o.wallpaper, o.progress);
     if (!iconTheme.isEmpty()) {
@@ -681,16 +917,23 @@ bool applyLook(Session &session, const Look &look, const ApplyOptions &o, QStrin
             report(o, QStringLiteral("  XP's sounds stay off: %1").arg(why));
     }
 
+    pruneColorAssets(look.id,state.settings.value(QStringLiteral("appliedPackageId")).toString());
     state.appliedKind = look.classic() ? QStringLiteral("classic") : QStringLiteral("style");
     state.style = look.stylePath;
     state.variant = look.variant;
     state.scheme = look.classic() ? look.system.name : QString();
     state.themeFile = o.themeFile;
+    state.settings.insert(QStringLiteral("appliedPackageId"),look.id);
     state.settings.insert(QLatin1String(kAppliedWithKey), project::kVersion);
     state.settings.insert(QStringLiteral("darkMode"), dark);
     state.save();
+    // Keep legacy profile data in the .theme file, but never enable overlays.
+    if(state.settings.contains(QLatin1String(kLiveStartColorsKey)))state.settings.insert(QStringLiteral("retiredColorProfile"),state.settings.value(QLatin1String(kLiveStartColorsKey)));
+    state.settings.remove(QLatin1String(kLiveStartColorsKey));
+    state.save();
     darkmode::publish(dark);
-    if(state.settings.value(QStringLiteral("crispText")).toBool())crisptext::apply(session,true);
+    if(!colorOnly && state.settings.value(QStringLiteral("crispText")).toBool())crisptext::apply(session,true);
+    report(o, QStringLiteral("  Theme update completed in %1 ms.").arg(elapsed.elapsed()));
     report(o, QStringLiteral("Done."));
     return true;
 }
@@ -707,6 +950,10 @@ void applyWallpaper(Session &session, const Wallpaper &w, const std::function<vo
 
 bool resetDesktop(Session &session, const std::function<void(const QString &)> &progress, QString *error)
 {
+    bool paletteChanged=false;
+    if(!applyLiveSystemColors({},paths::config(),&paletteChanged,error))return false;
+    QFile::remove(paths::config()+QStringLiteral("/xplasma-live-colors.json"));
+    if(paletteChanged)session.signal(QStringLiteral("/KGlobalSettings"),QStringLiteral("org.kde.KGlobalSettings"),QStringLiteral("notifyChange"),{0,0});
     auto say = [&](const QString &line) {
         if (progress)
             progress(line);
@@ -746,6 +993,7 @@ bool resetDesktop(Session &session, const std::function<void(const QString &)> &
     if (!r.ok())
         return fail(error, QStringLiteral("plasma-apply-lookandfeel failed: %1").arg(QString::fromUtf8(r.err).trimmed()));
     session.waitForPlasmaShell();   // (it may restart the shell itself)
+    removeNativeDecoration();   // (Breeze's borders are back: nothing uses it)
 
     // The wallpaper from the global theme's own defaults, set outright.
     for (const QString &root : paths::systemData()) {

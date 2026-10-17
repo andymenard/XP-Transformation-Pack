@@ -335,11 +335,30 @@ ClassicScheme ClassicScheme::fromThemeFile(const ThemeFile &file)
         s.metrics = *m;
     if (auto m = IconMetrics::fromA(bytesFromDecimal(file.value(u"Metrics", u"IconMetrics"))))
         s.icons = *m;
+    std::array<QColor, 4> custom;
+    bool hasCustom = true;
+    for (int i = 0; i < 4; ++i) {
+        custom[i] = QColor(file.value(u"XPlasmaCustomColors", QString::number(i)));
+        hasCustom &= custom[i].isValid();
+    }
+    s.shellMenuTextMode=file.contains(u"XPlasmaCustomColors",u"StartMenuText") ? qBound(0,file.value(u"XPlasmaCustomColors",u"StartMenuText").toInt(),2) : -1;
+    if (hasCustom) { s.shellColors = custom; s.shellBaseName = file.value(u"XPlasmaCustomColors", u"BaseScheme"); s.shellTextMode = qBound(0,file.value(u"XPlasmaCustomColors",u"TextMode").toInt(),2); }
+    if (hasCustom) for(int i=0;i<4;++i) {
+        const QString key=QStringLiteral("TextMode%1").arg(i);
+        s.shellTextModes[i]=file.contains(u"XPlasmaCustomColors",key) ? qBound(0,file.value(u"XPlasmaCustomColors",key).toInt(),2) : s.shellTextMode;
+    }
     return s;
 }
 
 void ClassicScheme::writeTo(ThemeFile &file) const
 {
+    if (shellColors) {
+        for (int i = 0; i < 4; ++i) file.setValue(u"XPlasmaCustomColors", QString::number(i), (*shellColors)[i].name());
+        file.setValue(u"XPlasmaCustomColors", u"BaseScheme", shellBaseName);
+        file.setValue(u"XPlasmaCustomColors",u"StartMenuText",QString::number(shellMenuTextMode<0 ? shellTextModes[1] : shellMenuTextMode));
+        file.setValue(u"XPlasmaCustomColors",u"TextMode",QString::number(shellTextMode));
+        for(int i=0;i<4;++i) file.setValue(u"XPlasmaCustomColors",QStringLiteral("TextMode%1").arg(i),QString::number(shellTextModes[i]<0 ? shellTextMode : shellTextModes[i]));
+    }
     const QString section = QStringLiteral("Control Panel\\Colors");
     const QStringList &names = colourNames();
     for (int i = 0; i < kColourCount; ++i) {
@@ -437,6 +456,21 @@ ClassicScheme ClassicScheme::fromSysMetrics(const Theme &theme)
     font("MsgBoxFont", &m.messageFont);
     font("IconTitleFont", &s.icons.font);
     return s;
+}
+
+QPalette ClassicScheme::shellPalette(int part) const
+{
+    if (!shellColors) return palette();
+    ClassicScheme shell = *this;
+    const QColor face = part == 4 ? QColor("#c75032") : (*shellColors)[part];
+    shell.setColour(u"ButtonFace", face);
+    shell.setColour(u"ButtonHilight", face.lighter(160));
+    shell.setColour(u"ButtonLight", face.lighter(125));
+    shell.setColour(u"ButtonShadow", face.darker(150));
+    shell.setColour(u"ButtonDkShadow", face.darker(220));
+    const int mode=shellTextModes[qMin(part,3)]<0 ? shellTextMode : shellTextModes[qMin(part,3)];
+    shell.setColour(u"ButtonText", mode == 1 ? QColor(Qt::white) : mode == 2 ? QColor(Qt::black) : face.lightnessF() < .5 ? QColor(Qt::white) : QColor(Qt::black));
+    return shell.palette();
 }
 
 QPalette ClassicScheme::palette() const

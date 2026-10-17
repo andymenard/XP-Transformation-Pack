@@ -141,6 +141,11 @@ QString shippedForks()
     return shipped(QStringLiteral("forks"));
 }
 
+QString shippedDecoration()
+{
+    return shipped(QStringLiteral("decoration/fyi.hotsocket.xplasma.decoration.so"));
+}
+
 void removeEmptyDirs(const QString &dir, const QString &top)
 {
     const QString stop = QDir::cleanPath(top);

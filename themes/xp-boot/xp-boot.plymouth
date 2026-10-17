@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Windows XP Boot
+Description=Original XP boot artwork with a blue loading animation
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/xp-boot
+ScriptFile=/usr/share/plymouth/themes/xp-boot/xp-boot.script

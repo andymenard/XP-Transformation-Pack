@@ -754,12 +754,13 @@ QString themeName(const Look &look)
 
 QString writeTheme(const Look &look, const QString &directory, QString *error)
 {
+    const QString root = QDir(directory).filePath(themeName(look));
+    if(look.id.startsWith(QLatin1String("xplasma-v2-")) && QFileInfo::exists(root+QLatin1String("/.complete")))return root;
     QStyle *style = xpStyle(look);
     if (!style) {
         fail(error, QStringLiteral("XPlasma's style plugin isn't installed: the GTK theme's controls can't be drawn"));
         return QString();
     }
-    const QString root = QDir(directory).filePath(themeName(look));
     QDir(root).removeRecursively();
     Assets a(root + QLatin1String("/assets"));
     QHash<QString, QString> v;
@@ -920,6 +921,8 @@ QString writeTheme(const Look &look, const QString &directory, QString *error)
     if (!writeText(root + QLatin1String("/gtk-3.0/gtk.css"), gtk3, error) || !writeText(root + QLatin1String("/gtk-4.0/xplasma.css"), layer4, error)
         || !writeText(root + QLatin1String("/gtk-4.0/gtk.css"), gtk4, error) || !writeText(root + QLatin1String("/index.theme"), index, error))
         return QString();
+    QFile complete(root+QStringLiteral("/.complete"));
+    if(complete.open(QIODevice::WriteOnly))complete.write("assets-v2");
     return root;
 }
 
@@ -971,7 +974,7 @@ void removeThemes(const QString &keep)
 {
     const QDir themes(paths::localShare() + QLatin1String("/themes"));
     for (const QString &name : themes.entryList({QStringLiteral("XPlasma-*"), QStringLiteral("XPLasma-*")}, QDir::Dirs | QDir::NoDotAndDotDot))
-        if (name != keep)
+        if (name != keep && (keep.isEmpty() || !name.startsWith(QLatin1String("XPlasma-xplasma-v2-"))))
             QDir(themes.filePath(name)).removeRecursively();
 }
 

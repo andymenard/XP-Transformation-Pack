@@ -4,6 +4,8 @@ import QtQuick
 // Pure presentation shared by the Plasma launcher and the isolated preview.
 FocusScope {
     id: menu
+    XpTextStyle { id: pixelTextStyle }
+    readonly property var xpTextStyle: pixelTextStyle
     required property var themeData
     property string userName: "User"
     property url userPicture
@@ -82,21 +84,43 @@ FocusScope {
         onTriggered: if (menu.allProgramsOpen) menu.closeProgramsRequested()
     }
 
-    component Art: BorderImage {
+    component Art: Item {
+        id: art
         required property var spec
-        source: spec.url
-        border.left: spec.sizing[0]
-        border.right: spec.sizing[1]
-        border.top: spec.sizing[2]
-        border.bottom: spec.sizing[3]
-        horizontalTileMode: BorderImage.Stretch
-        verticalTileMode: BorderImage.Stretch
-        smooth: false
+        implicitWidth: spec.width || 0
+        implicitHeight: spec.height || 0
+        BorderImage {
+            anchors.fill: parent
+            source: art.spec.url
+            border.left: art.spec.sizing[0]
+            border.right: art.spec.sizing[1]
+            border.top: art.spec.sizing[2]
+            border.bottom: art.spec.sizing[3]
+            horizontalTileMode: BorderImage.Stretch
+            verticalTileMode: BorderImage.Stretch
+            smooth: false
+            layer.enabled: !!(menu.themeData.liveColors && menu.themeData.liveColors.enabled && art.spec.tintable)
+            layer.effect: TintEffect {
+                tint: menu.themeData.liveColors ? menu.themeData.liveColors.menu : "white"
+                tone: art.spec.tone || 0.5
+            }
+        }
     }
 
-    component Label: Text {
-        font.family: menu.themeData.font.family
-        font.pixelSize: menu.themeData.font.pixels
+    component Separator: Image {
+        required property var spec
+        source: spec.url
+        smooth: false
+        layer.enabled: !!(menu.themeData.liveColors && menu.themeData.liveColors.enabled && spec.tintable)
+        layer.effect: TintEffect {
+            tint: menu.themeData.liveColors ? menu.themeData.liveColors.menu : "white"
+            tone: spec.tone || 0.5
+        }
+    }
+
+    component Label: XpText {
+        xpFamily: menu.themeData.font.family
+        xpPixels: menu.themeData.font.pixels
         renderType: Text.NativeRendering
         elide: Text.ElideRight
     }
@@ -159,7 +183,7 @@ FocusScope {
             Label {
                 width: parent.width
                 text: entry.entryData.label
-                font.bold: entry.bold
+                xpBold: entry.bold
                 color: entry.highlighted ? menu.xpColors.highlightText : entry.textColor
             }
             Label {
@@ -267,10 +291,10 @@ FocusScope {
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width - x - 10
             text: menu.userName
-            font.family: menu.themeData.userFont.family
-            font.pixelSize: menu.themeData.userFont.pixels
-            font.bold: menu.themeData.userFont.bold
-            font.italic: menu.themeData.userFont.italic
+            xpFamily: menu.themeData.userFont.family
+            xpPixels: menu.themeData.userFont.pixels
+            xpBold: menu.themeData.userFont.bold
+            xpItalic: menu.themeData.userFont.italic
             color: menu.xpColors.userText
         }
     }
@@ -326,12 +350,12 @@ FocusScope {
                     width: parent.width
                     visible: menu.pinnedItems.length > 0 && menu.recentShown > 0
                     height: visible ? menu.parts.proglistseparator.height + menu.provisional.separatorGap : 0
-                    Image {
+                    Separator {
                         objectName: "pinnedSeparator"
                         // Center in the column, not its asymmetric content inset.
                         x: (programs.width - width) / 2 - programs.spec.content[0]
                         anchors.verticalCenter: parent.verticalCenter
-                        source: menu.parts.proglistseparator.url
+                        spec: menu.parts.proglistseparator
                         smooth: false
                     }
                 }
@@ -410,11 +434,11 @@ FocusScope {
         Accessible.onPressAction: open()
         Keys.onReturnPressed: open()
         Keys.onSpacePressed: open()
-        Image {
+        Separator {
             objectName: "allProgramsSeparator"
             y: menu.provisional.moreTopGap
             anchors.horizontalCenter: parent.horizontalCenter
-            source: menu.parts.proglistseparator.url
+            spec: menu.parts.proglistseparator
             smooth: false
         }
         Rectangle {
@@ -434,9 +458,9 @@ FocusScope {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "All Programs"
                 color: more.highlighted ? menu.xpColors.highlightText : menu.xpColors.programText
-                font.family: menu.themeData.moreFont.family
-                font.pixelSize: menu.themeData.moreFont.pixels
-                font.bold: menu.themeData.moreFont.bold
+                xpFamily: menu.themeData.moreFont.family
+                xpPixels: menu.themeData.moreFont.pixels
+                xpBold: menu.themeData.moreFont.bold
             }
             Image {
                 source: (more.highlighted && menu.parts["moreprogramsarrow-hot"]
@@ -496,10 +520,11 @@ FocusScope {
                         width: parent.width
                         height: visible ? menu.parts.placeslistseparator.height + menu.provisional.separatorGap : 0
                         visible: group.index < menu.placeGroups.length - 1
-                        Image {
+                        Separator {
+                            objectName: "placesSeparator"
                             x: (places.width - width) / 2 - places.spec.content[0]
                             anchors.verticalCenter: parent.verticalCenter
-                            source: menu.parts.placeslistseparator.url
+                            spec: menu.parts.placeslistseparator
                             smooth: false
                         }
                     }

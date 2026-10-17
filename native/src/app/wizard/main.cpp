@@ -792,7 +792,7 @@ public:
                                       .arg(project::kVersion)
                             : m_plan->mode == Mode::Repair
                                 ? QStringLiteral("XPlasma has been repaired.\n\nClick the Finish button to exit the Setup Wizard.")
-                                : QStringLiteral("XPlasma has been installed. Choose your look in XPlasma Properties.\n\nClick the Finish "
+                                : QStringLiteral("XPlasma has been installed. Choose your look in XPlasma Plus Properties.\n\nClick the Finish "
                                                  "button to exit the Setup Wizard."));
         } else if (const QJsonObject report = demoReport(); report.value(QLatin1String("newer")).toBool()) {
             // Installing on a Plasma newer than XPlasma's builds, which didn't

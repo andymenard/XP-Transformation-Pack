@@ -168,8 +168,9 @@ QString freeze(const Look &look, QString *error)
     return path;
 }
 
-bool apply(Session &session, const Look &look, State &state, QStringList *log, QString *error)
+bool apply(Session &session, const Look &look, State &state, QStringList *log, QString *error, bool installRuntime)
 {
+    if(installRuntime) {
     // The plugins, and the session told where they are (this login's
     // environment, which apps started from now on inherit; and every later
     // login's, through plasma-workspace's env scripts).
@@ -191,6 +192,7 @@ bool apply(Session &session, const Look &look, State &state, QStringList *log, Q
     if (!ensurePluginPath(session, error))
         return false;
 
+    }
     // The look, frozen, named by xplasmarc.
     const QString frozen = freeze(look, error);
     if (frozen.isEmpty())
@@ -215,11 +217,12 @@ bool apply(Session &session, const Look &look, State &state, QStringList *log, Q
     const QString current = session.readConfig(QStringLiteral("kdeglobals"), {QStringLiteral("KDE")}, QStringLiteral("widgetStyle"));
     if (!state.settings.contains(QStringLiteral("previousWidgetStyle")) && current.compare(QLatin1String(kStyleKey), Qt::CaseInsensitive) != 0)
         state.settings.insert(QStringLiteral("previousWidgetStyle"), current.isEmpty() ? QStringLiteral("Breeze") : current);
-    setWidgetStyle(session, QLatin1String(kStyleKey));
+    if(installRuntime || current.compare(QLatin1String(kStyleKey),Qt::CaseInsensitive)!=0)
+        setWidgetStyle(session, QLatin1String(kStyleKey));
     *log << QStringLiteral("widget style: XPlasma (%1)").arg(look.name);
     // Flatpak's Qt apps too (a failure there isn't the look's).
     QString why;
-    if (const QString plugin = paths::shippedStylePlugin(6); !plugin.isEmpty() && !flatpak::install(session, plugin, log, &why))
+    if (const QString plugin = paths::shippedStylePlugin(6); installRuntime && !plugin.isEmpty() && !flatpak::install(session, plugin, log, &why))
         *log << QStringLiteral("Flatpak apps: not styled (%1)").arg(why);
     return true;
 }

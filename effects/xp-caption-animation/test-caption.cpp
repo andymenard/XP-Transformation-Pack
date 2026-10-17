@@ -13,6 +13,15 @@ int main(int argc,char **argv){
   const auto image=XP::caption(480,26,scale,"Caption test",QIcon(),QFont("Tahoma",10,QFont::Bold),QColor(0,84,227),QColor(61,149,255),Qt::white);
   if(image.size()!=QSize(qRound(480*scale),qRound(26*scale))||image.pixelColor(1,1).alpha()!=255)return 4;
  }
+ const QFont font("Tahoma",10,QFont::Bold);
+ for(auto scale:{1.,1.25,1.5,2.,2.5,3.}) {
+  const auto label=XP::captionLabel(800,26,scale,"A cached caption",QIcon(),font,Qt::white);
+  for(int width:{160,480,800}) {
+   const auto cached=XP::caption(width,26,scale,label,false,QColor(0,84,227),QColor(61,149,255));
+   const auto direct=XP::caption(width,26,scale,"A cached caption",QIcon(),font,QColor(0,84,227),QColor(61,149,255),Qt::white);
+   if(cached!=direct)return 5;
+  }
+ }
  qInfo()<<"250ms linear, constant-height geometry and opaque HiDPI caption rendering passed";
  return 0;
 }

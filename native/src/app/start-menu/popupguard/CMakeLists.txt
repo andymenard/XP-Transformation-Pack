@@ -5,3 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick)
 add_library(xpmenuguard MODULE plugin.cpp)
 target_link_libraries(xpmenuguard PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick)
+# The helper runs in KWin's render loop; empty build types must not use -O0.
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  target_compile_options(xpmenuguard PRIVATE $<$<NOT:$<CONFIG:Debug>>:-O2>)
+endif()
+install(TARGETS xpmenuguard LIBRARY DESTINATION lib/xplasma/start-menu)

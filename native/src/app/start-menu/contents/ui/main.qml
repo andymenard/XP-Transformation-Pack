@@ -10,6 +10,7 @@
     SPDX-License-Identifier: GPL-3.0-or-later
 */
 import QtQuick
+import "LiveColors.js" as LiveColors
 import QtQuick.Layouts
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
@@ -18,7 +19,10 @@ import org.kde.kirigami as Kirigami
 
 PlasmoidItem {
     id: start
+    objectName: "xplasmaStartRoot"
 
+    readonly property bool liveTintAvailable: false
+    readonly property var liveColors: ({})
     readonly property var themeData: {
         try {
             return JSON.parse(Plasmoid.configuration.theme || "{}");
@@ -91,6 +95,7 @@ PlasmoidItem {
 
     // The Windows key opens it, as XP's did.
     Component.onCompleted: {
+        Plasmoid.configuration.liveTintSupported = liveTintAvailable;
         if (Plasmoid.hasOwnProperty("activationTogglesExpanded"))
             Plasmoid.activationTogglesExpanded = true;
     }

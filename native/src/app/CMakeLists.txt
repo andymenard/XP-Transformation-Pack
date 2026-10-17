@@ -30,6 +30,7 @@ add_library(xplasma-app STATIC
   library.cpp
   themeimport.cpp
   look.cpp
+  editor/customluna.cpp
   package.cpp
   colors.cpp
   darkmode.cpp
@@ -84,7 +85,7 @@ add_custom_command(OUTPUT "${start_guard}"
   COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:xpmenuguard>" "${start_guard}"
   DEPENDS xpmenuguard)
 set_source_files_properties("${start_guard}" PROPERTIES GENERATED TRUE
-  QT_RESOURCE_ALIAS "contents/ui/popupguard/libxpmenuguard.so")
+  QT_RESOURCE_ALIAS "contents/ui/popupguard-v8/libxpmenuguard.so")
 qt_add_resources(xplasma-app "startmenu_guard" PREFIX /start-menu FILES "${start_guard}")
 # The clock plasmoid's package, as :/clock/...
 file(GLOB_RECURSE clock_package RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS clock/*)

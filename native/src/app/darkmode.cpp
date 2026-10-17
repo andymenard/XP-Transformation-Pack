@@ -31,6 +31,7 @@ std::optional<Look> applicationLook(const Look &source, bool dark, QString *erro
   const ClassicScheme palette=ClassicScheme::fromThemeFile(ThemeFile::fromBytes(resource(QStringLiteral("palette.theme"))));
   ClassicScheme scheme=source.system;
   for(const QString &name:ClassicScheme::colourNames()) {
+   if(source.system.shellColors && (name == QStringLiteral("Hilight") || name == QStringLiteral("HilightText")))continue;
    if(name.contains(QStringLiteral("Title")) || name.contains(QStringLiteral("Border")) || name==QStringLiteral("Background") || name==QStringLiteral("WindowFrame"))continue;
    scheme.setColour(name,palette.colour(name));
   }
@@ -57,10 +58,11 @@ bool apply(Session &session,const Look &source,bool dark,QString *error){
  const auto apps=applicationLook(source,dark,error);if(!apps)return false;
  State state=State::load();QStringList log;
  if(!qtstyle::apply(session,*apps,state,&log,error)||!gtk::apply(session,*apps,state,&log,error))return false;
- const QString target=paths::localShare()+QStringLiteral("/color-schemes/")+source.id+QStringLiteral(".colors");
- if(!write(target,colorScheme(apps->system,source.id,{panelArt(source).panelColour,panelArt(source).textColour}),error))return false;
+ const QString schemeId=state.settings.value(QStringLiteral("appliedPackageId")).toString(source.id);
+ const QString target=paths::localShare()+QStringLiteral("/color-schemes/")+schemeId+QStringLiteral(".colors");
+ if(!write(target,colorScheme(apps->system,schemeId,{panelArt(source).panelColour,panelArt(source).textColour}),error))return false;
  session.writeConfig(QStringLiteral("kdeglobals"),{QStringLiteral("General")},QStringLiteral("ColorScheme"),QString(),false);
- if(!session.run({QStringLiteral("plasma-apply-colorscheme"),source.id}).ok()){if(error)*error=QStringLiteral("Could not apply application colors");return false;}
+ if(!session.run({QStringLiteral("plasma-apply-colorscheme"),schemeId}).ok()){if(error)*error=QStringLiteral("Could not apply application colors");return false;}
  state.settings.insert(QStringLiteral("darkMode"),dark);if(!state.save(error))return false;
  if(state.settings.value(QStringLiteral("crispText")).toBool())return crisptext::apply(session,true,error);
  return publish(dark,error);

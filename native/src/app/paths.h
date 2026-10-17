@@ -49,6 +49,9 @@ QString shippedStylePlugin(int qtMajor);
 // (build-forks.sh): <prefix>/lib/xplasma/forks/<series>/plasma/applets/
 // <id>.so; empty if this copy has none.
 QString shippedForks();
+// XPlasma's KWin window decoration, and the Plasma version it was built
+// against beside it ("<plugin>.plasma"); empty if this copy has none.
+QString shippedDecoration();
 // Where Qt apps find it: ~/.local/lib/qt<N>/plugins.
 QString stylePluginRoot(int qtMajor);
 

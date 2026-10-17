@@ -13,12 +13,16 @@
 #include <QString>
 
 #include <optional>
+#include <array>
 
 namespace xpl {
 
 struct StartButtonArt
 {
+    std::array<QImage, 3> backgrounds, foregrounds, textMasks, shadowMasks;
+    QColor textColor;
     QImage normal, hover, pressed;   // the bar's height; transparent round the button
+    int scale = 1;                   // every image is this many pixels to the bar's one (its devicePixelRatio)
 };
 
 // What Display Properties' Extras... makes of the Start button: its label
@@ -37,16 +41,20 @@ struct StartButtonExtras
     QJsonObject toJson() const;
 };
 constexpr const char *kStartButtonKey = "startButton";
+// Whether the Start button is drawn for HiDPI screens too (2x and 3x), in
+// State's settings. Off: XP's 1x pixels, scaled up by the screen.
+constexpr const char *kHiDpiStartKey = "hidpiStartButton";
 
 // `flag` is the flag bitmap (media::startFlag(), or classicStartFlag() for
 // Windows Classic); `label` what it says ("start" with a visual style,
-// "Start" in Classic).
+// "Start" in Classic). `scale` draws it for a HiDPI screen: XP's bitmaps
+// their own pixels made bigger, the label and the logo drawn that sharp.
 std::optional<StartButtonArt> startButton(const Look &look, const QImage &flag, const QString &label = QStringLiteral("start"),
-                                          QString *error = nullptr);
+                                          QString *error = nullptr, int scale = 1);
 // With the user's extras: their label, and their logo the flag's height
 // (characters in the label's colour, or their own where the font has
 // colours; a picture scaled down) -- XP's where they say nothing.
 std::optional<StartButtonArt> startButton(const Look &look, const QImage &flag, const StartButtonExtras &extras,
-                                          QString *error = nullptr);
+                                          QString *error = nullptr, int scale = 1);
 
 } // namespace xpl

@@ -5,7 +5,9 @@
 #include "core/render.h"
 
 #include <QCache>
+#include <QFont>
 #include <QHash>
+#include <QJsonObject>
 #include <QProxyStyle>
 #include <QStyleOption>
 
@@ -27,6 +29,7 @@ class XPlasmaStyle : public QProxyStyle
 
 public:
     XPlasmaStyle();
+    Q_INVOKABLE void setLiveColors(const QVariantMap &) {}
 
     void polish(QWidget *widget) override;
     void unpolish(QWidget *widget) override;
@@ -63,7 +66,14 @@ private Q_SLOTS:
     void reloadIfChanged();
 
 private:
-    void loadTheme();
+    void loadTheme(const std::pair<QString, QString> &theme);
+    void reloadLiveColors(bool repaint = true);
+    void forgetTheme();
+    void tintScrollPart(QImage &image, const xpl::PartRef &ref) const;
+    QJsonObject m_liveColors;
+    bool m_liveEnabled = false;            // m_liveColors' "enabled" and "menu", read once
+    QColor m_liveAccent;
+    QString m_livePath;
     // Draw `ref` into `rect`; false (and nothing drawn) when the theme has
     // no art for it, so the caller can fall down the degradation ladder.
     bool drawPart(QPainter *painter, const xpl::PartRef &ref, const QRect &rect) const;
@@ -74,6 +84,8 @@ private:
     QColor sysColour(QStringView name, const QColor &fallback) const;
     int sysMetric(QStringView name, int fallback) const;
     QFont sysFont(QStringView name, const QFont &fallback) const;
+    // A class-level property ([SysMetrics], [Progress]...), looked up once per theme.
+    std::optional<QString> themeProperty(QStringView cls, QStringView property) const;
 
     QRect xpTitleBarRect(const QStyleOptionTitleBar *bar, SubControl sub, const QWidget *widget) const;
     void drawTitleBar(const QStyleOptionTitleBar *bar, QPainter *painter, const QWidget *widget) const;
@@ -129,10 +141,41 @@ private:
     std::unique_ptr<xpl::Renderer> m_renderer;
     bool m_safe = false;                   // XPLASMA_SAFE=1: classic only, draw nothing of our own
     std::optional<xpl::ClassicScheme> m_scheme;   // Classic: the colour scheme (a .theme's colours and metrics)
-    mutable QCache<QString, QImage> m_cache; // rendered parts, keyed by part + size + dpi
+    // Rendered parts, keyed by part + size + dpi (+ the live accent for a
+    // tinted scroll bar).
+    struct PartKey
+    {
+        QString sub, cls;
+        int part, state, width, height, dpi;
+        QRgb live;
+        bool operator==(const PartKey &o) const
+        {
+            return part == o.part && state == o.state && width == o.width && height == o.height && dpi == o.dpi
+                   && live == o.live && cls == o.cls && sub == o.sub;
+        }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        friend size_t qHash(const PartKey &k, size_t seed = 0)
+#else
+        friend uint qHash(const PartKey &k, uint seed = 0)
+#endif
+        {
+            return ::qHash(k.cls, seed) ^ (::qHash(k.sub, seed) * 31)
+                   ^ ::qHash((quint64(k.part * 64 + k.state) << 40) ^ (quint64(k.width) << 24) ^ (quint64(k.height) << 8)
+                                 ^ quint64(k.dpi) ^ (quint64(k.live) << 13), seed);
+        }
+    };
+    mutable QCache<PartKey, QImage> m_cache;
+    mutable QHash<QString, std::optional<QString>> m_themeProperties;   // themeProperty(), per theme
+    mutable QHash<QFont, int> m_textHeights;     // xpTextHeight(), by font
+    mutable std::optional<qreal> m_scrollTone[2];   // tintScrollPart()'s reference tone: arrows/thumb, track
+    // The last part too big for m_cache (a window-sized frame): kept apart so
+    // that resizing one doesn't evict every small part, re-rendered per size.
+    mutable PartKey m_largeKey{};
+    mutable QImage m_large;
     bool m_cues = false;                   // Alt held: show mnemonic underlines (XP's keyboard cues)
     QString m_configPath;                  // ~/.config/xplasmarc, when live
     bool m_crispEnabled = false;
+    bool m_kerning = true;                 // xplasmarc [Text] Kerning
     std::pair<QString, QString> m_loaded;  // (Path, Variant) in use
     class QFileSystemWatcher *m_watcher = nullptr;
     class QTimer *m_reloadTimer = nullptr;

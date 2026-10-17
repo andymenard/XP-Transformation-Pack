@@ -18,6 +18,7 @@ import org.kde.ksvg as KSvg
 
 PlasmoidItem {
     id: root
+    XpTextStyle { id: pixelTextStyle }
 
     preferredRepresentation: compactRepresentation
     // (Plasma builds the compact representation only for a plasmoid that
@@ -118,14 +119,15 @@ PlasmoidItem {
             }
         }
 
-        Text {
+        XpText {
             id: label
+            xpStyle: pixelTextStyle
             anchors.centerIn: parent
             text: root.timeText
             // XP's clock font at XP's 96 dpi, whatever the screen's.
-            font.family: Plasmoid.configuration.fontFamily
-            font.pixelSize: Math.round(Plasmoid.configuration.fontPoints * 96 / 72)
-            font.weight: Plasmoid.configuration.fontWeight
+            xpFamily: Plasmoid.configuration.fontFamily
+            xpPixels: Math.round(Plasmoid.configuration.fontPoints * 96 / 72)
+            xpWeight: Plasmoid.configuration.fontWeight
             color: Plasmoid.configuration.textColor.length > 0 ? Plasmoid.configuration.textColor : Kirigami.Theme.textColor
             renderType: Text.NativeRendering
         }

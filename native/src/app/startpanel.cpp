@@ -73,7 +73,9 @@ bool save(const QImage &image, const QDir &dir, const QString &name)
 QJsonObject classicPanel(const Look &look, const QDir &dir, const QString &base, QString *error)
 {
     const ClassicScheme &s = look.system;
-    const QPalette pal = s.palette();
+    auto menuScheme=s;
+    if(s.shellMenuTextMode>=0)menuScheme.shellTextModes[1]=s.shellMenuTextMode;
+    const QPalette pal = menuScheme.shellPalette(1);
     const QColor face = pal.color(QPalette::Button), shadow = pal.color(QPalette::Dark), light = pal.color(QPalette::Light);
     auto url = [&](const QString &name) -> QString { return base + name; };
     auto filled = [&](QSize size) {
@@ -95,7 +97,8 @@ QJsonObject classicPanel(const Look &look, const QDir &dir, const QString &base,
     QImage header(inner, 40, QImage::Format_ARGB32_Premultiplied);
     {
         QPainter p(&header);
-        classic::gradientFill(&p, header.rect(), s.colour(u"ActiveTitle"), s.colour(u"GradientActiveTitle"));
+        classic::gradientFill(&p, header.rect(), s.shellColors ? (*s.shellColors)[1] : s.colour(u"ActiveTitle"),
+                              s.shellColors ? (*s.shellColors)[1].lighter(140) : s.colour(u"GradientActiveTitle"));
     }
     save(header, dir, QStringLiteral("userpane.png"));
     parts.insert(QStringLiteral("userpane"), part(url(QStringLiteral("userpane.png")), header, {0, 0, 0, 0}, {0, 0, 0, 0},
@@ -140,7 +143,7 @@ QJsonObject classicPanel(const Look &look, const QDir &dir, const QString &base,
     arrow.fill(Qt::transparent);
     for (int y = 0; y < 7; ++y)
         for (int x = 0; x <= 3 - qAbs(3 - y); ++x)
-            arrow.setPixel(2 + x, y, s.colour(u"MenuText").rgba());
+            arrow.setPixel(2 + x, y, (s.shellColors ? pal.color(QPalette::ButtonText) : s.colour(u"MenuText")).rgba());
     save(arrow, dir, QStringLiteral("moreprogramsarrow.png"));
     parts.insert(QStringLiteral("moreprogramsarrow"), part(url(QStringLiteral("moreprogramsarrow.png")), arrow, {0, 0, 0, 0}, {0, 0, 0, 0}));
 
@@ -180,7 +183,7 @@ QJsonObject classicPanel(const Look &look, const QDir &dir, const QString &base,
     parts.insert(QStringLiteral("submenu"), QJsonObject{{QStringLiteral("url"), url(QStringLiteral("submenu.png"))},
                                                         {QStringLiteral("sizing"), QJsonArray{3, 3, 3, 3}}});
 
-    auto hex = [&](const char *name) { return s.colour(QString::fromLatin1(name)).name(); };
+    auto hex = [&](const char *name) { return s.shellColors && QString::fromLatin1(name) == QLatin1String("MenuText") ? pal.color(QPalette::ButtonText).name() : s.colour(QString::fromLatin1(name)).name(); };
     const LogFont &menuFont = s.metrics.menuFont;
     auto fontJson = [](const LogFont &f, bool bold, bool italic, int pixels) {
         return QJsonObject{{QStringLiteral("family"), f.face}, {QStringLiteral("pixels"), pixels},
@@ -190,14 +193,14 @@ QJsonObject classicPanel(const Look &look, const QDir &dir, const QString &base,
         {QStringLiteral("parts"), parts},
         {QStringLiteral("palette"), QJsonObject{{QStringLiteral("programText"), hex("MenuText")},
                                                 {QStringLiteral("submenuText"), hex("MenuText")},
-                                                {QStringLiteral("submenuHighlightText"), hex("HilightText")},
+                                                {QStringLiteral("submenuHighlightText"), s.shellColors && s.shellMenuTextMode>=0 ? pal.color(QPalette::ButtonText).name() : hex("HilightText")},
                                                 {QStringLiteral("secondaryText"), hex("MenuText")},
                                                 {QStringLiteral("placesText"), hex("MenuText")},
-                                                {QStringLiteral("userText"), hex("TitleText")},
+                                                {QStringLiteral("userText"), s.shellColors ? pal.color(QPalette::ButtonText).name() : hex("TitleText")},
                                                 {QStringLiteral("userShadow"), QStringLiteral("#00000000")},
                                                 {QStringLiteral("footerText"), hex("MenuText")},
                                                 {QStringLiteral("highlight"), hex("Hilight")},
-                                                {QStringLiteral("highlightText"), hex("HilightText")}}},
+                                                {QStringLiteral("highlightText"), s.shellColors && s.shellMenuTextMode>=0 ? pal.color(QPalette::ButtonText).name() : hex("HilightText")}}},
         {QStringLiteral("font"), fontJson(menuFont, menuFont.bold(), menuFont.italic, -menuFont.height)},
         {QStringLiteral("userFont"), fontJson(s.metrics.captionFont, true, true, 18)},
         {QStringLiteral("moreFont"), fontJson(menuFont, false, false, -menuFont.height)},
@@ -342,7 +345,7 @@ QJsonObject writeStartPanel(const Look &look, const QString &directory, QString 
         {QStringLiteral("userShadow"), hex(prop("userpane", "textshadowcolor", QStringLiteral("0 0 0")), qRgb(0, 0, 0))},
         {QStringLiteral("footerText"), hex(prop("logoff", "textcolor"), qRgb(255, 255, 255))},
         {QStringLiteral("highlight"), hex(sys("highlight", QStringLiteral("49 106 197")), qRgb(49, 106, 197))},
-        {QStringLiteral("highlightText"), hex(sys("highlighttext", QStringLiteral("255 255 255")), qRgb(255, 255, 255))},
+        {QStringLiteral("highlightText"), hex(r.theme().property(u"xplasmacustomluna",u"",u"",u"menutext").value_or(sys("highlighttext", QStringLiteral("255 255 255"))), qRgb(255, 255, 255))},
     };
     auto pane = [&](const char *part, int index) {
         return parts.value(QLatin1String(part)).toObject().value(QStringLiteral("pane")).toArray().at(index).toInt();

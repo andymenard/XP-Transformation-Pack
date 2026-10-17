@@ -89,3 +89,7 @@ Before a public asset-bearing release, verify redistribution permission separate
 Alpha 1.0 includes Desktop, optional IE6 Firefox and the updater. XP apps, custom tray menus, Codex colors and Clippy are excluded. Their credits above document the larger project history, not included alpha components.
 
 Installer visual reference: [Gough Lui, Microsoft Windows XP Install Process](https://www.youtube.com/watch?v=vTheKjAtnKs&t=134s), from 2:14 onward. No video frames or audio are redistributed.
+
+## XP-rendered pixel Tahoma
+
+The optional XPlasma Tahoma Pixel regular/bold fonts capture Microsoft Tahoma using Windows XP SP3’s monochrome GDI renderer. Numbered optical families adapt those captures for fractional scaling. Microsoft retains the original letterform copyright; these fonts are separate from the theme code’s GPL license. See [font credits and provenance](tools/crisp-text/CREDITS.md) and [capture tools](tools/crisp-text/xp-capture/README.md).

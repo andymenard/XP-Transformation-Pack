@@ -38,10 +38,10 @@ def greeter_environment():
     if line.strip().startswith('GreeterEnvironment='):base=line.split('=',1)[1].strip()
  values=[v for v in base.split(',') if v.strip() and not v.strip().startswith('QML_XHR_ALLOW_FILE_READ=')]
  return ','.join(values+['QML_XHR_ALLOW_FILE_READ=1'])
-def deps(features):
+def deps(features,native_ready=False,caption_ready=False):
  profile=detect()
  if not profile['family']:raise RuntimeError('No supported system package manager detected.')
- install(profile['family'],features,run)
+ install(profile['family'],features,run,native_ready=native_ready,caption_ready=caption_ready)
 def rebuild():
  engine=detect()['boot']
  if engine=='update-initramfs':run([engine,'-u','-k',os.uname().release])
@@ -119,13 +119,13 @@ def screens(home,store,features):
   restore(store);raise
  print('System screens prepared. No logout or reboot was performed.',flush=True)
 def main():
- p=argparse.ArgumentParser();p.add_argument('action',choices=['dependencies','screens','restore','bootstrap']);p.add_argument('--features',default='');a=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument('action',choices=['dependencies','screens','restore','bootstrap']);p.add_argument('--features',default='');p.add_argument('--native-ready',action='store_true');p.add_argument('--caption-ready',action='store_true');a=p.parse_args()
  home,store=context()
  if not detect()['family']:raise RuntimeError('No supported package manager detected.')
  features=[x for x in a.features.split(',') if x]
  known={x['id'] for x in json.loads((BASE/'features.json').read_text())}
  if not set(features)<=known:raise RuntimeError('Unknown installer feature.')
- if a.action=='dependencies':deps(features)
+ if a.action=='dependencies':deps(features,a.native_ready,a.caption_ready)
  elif a.action=='screens':screens(home,store,features)
  elif a.action=='restore':restore(store)
  else:install(detect()['family'],[],run,bootstrap=True)

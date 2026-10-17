@@ -161,7 +161,7 @@ void styleArt(const Look &look, PanelArt &art)
 void classicArt(const Look &look, PanelArt &art)
 {
     const ClassicScheme &s = look.system;
-    const QPalette pal = s.palette();
+    const QPalette pal = s.shellPalette(1);
     const int H = art.height;
     QImage bar(64, H, QImage::Format_ARGB32_Premultiplied);
     bar.fill(pal.color(QPalette::Button));
@@ -173,7 +173,7 @@ void classicArt(const Look &look, PanelArt &art)
     for (const char *prefix : {"south-", ""})
         frame(art.panel, QLatin1String(prefix), bar, QMargins(0, 0, 2, 1), 0);
     art.panelColour = pal.color(QPalette::Button);
-    art.textColour = s.colour(u"ButtonText");
+    art.textColour = pal.color(QPalette::ButtonText);
     art.trayColour = art.panelColour;   // (the static edge is only a line)
     art.trayTextColour = art.textColour;
 

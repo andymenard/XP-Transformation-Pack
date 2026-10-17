@@ -9,6 +9,11 @@
 #include "app/wizard/art.h"
 
 #include <QApplication>
+#include <QDesktopServices>
+#include <QDir>
+#include <QFileInfo>
+#include <QProcess>
+#include <QUrl>
 #include <QClipboard>
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -76,23 +81,23 @@ AboutTab::AboutTab(QWidget *parent)
     box->setAlignment(Qt::AlignTop);
     head->addWidget(box);
     auto *words = new QVBoxLayout;
-    auto *name = new QLabel(QStringLiteral("XPlasma"));
+    auto *name = new QLabel(QStringLiteral("XPlasma Plus"));
     QFont big = name->font();
     big.setPointSizeF(big.pointSizeF() * 1.6);
     big.setBold(true);
     name->setFont(big);
     words->addWidget(name);
-    words->addWidget(new QLabel(QStringLiteral("Release %1").arg(project::kVersion)));
-    words->addWidget(new QLabel(QStringLiteral("Copyright © 2026 Sock")));
+    words->addWidget(new QLabel(QStringLiteral("Engine revision %1").arg(project::kVersion)));
+    words->addWidget(new QLabel(QStringLiteral("Based on XPlasma by hotsocket (© 2026 Sock)")));
     words->addStretch(1);
-    words->addWidget(wrapped(QStringLiteral("Windows XP's looks and sounds for KDE Plasma.")));
+    words->addWidget(wrapped(QStringLiteral("XP Transformation Pack edition, with bundled XP assets and additional desktop integration.")));
     head->addLayout(words, 1);
     layout->addLayout(head);
     layout->addSpacing(6);
 
     // The licence.
     layout->addWidget(wrapped(QStringLiteral(
-        "XPlasma is free software, under the GNU General Public License, version 3 or (at your option) any later version. "
+        "The XPlasma Plus code is free software, under the GNU General Public License, version 3 or (at your option) any later version. "
         "It comes with ABSOLUTELY NO WARRANTY.")));
     auto *legal = new QHBoxLayout;
     auto *licence = new QPushButton(QStringLiteral("&License..."));
@@ -100,11 +105,14 @@ AboutTab::AboutTab(QWidget *parent)
     legal->addWidget(licence);
     legal->addWidget(notices);
     legal->addStretch(1);
-    // (only where this XPlasma has somewhere to look: project.ini's UpdatesUrl)
-    if (project::kUpdatesUrl[0] != '\0') {
+    {
         auto *updates = new QPushButton(QStringLiteral("Check for &Updates"));
         legal->addWidget(updates);
-        connect(updates, &QPushButton::clicked, this, [this] { checkUpdatesNow(this); });
+        connect(updates, &QPushButton::clicked, this, [] {
+            const QString client = QDir::homePath() + QStringLiteral("/.local/share/xplasma-updater/app/gui.py");
+            if (!QFileInfo::exists(client) || !QProcess::startDetached(QStringLiteral("python3"), {client}))
+                QDesktopServices::openUrl(QUrl(QStringLiteral("https://github.com/andymenard/XP-Transformation-Pack/releases")));
+        });
     }
     layout->addLayout(legal);
     connect(licence, &QPushButton::clicked, this, [this] {
@@ -142,8 +150,9 @@ AboutTab::AboutTab(QWidget *parent)
 
     // Microsoft's.
     auto *marks = wrapped(QStringLiteral(
-        "Windows and Windows XP are trademarks of Microsoft Corporation, which neither makes nor endorses XPlasma. XPlasma "
-        "includes none of Windows' files: it takes what it uses from your own Windows XP CD image."));
+        "Windows and Windows XP are trademarks of Microsoft Corporation, which does not endorse this project. "
+        "This edition bundles original XP assets; no Windows XP ISO is required. Those assets retain their separate "
+        "copyrights and are not covered by the code license. See the transformation pack credits and asset notices."));
     QFont small = marks->font();
     small.setPointSizeF(small.pointSizeF() * 0.9);
     marks->setFont(small);

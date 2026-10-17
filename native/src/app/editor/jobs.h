@@ -28,4 +28,8 @@ struct JobContext
 bool runJob(QWidget *parent, const QString &title, const std::function<bool(const JobContext &, QString *error)> &work,
             QString *error = nullptr);
 
+// Short blocking host/config work: keep painting and timers responsive without
+// creating another themed progress window. User input waits until completion.
+bool runResponsiveTask(QWidget *parent, const std::function<bool(QString *)> &work, QString *error = nullptr);
+
 } // namespace xpl::editor

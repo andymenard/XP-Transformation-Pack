@@ -8,6 +8,7 @@
 #include "app/overrides.h"
 #include "app/paths.h"
 #include "app/startpanel.h"
+#include "app/startmenu.h"
 #include "app/state.h"
 
 #include <QDir>
@@ -112,12 +113,15 @@ private Q_SLOTS:
         // compiled here, but Qt parses it before resolving imports, so a
         // syntax error still shows.
         // (And the clock's.)
+        // Parse the shipped packages, including the target-built QML helper.
+        const QString root=m_scratch.filePath(QStringLiteral("compile-packages"));QString error;
+        QVERIFY2(installStartPlasmoid(root,&error),qPrintable(error));
+        QVERIFY2(installClockPlasmoid(root,&error),qPrintable(error));
         QQmlEngine engine;
-        for (const char *package : {"start-menu", "clock"}) {
-            const QDir ui(QFileInfo(QString::fromUtf8(__FILE__)).absolutePath() + QLatin1String("/../../src/app/") + QLatin1String(package)
-                          + QLatin1String("/contents/ui"));
+        for (const char *package : {kStartPlasmoidId, kClockPlasmoidId}) {
+            const QDir ui(root+QLatin1Char('/')+QLatin1String(package)+QLatin1String("/contents/ui"));
             const QStringList files = ui.entryList({QStringLiteral("*.qml")});
-            QVERIFY(files.size() >= (QLatin1String(package) == QLatin1String("clock") ? 1 : 7));
+            QVERIFY(files.size() >= (QLatin1String(package) == QLatin1String(kClockPlasmoidId) ? 1 : 7));
             for (const QString &file : files) {
                 QQmlComponent component(&engine, QUrl::fromLocalFile(ui.absoluteFilePath(file)));
                 QStringList wrong;

@@ -62,6 +62,8 @@ bool writeTheme(const Scheme &scheme, bool shadow, const QString &dir, int *size
 
 // What's applied (the scheme, and whether pointers have shadows), from state.
 std::optional<std::pair<Scheme, bool>> applied(const State &state);
+// Stable installed theme id; color profiles do not change this identity.
+QString themeId(const Scheme &scheme, bool shadow);
 bool apply(Session &session, State &state, const Scheme &scheme, bool shadow, QString *error = nullptr);
 // The user's own pointers back.
 void revert(Session &session, State &state);

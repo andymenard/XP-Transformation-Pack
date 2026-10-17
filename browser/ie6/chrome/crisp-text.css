@@ -1,14 +1,15 @@
-/* Optional interface-only pixel font. Website/content documents are unchanged. */
+/* Optional interface-only XP GDI pixel Tahoma, with the legacy pixel fallback. Website/content documents are unchanged. */
 :root[xplasma-crisp="true"] :is(#navigator-toolbox,.urlbarView,menupopup,#ie6-statusbar) :is(label,description,menu,menuitem,button,toolbarbutton,input,.toolbarbutton-text,.tab-text,.tab-label,.urlbarView-title,.urlbarView-url),
 :root[xplasma-crisp="true"] :is(#urlbar-input,#statuspanel-label) {
- font-family:"MS Sans Serif",Tahoma,sans-serif !important;
+ font-family:var(--xplasma-crisp-family,"XPlasma Tahoma Pixel"),"MS Sans Serif",Tahoma,sans-serif !important;
  font-size:var(--xplasma-crisp-size,11px) !important;
  font-kerning:none !important;
+ font-synthesis:none !important;
  letter-spacing:0 !important;
 }
 :root[xplasma-crisp="true"] :is(menuitem[default="true"],.tabbrowser-tab[selected]) :is(label,.tab-label,.tab-text) {
- font-family:"MS Sans Serif Bold","MS Sans Serif",Tahoma,sans-serif !important;
- font-weight:normal !important;
+ font-family:var(--xplasma-crisp-family,"XPlasma Tahoma Pixel"),"MS Sans Serif Bold","MS Sans Serif",Tahoma,sans-serif !important;
+ font-weight:bold !important;
 }
 /* These labels substitute Favorites through generated text. Keep Firefox's
    original labels hidden even when the interface font is overridden. */
@@ -17,8 +18,9 @@
 }
 :root[xplasma-crisp="true"] :is(#bookmarks-menu-button .toolbarbutton-text,#bookmarksMenu .menu-text)::after,
 :root[xplasma-crisp="true"] #urlbar-container::before {
- font-family:"MS Sans Serif",Tahoma,sans-serif !important;
+ font-family:var(--xplasma-crisp-family,"XPlasma Tahoma Pixel"),"MS Sans Serif",Tahoma,sans-serif !important;
  font-size:var(--xplasma-crisp-size,11px) !important;
  font-kerning:none !important;
+ font-synthesis:none !important;
  letter-spacing:0 !important;
 }

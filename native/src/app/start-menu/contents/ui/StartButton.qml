@@ -64,17 +64,15 @@ Item {
         onClicked: button.launcher.expanded = !wasExpanded
     }
 
-    Image {
+    StartButtonArt {
         visible: button.art !== null
         x: -button.edgeGap
         anchors.verticalCenter: parent.verticalCenter
-        source: !button.art ? ""
-              : (button.launcher.expanded || button.pressed) ? button.art.pressed
-              : button.containsMouse ? button.art.hover
-              : button.art.normal
-        smooth: false
-        cache: false
+        art: button.art
+        live: button.launcher.themeData.liveColors || ({})
+        stateName: (button.launcher.expanded || button.pressed) ? "pressed" : button.containsMouse ? "hover" : "normal"
     }
+
     Kirigami.Icon {
         visible: button.art === null
         anchors.fill: parent

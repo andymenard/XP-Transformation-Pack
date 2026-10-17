@@ -69,6 +69,13 @@ bool Session::waitForPlasmaShell(int ms)
 
 void Session::restartPlasmaShell(const std::function<void()> &whileStopped)
 {
+    // KRunner also keeps renderers for Plasma's active SVG theme. Unload
+    // them before replacing artwork, and only restore a running service.
+    const QString runnerUnit = QStringLiteral("plasma-krunner.service");
+    const bool runnerRunning = whileStopped && QString::fromUtf8(run({QStringLiteral("systemctl"), QStringLiteral("--user"),
+        QStringLiteral("is-active"), runnerUnit}).out).trimmed() == QLatin1String("active");
+    if (runnerRunning)
+        run({QStringLiteral("systemctl"), QStringLiteral("--user"), QStringLiteral("stop"), runnerUnit});
     const QString unit = QStringLiteral("plasma-plasmashell.service");
     const bool systemd = QString::fromUtf8(run({QStringLiteral("systemctl"), QStringLiteral("--user"), QStringLiteral("show"), unit,
                                                 QStringLiteral("-p"), QStringLiteral("LoadState"), QStringLiteral("--value")}).out)
@@ -98,6 +105,8 @@ void Session::restartPlasmaShell(const std::function<void()> &whileStopped)
     }
     if (whileStopped)
         whileStopped();
+    if (runnerRunning)
+        run({QStringLiteral("systemctl"), QStringLiteral("--user"), QStringLiteral("start"), runnerUnit});
     if (systemd) {
         // (systemd allows the unit 3 starts a minute, and an apply and a reset
         // -- each restarting it, plasma-apply-lookandfeel too -- can need more)

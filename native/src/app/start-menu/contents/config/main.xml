@@ -10,6 +10,9 @@
     <entry name="theme" type="String">
       <default></default>
     </entry>
+    <entry name="livePanelSurfaces" type="Int"><default>0</default></entry>
+    <entry name="liveTintSupported" type="Bool"><default>false</default></entry>
+    <entry name="liveColors" type="String"><default></default></entry>
     <!-- Kickoff's, kept so favourites carry over from a Kickoff that had
          this panel slot before. -->
     <entry name="favorites" type="StringList">
