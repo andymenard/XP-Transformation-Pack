@@ -259,7 +259,9 @@ def config(file,group,key,value):
 def basic(home,selected,native=False,asset_options=None):
  if 'fonts' in selected:
   copy(BASE/'payload/assets/fonts',home/'.local/share/fonts/xp')
-  copy(BASE/'payload/basic/fontconfig/xp-fonts.conf',home/'.config/fontconfig/conf.d/99-xp-fonts.conf')
+  font_rules=home/'.config/fontconfig/conf.d/99-xp-fonts.conf'
+  font_rules.parent.mkdir(parents=True,exist_ok=True)
+  font_rules.write_text('<?xml version="1.0"?><fontconfig><!-- XP interface fonts are selected explicitly; keep system generic defaults. --></fontconfig>\n')
   for key,value in {'font':'Tahoma,8,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0','menuFont':'Tahoma,8,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0','smallestReadableFont':'Tahoma,8,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0','toolBarFont':'Tahoma,8,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0','fixedFont':'Lucida Console,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0'}.items():config('kdeglobals','General',key,value)
   if not native:
    for key in ['activeFont','inactiveFont']:config('kdeglobals','WM',key,'Trebuchet MS,10,-1,5,700,0,0,0,0,0,0,0,0,0,0,1,,0,0')

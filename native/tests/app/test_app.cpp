@@ -1911,6 +1911,9 @@ private Q_SLOTS:
         if (m_realFonts.isEmpty())
             QSKIP("no XP fonts on this machine");
         const QString rules = QString::fromUtf8(xptext::rules(m_realFonts));
+        QVERIFY(!rules.contains(QLatin1String("<alias")));
+        QVERIFY(!rules.contains(QLatin1String("<string>Arial</string>")));
+        QVERIFY(!rules.contains(QLatin1String("<string>Times New Roman</string>")));
         QVERIFY(rules.contains(QLatin1String("<const>hintfull</const>")));
         QVERIFY(rules.contains(QLatin1String("<const>none</const>")));
         bool crisp11 = false, kern = false;
@@ -1983,6 +1986,38 @@ private Q_SLOTS:
         QVERIFY(!state.settings.contains(QStringLiteral("previousGtkFontRendering")));
     }
 
+    void xpTextMigrationPreservesRenderingPreferences()
+    {
+        RecordingSession session;
+        session.config.insert(QStringLiteral("kdeglobals|General|XftHintStyle"), QStringLiteral("hintfull"));
+        session.config.insert(QStringLiteral("kdeglobals|General|XftSubPixel"), QStringLiteral("none"));
+        session.config.insert(QStringLiteral("kdeglobals|General|XftAntialias"), QStringLiteral("true"));
+        State state;
+        state.settings.insert(QStringLiteral("previousXft"), QJsonObject{
+            {QStringLiteral("XftHintStyle"), QStringLiteral("hintslight")},
+            {QStringLiteral("XftSubPixel"), QStringLiteral("rgb")},
+            {QStringLiteral("XftAntialias"), QStringLiteral("true")}});
+        QString error;
+        QVERIFY2(xptext::apply(session, state, &error), qPrintable(error));
+        QCOMPARE(session.config.value(QStringLiteral("kdeglobals|General|XftHintStyle")), QStringLiteral("hintslight"));
+        QCOMPARE(session.config.value(QStringLiteral("kdeglobals|General|XftSubPixel")), QStringLiteral("rgb"));
+        QCOMPARE(state.settings.value(QStringLiteral("xpTextRulesVersion")).toInt(), 2);
+        // Same-scale maintenance must migrate old policies too.
+        state.settings.remove(QStringLiteral("xpTextRulesVersion"));
+        QVERIFY(xptext::refresh(session, state));
+        QCOMPARE(state.settings.value(QStringLiteral("xpTextRulesVersion")).toInt(), 2);
+        // A customized legacy configuration must not be overwritten.
+        const QString legacyFile = paths::config() + QLatin1String("/fontconfig/conf.d/99-xp-fonts.conf");
+        const QByteArray custom = "<fontconfig><!-- user customization --></fontconfig>";
+        writeFile(legacyFile, custom);
+        QVERIFY(xptext::apply(session, state, &error));
+        QCOMPARE(readFile(legacyFile), custom);
+        // A later user change must survive repeated applies.
+        session.config.insert(QStringLiteral("kdeglobals|General|XftHintStyle"), QStringLiteral("hintnone"));
+        QVERIFY(xptext::apply(session, state, &error));
+        QCOMPARE(session.config.value(QStringLiteral("kdeglobals|General|XftHintStyle")), QStringLiteral("hintnone"));
+    }
+
     void xpTextApplyAndRevert()
     {
         // Included at the end of KDE's fonts.conf (read after its settings),
@@ -2003,8 +2038,8 @@ private Q_SLOTS:
         QVERIFY(text.indexOf("xplasma-xp-text.conf") > text.indexOf("hintnone"));
         QVERIFY(text.indexOf("xplasma-xp-text.conf") < text.indexOf("</fontconfig>"));
         QVERIFY(QFileInfo::exists(paths::config() + QLatin1String("/fontconfig/xplasma-xp-text.conf")));
-        QCOMPARE(session.config.value(QStringLiteral("kdeglobals|General|XftHintStyle")), QStringLiteral("hintfull"));
-        QCOMPARE(session.config.value(QStringLiteral("kdeglobals|General|XftSubPixel")), QStringLiteral("none"));
+        QCOMPARE(session.config.value(QStringLiteral("kdeglobals|General|XftHintStyle")), QStringLiteral("hintnone"));
+        QVERIFY(!session.config.contains(QStringLiteral("kdeglobals|General|XftSubPixel")));
         QVERIFY(xptext::apply(session, state, &error));   // (twice: one include, the first previous kept)
         QVERIFY(f.open(QIODevice::ReadOnly));
         QCOMPARE(f.readAll().count("xplasma-xp-text.conf"), 1);
