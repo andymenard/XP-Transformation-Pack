@@ -327,8 +327,13 @@ QString customLuna(const QString &source, const std::array<QColor, 4> &colours,
     if (!Theme::fromData(bytes, selected->variant(), error)) return {};
     if (!QDir().mkpath(directory)) return fail(QStringLiteral("Cannot create Custom Luna folder."));
     QSaveFile out(path), meta(path + QStringLiteral(".json"));
-    if (!out.open(QIODevice::WriteOnly) || out.write(bytes) != bytes.size() || !out.commit()) return fail(out.errorString());
-    if (!meta.open(QIODevice::WriteOnly) || meta.write(metadata) != metadata.size() || !meta.commit()) return fail(meta.errorString());
+    // (QSaveFile says "Unknown error" for a disk that filled up mid-write:
+    // say which file, and what usually causes it.)
+    auto writeFailed = [&](const QSaveFile &file) {
+        return fail(QStringLiteral("Cannot save %1 (%2) -- is the disk full, or the folder read-only?").arg(file.fileName(), file.errorString()));
+    };
+    if (!out.open(QIODevice::WriteOnly) || out.write(bytes) != bytes.size() || !out.commit()) return writeFailed(out);
+    if (!meta.open(QIODevice::WriteOnly) || meta.write(metadata) != metadata.size() || !meta.commit()) return writeFailed(meta);
     return path;
 }
 QJsonObject colorMetadata(const QString &path,const QString &variant)

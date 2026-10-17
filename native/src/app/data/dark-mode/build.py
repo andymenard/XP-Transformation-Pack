@@ -4,7 +4,7 @@
 Preserves resource identifiers, sizes and alpha, replacing only neutral artwork
 colors and theme color properties. No Windows executable code is run.
 """
-import argparse,configparser,re,struct
+import argparse,colorsys,configparser,re,struct
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parent
@@ -59,12 +59,20 @@ def neutral(r,g,b):
 def surface_section(section):
  return any(section.startswith('['+name) for name in ['combobox','edit','spin','tab','header','scrollbar','button.pushbutton','toolbar.button','rebar','status'])
 
+def accent(r,g,b):
+ # XP's warm highlights -- the selected tab's top line, a hot or default
+ # button's glow, focus -- stay as they are, as neutral() keeps every
+ # saturated colour: only the control's own (blue, gray) surface darkens.
+ if max(r,g,b)-min(r,g,b)<=46:return False
+ hue=colorsys.rgb_to_hsv(r/255,g/255,b/255)[0]*360
+ return 10<=hue<=65
+
 def artwork_color(r,g,b,glyph=False,surface=False,keys=()):
  if (r,g,b) in keys or (r,g,b) in {(255,0,0),(255,0,255),(242,241,231)}:return r,g,b
  if glyph:
   if max(r,g,b)<150:return 224,232,243
   if min(r,g,b)>200:return r,g,b
- if surface and (r,g,b)!=(0,0,0):
+ if surface and (r,g,b)!=(0,0,0) and not accent(r,g,b):
   # Colored control backgrounds need the same dark curve as neutral ones.
   # Retain a small source-theme tint and all original bevel/state geometry.
   light=round(.2126*r+.7152*g+.0722*b)

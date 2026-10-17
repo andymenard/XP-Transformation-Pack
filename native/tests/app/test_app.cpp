@@ -2353,6 +2353,9 @@ private Q_SLOTS:
                     QVERIFY2(image != oldImage, qPrintable(source + QLatin1Char(':') + variant + QLatin1Char(' ') + ref.cls));
                 }
                 ++checked;
+                // (Each style is ~4 MB, and there is one per variant of every theme.)
+                QFile::remove(generated);
+                QFile::remove(generated + QStringLiteral(".json"));
             }
         }
         QVERIFY(checked > 0);
