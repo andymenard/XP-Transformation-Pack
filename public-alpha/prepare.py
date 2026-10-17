@@ -5,7 +5,7 @@ import argparse,json,shutil,subprocess,hashlib,tarfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 PROFILE=json.loads((ROOT/'public-alpha/edition.json').read_text())
-KEEP={'native','browser','installer','updater','themes','effects','tools','public-alpha','.github'}
+KEEP={'docs','native','browser','installer','updater','themes','effects','tools','public-alpha','.github'}
 EXCLUDED={'applications','tray','extras'}
 PRIVATE_RELEASE_TESTS={'updater/tests/test_release_024.py','updater/tests/test_sounds_setup.py','updater/tests/test_window_outlines.py'}
 def configure(base):
@@ -17,6 +17,7 @@ def configure(base):
  (base/'edition.json').write_text(json.dumps(PROFILE,indent=2)+'\n')
 def source(destination):
  if destination.resolve()==ROOT.resolve():raise RuntimeError('Public source destination must differ from the source checkout')
+ subprocess.run(['python3',str(ROOT/'tools/sync-legal.py'),'--check'],check=True)
  destination.mkdir(parents=True,exist_ok=True)
  for name in PRIVATE_RELEASE_TESTS:
   (destination/name).unlink(missing_ok=True)
@@ -44,7 +45,7 @@ def source(destination):
  config={'repository':PROFILE['repository'],'channel':'alpha','access':'public'}
  (destination/'updater/config.json').write_text(json.dumps(config)+'\n')
  (destination/'installer/dependencies.py').write_text((destination/'installer/dependencies.py').read_text().replace("'updates':'openssl gh'","'updates':'openssl'").replace("'updates':'openssl github-cli'","'updates':'openssl'"))
- (destination/'CREDITS.md').write_text((ROOT/('POSTING-CREDITS.md' if (ROOT/'POSTING-CREDITS.md').exists() else 'CREDITS.md')).read_text()+'\n## Alpha scope\n\nAlpha 1.0 includes Desktop, optional IE6 Firefox and the updater. XP apps, custom tray menus, Codex colors and Clippy are excluded. Their credits above document the larger project history, not included alpha components.\n\nInstaller visual reference: [Gough Lui, Microsoft Windows XP Install Process](https://www.youtube.com/watch?v=vTheKjAtnKs&t=134s), from 2:14 onward. No video frames or audio are redistributed.\n')
+ shutil.copy2(ROOT/'CREDITS.md',destination/'CREDITS.md')
  (destination/'LICENSE').write_text((ROOT/'native/LICENSE').read_text())
  (destination/'README.md').write_text((ROOT/'public-alpha/README.md').read_text())
  (destination/'installer/README.md').write_text((ROOT/'public-alpha/INSTALLER.md').read_text())
@@ -52,6 +53,7 @@ def source(destination):
  (destination/'ASSET-DISTRIBUTION.md').write_text((ROOT/'public-alpha/ASSET-DISTRIBUTION.md').read_text())
  (destination/'.gitignore').write_text('build/\ndist/\n__pycache__/\n*.pyc\nprivate-assets/\n*.pem\n!updater/release-key.pem\n*signing-key*\n')
 def bundle(suite,destination):
+ subprocess.run(['python3',str(ROOT/'tools/sync-legal.py'),'--check'],check=True)
  if destination.exists():
   if not (destination/'LOCAL-ASSET-BUNDLE').is_file():raise RuntimeError('Destination is not an owned local alpha bundle')
   shutil.rmtree(destination)
@@ -60,13 +62,16 @@ def bundle(suite,destination):
   folder=destination/'payload'/name
   if folder.exists():shutil.rmtree(folder)
  configure(destination)
+ for name in ['LICENSE','THIRD-PARTY-NOTICES']:
+  shutil.copy2(ROOT/'installer'/name,destination/name)
+ shutil.copytree(ROOT/'native/LICENSES',destination/'LICENSES',dirs_exist_ok=True)
  config={'repository':PROFILE['repository'],'channel':'alpha','access':'public'}
  for p in (ROOT/'updater').iterdir():
   if p.is_file():shutil.copy2(p,destination/'payload/updater'/p.name)
  (destination/'payload/updater/config.json').write_text(json.dumps(config)+'\n')
  (destination/'payload/updater/README.md').write_text((ROOT/'public-alpha/UPDATER.md').read_text())
  (destination/'dependencies.py').write_text((destination/'dependencies.py').read_text().replace("'updates':'openssl gh'","'updates':'openssl'").replace("'updates':'openssl github-cli'","'updates':'openssl'"))
- (destination/'CREDITS.md').write_text((ROOT/('POSTING-CREDITS.md' if (ROOT/'POSTING-CREDITS.md').exists() else 'CREDITS.md')).read_text()+'\nInstaller visual reference: Gough Lui — https://www.youtube.com/watch?v=vTheKjAtnKs&t=134s\n')
+ shutil.copy2(ROOT/'CREDITS.md',destination/'CREDITS.md')
  (destination/'README.md').write_text((ROOT/'public-alpha/README.md').read_text())
  (destination/'ASSET-DISTRIBUTION.md').write_text((ROOT/'public-alpha/ASSET-DISTRIBUTION.md').read_text())
  (destination/'PROJECTS.md').write_text('Alpha 1.0: Desktop (default), Firefox (optional), signed public updater. Other projects are excluded.\n')

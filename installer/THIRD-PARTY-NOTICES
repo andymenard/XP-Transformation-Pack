@@ -1,4 +1,4 @@
-XPlasma's third-party notices
+XP Transformation Pack — third-party notices
 
 XPlasma itself is free software under the GNU General Public License,
 version 3 or (at your option) any later version: see LICENSE. Its programs
@@ -162,22 +162,62 @@ source is KDE's release of each (https://download.kde.org/stable/plasma/;
 the versions and checksums are in XPlasma's src/app/overrides/forks.json)
 with XPlasma's changes (src/app/overrides/), all in XPlasma's source.
 
-Bundled TOMLKit 0.14.0, MIT license: see lib/tomlkit-0.14.0.dist-info/licenses/.
-Clippy pet: rpatechnology/ChatGPT-Clippy, user-selected fan-made artwork.
-Microsoft assets: imported from the user-supplied Windows XP SP3 media; original licensing applies.
-Mozilla Firefox ESR 153.4.0esr for AMD64: original Mozilla distribution; licenses bundled inside the browser archive.
+============================================================================
+Additional transformation-pack components
+============================================================================
 
-XP icon expansion: marchmountain high-resolution XP recreations (CC0),
-with XPlasma semantic aliases and control glyphs (GPL-3.0-or-later).
-Specialized XP-styled glyphs derive from KDE Breeze geometry under the original
-KDE artwork licenses. Unmodified SVG sources, attribution and license texts
-are included in the icon layer (CREDITS.md, COPYING-KDE-ICONS, LICENSES/).
+TOMLKit 0.14.0 — Copyright (c) 2018 Sébastien Eustace; MIT.
+Full notice: LICENSES/TOMLKit-MIT.txt.
 
-Classic KDE crystal Start logo: supplied klogo-classic.svg, KDE e.V.
-LGPL-2.1-or-later; original SVG, rendered PNG and COPYING-KDE-LOGO ship
-inside the native editor source. KDE, K Desktop Environment and the KDE Logo
-are trademarks of KDE e.V. Reference: https://commons.wikimedia.org/wiki/File:KDE_logo.svg
+RetroThemesFirefox — matthewmx86; BSD-2-Clause.
+Full notice: LICENSES/RetroThemesFirefox-BSD-2-Clause.txt.
 
-Tux Start logo: user-supplied classic Tux artwork by Larry Ewing/The GIMP,
-with vector adaptations credited to Simon Budig and Garrett LeSage.
-Attribution and redistribution notices: native editor logos/COPYING-TUX.
+MS Sans Serif regular/bold — Copyright lou 2017; CC-BY-SA-3.0.
+Unmodified fonts distributed through XP.css / 98.css.
+Author: https://fontstruct.com/fontstructions/show/1384746
+Full license: LICENSES/CC-BY-SA-3.0.txt.
+
+High-resolution XP icon recreations — marchmountain; CC0-1.0.
+https://github.com/marchmountain/-Windows-XP-High-Resolution-Icon-Pack
+Full dedication: LICENSES/CC0-1.0.txt.
+
+KDE session/logout adaptations:
+Copyright 2014 Aleix Pol Gonzalez <aleixpol@blue-systems.com> (Logout.qml).
+Copyright 2018 David Edmundson <davidedmundson@kde.org> (timer.js).
+GPL-2.0-or-later; source headers retained. Full license: LICENSES/GPL-2.txt.
+
+KDE lock-screen MainBlock adaptation:
+Copyright David Edmundson; LGPL-2.0-or-later; source header retained.
+Full license: LICENSES/LGPL-2.txt.
+
+Specialized icon geometry — Uri Herrera and KDE Breeze contributors.
+Original per-artwork notices and licenses are retained with the icon payload,
+including LGPL-2.1-or-later and CC-BY-SA-4.0. These derivatives are not CC0.
+Full licenses: LICENSES/LGPL-2.1.txt and LICENSES/CC-BY-SA-4.0.txt.
+
+Classic KDE logo — KDE e.V.; LGPL-2.1-or-later.
+KDE, K Desktop Environment and the KDE Logo are trademarks of KDE e.V.
+Full license: LICENSES/LGPL-2.1.txt.
+
+Tux — Larry Ewing and The GIMP; vector adaptations by Simon Budig and
+Garrett LeSage. Larry Ewing permits use and modification with acknowledgement
+of Larry Ewing and The GIMP. Garrett LeSage's vector contribution is CC0.
+Simon Budig's notice:
+These drawings are copyrighted by Larry Ewing and Simon Budig
+(penguin-variant.sk also by Anja Gerwinski), redistribution is free
+but has to include this README/Copyright notice.
+https://isc.tamu.edu/~lewing/linux/
+https://www.home.unix-ag.org/simon/penguin/README
+https://github.com/garrett/Tux
+
+Microsoft Windows XP resources and captured Tahoma letterforms retain their
+original copyrights and separate terms. They are not licensed under the GPL.
+Supplied wallpaper photographer metadata is listed in CREDITS.md.
+
+Optional Firefox ESR is the original Mozilla distribution, with its own
+component licenses and notices inside the browser archive.
+
+Qt, PyQt/PySide, Python, Pillow, zlib and liblzma are system dependencies;
+fontTools and freetype-py are font development/verification dependencies.
+Their own distributions supply their component licenses. They are not
+relicensed under this project's GPL.

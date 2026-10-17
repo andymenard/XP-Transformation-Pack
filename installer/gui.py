@@ -91,8 +91,6 @@ class Installer(QtWidgets.QMainWindow):
   quality.addWidget(self.hidpi_icons);quality.addWidget(self.hires_wallpapers);quality.addWidget(self.dark_mode);layout.addLayout(quality)
   self.description=QtWidgets.QLabel('Select a feature to read what it installs.');self.description.setWordWrap(True);self.description.setMinimumHeight(45);layout.addWidget(self.description)
   self.summary=QtWidgets.QLabel();self.summary.setWordWrap(True);layout.addWidget(self.summary)
-  self.details_button=QtWidgets.QPushButton('Show details');layout.addWidget(self.details_button,0,QtCore.Qt.AlignmentFlag.AlignLeft)
-  self.log=QtWidgets.QPlainTextEdit();self.log.setReadOnly(True);self.log.setMaximumHeight(150);self.log.hide();layout.addWidget(self.log)
   buttons=QtWidgets.QHBoxLayout();self.remove=QtWidgets.QPushButton('Remove installed features');buttons.addWidget(self.remove);buttons.addStretch()
   self.install=QtWidgets.QPushButton('Install selected features');self.close_button=QtWidgets.QPushButton('Close');buttons.addWidget(self.install);buttons.addWidget(self.close_button);layout.addLayout(buttons)
   progress_page=QtWidgets.QWidget();progress_page.setObjectName('setupProgress');self.pages.addWidget(progress_page)
@@ -125,15 +123,25 @@ class Installer(QtWidgets.QMainWindow):
   """)
   all_button.clicked.connect(lambda:self.select_all(True));none_button.clicked.connect(lambda:self.select_all(False));self.close_button.clicked.connect(self.close)
   self.tree.itemChanged.connect(self.component_changed);self.tree.currentItemChanged.connect(self.describe);self.theme.currentTextChanged.connect(self.update_summary)
-  self.install.clicked.connect(lambda:self.start('install'));self.remove.clicked.connect(lambda:self.start('uninstall'));self.details_button.clicked.connect(self.toggle_details)
+  self.install.clicked.connect(lambda:self.start('install'));self.remove.clicked.connect(lambda:self.start('uninstall'))
   self.status.setText(self.profile['name']+' — Plasma '+'.'.join(map(str,self.profile['plasma']))+' — '+self.profile['arch']+'. Unavailable features are disabled.')
   self.set_step(0);self.update_summary()
  def rotate_tip(self):
   tips=[('An exciting familiar look','XP-inspired window borders, a familiar Start menu and labeled task buttons bring a classic desktop to modern KDE.\n\nYour Linux applications and files stay available.'),('Choose the look you like','Use Luna, Royale, Zune or a custom XP visual style. Dark application colors can be enabled independently.\n\nChoose original or high-resolution icons and wallpapers.'),('Built on the work of others','The desktop foundation is XPlasma by hotsocket. The optional browser theme builds on RetroThemesFirefox by matthewmx86.\n\nXP icon recreations are by marchmountain. Complete credits and license notices are included.'),('A modern browser, a familiar face','Optional Firefox ESR retains modern browsing capabilities beneath the IE6-inspired toolbar.\n\nYour toolbar choices and browser profile are preserved.'),('Preparing your desktop','The installer keeps a backup for removal and recovery. Login and boot changes take effect on the next login or reboot.\n\nSetup will not restart your computer automatically.')]
   title,text=tips[self._tip_index%len(tips)];self._tip_index+=1;self.tip_title.setText(title);self.tip_text.setText(text)
  def show_credits(self):
-  dialog=QtWidgets.QDialog(self);dialog.setWindowTitle('Credits and licenses');dialog.resize(760,600);layout=QtWidgets.QVBoxLayout(dialog);text=QtWidgets.QTextBrowser();text.setOpenExternalLinks(True)
-  credits=BASE/'CREDITS.md';text.setMarkdown(credits.read_text() if credits.exists() else 'Based on XPlasma by hotsocket. See the bundled THIRD-PARTY-NOTICES for all licenses.');layout.addWidget(text)
+  dialog=QtWidgets.QDialog(self);dialog.setWindowTitle('Credits and licenses');dialog.resize(760,600)
+  layout=QtWidgets.QVBoxLayout(dialog);documents=QtWidgets.QComboBox();text=QtWidgets.QTextBrowser();text.setOpenExternalLinks(True)
+  layout.addWidget(documents);layout.addWidget(text)
+  files=[('Credits',BASE/'CREDITS.md'),('Project license',BASE/'LICENSE'),('Third-party notices',BASE/'THIRD-PARTY-NOTICES')]
+  files += [(p.stem,p) for p in sorted((BASE/'LICENSES').glob('*.txt'))]
+  for title,path in files:documents.addItem(title,str(path))
+  def display_document():
+   path=Path(documents.currentData());text.setSearchPaths([str(BASE)])
+   content=path.read_text(encoding='utf-8') if path.is_file() else 'This document is missing from the installation package.'
+   if path.suffix=='.md':text.setMarkdown(content)
+   else:text.setPlainText(content)
+  documents.currentIndexChanged.connect(display_document);display_document()
   close=QtWidgets.QPushButton('Close');close.clicked.connect(dialog.accept);layout.addWidget(close);dialog.exec()
  def set_step(self,index):
   for position,step in enumerate(self.steps):
@@ -160,8 +168,6 @@ class Installer(QtWidgets.QMainWindow):
   for button in self.selection_buttons:button.setEnabled(not running)
   self.install.setEnabled(bool(chosen) and not running and not (STATE/'installation.json').exists())
   self.remove.setEnabled(not running and ((STATE/'installation.json').exists() or (STATE/'incomplete.json').exists()))
- def toggle_details(self):
-  visible=not self.log.isVisible();self.log.setVisible(visible);self.details_button.setText('Hide details' if visible else 'Show details')
  def start(self,action):
   if self.test_mode:return
   if action=='uninstall':
@@ -173,12 +179,12 @@ class Installer(QtWidgets.QMainWindow):
    if self.dark_mode.isChecked():args+=['--dark-mode']
    if self.hidpi_icons.isChecked():args+=['--hidpi-icons']
    if self.hires_wallpapers.isChecked():args+=['--hires-wallpapers']
-  self.set_step(1);self.pages.setCurrentIndex(1);self.tip_timer.start();self.dots.start();self.current_action=action;self.log.clear();self.terminal_log.clear();self.progress.setRange(0,0);self.tree.setEnabled(False);self.theme.setEnabled(False);self.close_button.setEnabled(False)
+  self.set_step(1);self.pages.setCurrentIndex(1);self.tip_timer.start();self.dots.start();self.current_action=action;self.terminal_log.clear();self.progress.setRange(0,0);self.tree.setEnabled(False);self.theme.setEnabled(False);self.close_button.setEnabled(False)
   self.process=QtCore.QProcess(self);self.process.setProcessChannelMode(QtCore.QProcess.ProcessChannelMode.MergedChannels)
   self.process.readyReadStandardOutput.connect(self.read_output);self.process.finished.connect(self.finished)
   self.process.errorOccurred.connect(self.process_error);self.process.start(sys.executable,args);self.update_summary()
  def append_log(self,text):
-  self.log.appendPlainText(text);self.terminal_log.appendPlainText(text)
+  self.terminal_log.appendPlainText(text)
  def read_output(self):
   self.buffer+=bytes(self.process.readAllStandardOutput()).decode(errors='replace').replace('\r','\n')
   while '\n' in self.buffer:
@@ -202,8 +208,8 @@ class Installer(QtWidgets.QMainWindow):
    if self.current_action=='install' and set(self.selected())&{'codex_colors','clippy'}:message+=' Restart Codex; type /pet if Clippy is hidden.'
    self.status.setText(message);QtWidgets.QMessageBox.information(self,'Complete',message)
   else:
-   self.status.setText('The operation failed. See details for the error and recovery result.');self.log.show();self.details_button.setText('Hide details')
-   QtWidgets.QMessageBox.warning(self,'Installation did not complete','The operation failed. Open Details for the error and any recovery steps. No reboot was performed.')
+   self.status.setText('The operation failed. See the installation output for the error and recovery result.')
+   QtWidgets.QMessageBox.warning(self,'Installation did not complete','The operation failed. Read the installation output on the left for the error and any recovery steps. No reboot was performed.')
  def process_error(self,error):
   if error==QtCore.QProcess.ProcessError.FailedToStart:self.finished(1,None)
  def closeEvent(self,event):

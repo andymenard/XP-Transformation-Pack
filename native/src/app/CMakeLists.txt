@@ -124,9 +124,10 @@ add_executable(xplasma-edit
   editor/jobs.cpp
 )
 target_link_libraries(xplasma-edit PRIVATE stdc++ xplasma-app Qt6::Widgets)
+file(GLOB XPLASMA_LICENSE_FILES CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/LICENSES/*.txt")
 # (the About tab's licence and notices, as :/licenses/...)
 qt_add_resources(xplasma-edit "licenses" PREFIX /licenses BASE ${PROJECT_SOURCE_DIR}
-                 FILES ${PROJECT_SOURCE_DIR}/LICENSE ${PROJECT_SOURCE_DIR}/THIRD-PARTY-NOTICES)
+                 FILES ${PROJECT_SOURCE_DIR}/CREDITS.md ${PROJECT_SOURCE_DIR}/LICENSE ${PROJECT_SOURCE_DIR}/THIRD-PARTY-NOTICES ${XPLASMA_LICENSE_FILES})
 # Appearance tab: embedded Tux Start logo.
 qt_add_resources(xplasma-edit "logos" PREFIX /logos BASE editor/logos FILES editor/logos/tux.png editor/logos/kde-crystal.png)
 add_test(NAME editor-screenshots COMMAND xplasma-edit --screenshots ${CMAKE_BINARY_DIR}/editor-screenshots)
@@ -146,6 +147,7 @@ install(FILES data/fyi.hotsocket.xplasma.desktop data/fyi.hotsocket.xplasma.date
 # (run at login: installed into ~/.config/autostart by Setup and install.sh)
 install(FILES data/fyi.hotsocket.xplasma.updates.desktop DESTINATION share/xplasma/autostart)
 # (the licence and the third-party notices, with the programs)
-install(FILES ${PROJECT_SOURCE_DIR}/LICENSE ${PROJECT_SOURCE_DIR}/THIRD-PARTY-NOTICES DESTINATION share/licenses/xplasma)
+install(FILES ${PROJECT_SOURCE_DIR}/CREDITS.md ${PROJECT_SOURCE_DIR}/LICENSE ${PROJECT_SOURCE_DIR}/THIRD-PARTY-NOTICES DESTINATION share/licenses/xplasma)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/LICENSES DESTINATION share/licenses/xplasma)
 
 qt_add_resources(xplasma-app "darkmode" PREFIX /dark-mode BASE data/dark-mode FILES data/dark-mode/build.py data/dark-mode/palette.theme)
