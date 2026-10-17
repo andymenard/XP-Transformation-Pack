@@ -32,10 +32,14 @@ class TestStartMenu : public QObject
 
     QString m_themes, m_iso, m_out;
     QTemporaryDir m_scratch;
+    QList<QQuickWindow *> m_windows;
+    QList<QObject *> m_objects;
+    QList<QQmlEngine *> m_engines;
 
     QImage render(const QJsonObject &theme, QObject **menuOut = nullptr, const QVariantMap &extra = {})
     {
         auto *engine = new QQmlEngine(this);
+        m_engines << engine;
         // (The source tree, from build/<mode>-qt6/tests/app.)
         const QString qml = QFileInfo(QString::fromUtf8(__FILE__)).absolutePath() + QLatin1String("/../../src/app/start-menu/contents/ui/StartMenu.qml");
         QQmlComponent component(engine, QUrl::fromLocalFile(QFileInfo(qml).absoluteFilePath()));
@@ -56,6 +60,8 @@ class TestStartMenu : public QObject
         }
         auto *item = qobject_cast<QQuickItem *>(object);
         auto *window = new QQuickWindow;
+        m_windows << window;
+        m_objects << object;
         window->setColor(Qt::magenta);
         item->setParentItem(window->contentItem());
         window->resize(int(item->width()), int(item->height()));
@@ -68,6 +74,17 @@ class TestStartMenu : public QObject
     }
 
 private Q_SLOTS:
+    void cleanup()
+    {
+        // Each render owns its window, menu and engine; release them per test.
+        qDeleteAll(m_windows);
+        m_windows.clear();
+        qDeleteAll(m_objects);
+        m_objects.clear();
+        qDeleteAll(m_engines);
+        m_engines.clear();
+    }
+
     void initTestCase()
     {
         m_out = qEnvironmentVariable("XPLASMA_SHEETS");
