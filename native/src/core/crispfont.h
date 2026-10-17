@@ -2,8 +2,14 @@
 #pragma once
 #include <QFont>
 #include <QFontDatabase>
+#include <QStringList>
 #include <QtMath>
 namespace xpl {
+inline QString osUiFamily(const QString &family) {
+ return family.compare(QStringLiteral("Tahoma"),Qt::CaseInsensitive)==0?QStringLiteral("Tahoma OS"):family;
+}
+inline QFont osUiFont(QFont font) {font.setFamily(osUiFamily(font.family()));return font;}
+
 inline QFont crispUiFont(QFont font,qreal dpr=1.0,qreal logicalDpi=96.0) {
  const qreal pixels=font.pixelSize()>0?font.pixelSize():font.pointSizeF()*logicalDpi/72.0;
  // Resolve once per process; existing installations retain their old pixel

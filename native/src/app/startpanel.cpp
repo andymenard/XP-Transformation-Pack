@@ -3,6 +3,7 @@
 
 #include "app/media.h"
 #include "core/schema.h"
+#include "core/crispfont.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -38,7 +39,7 @@ QJsonObject font(const QString &spec)
 {
     const QStringList f = spec.split(QLatin1Char(','));
     const QString lower = spec.toLower();
-    return QJsonObject{{QStringLiteral("family"), f.value(0).trimmed()},
+    return QJsonObject{{QStringLiteral("family"), osUiFamily(f.value(0).trimmed())},
                        {QStringLiteral("pixels"), int(std::lround(f.value(1).trimmed().toInt() * 96.0 / 72.0))},
                        {QStringLiteral("bold"), lower.contains(QLatin1String("bold"))},
                        {QStringLiteral("italic"), lower.contains(QLatin1String("italic"))}};

@@ -75,6 +75,7 @@ def sync(suite, icons=None, wallpapers=None):
     shutil.copy2(ROOT/'native/LICENSE',suite/'LICENSE')
     shutil.copy2(ROOT/'native/THIRD-PARTY-NOTICES',suite/'THIRD-PARTY-NOTICES')
     shutil.copytree(ROOT/'native/LICENSES',suite/'LICENSES',dirs_exist_ok=True)
+    shutil.copytree(ROOT/'installer/assets/fonts/tahoma-os',suite/'payload/assets/fonts/tahoma-os',dirs_exist_ok=True)
     prebuilts=ROOT/'private-assets/prebuilt'
     if prebuilts.is_dir():
         shutil.copytree(prebuilts,suite/'prebuilt',dirs_exist_ok=True,symlinks=True)

@@ -12,11 +12,12 @@ Item {
     readonly property var families: Qt.fontFamilies()
     function supports(family) {
         return families.indexOf("XPlasma Tahoma Pixel") >= 0
-            && (family === "Tahoma" || family === "MS Sans Serif" || family.indexOf("XPlasma Tahoma Pixel") === 0);
+            && (family === "Tahoma" || family === "Tahoma OS" || family === "MS Sans Serif" || family.indexOf("XPlasma Tahoma Pixel") === 0);
     }
     function physical(pixels, dpr) { return Math.max(1, Math.round(Math.max(1, Math.round(pixels)) * dpr)); }
     function family(original, pixels, dpr) {
-        if (!crispEnabled || !supports(original)) return original;
+        const normal = original === "Tahoma" && families.indexOf("Tahoma OS") >= 0 ? "Tahoma OS" : original;
+        if (!crispEnabled || !supports(original)) return normal;
         const optical = "XPlasma Tahoma Pixel " + physical(pixels, dpr);
         return families.indexOf(optical) >= 0 ? optical : "XPlasma Tahoma Pixel";
     }

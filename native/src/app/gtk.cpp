@@ -609,7 +609,7 @@ menubar > menuitem:hover { background-color: ${MenuHilight}; color: ${HilightTex
 menu, .menu, .context-menu, popover.menu > contents, popover.menu {
     background-color: ${Menu}; color: ${MenuText}; border: 1px solid ${ButtonShadow}; border-radius: 0; box-shadow: none; padding: 2px;
 }
-menuitem, popover.menu modelbutton { color: ${MenuText}; font-family: Tahoma; font-size: 8pt; padding: 2px 17px; border-radius: 0; min-height: 13px; }
+menuitem, popover.menu modelbutton { color: ${MenuText}; font-family: "Tahoma OS"; font-size: 8pt; padding: 2px 17px; border-radius: 0; min-height: 13px; }
 menuitem image, popover.menu modelbutton image { opacity: 0; }
 menuitem:disabled, popover.menu modelbutton:disabled { color: ${GrayText}; }
 menuitem:hover, popover.menu modelbutton:hover, popover.menu modelbutton:selected {

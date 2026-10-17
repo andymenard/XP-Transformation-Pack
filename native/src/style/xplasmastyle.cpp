@@ -443,7 +443,7 @@ static QFont fontFromMetric(const QString &spec, const QFont &fallback)
     const QStringList parts = spec.split(QLatin1Char(','));
     if (parts.size() < 2)
         return fallback;
-    QFont font(parts.at(0).trimmed());
+    QFont font(xpl::osUiFamily(parts.at(0).trimmed()));
     font.setPointSize(parts.at(1).trimmed().toInt());
     for (int i = 2; i < parts.size(); ++i) {
         const QString flag = parts.at(i).trimmed().toLower();
@@ -469,7 +469,7 @@ QFont XPlasmaStyle::sysFont(QStringView name, const QFont &fallback) const
                                                                : nullptr;
         if (!lf || lf->face.isEmpty())
             return fallback;
-        QFont font(lf->face);
+        QFont font(xpl::osUiFamily(lf->face));
         font.setPointSize(lf->points());
         font.setBold(lf->bold());
         return font;
@@ -613,7 +613,7 @@ void XPlasmaStyle::polish(QApplication *app)
 // the platform theme hands out new fonts.
 void XPlasmaStyle::unkern(QApplication *app)
 {
-    QFont font=app->font();
+    QFont font=xpl::osUiFont(app->font());
     const bool pixel=font.family()==QStringLiteral("MS Sans Serif") || font.family()==QStringLiteral("MS Sans Serif Bold") || font.family().startsWith(QStringLiteral("XPlasma Tahoma Pixel"));
     if(m_crispEnabled) {
         if(!pixel)app->setProperty("_xplasmaSmoothUiFont",font);

@@ -1,0 +1,14 @@
+{
+  "family": "Tahoma OS",
+  "copyright": "Original Microsoft copyright and naming records retained except family/face identifiers.",
+  "faces": {
+    "tahoma-os.ttf": {
+      "source_sha256": "08f45bf539954d3252df97a2ae563362ed2ad5ebe05f2d1f2bc54b931e4d0550",
+      "sha256": "2439aac6968ef29803689bb672aefc6c2173529981e692b46f9c642e75a3e2bd"
+    },
+    "tahoma-os-bold.ttf": {
+      "source_sha256": "4ba89e145ff39f208151ce269841899fc4e4a360189a4a31dc2359168dae27d0",
+      "sha256": "6e808c9e3198674b2ec010648b6daaf1f14cc596966b12bf3b90cf1d49cf6767"
+    }
+  }
+}

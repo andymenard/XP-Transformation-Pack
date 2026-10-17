@@ -6,6 +6,9 @@
 #include <QComboBox>
 #include <QFile>
 #include <QSaveFile>
+#include <QSettings>
+#include <QDir>
+#include <QScopeGuard>
 #include <QJsonDocument>
 #include <QScrollBar>
 #include <QLineEdit>
@@ -165,6 +168,38 @@ private Q_SLOTS:
             QCOMPARE(fractional.size(), (QSizeF(size)*1.5).toSize());
         }
     }
+    void crispyToggleRestoresTahomaOS()
+    {
+        const QByteArray previousConfig = qgetenv("XDG_CONFIG_HOME");
+        const QByteArray previousTheme = qgetenv("XPLASMA_THEME");
+        const QFont previousFont = qApp->font();
+        const auto restore = qScopeGuard([&] {
+            qputenv("XDG_CONFIG_HOME", previousConfig);
+            qputenv("XPLASMA_THEME", previousTheme);
+            qApp->setFont(previousFont);
+        });
+        const QString config = directory.filePath(QStringLiteral("toggle-config"));
+        QDir().mkpath(config);
+        qputenv("XDG_CONFIG_HOME", config.toUtf8());
+        qunsetenv("XPLASMA_THEME");
+        QSettings settings(config + QStringLiteral("/xplasmarc"), QSettings::IniFormat);
+        settings.setValue(QStringLiteral("Theme/Path"), classicFile);
+        settings.setValue(QStringLiteral("Text/Crisp"), false);settings.sync();
+        qApp->setFont(QFont(QStringLiteral("Tahoma OS"), 8));
+        XPlasmaStyle style;
+        style.polish(qApp);
+        QCOMPARE(qApp->font().family(), QStringLiteral("Tahoma OS"));
+        settings.setValue(QStringLiteral("Text/Crisp"), true);settings.sync();
+        QVERIFY(QMetaObject::invokeMethod(&style, "reloadIfChanged", Qt::DirectConnection));
+        QVERIFY(qApp->font().family().startsWith(QStringLiteral("XPlasma Tahoma Pixel"))
+                || qApp->font().family().startsWith(QStringLiteral("MS Sans Serif")));
+        settings.setValue(QStringLiteral("Text/Crisp"), false);settings.sync();
+        QVERIFY(QMetaObject::invokeMethod(&style, "reloadIfChanged", Qt::DirectConnection));
+        QCOMPARE(qApp->font().family(), QStringLiteral("Tahoma OS"));
+        QCOMPARE(qApp->font().pointSize(), 8);
+        style.unpolish(qApp);
+    }
+
     void xpPixelTahomaKeepsWeightAndFractionalPixelSizes() {
         if(qEnvironmentVariable("XPLASMA_TAHOMA_PIXELS").isEmpty())QSKIP("Set XPLASMA_TAHOMA_PIXELS to XP-captured generated fonts");
         for(qreal dpr : {1.0,1.25,1.5,1.75,2.0,2.25,2.5,3.0}) {

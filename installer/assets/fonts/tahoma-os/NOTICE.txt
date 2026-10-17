@@ -1,0 +1,8 @@
+Tahoma OS — locally renamed Microsoft Tahoma
+
+The regular and bold faces are derived from the supplied Microsoft Tahoma
+fonts by changing family/face naming metadata and required checksums. Glyph
+outlines, metrics, hinting programs and original copyright/trademark/license
+records remain unchanged. Microsoft retains the original font copyrights.
+These font assets are separate from the project's GPL-licensed code.
+See PROVENANCE.json for the source and derived-file SHA-256 hashes.

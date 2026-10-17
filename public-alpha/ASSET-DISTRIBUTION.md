@@ -19,3 +19,11 @@ records the publisher's distribution choice; it does not claim that GPL or
 attribution grants permission for third-party media. The source repository
 continues to exclude the original assets. The complete installer preserves
 component notices, provenance and credits, including the original XP avatars.
+
+## Tahoma OS interface fonts
+
+The publisher includes the renamed Microsoft Tahoma regular and bold faces in
+`installer/assets/fonts/tahoma-os/`. This is an explicit exception to the source
+export's font exclusion. Their original embedded copyright and license records
+remain, and they are not relicensed under the project GPL. The generator and
+source/derived hashes accompany the faces.

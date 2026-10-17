@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "app/colors.h"
+#include "core/crispfont.h"
 
 #include <QFont>
 #include <QSaveFile>
@@ -179,7 +180,7 @@ bool applyLiveSystemColors(const QJsonObject &colors,const QString &directory,bo
 
 QString qtFontString(const LogFont &lf)
 {
-    QFont font(lf.face);
+    QFont font(osUiFamily(lf.face));
     font.setPointSize(lf.points());
     font.setBold(lf.bold());
     font.setItalic(lf.italic);
