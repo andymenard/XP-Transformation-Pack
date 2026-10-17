@@ -210,18 +210,17 @@ DisplayProperties::DisplayProperties(QWidget *parent)
             m_scheme = *s;
     }
     fillStyles();
-    for (int i = 0; i < m_styles.size(); ++i)
-        if (state.appliedKind == QLatin1String("style") && m_styles.at(i).path == state.style)
-            m_style->setCurrentIndex(i);
-    if (state.appliedKind == QLatin1String("classic"))
-        m_style->setCurrentIndex(m_styles.size());
-    fillColours();
-    if (state.appliedKind == QLatin1String("style") && m_style->currentIndex() < m_styles.size())
-        if (const StyleVariant *v = m_styles.at(m_style->currentIndex()).variant(state.variant)) {
-            m_colour->setCurrentIndex(m_colour->findData(v->colour));
-            fillSizes();
+    if (const int i = state.appliedKind == QLatin1String("style") ? styleFor(state.style) : -1; i >= 0) {
+        const StyleVariant *v = m_styles.at(i).variant(state.variant);
+        selectStyle(i, v ? v->colour : QString());
+        fillSizes();
+        if (v)
             m_size->setCurrentIndex(m_size->findData(v->size));
-        }
+    } else {
+        if (state.appliedKind == QLatin1String("classic"))
+            m_style->setCurrentIndex(m_styleRows.size());
+        fillColours();
+    }
     fillSizes();
     const Wallpaper desktop = currentDesktop();
     fillWallpapers();
@@ -617,11 +616,11 @@ void DisplayProperties::customLunaChanged()
     if (m_loading) return;
     syncTitleColorLink();
     if (m_customLunaSource.isEmpty()) {
-        const int index = m_style->currentIndex();
-        if (index >= 0 && index < m_styles.size()) {
+        const int index = styleIndex();
+        if (index >= 0) {
             const auto &style = m_styles[index];
             m_customLunaSource = style.path;
-            m_customLunaVariant = style.ini(m_colour->currentData().toString(), m_size->currentData().toString());
+            m_customLunaVariant = style.ini(colourKey(), m_size->currentData().toString());
         } else m_customLunaSource = QStringLiteral("classic:") + m_scheme.name;
     }
     if (m_customLunaEnabled->isChecked()) {
@@ -658,16 +657,15 @@ void DisplayProperties::customLunaChanged()
         m_customLunaPath.clear(); m_customClassic.reset();
         if (m_customLunaSource.startsWith(QLatin1String("classic:"))) {
             if (auto base = schemes::load(m_customLunaSource.mid(8))) m_scheme = *base;
-            m_loading = true; m_style->setCurrentIndex(m_styles.size()); fillColours(); fillSizes(); m_loading = false;
+            m_loading = true; m_style->setCurrentIndex(m_styleRows.size()); fillColours(); fillSizes(); m_loading = false;
         }
         // Restore the original selected skin, color scheme and font size.
         for (int i = 0; i < m_styles.size(); ++i)
             if (QFileInfo(m_styles[i].path).canonicalFilePath() == QFileInfo(m_customLunaSource).canonicalFilePath()) {
-                m_loading = true; m_style->setCurrentIndex(i); fillColours();
-                if (const auto *v = m_styles[i].variant(m_customLunaVariant)) {
-                    m_colour->setCurrentIndex(m_colour->findData(v->colour)); fillSizes();
-                    m_size->setCurrentIndex(m_size->findData(v->size));
-                }
+                m_loading = true;
+                const auto *v = m_styles[i].variant(m_customLunaVariant);
+                selectStyle(i, v ? v->colour : QString()); fillSizes();
+                if (v) m_size->setCurrentIndex(m_size->findData(v->size));
                 m_loading = false;
                 break;
             }
@@ -961,20 +959,108 @@ void DisplayProperties::fillThemes()
 
 void DisplayProperties::fillStyles()
 {
+    // XP Media Center's Royale and Microsoft's later colourings of it ship as
+    // separate styles: listed as Royale's colour schemes, as XP lists Luna's.
+    static const QStringList royale{QStringLiteral("royale.msstyles"), QStringLiteral("royale noir.msstyles"),
+                                    QStringLiteral("zune.msstyles"), QStringLiteral("embedded.msstyles")};
+    m_styleRows.clear();
+    QList<std::tuple<int, int, StyleOption>> family;   // rank in the family, m_styles entry, colour
+    for (int i = 0; i < m_styles.size(); ++i) {
+        const StyleInfo &s = m_styles.at(i);
+        const int rank = royale.indexOf(QFileInfo(s.path).fileName().toLower());
+        if (rank < 0) {
+            StyleRow row{s.label, {}};
+            for (const StyleOption &c : s.colours)
+                row.colours.append({i, c});
+            m_styleRows.append(row);
+            continue;
+        }
+        if (family.isEmpty())
+            m_styleRows.append({QStringLiteral("Royale"), {}});   // (placed where the first one was)
+        for (StyleOption c : s.colours) {
+            // A style's only scheme, "Default", is the style: "Zune Style" is Zune.
+            if (s.colours.size() == 1 && c.label.compare(QLatin1String("Default"), Qt::CaseInsensitive) == 0)
+                c.label = QString(s.label).remove(QRegularExpression(QStringLiteral("\\s+style$"), QRegularExpression::CaseInsensitiveOption));
+            family.append({rank, i, c});
+        }
+    }
+    if (!family.isEmpty()) {
+        std::stable_sort(family.begin(), family.end(), [](const auto &a, const auto &b) { return std::get<0>(a) < std::get<0>(b); });
+        auto &row = *std::find_if(m_styleRows.begin(), m_styleRows.end(), [](const StyleRow &r) { return r.colours.isEmpty(); });
+        for (const auto &[rank, i, c] : std::as_const(family))   // (Royale Noir's file holds Royale too: once)
+            if (std::none_of(row.colours.cbegin(), row.colours.cend(), [&](const auto &have) { return have.second.label == c.label; }))
+                row.colours.append({i, c});
+    }
     m_style->clear();
-    for (const StyleInfo &s : std::as_const(m_styles))
-        m_style->addItem(s.label, s.path);
+    for (const StyleRow &row : std::as_const(m_styleRows))
+        m_style->addItem(row.label, m_styles.at(row.colours.value(0).first).path);
     m_style->addItem(QStringLiteral("Windows Classic style"));
+}
+
+bool DisplayProperties::classicChosen() const
+{
+    return m_style->currentIndex() >= m_styleRows.size();
+}
+
+int DisplayProperties::styleIndex() const
+{
+    if (classicChosen() || m_style->currentIndex() < 0)
+        return -1;
+    const QString data = m_colour->currentData().toString();
+    const int colon = int(data.indexOf(QLatin1Char(':')));
+    return colon > 0 ? data.left(colon).toInt() : -1;
+}
+
+QString DisplayProperties::colourKey() const
+{
+    const QString data = m_colour->currentData().toString();
+    return data.mid(data.indexOf(QLatin1Char(':')) + 1);
+}
+
+int DisplayProperties::styleFor(const QString &path) const
+{
+    const QString wanted = QFileInfo(path).canonicalFilePath();
+    for (int i = 0; i < m_styles.size(); ++i)
+        if (m_styles.at(i).path == path || (!wanted.isEmpty() && QFileInfo(m_styles.at(i).path).canonicalFilePath() == wanted))
+            return i;
+    return -1;
+}
+
+// The row holding m_styles[index], and its colour: by key, else (a colour
+// listed once for the family) by name, else the style's first.
+void DisplayProperties::selectStyle(int index, const QString &colour)
+{
+    QString label;
+    for (const StyleOption &c : m_styles.value(index).colours)
+        if (c.key == colour)
+            label = c.label;
+    int row = -1;
+    for (int r = 0; r < m_styleRows.size() && row < 0; ++r)
+        for (const auto &entry : m_styleRows.at(r).colours)
+            if (entry.first == index)
+                row = r;
+    m_style->setCurrentIndex(row);
+    fillColours();
+    int at = m_colour->findData(QStringLiteral("%1:%2").arg(index).arg(colour));
+    if (at < 0 && !label.isEmpty())
+        for (int k = 0; k < m_colour->count() && at < 0; ++k)
+            if (m_colour->itemText(k) == label)
+                at = k;
+    for (int k = 0; k < m_colour->count() && at < 0; ++k)
+        if (m_colour->itemData(k).toString().startsWith(QString::number(index) + QLatin1Char(':')))
+            at = k;
+    if (at >= 0)
+        m_colour->setCurrentIndex(at);
 }
 
 void DisplayProperties::fillColours()
 {
     const QString previous = m_colour->currentData().toString();
     m_colour->clear();
-    const int i = m_style->currentIndex();
-    if (i >= 0 && i < m_styles.size()) {
-        for (const StyleOption &c : m_styles.at(i).colours)
-            m_colour->addItem(c.label, c.key);
+    const int row = m_style->currentIndex();
+    if (row >= 0 && row < m_styleRows.size()) {
+        for (const auto &[index, c] : m_styleRows.at(row).colours)
+            m_colour->addItem(c.label, QStringLiteral("%1:%2").arg(index).arg(c.key));
     } else {
         // Classic: the stock and saved schemes (a size is the Font size's).
         const QString base = schemes::split(m_scheme.name).first;
@@ -993,9 +1079,8 @@ void DisplayProperties::fillSizes()
 {
     const QString previous = m_size->currentData().toString();
     m_size->clear();
-    const int i = m_style->currentIndex();
-    if (i >= 0 && i < m_styles.size()) {
-        for (const StyleOption &s : m_styles.at(i).sizesFor(m_colour->currentData().toString()))
+    if (const int i = styleIndex(); i >= 0) {
+        for (const StyleOption &s : m_styles.at(i).sizesFor(colourKey()))
             m_size->addItem(s.label, s.key);
     } else {
         const QString base = m_colour->currentData().toString();
@@ -1034,10 +1119,9 @@ Look DisplayProperties::look() const
     if (m_customLunaEnabled->isChecked() && !m_customLunaPath.isEmpty())
         if (auto custom = Look::fromStyle(m_customLunaPath, m_customLunaVariant)) return *custom;
 
-    const int i = m_style->currentIndex();
-    if (i >= 0 && i < m_styles.size()) {
+    if (const int i = styleIndex(); i >= 0) {
         const StyleInfo &s = m_styles.at(i);
-        const QString ini = s.ini(m_colour->currentData().toString(), m_size->currentData().toString());
+        const QString ini = s.ini(colourKey(), m_size->currentData().toString());
         if (auto look = Look::fromStyle(s.path, ini))
             return *look;
     }
@@ -1125,7 +1209,7 @@ void DisplayProperties::showBundle(const ThemeBundle &b)
     m_customLunaEnabled->setChecked(false);
     m_customLunaPath.clear(); m_customLunaSource.clear(); m_customLunaVariant.clear(); m_customClassic.reset();
     m_loading = true;
-    if (!b.style.isEmpty() && m_style->findData(b.style) < 0) {
+    if (!b.style.isEmpty() && styleFor(b.style) < 0) {
         auto custom = Library::style(b.style);
         if (custom.readable()) { custom.label = QStringLiteral("Custom Colors"); m_styles.append(custom); fillStyles(); }
     }
@@ -1135,18 +1219,17 @@ void DisplayProperties::showBundle(const ThemeBundle &b)
     if (b.classic()) {
         m_scheme = colours;
         m_scheme.name = b.label;
-        m_style->setCurrentIndex(m_styles.size());
+        m_style->setCurrentIndex(m_styleRows.size());
         fillColours();
         fillSizes();
     } else {
-        for (int i = 0; i < m_styles.size(); ++i)
-            if (QFileInfo(m_styles.at(i).path).canonicalFilePath() == QFileInfo(b.style).canonicalFilePath())
-                m_style->setCurrentIndex(i);
-        fillColours();
-        const StyleInfo &s = m_styles.value(m_style->currentIndex());
+        const int i = styleFor(b.style);
+        const StyleInfo s = m_styles.value(i);
         const StyleVariant *v = s.variant(b.variant.isEmpty() ? s.defaultVariant : b.variant);
-        if (v)
-            m_colour->setCurrentIndex(m_colour->findData(v->colour));
+        if (i >= 0)
+            selectStyle(i, v ? v->colour : QString());
+        else
+            fillColours();
         fillSizes();
         if (v)
             m_size->setCurrentIndex(m_size->findData(v->size));
@@ -1219,8 +1302,7 @@ void DisplayProperties::appearanceChanged()
     }
     if (m_loading)
         return;
-    const int i = m_style->currentIndex();
-    if (i >= m_styles.size()) {
+    if (classicChosen()) {
         // A Classic scheme picked by name and size.
         const QString base = m_colour->currentData().toString();
         const QString sizeKey = m_size->currentData().toString();
@@ -1231,7 +1313,7 @@ void DisplayProperties::appearanceChanged()
         if (const auto s = schemes::load(name))
             m_scheme = *s;
     }
-    m_advanced->setEnabled(i >= m_styles.size());
+    m_advanced->setEnabled(classicChosen());
     m_themeFile.clear();
     renderAppearance();
     renderThemes();
@@ -1539,7 +1621,7 @@ void DisplayProperties::renderAppearance()
 {
     if (m_loading)
         return;
-    m_advanced->setEnabled(m_style->currentIndex() >= m_styles.size());
+    m_advanced->setEnabled(classicChosen());
     if(!m_appearanceSample->isVisibleTo(m_tabs))return;
     const auto applications = darkmode::applicationLook(look(), m_darkMode->isChecked());
     const Look l = applications.value_or(look());

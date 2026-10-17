@@ -114,6 +114,16 @@ private:
 
     Library m_library;
     QList<StyleInfo> m_styles;        // readable ones, in the order shown
+    // The Windows and buttons list: a row per style, but for XP's Royale and
+    // Microsoft's later colourings of it, separate styles listed as one row's
+    // colour schemes. A colour is its m_styles entry and that style's colour.
+    struct StyleRow { QString label; QList<std::pair<int, StyleOption>> colours; };
+    QList<StyleRow> m_styleRows;
+    int styleIndex() const;           // the m_styles entry chosen; -1 for Classic
+    QString colourKey() const;        // its colour
+    bool classicChosen() const;
+    int styleFor(const QString &path) const;
+    void selectStyle(int index, const QString &colour);
     ClassicScheme m_scheme;           // Windows Classic's, as edited
     QString m_themeFile;              // the bundle chosen, unless edited since
     preview::Previewer m_previewer;
