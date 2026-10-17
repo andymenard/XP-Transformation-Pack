@@ -44,6 +44,10 @@ class ControlArtworkTests(unittest.TestCase):
   olive=b.artwork_color(210,214,175,surface=True)
   self.assertLess(max(blue),128);self.assertNotEqual(blue,olive)
   self.assertEqual(b.artwork_color(200,214,251),(200,214,251))
+ def test_warm_accents_survive_while_blue_surfaces_darken(self):
+  for color in [(255,180,40),(230,130,20)]:
+   self.assertEqual(b.artwork_color(*color,surface=True),color)
+  self.assertLess(max(b.artwork_color(200,214,251,surface=True)),128)
  def test_nonstandard_transparency_color_is_not_recolored(self):
   mask=(200,210,220);data=self.indexed([mask,(200,214,251)])
   result=b.bitmap(data,'COMBOBUTTON',surface=True,keys={mask})
