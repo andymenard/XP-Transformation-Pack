@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
+import QtQuick.Window
 
 // Pure presentation shared by the Plasma launcher and the isolated preview.
 FocusScope {
@@ -84,25 +85,46 @@ FocusScope {
         onTriggered: if (menu.allProgramsOpen) menu.closeProgramsRequested()
     }
 
+    // The menu's pieces, nine patches each, every patch edge on a device
+    // pixel as the menu rounds it: at a fractional scale BorderImage rounds
+    // each patch alone, and a one-pixel line comes out two device pixels in
+    // one piece (or patch) and three in the next.
+    readonly property real devicePixels: Screen.devicePixelRatio > 0 ? Screen.devicePixelRatio : 1
     component Art: Item {
         id: art
         required property var spec
         implicitWidth: spec.width || 0
         implicitHeight: spec.height || 0
-        BorderImage {
+        readonly property var sizing: spec.sizing || [0, 0, 0, 0]
+        function snap(at, v) { return Math.round((at + v) * menu.devicePixels) / menu.devicePixels - at; }
+        readonly property var columns: [0, sizing[0], (spec.width || 0) - sizing[1], spec.width || 0]
+        readonly property var rows: [0, sizing[2], (spec.height || 0) - sizing[3], spec.height || 0]
+        readonly property var xs: [snap(x, 0), snap(x, sizing[0]), snap(x, width - sizing[1]), snap(x, width)]
+        readonly property var ys: [snap(y, 0), snap(y, sizing[2]), snap(y, height - sizing[3]), snap(y, height)]
+        Item {
             anchors.fill: parent
-            source: art.spec.url
-            border.left: art.spec.sizing[0]
-            border.right: art.spec.sizing[1]
-            border.top: art.spec.sizing[2]
-            border.bottom: art.spec.sizing[3]
-            horizontalTileMode: BorderImage.Stretch
-            verticalTileMode: BorderImage.Stretch
-            smooth: false
             layer.enabled: !!(menu.themeData.liveColors && menu.themeData.liveColors.enabled && art.spec.tintable)
             layer.effect: TintEffect {
                 tint: menu.themeData.liveColors ? menu.themeData.liveColors.menu : "white"
                 tone: art.spec.tone || 0.5
+            }
+            Repeater {
+                model: 9
+                delegate: Image {
+                    required property int index
+                    readonly property int column: index % 3
+                    readonly property int row: Math.floor(index / 3)
+                    readonly property real sourceWidth: art.columns[column + 1] - art.columns[column]
+                    readonly property real sourceHeight: art.rows[row + 1] - art.rows[row]
+                    x: art.xs[column]
+                    y: art.ys[row]
+                    width: art.xs[column + 1] - art.xs[column]
+                    height: art.ys[row + 1] - art.ys[row]
+                    visible: sourceWidth > 0 && sourceHeight > 0 && width > 0 && height > 0
+                    source: visible ? art.spec.url : ""
+                    sourceClipRect: Qt.rect(art.columns[column], art.rows[row], sourceWidth, sourceHeight)
+                    smooth: false
+                }
             }
         }
     }
@@ -522,7 +544,11 @@ FocusScope {
                         visible: group.index < menu.placeGroups.length - 1
                         Separator {
                             objectName: "placesSeparator"
-                            x: (places.width - width) / 2 - places.spec.content[0]
+                            // Across the pane as the program list's is across
+                            // its own: from under the icons, not after them.
+                            readonly property real inset: (programs.width - menu.parts.proglistseparator.width) / 2
+                            x: inset - places.spec.content[0]
+                            width: places.width - 2 * inset
                             anchors.verticalCenter: parent.verticalCenter
                             spec: menu.parts.placeslistseparator
                             smooth: false

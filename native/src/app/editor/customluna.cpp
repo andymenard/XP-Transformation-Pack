@@ -124,7 +124,9 @@ QByteArray accentIni(const QByteArray &resource, const std::array<QColor,4> &col
     out.resize(resource.size(), '\0');
     return out;
 }
-bool recolour(QByteArray &dib, QColor target, QColor base, const QColor &backdrop = QColor(), bool glyphs = false, QSize frame = QSize(), QRgb keyColor = qRgb(255,0,255), bool keepRed = false, bool glyphOnly = false, int foregroundMode = 0)
+// frameBase: the tone dark (frame) pixels are mapped with, where a bitmap
+// shares its outline with others drawn beside it.
+bool recolour(QByteArray &dib, QColor target, QColor base, const QColor &backdrop = QColor(), bool glyphs = false, QSize frame = QSize(), QRgb keyColor = qRgb(255,0,255), bool keepRed = false, bool glyphOnly = false, int foregroundMode = 0, const QColor &frameBase = QColor())
 {
     if (dib.size() < 40) return false;
     const auto *raw = reinterpret_cast<const uchar *>(dib.constData());
@@ -159,6 +161,8 @@ bool recolour(QByteArray &dib, QColor target, QColor base, const QColor &backdro
         // symbol follows the buttons' text choice (above).
         if(keepRed)return;
         QColor destination = target, reference = base;
+        if (frameBase.isValid() && .2126*originalColor.redF()+.7152*originalColor.greenF()+.0722*originalColor.blueF() <= frameBase.redF()+.1)
+            reference = frameBase;
         // Luna antialiases the rounded Start edge against the blue taskbar.
         // These pixels belong to a mixture of the two surfaces.
         const QColor c(input);
@@ -274,6 +278,14 @@ QString customLuna(const QString &source, const std::array<QColor, 4> &colours,
                 }
             }
     }
+    // The Start menu's pieces share one outline, and the line above its Log
+    // Off bar: XP draws them alike, but each bitmap's own tone would map the
+    // same blue lighter on the dark header than on the light places list.
+    // They take the header's (the Log Off bar, header-dark, all of it).
+    qreal frameTone=-1;
+    for (const Resource &r : resources->all())
+        if (r.type == QLatin1String("2") && surfaces.value(r.name.toUpper()).startsWith(QLatin1String("startpanel.userpane")))
+            if (const auto image = decodeDib(r.data).image; !image.isNull()) frameTone = imageTone(image);
     std::array<int, 4> changed{};
     for (const Resource &r : resources->all()) {
         if (r.type == QLatin1String("TEXTFILE") && r.name.compare(selected->variant(), Qt::CaseInsensitive) == 0) {
@@ -309,11 +321,16 @@ QString customLuna(const QString &source, const std::array<QColor, 4> &colours,
             const QString name=part==4?QString("close"):n.contains("MIN")?QString("minimize"):n.contains("MAX")?QString("maximize"):n.contains("RESTORE")?QString("restore"):QString("help");
             for(const auto &button:decoration.buttons)if(button.first==name)tone=elementTone(button.second,{"active-center"});
         }
+        QColor frameBase;
+        if(part==1 && frameTone>0 && surfaces.value(n).startsWith(QLatin1String("startpanel.")) && !surfaces.value(n).startsWith(QLatin1String("startpanel.userpane"))) {
+            if(surfaces.value(n).startsWith(QLatin1String("startpanel.logoff")))tone=frameTone;
+            else frameBase=QColor::fromRgbF(frameTone,frameTone,frameTone);
+        }
         const QColor base=QColor::fromRgbF(tone,tone,tone);
         QColor target=part==4 ? QColor("#d84427") : colours[part];
         if (part==1 && (surfaces[n].startsWith(QLatin1String("startpanel")) || surfaces[n].startsWith(QLatin1String("startmenu::"))))
             target=menuSurface(colours[1],surfaces[n]);
-        if (!recolour(bitmap,target,base,part==0 && blueLuna ? colours[1] : QColor(),part==3 || part==4 || n.contains(QLatin1String("CHEVRON")),frames[n],keys.value(n,qRgb(255,0,255)),part==4,false,(part==3 || part==4) ? textModes[3] : 0))
+        if (!recolour(bitmap,target,base,part==0 && blueLuna ? colours[1] : QColor(),part==3 || part==4 || n.contains(QLatin1String("CHEVRON")),frames[n],keys.value(n,qRgb(255,0,255)),part==4,false,(part==3 || part==4) ? textModes[3] : 0,frameBase))
             return fail(QStringLiteral("Unsupported theme bitmap: %1").arg(n));
         const qsizetype offset = r.fileOffset;
         if (offset < 0) return fail(QStringLiteral("Cannot locate Luna bitmap: %1").arg(n));

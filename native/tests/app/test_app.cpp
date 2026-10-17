@@ -2265,6 +2265,27 @@ private Q_SLOTS:
         ThemeFile saved;classic->system.writeTo(saved);QCOMPARE(ClassicScheme::fromThemeFile(saved).shellMenuTextMode,1);
     }
 
+    void customStartMenuSharesItsOutline()
+    {
+        // XP draws the Start menu's outline, and the line above Log Off, in
+        // one blue across its pieces: custom colors keep them one color.
+        const QString source=m_realThemes+"/Luna/luna.msstyles";
+        if(!QFileInfo::exists(source))QSKIP("needs Luna");
+        QString error;const auto base=Look::fromStyle(source,"NORMALBLUE_INI",&error);QVERIFY(base);
+        const QJsonObject colors{{"enabled",true},{"start","#eb9d00"},{"menu","#7c7c5c"},{"title","#7c7c5c"},{"buttons","#d99100"},{"startMenuText",2},{"menuText",1}};
+        const auto baked=editor::staticColorLook(*base,colors,&error);QVERIFY2(baked,qPrintable(error));
+        const QString dir=paths::data()+"/outline-probe";
+        QVERIFY2(!writeStartPanel(*baked,dir,&error).isEmpty(),qPrintable(error));
+        const auto art=[&](const char *name){return QImage(dir+"/"+QLatin1String(name)+".png").convertToFormat(QImage::Format_RGB32);};
+        const QImage header=art("userpane"),places=art("placeslist"),footer=art("logoff"),programs=art("proglist"),more=art("moreprograms");
+        const auto near=[](QRgb a,QRgb b){return qAbs(qRed(a)-qRed(b))<=12 && qAbs(qGreen(a)-qGreen(b))<=12 && qAbs(qBlue(a)-qBlue(b))<=12;};
+        const QRgb outline=header.pixel(header.width()-1,header.height()-1);
+        for(const auto &[name,pixel] : {std::pair{"places",places.pixel(places.width()-1,places.height()/2)},std::pair{"footer",footer.pixel(footer.width()-1,footer.height()/2)},std::pair{"programs",programs.pixel(0,programs.height()-1)}})
+            QVERIFY2(near(pixel,outline),qPrintable(QStringLiteral("%1 outline %2 vs header %3").arg(QLatin1String(name),QColor(pixel).name(),QColor(outline).name())));
+        const QRgb under=places.pixel(places.width()/2,places.height()-1),underPrograms=more.pixel(more.width()/2,more.height()-1);
+        QVERIFY2(near(under,underPrograms),qPrintable(QColor(under).name()+" vs "+QColor(underPrograms).name()));
+    }
+
     void bakedProfileWithoutSidecar()
     {
         const QString source=m_realThemes+"/Luna/luna.msstyles";
