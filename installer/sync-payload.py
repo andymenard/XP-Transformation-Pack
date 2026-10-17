@@ -48,6 +48,15 @@ def normalize_session_sprites(folder):
         image=Image.open(path).convert('RGBA')
         pixels=list(image.getdata())
         fixed=[(r,g,b,0) if (r,g,b)==(255,0,255) else (r,g,b,a) for r,g,b,a in pixels]
+        if name=='14356.png' and image.size==(32,192):
+            # shell32's bitmap ends short: the Log Off hot frame's bottom edge holds
+            # two wrapped pixels and black fill, so hovering appears to shift the icon.
+            # Rebuild that outline row from the Switch User hot frame plus the two
+            # surviving end pixels.
+            last,hot=191*32,95*32
+            if fixed[last+4][:3]==(0,0,0) and fixed[last+4][3]:
+                row=fixed[hot:hot+28]+fixed[last:last+2]+fixed[hot+30:hot+32]
+                fixed[last:last+32]=row
         if fixed!=pixels:
             image.putdata(fixed);image.save(path)
 
