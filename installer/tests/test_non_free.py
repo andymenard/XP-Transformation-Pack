@@ -49,5 +49,9 @@ class Folder(unittest.TestCase):
   manifest=json.loads((folder/'MANIFEST.json').read_text())
   self.assertEqual(sorted(manifest),['payload/'+c for c in chosen]);self.assertTrue(all(v['license']=='non-free' for v in manifest.values()))
   self.assertTrue((folder/'payload/basic/sounds/stereo/start.wav').is_file())
+  # Refreshed once it's committed, the folder's own copies aren't "source already there".
+  subprocess.run(['git','-C',str(self.public),'add','.'],check=True)
+  subprocess.run(['git','-C',str(self.public),'-c','user.name=t','-c','user.email=t@t','commit','-qm','non-free'],check=True)
+  with patch('builtins.print'):self.assertEqual(self.n.refresh(self.payload.parent,self.public),chosen)
 
 if __name__=='__main__':unittest.main()

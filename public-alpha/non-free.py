@@ -55,8 +55,10 @@ def suffix(path):
  return '.tar.gz' if path.name.endswith('.tar.gz') else path.suffix.lower()
 
 def repository_blobs(public):
+ # The project's own source, not non-free/ itself: its copies are what is
+ # being refreshed, and would otherwise count as source already present.
  listing=subprocess.check_output(['git','-C',str(public),'ls-tree','-r','HEAD'],text=True)
- return {line.split('\t',1)[0].split()[2] for line in listing.splitlines()}
+ return {meta.split()[2] for meta,path in (line.split('\t',1) for line in listing.splitlines()) if not path.startswith('non-free/')}
 
 def blob(path):
  data=path.read_bytes();return hashlib.sha1(b'blob %d\0'%len(data)+data).hexdigest()
