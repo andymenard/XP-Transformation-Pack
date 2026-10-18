@@ -1,6 +1,6 @@
 # Asset distribution boundary
 
-Public source exports exclude the proprietary Windows resources and supplied stock photographs. Code licenses and credits do not grant redistribution permission for these assets.
+The public repository keeps Windows XP media — images, icons, cursors, sounds, fonts, visual styles and files derived from them — in one folder, `non-free/`, marked as Microsoft's copyright and not covered by the project licence ([non-free/NOTICE.md](non-free/NOTICE.md)); the installer marks the components that use them as non-free. Windows program files and installers, third-party game skins and supplied stock photographs (including the high-resolution rescans) are excluded. Code licenses and credits do not grant redistribution permission for these assets. Rights holders can open an issue on the repository to have any of them removed.
 
 The local test installer contains assets supplied from the user's XP ISO and wallpaper collection. Its blue Setup reference resources were extracted from `I386/WINNTBBU.DLL`: background bitmap 103 and stage indicators 104/105/109; those extraction inputs stay private. The source GUI independently draws the layout and colors. The Welcome splash is an independent QML implementation referencing the logonui.exe layout and colors, without embedding the original Windows logo.
 
@@ -17,7 +17,7 @@ assets in the binary installer release. They remain separate from the code
 license: Microsoft and other original creators retain their copyrights. This
 records the publisher's distribution choice; it does not claim that GPL or
 attribution grants permission for third-party media. The source repository
-continues to exclude the original assets. The complete installer preserves
+carries the Microsoft media in `non-free/` only. The complete installer preserves
 component notices, provenance and credits, including the original XP avatars.
 
 ## Tahoma OS interface fonts

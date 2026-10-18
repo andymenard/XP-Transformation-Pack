@@ -5,7 +5,8 @@
     "description": "XPlasma Plus Properties with stock themes and Install Theme\u2026 for XP archives, .theme and .msstyles files.",
     "default": true,
     "native": true,
-    "project": "desktop"
+    "project": "desktop",
+    "non_free": true
   },
   {
     "id": "desktop",
@@ -13,7 +14,8 @@
     "description": "Luna borders, titlebars and XP colors; includes the maximized-titlebar corrections.",
     "default": true,
     "native": true,
-    "project": "desktop"
+    "project": "desktop",
+    "non_free": true
   },
   {
     "id": "apps",
@@ -21,7 +23,8 @@
     "description": "Qt and GTK controls, including generated Flatpak themes and the generalized LibreOffice/layout fix.",
     "default": true,
     "native": true,
-    "project": "desktop"
+    "project": "desktop",
+    "non_free": true
   },
   {
     "id": "fonts",
@@ -29,7 +32,8 @@
     "description": "Tahoma, Trebuchet MS, Lucida Console and the XP font-rendering preferences.",
     "default": true,
     "native": false,
-    "project": "desktop"
+    "project": "desktop",
+    "non_free": true
   },
   {
     "id": "taskbar",
@@ -37,7 +41,8 @@
     "description": "XP Start menu without corner background/grips, labeled task buttons, tray and clock.",
     "default": true,
     "native": true,
-    "project": "desktop"
+    "project": "desktop",
+    "non_free": true
   },
   {
     "id": "icons",
@@ -45,7 +50,8 @@
     "description": "Original XP icons plus 7,390 named replacements covering the installed KDE/Breeze inventory, mask-safe controls and XP-styled specialized glyphs. Credits and source licenses are included; replacements survive theme changes.",
     "default": true,
     "native": false,
-    "project": "desktop"
+    "project": "desktop",
+    "non_free": true
   },
   {
     "id": "pointers",
@@ -53,7 +59,8 @@
     "description": "Windows Default pointers with shadows and multiple sizes for sharp, correctly sized cursors.",
     "default": true,
     "native": false,
-    "project": "desktop"
+    "project": "desktop",
+    "non_free": true
   },
   {
     "id": "sounds",
@@ -61,7 +68,8 @@
     "description": "Original Windows Default event sounds.",
     "default": true,
     "native": false,
-    "project": "desktop"
+    "project": "desktop",
+    "non_free": true
   },
   {
     "id": "wallpaper",
@@ -69,7 +77,8 @@
     "description": "Applies the original Bliss wallpaper. Extra wallpapers and stock styles are included with the theme library.",
     "default": true,
     "native": false,
-    "project": "desktop"
+    "project": "desktop",
+    "non_free": true
   },
   {
     "id": "behavior",
@@ -93,7 +102,8 @@
     "description": "Adds the 24 original XP portraits to System Settings \u2192 Users \u2192 Change avatar. Keeps your current picture.",
     "default": true,
     "native": false,
-    "project": "desktop"
+    "project": "desktop",
+    "non_free": true
   },
   {
     "id": "desktop_icons",
@@ -101,7 +111,8 @@
     "description": "My Computer, My Documents, My Network Places, Internet Explorer and Recycle Bin.",
     "default": true,
     "native": false,
-    "project": "desktop"
+    "project": "desktop",
+    "non_free": true
   },
   {
     "id": "session",
@@ -109,7 +120,8 @@
     "description": "Original XP dialogs, automatically retained when you change themes.",
     "default": true,
     "native": false,
-    "project": "desktop"
+    "project": "desktop",
+    "non_free": true
   },
   {
     "id": "welcome_splash",
@@ -117,7 +129,8 @@
     "description": "XP-style Welcome screen while Plasma starts, separate from login and boot screens.",
     "default": true,
     "native": false,
-    "project": "desktop"
+    "project": "desktop",
+    "non_free": true
   },
   {
     "id": "lock",
@@ -125,7 +138,8 @@
     "description": "An XP-style password screen using Plasma's existing authentication.",
     "default": true,
     "native": false,
-    "project": "desktop"
+    "project": "desktop",
+    "non_free": true
   },
   {
     "id": "login",
@@ -134,7 +148,8 @@
     "default": true,
     "native": false,
     "system": true,
-    "project": "desktop"
+    "project": "desktop",
+    "non_free": true
   },
   {
     "id": "boot",
@@ -143,7 +158,8 @@
     "default": true,
     "native": false,
     "system": true,
-    "project": "desktop"
+    "project": "desktop",
+    "non_free": true
   },
   {
     "id": "firefox",
@@ -151,7 +167,8 @@
     "description": "Separate browser/profile, XP tabs and icons, Search/Go/New Tab buttons, genuine XP flag, and links opening in tabs.",
     "default": false,
     "native": false,
-    "project": "firefox"
+    "project": "firefox",
+    "non_free": true
   },
   {
     "id": "firefox_default",

@@ -8,13 +8,15 @@ Desktop features include Start/taskbar/clock, decorations, dark application colo
 
 The installer follows the blue graphical XP Setup sequence, with inset component-selection dialogs, progress/sidebar stages and rotating information pages. Visual reference: [Gough Lui's Windows XP install video](https://www.youtube.com/watch?v=vTheKjAtnKs&t=134s), from 2:14 onward, and the user's own XP installation media. Branding identifies this transformation pack and its upstream author.
 
-## Attribution and licensing
+## Licence
 
-Read [CREDITS.md](CREDITS.md), [LICENSE](LICENSE), [native/THIRD-PARTY-NOTICES](native/THIRD-PARTY-NOTICES) and [installer/THIRD-PARTY-NOTICES](installer/THIRD-PARTY-NOTICES). Retain each reused component's notices and licenses. This modified project is not endorsed by upstream developers or Microsoft.
+The source code in this repository — essentially any *text* files, such as C++, QML, Python, JavaScript and shell scripts — is licensed under the GPL; see [LICENSE](LICENSE). Reused components keep their own notices and licenses: read [CREDITS.md](CREDITS.md), [native/THIRD-PARTY-NOTICES](native/THIRD-PARTY-NOTICES) and [installer/THIRD-PARTY-NOTICES](installer/THIRD-PARTY-NOTICES). This modified project is not endorsed by upstream developers or Microsoft.
 
-## Assets and builds
+This licence does **not** cover the assets from Windows XP (images, icons, cursors, sounds, fonts and visual styles): those are still Microsoft's copyright. They are in this repository for convenience, all in one folder, [`non-free/`](non-free/NOTICE.md), and the installer marks the components that use them as non-free. Windows program files and installers, third-party stock photographs and the high-resolution photo rescans are not in the repository. See [ASSET-DISTRIBUTION.md](ASSET-DISTRIBUTION.md).
 
-This public repository is source only. Original Microsoft fonts, visual styles, sounds and imagery and third-party stock photographs are not uploaded. See [ASSET-DISTRIBUTION.md](ASSET-DISTRIBUTION.md). The complete installer is provided separately as an alpha prerelease asset; it includes the publisher-supplied XP resources and retains their separate copyright notices. This source checkout alone is not that full installer.
+## Builds
+
+The complete installer is provided separately as an alpha prerelease asset, with its resources' copyright notices; this source checkout alone is not that full installer.
 
 Build Desktop with `cmake -S native -B build/desktop -G Ninja -DQT_MAJOR=6` and `cmake --build build/desktop`. Native components must match the receiving machine's KDE/Qt. The optional browser sources are under `browser/ie6`. Source includes the caption effect and original third-party notices.
 

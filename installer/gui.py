@@ -14,6 +14,9 @@ EDITION=json.loads((BASE/'edition.json').read_text()) if (BASE/'edition.json').e
 PROJECT_LABELS={'desktop':'XP Desktop (default)','firefox':'IE6 Firefox Theme (optional)','applications':'Windows XP Applications (optional)','tray':'XP System Tray Menus (optional)','shared':'Shared update support','extras':'Optional integrations'}
 THEMES=['Luna Blue','Luna Silver','Luna Olive Green','Royale','Royale Noir','Zune','Embedded']
 STATE=Path.home()/'.local/share/kde-xp-suite'
+def feature_description(feature):
+ # Packaging marks what uses Microsoft's XP media as non-free (see non-free/NOTICE.md).
+ return feature['description']+("\nNon-free: uses Windows XP assets that remain Microsoft's copyright." if feature.get('non_free') else '')
 class SetupStep(QtWidgets.QLabel):
  def paintEvent(self,event):
   super().paintEvent(event)
@@ -73,11 +76,11 @@ class Installer(QtWidgets.QMainWindow):
   # An upgrade keeps what is installed: those features stay checked.
   self.locked=set(saved['features']) if saved else set()
   for feature in FEATURES:
-   item=QtWidgets.QTreeWidgetItem(self.groups[feature.get('project','desktop')],[feature['name']]);item.setData(0,QtCore.Qt.ItemDataRole.UserRole,feature['id']);item.setToolTip(0,feature['description'])
+   item=QtWidgets.QTreeWidgetItem(self.groups[feature.get('project','desktop')],[feature['name']]);item.setData(0,QtCore.Qt.ItemDataRole.UserRole,feature['id']);item.setToolTip(0,feature_description(feature))
    item.setFlags(item.flags()|QtCore.Qt.ItemFlag.ItemIsUserCheckable)
    reason=self.support[feature['id']]
    if reason:
-    item.setToolTip(0,feature['description']+'\nUnavailable: '+reason);item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEnabled)
+    item.setToolTip(0,feature_description(feature)+'\nUnavailable: '+reason);item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEnabled)
    checked=(feature['id'] in saved['features'] if saved else feature['default']) and not reason
    item.setCheckState(0,QtCore.Qt.CheckState.Checked if checked else QtCore.Qt.CheckState.Unchecked)
    self.items[feature['id']]=item
@@ -138,7 +141,7 @@ class Installer(QtWidgets.QMainWindow):
   for feature in FEATURES:
    item=self.items[feature['id']];reason=self.support[feature['id']]
    locked=feature['id'] in self.locked and not reason
-   tip=feature['description']+('\nUnavailable: '+reason if reason else '')+('\nInstalled: an upgrade keeps it. Remove the installation to drop it.' if locked else '')
+   tip=feature_description(feature)+('\nUnavailable: '+reason if reason else '')+('\nInstalled: an upgrade keeps it. Remove the installation to drop it.' if locked else '')
    item.setToolTip(0,tip)
    if locked:item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsUserCheckable)
    elif not reason:item.setFlags(item.flags()|QtCore.Qt.ItemFlag.ItemIsUserCheckable)
