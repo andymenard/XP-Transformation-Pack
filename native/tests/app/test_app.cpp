@@ -65,6 +65,7 @@
 #include <QProcess>
 #include <QTest>
 #include <QElapsedTimer>
+#include <ctime>
 #include <QTimeZone>
 #include <QtEndian>
 
@@ -192,6 +193,8 @@ public:
     int shellLoadingFor = 0;                // readiness probes answered "loading" first
     QString activities = QStringLiteral("active");   // the activity manager's unit
     QStringList taskbarChecks;              // what each taskbar check finds missing, in turn ("" after)
+    bool shellActive = false;               // plasma-plasmashell.service's is-active
+    QString shellActiveSince;               // ...its ActiveEnterTimestampMonotonic, in µs
 
     host::Result run(const QStringList &argv) override
     {
@@ -201,6 +204,10 @@ public:
         r.exitCode = 0;
         if (argv.contains(QStringLiteral("plasma-krunner.service")) && argv.contains(QStringLiteral("is-active")))
             r.out = runnerActive ? "active\n" : "inactive\n";
+        if (argv.contains(QStringLiteral("plasma-plasmashell.service")) && argv.contains(QStringLiteral("is-active")))
+            r.out = shellActive ? "active\n" : "inactive\n";
+        if (argv.contains(QStringLiteral("ActiveEnterTimestampMonotonic")))
+            r.out = shellActiveSince.toUtf8() + '\n';
         if (argv.contains(QStringLiteral("plasma-kactivitymanagerd.service"))) {
             if (argv.contains(QStringLiteral("is-active")))
                 r.out = activities.toUtf8() + '\n';
@@ -2887,6 +2894,28 @@ private Q_SLOTS:
         const int layout = int(session.seen.indexOf(QRegularExpression(QStringLiteral("^plasma-apply-lookandfeel .*--resetLayout \\[gone\\]$"))));
         QVERIFY2(stop >= 0 && start > stop && layout > start, qPrintable(session.seen.join(QLatin1Char('\n'))));
         QVERIFY(!forks::installed(State::load()));
+    }
+
+    void shellIsLeftUpBeforeItsStopped()
+    {
+        // A shell stopped moments after it started can crash on its way out
+        // (its wallpaper still loading): it's left up a few seconds first,
+        // by systemd's word of when it started, or this session's own.
+        const auto now = [] { timespec t{}; clock_gettime(CLOCK_MONOTONIC, &t); return qint64(t.tv_sec) * 1000000 + t.tv_nsec / 1000; };
+        const auto timed = [](RecordingSession &s) { QElapsedTimer t; t.start(); s.restartPlasmaShell(); return t.elapsed(); };
+        RecordingSession session;
+        session.shellSettleMs = 600;
+        session.shellActive = true;
+        session.shellActiveSince = QString::number(now());          // (just started)
+        QVERIFY(timed(session) >= 450);
+        session.shellActiveSince = QString::number(now() - 60000000);   // (a minute ago)
+        QVERIFY(timed(session) < 300);
+        // No word from systemd: since this session last started it -- just now.
+        session.shellActiveSince.clear();
+        QVERIFY(timed(session) >= 450);
+        // ...and a shell that isn't running is just started.
+        session.shellActive = false;
+        QVERIFY(timed(session) < 300);
     }
 
     void shellReadyMeansItsDesktopLoaded()

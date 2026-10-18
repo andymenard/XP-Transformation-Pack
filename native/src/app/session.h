@@ -6,6 +6,7 @@
 // what an apply would do without a desktop to do it to.
 #include "app/host.h"
 
+#include <QElapsedTimer>
 #include <QString>
 #include <QStringList>
 #include <QVariant>
@@ -62,6 +63,14 @@ public:
     // ...and if it hasn't, KDE's activity manager started again where it's
     // down, and the shell with it. False, and *why, if it still isn't ready.
     bool ensurePlasmaShell(QString *why = nullptr, int ms = 30000);
+
+    // How long a shell is left up before restartPlasmaShell stops it.
+    int shellSettleMs = 6000;
+
+private:
+    // ...up that long, if it isn't yet: see restartPlasmaShell.
+    void settlePlasmaShell(bool systemd, const QString &unit);
+    QElapsedTimer m_shellStarted;   // (when this session last started one)
 };
 
 // The real one: host::run, QtDBus.
