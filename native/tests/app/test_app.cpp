@@ -2511,6 +2511,29 @@ private Q_SLOTS:
         QVERIFY(editor::customLuna(dir+"/missing.msstyles",colors,dir,&error).isEmpty());
     }
 
+    void customTrayKeepsItsLightnessAgainstTheTaskbar()
+    {
+        // Luna Blue's notification area is lighter than its taskbar. In custom
+        // colours it stays so, by about as much, not the taskbar's colour exactly.
+        const QString source=m_realThemes+"/Luna/luna.msstyles";if(!QFileInfo::exists(source))QSKIP("needs Luna");
+        QString error;const auto base=Look::fromStyle(source,"NORMALBLUE_INI",&error);QVERIFY2(base,qPrintable(error));
+        const auto light=[](const QColor &c){return .2126*c.redF()+.7152*c.greenF()+.0722*c.blueF();};
+        const PanelArt before=panelArt(*base);
+        const qreal lunaLift=light(before.trayColour)-light(before.panelColour);
+        QVERIFY2(lunaLift>.03,qPrintable(QString::number(lunaLift)));
+        for(const QColor taskbar:{QColor("#9d3535"),QColor("#2e7d32"),QColor("#404040")}){
+            const auto file=editor::customLuna(source,{QColor("#862ba8"),taskbar,QColor("#268a64"),QColor("#bd8825")},paths::data()+"/custom-luna",&error,base->variant);
+            QVERIFY2(!file.isEmpty(),qPrintable(error));
+            const auto look=Look::fromStyle(file,base->variant,&error);QVERIFY2(look,qPrintable(error));
+            const PanelArt after=panelArt(*look);
+            const qreal lift=light(after.trayColour)-light(after.panelColour);
+            QVERIFY2(lift>lunaLift/2,qPrintable(QStringLiteral("%1: tray %2 vs taskbar %3").arg(taskbar.name(),after.trayColour.name(),after.panelColour.name())));
+            // (still the chosen hue: lighter, not another colour)
+            const float distance=qAbs(after.trayColour.hsvHueF()-taskbar.hsvHueF());
+            if(taskbar.hsvSaturationF()>.2)QVERIFY2(qMin(distance,1-distance)<=.05,qPrintable(after.trayColour.name()));
+        }
+    }
+
     void closeKeepsItsRedNotLunasBlue()
     {
         // Custom colors keep Close's red, but what Luna blended with its blue
