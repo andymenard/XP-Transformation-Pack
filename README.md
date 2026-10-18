@@ -31,7 +31,7 @@ installation before reinstalling; an in-place upgrade is not supported yet.
 
 ## Download the alpha installer
 
-See [Alpha 1.0](https://github.com/andymenard/XP-Transformation-Pack/releases/tag/v1.0.0-alpha.8).
+See [Alpha 1.0](https://github.com/andymenard/XP-Transformation-Pack/releases/tag/v1.0.0-alpha.9).
 Extract the installer tar.gz, then launch **Start-Installer.desktop** from the
 extracted folder as your desktop user. Linux dependencies require internet
 access; an XP ISO is not needed. Desktop is selected by default; Firefox is optional.
