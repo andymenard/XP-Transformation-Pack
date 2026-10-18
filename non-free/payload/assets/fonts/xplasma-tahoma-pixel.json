@@ -1,0 +1,14 @@
+{
+  "build": 2600,
+  "ppem": 11,
+  "weight": 400,
+  "ascent": 11,
+  "descent": 2,
+  "family": "XPlasma Tahoma Pixel",
+  "style": "Regular",
+  "characters": 1914,
+  "glyphs": 1810,
+  "capture_sha256": "74fab36dd0d5eabdedfd571caa3789907521e3760ecd70743931375eaa24d50c",
+  "renderer": "Windows XP GDI GetGlyphOutlineW GGO_BITMAP",
+  "output_sha256": "9aeedf4a7303e9117d3eea9bc04734411784b6952137c8615e214dedf6e4800a"
+}

@@ -1,0 +1,5 @@
+[Icon Theme]
+Name=Windows Default (XP)
+Comment=Windows XP's pointers, written by XPlasma
+Inherits=breeze_cursors
+X-XPlasma-Generated=true

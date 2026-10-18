@@ -1,0 +1,3112 @@
+{
+    "X-XPlasma-Generated": true,
+    "icons": {
+        "ac-adapter": {
+            "file": "batmeter.dll",
+            "frame": 6,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "ac-adapter-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 6,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "application-octet-stream": {
+            "file": "shell32.dll",
+            "group": 1,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "application-x-executable": {
+            "file": "shell32.dll",
+            "group": 1,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "application-x-font-ttf": {
+            "file": "shell32.dll",
+            "group": 156,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "application-x-sharedlib": {
+            "file": "shell32.dll",
+            "group": 154,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "applications-graphics": {
+            "file": "shell32.dll",
+            "group": 270,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "applications-internet": {
+            "file": "shell32.dll",
+            "group": 19,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "applications-system": {
+            "file": "shell32.dll",
+            "group": 274,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "audio-card": {
+            "file": "sndvol32.exe",
+            "group": 304,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "audio-input-microphone": {
+            "file": "mmsys.cpl",
+            "group": 4378,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "audio-input-microphone-muted": {
+            "file": "mmsys.cpl",
+            "group": 4378,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "audio-input-microphone-muted-symbolic": {
+            "file": "mmsys.cpl",
+            "group": 4378,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "audio-input-microphone-symbolic": {
+            "file": "mmsys.cpl",
+            "group": 4378,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "audio-speakers": {
+            "file": "sndvol32.exe",
+            "group": 304,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "audio-volume-high": {
+            "file": "sndvol32.exe",
+            "group": 304,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "audio-volume-high-symbolic": {
+            "file": "sndvol32.exe",
+            "group": 304,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "audio-volume-low": {
+            "file": "sndvol32.exe",
+            "group": 304,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "audio-volume-low-symbolic": {
+            "file": "sndvol32.exe",
+            "group": 304,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "audio-volume-medium": {
+            "file": "sndvol32.exe",
+            "group": 304,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "audio-volume-medium-symbolic": {
+            "file": "sndvol32.exe",
+            "group": 304,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "audio-volume-muted": {
+            "file": "sndvol32.exe",
+            "group": 303,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "audio-volume-muted-symbolic": {
+            "file": "sndvol32.exe",
+            "group": 303,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "audio-x-generic": {
+            "file": "shell32.dll",
+            "group": 225,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "battery-000": {
+            "file": "batmeter.dll",
+            "frame": 3,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-000-charging": {
+            "file": "batmeter.dll",
+            "frame": 3,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-000-charging-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 3,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-000-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 3,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-010": {
+            "file": "batmeter.dll",
+            "frame": 2,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-010-charging": {
+            "file": "batmeter.dll",
+            "frame": 2,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-010-charging-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 2,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-010-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 2,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-020": {
+            "file": "batmeter.dll",
+            "frame": 2,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-020-charging": {
+            "file": "batmeter.dll",
+            "frame": 2,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-020-charging-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 2,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-020-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 2,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-030": {
+            "file": "batmeter.dll",
+            "frame": 2,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-030-charging": {
+            "file": "batmeter.dll",
+            "frame": 2,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-030-charging-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 2,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-030-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 2,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-040": {
+            "file": "batmeter.dll",
+            "frame": 1,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-040-charging": {
+            "file": "batmeter.dll",
+            "frame": 1,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-040-charging-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 1,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-040-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 1,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-050": {
+            "file": "batmeter.dll",
+            "frame": 1,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-050-charging": {
+            "file": "batmeter.dll",
+            "frame": 1,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-050-charging-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 1,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-050-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 1,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-060": {
+            "file": "batmeter.dll",
+            "frame": 1,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-060-charging": {
+            "file": "batmeter.dll",
+            "frame": 1,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-060-charging-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 1,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-060-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 1,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-070": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-070-charging": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-070-charging-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-070-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-080": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-080-charging": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-080-charging-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-080-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-090": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-090-charging": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-090-charging-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-090-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-100": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-100-charging": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-100-charging-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-100-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-caution": {
+            "file": "batmeter.dll",
+            "frame": 3,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-caution-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 3,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-empty": {
+            "file": "batmeter.dll",
+            "frame": 3,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-empty-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 3,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-full": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-full-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 0,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-good": {
+            "file": "batmeter.dll",
+            "frame": 1,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-good-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 1,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-low": {
+            "file": "batmeter.dll",
+            "frame": 2,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-low-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 2,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-missing": {
+            "file": "batmeter.dll",
+            "frame": 5,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-missing-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 5,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-unknown": {
+            "file": "batmeter.dll",
+            "frame": 4,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "battery-unknown-symbolic": {
+            "file": "batmeter.dll",
+            "frame": 4,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "bluetooth": {
+            "file": "xpsp2res.dll",
+            "group": 300,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "bluetooth-active": {
+            "file": "xpsp2res.dll",
+            "group": 300,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "bluetooth-active-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 300,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "brightness-high": {
+            "file": "powercfg.cpl",
+            "group": 203,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "brightness-high-symbolic": {
+            "file": "powercfg.cpl",
+            "group": 203,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "brightness-low": {
+            "file": "powercfg.cpl",
+            "group": 203,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "brightness-low-symbolic": {
+            "file": "powercfg.cpl",
+            "group": 203,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "brightness-medium": {
+            "file": "powercfg.cpl",
+            "group": 203,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "brightness-medium-symbolic": {
+            "file": "powercfg.cpl",
+            "group": 203,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "camera-photo": {
+            "file": "shell32.dll",
+            "group": 248,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "camera-video": {
+            "file": "shell32.dll",
+            "group": 317,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "clipboard": {
+            "file": "shell32.dll",
+            "group": 133,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "clipboard-symbolic": {
+            "file": "shell32.dll",
+            "group": 133,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "computer": {
+            "file": "shell32.dll",
+            "group": 16,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "computer-desktop": {
+            "file": "shell32.dll",
+            "group": 16,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "device-notifier": {
+            "file": "hotplug.dll",
+            "group": 100,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "device-notifier-symbolic": {
+            "file": "hotplug.dll",
+            "group": 100,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "dialog-error": {
+            "file": "user32.dll",
+            "group": 103,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "dialog-error-symbolic": {
+            "file": "user32.dll",
+            "group": 103,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "dialog-information": {
+            "file": "user32.dll",
+            "group": 104,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "dialog-information-symbolic": {
+            "file": "user32.dll",
+            "group": 104,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "dialog-question": {
+            "file": "user32.dll",
+            "group": 102,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "dialog-question-symbolic": {
+            "file": "user32.dll",
+            "group": 102,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "dialog-warning": {
+            "file": "user32.dll",
+            "group": 101,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "dialog-warning-symbolic": {
+            "file": "user32.dll",
+            "group": 101,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "document-print": {
+            "file": "shell32.dll",
+            "group": 17,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "document-properties": {
+            "file": "shell32.dll",
+            "group": 137,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "dolphin": {
+            "file": "shell32.dll",
+            "group": 4,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "drive-harddisk": {
+            "file": "shell32.dll",
+            "group": 8,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "drive-harddisk-root": {
+            "file": "shell32.dll",
+            "group": 8,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "drive-harddisk-system": {
+            "file": "shell32.dll",
+            "group": 8,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "drive-harddisk-usb": {
+            "file": "shell32.dll",
+            "group": 306,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "drive-network": {
+            "file": "shell32.dll",
+            "group": 9,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "drive-optical": {
+            "file": "shell32.dll",
+            "group": 12,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "drive-removable-media": {
+            "file": "shell32.dll",
+            "group": 306,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "drive-removable-media-floppy": {
+            "file": "shell32.dll",
+            "group": 7,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "drive-removable-media-usb": {
+            "file": "shell32.dll",
+            "group": 306,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "edit-copy": {
+            "file": "shell32.dll",
+            "group": 133,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "edit-delete": {
+            "file": "shell32.dll",
+            "group": 240,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "edit-find": {
+            "file": "shell32.dll",
+            "group": 23,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "emblem-symbolic-link": {
+            "file": "shell32.dll",
+            "group": 30,
+            "sizes": [
+                8,
+                16,
+                22,
+                32,
+                64
+            ]
+        },
+        "emblem-symbolic-link-symbolic": {
+            "file": "shell32.dll",
+            "group": 30,
+            "sizes": [
+                8,
+                16,
+                22,
+                32,
+                64
+            ]
+        },
+        "favorites": {
+            "file": "shell32.dll",
+            "group": 44,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "firefox": {
+            "file": "iexplore.exe",
+            "group": 32528,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "folder": {
+            "file": "shell32.dll",
+            "group": 4,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "folder-desktop": {
+            "file": "shell32.dll",
+            "group": 35,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "folder-documents": {
+            "file": "shell32.dll",
+            "group": 235,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "folder-home": {
+            "file": "shell32.dll",
+            "group": 235,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "folder-music": {
+            "file": "shell32.dll",
+            "group": 237,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "folder-network": {
+            "file": "shell32.dll",
+            "group": 257,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "folder-new": {
+            "file": "shell32.dll",
+            "group": 319,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "folder-open": {
+            "file": "shell32.dll",
+            "group": 5,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "folder-pictures": {
+            "file": "shell32.dll",
+            "group": 236,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "folder-programs": {
+            "file": "shell32.dll",
+            "group": 37,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "folder-recent-files": {
+            "file": "shell32.dll",
+            "group": 21,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "folder-remote": {
+            "file": "shell32.dll",
+            "group": 257,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "folder-videos": {
+            "file": "shell32.dll",
+            "group": 238,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "folder-yellow": {
+            "file": "shell32.dll",
+            "group": 4,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "font-x-generic": {
+            "file": "shell32.dll",
+            "group": 155,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "help-browser": {
+            "file": "shell32.dll",
+            "group": 24,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "help-contents": {
+            "file": "shell32.dll",
+            "group": 24,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "image-x-generic": {
+            "file": "shell32.dll",
+            "group": 226,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "inode-directory": {
+            "file": "shell32.dll",
+            "group": 4,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "input-gaming": {
+            "file": "mmsys.cpl",
+            "group": 4361,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "input-keyboard": {
+            "file": "main.cpl",
+            "group": 200,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "input-mouse": {
+            "file": "main.cpl",
+            "group": 100,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "internet-web-browser": {
+            "file": "iexplore.exe",
+            "group": 32528,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "klipper": {
+            "file": "shell32.dll",
+            "group": 133,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "klipper-symbolic": {
+            "file": "shell32.dll",
+            "group": 133,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "media-flash": {
+            "file": "shell32.dll",
+            "group": 314,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "media-flash-sd": {
+            "file": "shell32.dll",
+            "group": 314,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "media-floppy": {
+            "file": "shell32.dll",
+            "group": 7,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "media-optical": {
+            "file": "shell32.dll",
+            "group": 12,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "media-optical-audio": {
+            "file": "shell32.dll",
+            "group": 302,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "microphone-sensitivity-high": {
+            "file": "mmsys.cpl",
+            "group": 4378,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "microphone-sensitivity-high-symbolic": {
+            "file": "mmsys.cpl",
+            "group": 4378,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "microphone-sensitivity-low": {
+            "file": "mmsys.cpl",
+            "group": 4378,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "microphone-sensitivity-low-symbolic": {
+            "file": "mmsys.cpl",
+            "group": 4378,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "microphone-sensitivity-medium": {
+            "file": "mmsys.cpl",
+            "group": 4378,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "microphone-sensitivity-medium-symbolic": {
+            "file": "mmsys.cpl",
+            "group": 4378,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "microphone-sensitivity-muted": {
+            "file": "mmsys.cpl",
+            "group": 4378,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "microphone-sensitivity-muted-symbolic": {
+            "file": "mmsys.cpl",
+            "group": 4378,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-bluetooth": {
+            "file": "xpsp2res.dll",
+            "group": 300,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "network-bluetooth-activated": {
+            "file": "xpsp2res.dll",
+            "group": 300,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "network-bluetooth-activated-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 300,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "network-bluetooth-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 300,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "network-network": {
+            "file": "shell32.dll",
+            "group": 18,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "network-server": {
+            "file": "shell32.dll",
+            "group": 18,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "network-wired": {
+            "file": "netshell.dll",
+            "group": 190,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wired-activated": {
+            "file": "netshell.dll",
+            "group": 190,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wired-activated-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wired-activated-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wired-activated-symbolic": {
+            "file": "netshell.dll",
+            "group": 190,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wired-symbolic": {
+            "file": "netshell.dll",
+            "group": 190,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wired-unavailable": {
+            "file": "netshell.dll",
+            "group": 195,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wired-unavailable-symbolic": {
+            "file": "netshell.dll",
+            "group": 195,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-0": {
+            "file": "xpsp2res.dll",
+            "group": 2010,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-0-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-0-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-0-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2010,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-0-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2010,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-0-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2010,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-100": {
+            "file": "xpsp2res.dll",
+            "group": 2015,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-100-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-100-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-100-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2015,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-100-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2015,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-100-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2015,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-20": {
+            "file": "xpsp2res.dll",
+            "group": 2011,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-20-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-20-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-20-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2011,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-20-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2011,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-20-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2011,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-25": {
+            "file": "xpsp2res.dll",
+            "group": 2011,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-25-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-25-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-25-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2011,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-25-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2011,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-25-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2011,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-40": {
+            "file": "xpsp2res.dll",
+            "group": 2012,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-40-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-40-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-40-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2012,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-40-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2012,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-40-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2012,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-50": {
+            "file": "xpsp2res.dll",
+            "group": 2013,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-50-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-50-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-50-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2013,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-50-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2013,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-50-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2013,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-60": {
+            "file": "xpsp2res.dll",
+            "group": 2013,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-60-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-60-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-60-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2013,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-60-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2013,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-60-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2013,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-75": {
+            "file": "xpsp2res.dll",
+            "group": 2014,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-75-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-75-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-75-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2014,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-75-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2014,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-75-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2014,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-80": {
+            "file": "xpsp2res.dll",
+            "group": 2014,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-80-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-80-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-80-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2014,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-80-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2014,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-80-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2014,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-available": {
+            "file": "netshell.dll",
+            "group": 190,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-available-symbolic": {
+            "file": "netshell.dll",
+            "group": 190,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected": {
+            "file": "netshell.dll",
+            "group": 190,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-00": {
+            "file": "xpsp2res.dll",
+            "group": 2010,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-00-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-00-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-00-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2010,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-00-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2010,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-00-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2010,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-100": {
+            "file": "xpsp2res.dll",
+            "group": 2015,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-100-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-100-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-100-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2015,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-100-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2015,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-100-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2015,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-20": {
+            "file": "xpsp2res.dll",
+            "group": 2011,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-20-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-20-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-20-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2011,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-20-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2011,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-20-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2011,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-25": {
+            "file": "xpsp2res.dll",
+            "group": 2011,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-25-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-25-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-25-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2011,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-25-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2011,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-25-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2011,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-40": {
+            "file": "xpsp2res.dll",
+            "group": 2012,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-40-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-40-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-40-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2012,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-40-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2012,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-40-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2012,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-50": {
+            "file": "xpsp2res.dll",
+            "group": 2013,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-50-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-50-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-50-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2013,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-50-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2013,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-50-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2013,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-60": {
+            "file": "xpsp2res.dll",
+            "group": 2013,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-60-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-60-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-60-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2013,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-60-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2013,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-60-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2013,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-75": {
+            "file": "xpsp2res.dll",
+            "group": 2014,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-75-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-75-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-75-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2014,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-75-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2014,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-75-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2014,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-80": {
+            "file": "xpsp2res.dll",
+            "group": 2014,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-80-limited": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-80-limited-symbolic": {
+            "file": "netshell.dll",
+            "group": 196,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-connected-80-locked": {
+            "file": "xpsp2res.dll",
+            "group": 2014,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-80-locked-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2014,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-80-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 2014,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "network-wireless-connected-symbolic": {
+            "file": "netshell.dll",
+            "group": 190,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-disconnected": {
+            "file": "netshell.dll",
+            "group": 195,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-disconnected-symbolic": {
+            "file": "netshell.dll",
+            "group": 195,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-off": {
+            "file": "netshell.dll",
+            "group": 195,
+            "sizes": [
+                16
+            ]
+        },
+        "network-wireless-off-symbolic": {
+            "file": "netshell.dll",
+            "group": 195,
+            "sizes": [
+                16
+            ]
+        },
+        "network-workgroup": {
+            "file": "shell32.dll",
+            "group": 18,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "org.kde.dolphin": {
+            "file": "shell32.dll",
+            "group": 4,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "org.mozilla.firefox": {
+            "file": "iexplore.exe",
+            "group": 32528,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "preferences-desktop-accessibility": {
+            "file": "shell32.dll",
+            "group": 268,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "preferences-desktop-display": {
+            "file": "shell32.dll",
+            "group": 250,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "preferences-desktop-font": {
+            "file": "shell32.dll",
+            "group": 39,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "preferences-desktop-sound": {
+            "file": "mmsys.cpl",
+            "group": 3004,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "preferences-desktop-theme": {
+            "file": "shell32.dll",
+            "group": 270,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "preferences-other": {
+            "file": "shell32.dll",
+            "group": 274,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "preferences-system": {
+            "file": "shell32.dll",
+            "group": 22,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "preferences-system-bluetooth": {
+            "file": "xpsp2res.dll",
+            "group": 300,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "preferences-system-bluetooth-symbolic": {
+            "file": "xpsp2res.dll",
+            "group": 300,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "preferences-system-time": {
+            "file": "timedate.cpl",
+            "group": 200,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "preferences-system-users": {
+            "file": "shell32.dll",
+            "group": 269,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "printer": {
+            "file": "shell32.dll",
+            "group": 17,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "printer-network": {
+            "file": "shell32.dll",
+            "group": 17,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "scanner": {
+            "file": "shell32.dll",
+            "group": 316,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "system-file-manager": {
+            "file": "shell32.dll",
+            "group": 4,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "system-reboot-update": {
+            "file": "wuaucpl.cpl",
+            "group": 4,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "system-reboot-update-symbolic": {
+            "file": "wuaucpl.cpl",
+            "group": 4,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "system-run": {
+            "file": "shell32.dll",
+            "group": 160,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "system-search": {
+            "file": "shell32.dll",
+            "group": 23,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "system-users": {
+            "file": "shell32.dll",
+            "group": 269,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "systemsettings": {
+            "file": "shell32.dll",
+            "group": 22,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "text-plain": {
+            "file": "shell32.dll",
+            "group": 152,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "text-x-generic": {
+            "file": "shell32.dll",
+            "group": 152,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "unknown": {
+            "file": "shell32.dll",
+            "group": 1,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "update-high": {
+            "file": "wuaucpl.cpl",
+            "group": 4,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "update-high-symbolic": {
+            "file": "wuaucpl.cpl",
+            "group": 4,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "update-low": {
+            "file": "wuaucpl.cpl",
+            "group": 4,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "update-low-symbolic": {
+            "file": "wuaucpl.cpl",
+            "group": 4,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "update-medium": {
+            "file": "wuaucpl.cpl",
+            "group": 4,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "update-medium-symbolic": {
+            "file": "wuaucpl.cpl",
+            "group": 4,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "update-none": {
+            "file": "wuaucpl.cpl",
+            "group": 3,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "update-none-symbolic": {
+            "file": "wuaucpl.cpl",
+            "group": 3,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "user-bookmarks": {
+            "file": "shell32.dll",
+            "group": 44,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "user-desktop": {
+            "file": "shell32.dll",
+            "group": 35,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "user-home": {
+            "file": "shell32.dll",
+            "group": 235,
+            "sizes": [
+                16,
+                24,
+                32,
+                48
+            ]
+        },
+        "user-trash": {
+            "file": "shell32.dll",
+            "group": 32,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "user-trash-empty": {
+            "file": "shell32.dll",
+            "group": 32,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "user-trash-full": {
+            "file": "shell32.dll",
+            "group": 33,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "value-decrease": {
+            "drawn": true,
+            "sizes": [
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                32
+            ]
+        },
+        "value-increase": {
+            "drawn": true,
+            "sizes": [
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                32
+            ]
+        },
+        "video-display-brightness": {
+            "file": "powercfg.cpl",
+            "group": 203,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "video-display-brightness-symbolic": {
+            "file": "powercfg.cpl",
+            "group": 203,
+            "sizes": [
+                16,
+                32
+            ]
+        },
+        "video-x-generic": {
+            "file": "shell32.dll",
+            "group": 224,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        },
+        "web-browser": {
+            "file": "iexplore.exe",
+            "group": 32528,
+            "sizes": [
+                16,
+                32,
+                48
+            ]
+        }
+    },
+    "pinned": {
+        "battery-000-charging-profile-balanced": "/usr/share/icons/breeze/status/16/battery-000-charging-profile-balanced.svg",
+        "battery-000-charging-profile-performance": "/usr/share/icons/breeze/status/16/battery-000-charging-profile-performance.svg",
+        "battery-000-charging-profile-powersave": "/usr/share/icons/breeze/status/16/battery-000-charging-profile-powersave.svg",
+        "battery-000-profile-balanced": "/usr/share/icons/breeze/status/16/battery-000-profile-balanced.svg",
+        "battery-000-profile-performance": "/usr/share/icons/breeze/status/16/battery-000-profile-performance.svg",
+        "battery-000-profile-powersave": "/usr/share/icons/breeze/status/16/battery-000-profile-powersave.svg",
+        "battery-010-charging-profile-balanced": "/usr/share/icons/breeze/status/16/battery-010-charging-profile-balanced.svg",
+        "battery-010-charging-profile-performance": "/usr/share/icons/breeze/status/16/battery-010-charging-profile-performance.svg",
+        "battery-010-charging-profile-powersave": "/usr/share/icons/breeze/status/16/battery-010-charging-profile-powersave.svg",
+        "battery-010-profile-balanced": "/usr/share/icons/breeze/status/16/battery-010-profile-balanced.svg",
+        "battery-010-profile-performance": "/usr/share/icons/breeze/status/16/battery-010-profile-performance.svg",
+        "battery-010-profile-powersave": "/usr/share/icons/breeze/status/16/battery-010-profile-powersave.svg",
+        "battery-020-charging-profile-balanced": "/usr/share/icons/breeze/status/16/battery-020-charging-profile-balanced.svg",
+        "battery-020-charging-profile-performance": "/usr/share/icons/breeze/status/16/battery-020-charging-profile-performance.svg",
+        "battery-020-charging-profile-powersave": "/usr/share/icons/breeze/status/16/battery-020-charging-profile-powersave.svg",
+        "battery-020-profile-balanced": "/usr/share/icons/breeze/status/16/battery-020-profile-balanced.svg",
+        "battery-020-profile-performance": "/usr/share/icons/breeze/status/16/battery-020-profile-performance.svg",
+        "battery-020-profile-powersave": "/usr/share/icons/breeze/status/16/battery-020-profile-powersave.svg",
+        "battery-030-charging-profile-balanced": "/usr/share/icons/breeze/status/16/battery-030-charging-profile-balanced.svg",
+        "battery-030-charging-profile-performance": "/usr/share/icons/breeze/status/16/battery-030-charging-profile-performance.svg",
+        "battery-030-charging-profile-powersave": "/usr/share/icons/breeze/status/16/battery-030-charging-profile-powersave.svg",
+        "battery-030-profile-balanced": "/usr/share/icons/breeze/status/16/battery-030-profile-balanced.svg",
+        "battery-030-profile-performance": "/usr/share/icons/breeze/status/16/battery-030-profile-performance.svg",
+        "battery-030-profile-powersave": "/usr/share/icons/breeze/status/16/battery-030-profile-powersave.svg",
+        "battery-040-charging-profile-balanced": "/usr/share/icons/breeze/status/16/battery-040-charging-profile-balanced.svg",
+        "battery-040-charging-profile-performance": "/usr/share/icons/breeze/status/16/battery-040-charging-profile-performance.svg",
+        "battery-040-charging-profile-powersave": "/usr/share/icons/breeze/status/16/battery-040-charging-profile-powersave.svg",
+        "battery-040-profile-balanced": "/usr/share/icons/breeze/status/16/battery-040-profile-balanced.svg",
+        "battery-040-profile-performance": "/usr/share/icons/breeze/status/16/battery-040-profile-performance.svg",
+        "battery-040-profile-powersave": "/usr/share/icons/breeze/status/16/battery-040-profile-powersave.svg",
+        "battery-050-charging-profile-balanced": "/usr/share/icons/breeze/status/16/battery-050-charging-profile-balanced.svg",
+        "battery-050-charging-profile-performance": "/usr/share/icons/breeze/status/16/battery-050-charging-profile-performance.svg",
+        "battery-050-charging-profile-powersave": "/usr/share/icons/breeze/status/16/battery-050-charging-profile-powersave.svg",
+        "battery-050-profile-balanced": "/usr/share/icons/breeze/status/16/battery-050-profile-balanced.svg",
+        "battery-050-profile-performance": "/usr/share/icons/breeze/status/16/battery-050-profile-performance.svg",
+        "battery-050-profile-powersave": "/usr/share/icons/breeze/status/16/battery-050-profile-powersave.svg",
+        "battery-060-charging-profile-balanced": "/usr/share/icons/breeze/status/16/battery-060-charging-profile-balanced.svg",
+        "battery-060-charging-profile-performance": "/usr/share/icons/breeze/status/16/battery-060-charging-profile-performance.svg",
+        "battery-060-charging-profile-powersave": "/usr/share/icons/breeze/status/16/battery-060-charging-profile-powersave.svg",
+        "battery-060-profile-balanced": "/usr/share/icons/breeze/status/16/battery-060-profile-balanced.svg",
+        "battery-060-profile-performance": "/usr/share/icons/breeze/status/16/battery-060-profile-performance.svg",
+        "battery-060-profile-powersave": "/usr/share/icons/breeze/status/16/battery-060-profile-powersave.svg",
+        "battery-070-charging-profile-balanced": "/usr/share/icons/breeze/status/16/battery-070-charging-profile-balanced.svg",
+        "battery-070-charging-profile-performance": "/usr/share/icons/breeze/status/16/battery-070-charging-profile-performance.svg",
+        "battery-070-charging-profile-powersave": "/usr/share/icons/breeze/status/16/battery-070-charging-profile-powersave.svg",
+        "battery-070-profile-balanced": "/usr/share/icons/breeze/status/16/battery-070-profile-balanced.svg",
+        "battery-070-profile-performance": "/usr/share/icons/breeze/status/16/battery-070-profile-performance.svg",
+        "battery-070-profile-powersave": "/usr/share/icons/breeze/status/16/battery-070-profile-powersave.svg",
+        "battery-080-charging-profile-balanced": "/usr/share/icons/breeze/status/16/battery-080-charging-profile-balanced.svg",
+        "battery-080-charging-profile-performance": "/usr/share/icons/breeze/status/16/battery-080-charging-profile-performance.svg",
+        "battery-080-charging-profile-powersave": "/usr/share/icons/breeze/status/16/battery-080-charging-profile-powersave.svg",
+        "battery-080-profile-balanced": "/usr/share/icons/breeze/status/16/battery-080-profile-balanced.svg",
+        "battery-080-profile-performance": "/usr/share/icons/breeze/status/16/battery-080-profile-performance.svg",
+        "battery-080-profile-powersave": "/usr/share/icons/breeze/status/16/battery-080-profile-powersave.svg",
+        "battery-090-charging-profile-balanced": "/usr/share/icons/breeze/status/16/battery-090-charging-profile-balanced.svg",
+        "battery-090-charging-profile-performance": "/usr/share/icons/breeze/status/16/battery-090-charging-profile-performance.svg",
+        "battery-090-charging-profile-powersave": "/usr/share/icons/breeze/status/16/battery-090-charging-profile-powersave.svg",
+        "battery-090-profile-balanced": "/usr/share/icons/breeze/status/16/battery-090-profile-balanced.svg",
+        "battery-090-profile-performance": "/usr/share/icons/breeze/status/16/battery-090-profile-performance.svg",
+        "battery-090-profile-powersave": "/usr/share/icons/breeze/status/16/battery-090-profile-powersave.svg",
+        "battery-100-charging-profile-balanced": "/usr/share/icons/breeze/status/16/battery-100-charging-profile-balanced.svg",
+        "battery-100-charging-profile-performance": "/usr/share/icons/breeze/status/16/battery-100-charging-profile-performance.svg",
+        "battery-100-charging-profile-powersave": "/usr/share/icons/breeze/status/16/battery-100-charging-profile-powersave.svg",
+        "battery-100-profile-balanced": "/usr/share/icons/breeze/status/16/battery-100-profile-balanced.svg",
+        "battery-100-profile-performance": "/usr/share/icons/breeze/status/16/battery-100-profile-performance.svg",
+        "battery-100-profile-powersave": "/usr/share/icons/breeze/status/16/battery-100-profile-powersave.svg",
+        "battery-caution-charging-symbolic": "/usr/share/icons/breeze/status/16/battery-caution-charging-symbolic.svg",
+        "battery-empty-charging-symbolic": "/usr/share/icons/breeze/status/16/battery-empty-charging-symbolic.svg",
+        "battery-full-charged-symbolic": "/usr/share/icons/breeze/status/16/battery-full-charged-symbolic.svg",
+        "battery-full-charging-symbolic": "/usr/share/icons/breeze/status/16/battery-full-charging-symbolic.svg",
+        "battery-good-charging-symbolic": "/usr/share/icons/breeze/status/16/battery-good-charging-symbolic.svg",
+        "battery-low-charging-symbolic": "/usr/share/icons/breeze/status/16/battery-low-charging-symbolic.svg",
+        "battery-profile-balanced-symbolic": "/usr/share/icons/breeze/status/16/battery-profile-balanced-symbolic.svg",
+        "battery-profile-performance-symbolic": "/usr/share/icons/breeze/status/22/battery-profile-performance-symbolic.svg",
+        "battery-profile-powersave-symbolic": "/usr/share/icons/breeze/status/22/battery-profile-powersave-symbolic.svg",
+        "battery-ups-symbolic": "/usr/share/icons/breeze/devices/16/battery-ups-symbolic.svg",
+        "camera-off-symbolic": "/usr/share/icons/breeze/status/16/camera-off-symbolic.svg",
+        "camera-on-symbolic": "/usr/share/icons/breeze/status/16/camera-on-symbolic.svg",
+        "camera-photo-symbolic": "/usr/share/icons/breeze/devices/16/camera-photo-symbolic.svg",
+        "camera-ready-symbolic": "/usr/share/icons/breeze/status/16/camera-ready-symbolic.svg",
+        "camera-video-symbolic": "/usr/share/icons/breeze/devices/16/camera-video-symbolic.svg",
+        "camera-web-symbolic": "/usr/share/icons/breeze/devices/16/camera-web-symbolic.svg",
+        "input-keyboard-virtual-hide-symbolic": "/usr/share/icons/breeze/actions/22/input-keyboard-virtual-hide-symbolic.svg",
+        "input-keyboard-virtual-off-symbolic": "/usr/share/icons/breeze/status/22/input-keyboard-virtual-off-symbolic.svg",
+        "input-keyboard-virtual-on-symbolic": "/usr/share/icons/breeze/status/22/input-keyboard-virtual-on-symbolic.svg",
+        "input-keyboard-virtual-show-symbolic": "/usr/share/icons/breeze/actions/22/input-keyboard-virtual-show-symbolic.svg",
+        "input-keyboard-virtual-symbolic": "/usr/share/icons/breeze/devices/16/input-keyboard-virtual-symbolic.svg",
+        "input-touchpad-off-symbolic": "/usr/share/icons/breeze/status/22/input-touchpad-off-symbolic.svg",
+        "input-touchpad-on-symbolic": "/usr/share/icons/breeze/status/22/input-touchpad-on-symbolic.svg",
+        "input-touchpad-symbolic": "/usr/share/icons/breeze/devices/16/input-touchpad-symbolic.svg",
+        "kdeconnect-symbolic": "/usr/share/icons/breeze/apps/16/kdeconnect-symbolic.svg",
+        "kdeconnect-tray-symbolic": "/usr/share/icons/breeze/status/16/kdeconnect-tray-symbolic.svg",
+        "media-playback-pause-symbolic": "/usr/share/icons/breeze/actions/16/media-playback-pause-symbolic.svg",
+        "media-playback-paused-symbolic": "/usr/share/icons/breeze/status/16/media-playback-paused-symbolic.svg",
+        "media-playback-playing-symbolic": "/usr/share/icons/breeze/status/16/media-playback-playing-symbolic.svg",
+        "media-playback-start-symbolic": "/usr/share/icons/breeze/actions/16/media-playback-start-symbolic.svg",
+        "media-playback-stop-symbolic": "/usr/share/icons/breeze/actions/16/media-playback-stop-symbolic.svg",
+        "media-playback-stopped-symbolic": "/usr/share/icons/breeze/status/16/media-playback-stopped-symbolic.svg",
+        "network-bluetooth-activated-locked-symbolic": "/usr/share/icons/breeze/status/22/network-bluetooth-activated-locked-symbolic.svg",
+        "network-bluetooth-inactive-symbolic": "/usr/share/icons/breeze/status/22/network-bluetooth-inactive-symbolic.svg",
+        "network-connect-symbolic": "/usr/share/icons/breeze/actions/16/network-connect-symbolic.svg",
+        "network-disconnect-symbolic": "/usr/share/icons/breeze/actions/16/network-disconnect-symbolic.svg",
+        "network-flightmode-off-symbolic": "/usr/share/icons/breeze/status/22/network-flightmode-off-symbolic.svg",
+        "network-flightmode-on-symbolic": "/usr/share/icons/breeze/status/22/network-flightmode-on-symbolic.svg",
+        "network-limited-symbolic": "/usr/share/icons/breeze/status/22/network-limited-symbolic.svg",
+        "network-mobile-0-edge-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-0-edge-locked-symbolic.svg",
+        "network-mobile-0-edge-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-0-edge-symbolic.svg",
+        "network-mobile-0-gprs-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-0-gprs-locked-symbolic.svg",
+        "network-mobile-0-gprs-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-0-gprs-symbolic.svg",
+        "network-mobile-0-hsdpa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-0-hsdpa-locked-symbolic.svg",
+        "network-mobile-0-hsdpa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-0-hsdpa-symbolic.svg",
+        "network-mobile-0-hspa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-0-hspa-locked-symbolic.svg",
+        "network-mobile-0-hspa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-0-hspa-symbolic.svg",
+        "network-mobile-0-hsupa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-0-hsupa-locked-symbolic.svg",
+        "network-mobile-0-hsupa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-0-hsupa-symbolic.svg",
+        "network-mobile-0-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-0-locked-symbolic.svg",
+        "network-mobile-0-lte-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-0-lte-locked-symbolic.svg",
+        "network-mobile-0-lte-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-0-lte-symbolic.svg",
+        "network-mobile-0-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-0-symbolic.svg",
+        "network-mobile-0-umts-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-0-umts-locked-symbolic.svg",
+        "network-mobile-0-umts-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-0-umts-symbolic.svg",
+        "network-mobile-100-edge-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-100-edge-locked-symbolic.svg",
+        "network-mobile-100-edge-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-100-edge-symbolic.svg",
+        "network-mobile-100-gprs-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-100-gprs-locked-symbolic.svg",
+        "network-mobile-100-gprs-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-100-gprs-symbolic.svg",
+        "network-mobile-100-hsdpa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-100-hsdpa-locked-symbolic.svg",
+        "network-mobile-100-hsdpa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-100-hsdpa-symbolic.svg",
+        "network-mobile-100-hspa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-100-hspa-locked-symbolic.svg",
+        "network-mobile-100-hspa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-100-hspa-symbolic.svg",
+        "network-mobile-100-hsupa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-100-hsupa-locked-symbolic.svg",
+        "network-mobile-100-hsupa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-100-hsupa-symbolic.svg",
+        "network-mobile-100-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-100-locked-symbolic.svg",
+        "network-mobile-100-lte-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-100-lte-locked-symbolic.svg",
+        "network-mobile-100-lte-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-100-lte-symbolic.svg",
+        "network-mobile-100-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-100-symbolic.svg",
+        "network-mobile-100-umts-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-100-umts-locked-symbolic.svg",
+        "network-mobile-100-umts-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-100-umts-symbolic.svg",
+        "network-mobile-20-edge-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-20-edge-locked-symbolic.svg",
+        "network-mobile-20-edge-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-20-edge-symbolic.svg",
+        "network-mobile-20-gprs-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-20-gprs-locked-symbolic.svg",
+        "network-mobile-20-gprs-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-20-gprs-symbolic.svg",
+        "network-mobile-20-hsdpa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-20-hsdpa-locked-symbolic.svg",
+        "network-mobile-20-hsdpa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-20-hsdpa-symbolic.svg",
+        "network-mobile-20-hspa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-20-hspa-locked-symbolic.svg",
+        "network-mobile-20-hspa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-20-hspa-symbolic.svg",
+        "network-mobile-20-hsupa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-20-hsupa-locked-symbolic.svg",
+        "network-mobile-20-hsupa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-20-hsupa-symbolic.svg",
+        "network-mobile-20-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-20-locked-symbolic.svg",
+        "network-mobile-20-lte-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-20-lte-locked-symbolic.svg",
+        "network-mobile-20-lte-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-20-lte-symbolic.svg",
+        "network-mobile-20-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-20-symbolic.svg",
+        "network-mobile-20-umts-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-20-umts-locked-symbolic.svg",
+        "network-mobile-20-umts-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-20-umts-symbolic.svg",
+        "network-mobile-40-edge-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-40-edge-locked-symbolic.svg",
+        "network-mobile-40-edge-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-40-edge-symbolic.svg",
+        "network-mobile-40-gprs-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-40-gprs-locked-symbolic.svg",
+        "network-mobile-40-gprs-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-40-gprs-symbolic.svg",
+        "network-mobile-40-hsdpa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-40-hsdpa-locked-symbolic.svg",
+        "network-mobile-40-hsdpa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-40-hsdpa-symbolic.svg",
+        "network-mobile-40-hspa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-40-hspa-locked-symbolic.svg",
+        "network-mobile-40-hspa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-40-hspa-symbolic.svg",
+        "network-mobile-40-hsupa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-40-hsupa-locked-symbolic.svg",
+        "network-mobile-40-hsupa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-40-hsupa-symbolic.svg",
+        "network-mobile-40-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-40-locked-symbolic.svg",
+        "network-mobile-40-lte-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-40-lte-locked-symbolic.svg",
+        "network-mobile-40-lte-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-40-lte-symbolic.svg",
+        "network-mobile-40-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-40-symbolic.svg",
+        "network-mobile-40-umts-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-40-umts-locked-symbolic.svg",
+        "network-mobile-40-umts-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-40-umts-symbolic.svg",
+        "network-mobile-60-edge-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-60-edge-locked-symbolic.svg",
+        "network-mobile-60-edge-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-60-edge-symbolic.svg",
+        "network-mobile-60-gprs-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-60-gprs-locked-symbolic.svg",
+        "network-mobile-60-gprs-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-60-gprs-symbolic.svg",
+        "network-mobile-60-hsdpa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-60-hsdpa-locked-symbolic.svg",
+        "network-mobile-60-hsdpa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-60-hsdpa-symbolic.svg",
+        "network-mobile-60-hspa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-60-hspa-locked-symbolic.svg",
+        "network-mobile-60-hspa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-60-hspa-symbolic.svg",
+        "network-mobile-60-hsupa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-60-hsupa-locked-symbolic.svg",
+        "network-mobile-60-hsupa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-60-hsupa-symbolic.svg",
+        "network-mobile-60-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-60-locked-symbolic.svg",
+        "network-mobile-60-lte-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-60-lte-locked-symbolic.svg",
+        "network-mobile-60-lte-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-60-lte-symbolic.svg",
+        "network-mobile-60-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-60-symbolic.svg",
+        "network-mobile-60-umts-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-60-umts-locked-symbolic.svg",
+        "network-mobile-60-umts-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-60-umts-symbolic.svg",
+        "network-mobile-80-edge-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-80-edge-locked-symbolic.svg",
+        "network-mobile-80-edge-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-80-edge-symbolic.svg",
+        "network-mobile-80-gprs-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-80-gprs-locked-symbolic.svg",
+        "network-mobile-80-gprs-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-80-gprs-symbolic.svg",
+        "network-mobile-80-hsdpa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-80-hsdpa-locked-symbolic.svg",
+        "network-mobile-80-hsdpa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-80-hsdpa-symbolic.svg",
+        "network-mobile-80-hspa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-80-hspa-locked-symbolic.svg",
+        "network-mobile-80-hspa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-80-hspa-symbolic.svg",
+        "network-mobile-80-hsupa-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-80-hsupa-locked-symbolic.svg",
+        "network-mobile-80-hsupa-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-80-hsupa-symbolic.svg",
+        "network-mobile-80-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-80-locked-symbolic.svg",
+        "network-mobile-80-lte-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-80-lte-locked-symbolic.svg",
+        "network-mobile-80-lte-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-80-lte-symbolic.svg",
+        "network-mobile-80-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-80-symbolic.svg",
+        "network-mobile-80-umts-locked-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-80-umts-locked-symbolic.svg",
+        "network-mobile-80-umts-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-80-umts-symbolic.svg",
+        "network-mobile-available-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-available-symbolic.svg",
+        "network-mobile-off-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-off-symbolic.svg",
+        "network-mobile-on-symbolic": "/usr/share/icons/breeze/status/22/network-mobile-on-symbolic.svg",
+        "network-modem-symbolic": "/usr/share/icons/breeze/devices/16/network-modem-symbolic.svg",
+        "network-offline-symbolic": "/usr/share/icons/breeze/status/16/network-offline-symbolic.svg",
+        "network-rj11-female-symbolic": "/usr/share/icons/breeze/devices/16/network-rj11-female-symbolic.svg",
+        "network-rj45-female-symbolic": "/usr/share/icons/breeze/devices/16/network-rj45-female-symbolic.svg",
+        "network-server-database-symbolic": "/usr/share/icons/breeze/places/16/network-server-database-symbolic.svg",
+        "network-server-symbolic": "/usr/share/icons/breeze/places/16/network-server-symbolic.svg",
+        "network-vpn-symbolic": "/usr/share/icons/breeze/devices/16/network-vpn-symbolic.svg",
+        "network-wired-disconnected-symbolic": "/usr/share/icons/breeze/status/22/network-wired-disconnected-symbolic.svg",
+        "network-wireless-acquiring-symbolic": "/usr/share/icons/breeze/status/22/network-wireless-acquiring-symbolic.svg",
+        "network-wireless-bluetooth-symbolic": "/usr/share/icons/breeze/devices/16/network-wireless-bluetooth-symbolic.svg",
+        "network-wireless-hotspot-symbolic": "/usr/share/icons/breeze/devices/16/network-wireless-hotspot-symbolic.svg",
+        "network-wireless-signal-excellent-symbolic": "/usr/share/icons/breeze/status/22/network-wireless-signal-excellent-symbolic.svg",
+        "network-wireless-signal-good-symbolic": "/usr/share/icons/breeze/status/22/network-wireless-signal-good-symbolic.svg",
+        "network-wireless-signal-none-symbolic": "/usr/share/icons/breeze/status/22/network-wireless-signal-none-symbolic.svg",
+        "network-wireless-signal-ok-symbolic": "/usr/share/icons/breeze/status/22/network-wireless-signal-ok-symbolic.svg",
+        "network-wireless-signal-weak-symbolic": "/usr/share/icons/breeze/status/22/network-wireless-signal-weak-symbolic.svg",
+        "network-wireless-symbolic": "/usr/share/icons/breeze/devices/16/network-wireless-symbolic.svg",
+        "network-workgroup-symbolic": "/usr/share/icons/breeze/places/16/network-workgroup-symbolic.svg",
+        "notification-active-symbolic": "/usr/share/icons/breeze/actions/22/notification-active-symbolic.svg",
+        "notification-disabled-symbolic": "/usr/share/icons/breeze/actions/22/notification-disabled-symbolic.svg",
+        "notification-inactive-symbolic": "/usr/share/icons/breeze/actions/22/notification-inactive-symbolic.svg",
+        "notifications-disabled-symbolic": "/usr/share/icons/breeze/actions/16/notifications-disabled-symbolic.svg",
+        "notifications-symbolic": "/usr/share/icons/breeze/actions/16/notifications-symbolic.svg",
+        "plasmavault-symbolic": "/usr/share/icons/breeze/apps/16/plasmavault-symbolic.svg",
+        "preferences-desktop-display-randr-symbolic": "/usr/share/icons/breeze/preferences/22/preferences-desktop-display-randr-symbolic.svg",
+        "redshift-status-day-symbolic": "/usr/share/icons/breeze/status/22/redshift-status-day-symbolic.svg",
+        "redshift-status-off-symbolic": "/usr/share/icons/breeze/status/22/redshift-status-off-symbolic.svg",
+        "redshift-status-on-symbolic": "/usr/share/icons/breeze/status/22/redshift-status-on-symbolic.svg",
+        "state-download-symbolic": "/usr/share/icons/breeze/status/16/state-download-symbolic.svg",
+        "state-error-symbolic": "/usr/share/icons/breeze/status/16/state-error-symbolic.svg",
+        "state-fork-symbolic": "/usr/share/icons/breeze/actions/16/state-fork-symbolic.svg",
+        "state-information-symbolic": "/usr/share/icons/breeze/status/16/state-information-symbolic.svg",
+        "state-offline-symbolic": "/usr/share/icons/breeze/status/16/state-offline-symbolic.svg",
+        "state-ok-symbolic": "/usr/share/icons/breeze/status/16/state-ok-symbolic.svg",
+        "state-pause-symbolic": "/usr/share/icons/breeze/status/16/state-pause-symbolic.svg",
+        "state-sync-symbolic": "/usr/share/icons/breeze/status/16/state-sync-symbolic.svg",
+        "state-warning-symbolic": "/usr/share/icons/breeze/status/16/state-warning-symbolic.svg",
+        "stateshape-symbolic": "/usr/share/icons/breeze/actions/16/stateshape-symbolic.svg",
+        "statetool-symbolic": "/usr/share/icons/breeze/actions/16/statetool-symbolic.svg",
+        "system-software-update": "/usr/share/icons/breeze/status/22/system-software-update.svg"
+    }
+}

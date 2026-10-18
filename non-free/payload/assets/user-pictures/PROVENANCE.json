@@ -1,0 +1,126 @@
+{
+  "source": "User-supplied Windows XP SP3 ISO",
+  "copyright": "Microsoft Corporation; not covered by the code license",
+  "pictures": [
+    {
+      "file": "xp-airplane.png",
+      "source": "I386/AIRPLANE.BM_",
+      "sha256": "a53affe8b7ba35245887bbece50380aa4365bc014c7835e2ed2cb23996280ea3"
+    },
+    {
+      "file": "xp-astronaut.png",
+      "source": "I386/ASTRO.BM_",
+      "sha256": "e38c7a49a3d507a9415213fa4d7a995d74eb908b199f00b7787cd42406fdc226"
+    },
+    {
+      "file": "xp-beach.png",
+      "source": "I386/BEACH.BM_",
+      "sha256": "da0ce8d8057fbff49ad1d0ca6ab68c0c2ad18e079e7d300679bfdb16094a6b8b"
+    },
+    {
+      "file": "xp-butterfly.png",
+      "source": "I386/BUTTERFL.BM_",
+      "sha256": "549aadcee641dd3bf3b5b8fb1251b7b5039dc976a038b503ab1d017b7879966f"
+    },
+    {
+      "file": "xp-car.png",
+      "source": "I386/CAR.BM_",
+      "sha256": "d4853c6ee6b91abcb7ac6c3fc7dd695e0a913418255193073e7f9433d36db675"
+    },
+    {
+      "file": "xp-cat.png",
+      "source": "I386/CAT.BM_",
+      "sha256": "d18e2243b7fa48f10e114edffdca00a2e212a14a053e76fb5394ff6141eed264"
+    },
+    {
+      "file": "xp-chess.png",
+      "source": "I386/CHESS.BM_",
+      "sha256": "fee776c04c0b672094790a4a406e5550d269216858accc884e93e3ee4032bdff"
+    },
+    {
+      "file": "xp-dirtbike.png",
+      "source": "I386/DIRTBIKE.BM_",
+      "sha256": "37d24beb631d2f7fed4ccbde685de689aa44d452fa5f09013c4b937732b30181"
+    },
+    {
+      "file": "xp-dog.png",
+      "source": "I386/DOG.BM_",
+      "sha256": "447398a1c1220bedcaffa3357ed8a995e254af6f7ac1f58aa1a0a888966ead67"
+    },
+    {
+      "file": "xp-drip.png",
+      "source": "I386/DRIP.BM_",
+      "sha256": "8af6e05b5c87dff8776f2f078cbe2356e5be8023f8d506137b2358c13f50b23d"
+    },
+    {
+      "file": "xp-duck.png",
+      "source": "I386/DUCK.BM_",
+      "sha256": "ce4e94132ca1a779cad3eb32f8f468be6b7071d66841eb8e299bd6277cf015fc"
+    },
+    {
+      "file": "xp-fish.png",
+      "source": "I386/FISH.BM_",
+      "sha256": "25da07c4c804418ffbde163d0aba9c508016addd1cd3872065e58453269a90fa"
+    },
+    {
+      "file": "xp-frog.png",
+      "source": "I386/FROG.BM_",
+      "sha256": "e4a4c8e4ce90b5f079a23e3d5cd749e2b4378d6e028f8714e70f1ed12f8b5c78"
+    },
+    {
+      "file": "xp-guest.png",
+      "source": "I386/GUEST.BM_",
+      "sha256": "b393d4f61ca0f70a766393c0e4984c43d2364518701304551d01bf832eb9e726"
+    },
+    {
+      "file": "xp-guitar.png",
+      "source": "I386/GUITAR.BM_",
+      "sha256": "23598756007111e20bd07cd29710be6190a5101db0734834988ca44b5d7de291"
+    },
+    {
+      "file": "xp-horses.png",
+      "source": "I386/HORSES.BM_",
+      "sha256": "8a16f1471acd49ab186a3be8daf87f9667a9d5c23b65a7432f819a2424349414"
+    },
+    {
+      "file": "xp-kick.png",
+      "source": "I386/KICK.BM_",
+      "sha256": "febc97bba0f9a5645ed77592cc09e568421651ab789ac61ee7f72291fb6a9c67"
+    },
+    {
+      "file": "xp-lift-off.png",
+      "source": "I386/LIFTOFF.BM_",
+      "sha256": "d2179950df010660e851dae313594fbbee8b2afba5f5c9bbfb223c6babaff6b2"
+    },
+    {
+      "file": "xp-palm-tree.png",
+      "source": "I386/PALMTREE.BM_",
+      "sha256": "37509df1ba539a66947ceac8b796ed4102794cdbc6e94b25d1eff7c47097d26d"
+    },
+    {
+      "file": "xp-pink-flower.png",
+      "source": "I386/PNKFLOWR.BM_",
+      "sha256": "289e4c6fd3efaa6ea669803bffe96f8f0fd099d607fe5f26bfe902ae652a9a46"
+    },
+    {
+      "file": "xp-red-flower.png",
+      "source": "I386/REDFLOWR.BM_",
+      "sha256": "2737ca8bb4c7aa39eee30cdf18be96596799e90f0cc5d360d7d8d9190e0eaa20"
+    },
+    {
+      "file": "xp-skater.png",
+      "source": "I386/SKATER.BM_",
+      "sha256": "e03a1b7d9962cad43070ee49af2847611523697bcac98cc24c50d79a10b25c34"
+    },
+    {
+      "file": "xp-snowflake.png",
+      "source": "I386/SNWFLAKE.BM_",
+      "sha256": "10e693e5f4b08141817ecc0037ec13c41e20454cde98aa2e3ad866d75ecb59dc"
+    },
+    {
+      "file": "xp-ball.png",
+      "source": "I386/SOCCER.BM_",
+      "sha256": "e332bf34b40e8cc9e9fffc33386229518edfd22fdb7501d24c0a1b3bb9307de0"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "build": 2600,
+  "ppem": 25,
+  "weight": 700,
+  "ascent": 25,
+  "descent": 5,
+  "source_ppem": 11,
+  "family": "XPlasma Tahoma Pixel 25",
+  "style": "Bold",
+  "characters": 1914,
+  "glyphs": 1810,
+  "capture_sha256": "1e67ec7c7edf408a0aab5a5b305cd3f649cbb8b286ddaec7ef5ca7f2c92568f6",
+  "renderer": "Windows XP GDI GetGlyphOutlineW GGO_BITMAP",
+  "output_sha256": "d79043def6fe6117deff5cd797ab6bf076cb3f7f01aef4d6e05b13b993212f73",
+  "optimization": "stem-balanced integer grid; baseline anchored; topology preserved",
+  "target_ppem": 25,
+  "stem_constraints": 4132,
+  "balanced_stems": 4114
+}

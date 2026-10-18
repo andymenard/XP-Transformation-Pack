@@ -1,0 +1,7 @@
+[Sound Theme]
+Name=Windows Default (XP)
+Comment=Windows XP's sounds, set by XPlasma Properties
+Directories=stereo
+
+[stereo]
+OutputProfile=stereo
