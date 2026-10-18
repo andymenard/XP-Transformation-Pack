@@ -202,6 +202,8 @@ class Installer(QtWidgets.QMainWindow):
   self.remove.setEnabled(not running and ((STATE/'installation.json').exists() or (STATE/'incomplete.json').exists()))
  def start(self,action):
   if self.test_mode:return
+  # (Installing and rebuilding restart the desktop: open programs can lose work.)
+  if action in ('install','rebuild') and self.close_programs_question().exec()!=QtWidgets.QMessageBox.StandardButton.Ok:return
   args=['-u',str(BASE/'backend.py'),action]
   if action=='uninstall':
    box=self.removal_question()
@@ -217,6 +219,13 @@ class Installer(QtWidgets.QMainWindow):
   self.process=QtCore.QProcess(self);self.process.setProcessChannelMode(QtCore.QProcess.ProcessChannelMode.MergedChannels)
   self.process.readyReadStandardOutput.connect(self.read_output);self.process.finished.connect(self.finished)
   self.process.errorOccurred.connect(self.process_error);self.process.start(sys.executable,args);self.update_summary()
+ def close_programs_question(self):
+  box=QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning,'Close other programs',
+   'Please close all other programs before continuing.\n\n'
+   'Setup restarts the desktop while it installs, so save your work and close any open programs, then click Continue.',
+   QtWidgets.QMessageBox.StandardButton.Ok|QtWidgets.QMessageBox.StandardButton.Cancel,self)
+  box.button(QtWidgets.QMessageBox.StandardButton.Ok).setText('Continue')
+  return box
  def removal_question(self):
   box=QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Question,'Remove XP features',
    'Restore the settings from before the installation and remove the XP looks it made, including those made in Properties since? '
@@ -247,6 +256,7 @@ class Installer(QtWidgets.QMainWindow):
   self.tree.setEnabled(True);self.theme.setEnabled(True);self.close_button.setEnabled(True);self.lock_installed();self.update_summary()
   if code==0:
    message='Rebuild complete. The XP taskbar is back, with your theme and settings. No logout or reboot was performed.' if self.current_action=='rebuild' else ('Upgrade complete. Your theme and settings were kept. Reopen applications to load the new version. No logout or reboot was performed.' if self.upgrading else 'Installation complete. Reopen applications to load the themes. No logout or reboot was performed.') if self.current_action=='install' else 'Managed XP features removed. Reopen applications to refresh them.'
+   if self.current_action in ('install','rebuild'):message+=' Please log out and back in for all changes to take effect.'
    if self.current_action=='install' and set(self.selected())&{'codex_colors','clippy'}:message+=' Restart Codex; type /pet if Clippy is hidden.'
    self.status.setText(message);QtWidgets.QMessageBox.information(self,'Complete',message)
   else:
