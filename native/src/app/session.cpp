@@ -9,6 +9,7 @@
 #include <QProcess>
 #include <QThread>
 
+#include <ctime>
 #include <unistd.h>
 
 namespace xpl {
@@ -91,6 +92,30 @@ bool Session::ensurePlasmaShell(QString *why, int ms)
     return false;
 }
 
+void Session::settlePlasmaShell(bool systemd, const QString &unit)
+{
+    // A shell stopped within moments of starting can crash on its way out
+    // (Plasma 6.7): its wallpaper's image, still decoding on a worker thread,
+    // lands after the application is gone, and KCrash aborts it. An apply
+    // restarts it twice in a row (the artwork, then the panel's order), and
+    // its scripting answers, desktop and all, before the wallpaper is drawn.
+    // So it's left up a few seconds first: since systemd started it, or
+    // failing that, since this session did.
+    qint64 up = -1;
+    if (systemd) {
+        const qint64 since = QString::fromUtf8(run({QStringLiteral("systemctl"), QStringLiteral("--user"), QStringLiteral("show"), unit,
+                                                    QStringLiteral("-p"), QStringLiteral("ActiveEnterTimestampMonotonic"), QStringLiteral("--value")}).out)
+                                 .trimmed().toLongLong();
+        timespec now{};
+        if (since > 0 && clock_gettime(CLOCK_MONOTONIC, &now) == 0)
+            up = (qint64(now.tv_sec) * 1000000 + now.tv_nsec / 1000 - since) / 1000;
+    }
+    if (up < 0 && m_shellStarted.isValid())
+        up = m_shellStarted.elapsed();
+    if (up >= 0 && up < shellSettleMs)
+        QThread::msleep(ulong(shellSettleMs - up));
+}
+
 void Session::restartPlasmaShell(const std::function<void()> &whileStopped)
 {
     // KRunner also keeps renderers for Plasma's active SVG theme. Unload
@@ -110,8 +135,10 @@ void Session::restartPlasmaShell(const std::function<void()> &whileStopped)
     const bool running = systemd
         ? QString::fromUtf8(run({QStringLiteral("systemctl"), QStringLiteral("--user"), QStringLiteral("is-active"), unit}).out).trimmed().startsWith(QLatin1String("activ"))
         : run({QStringLiteral("pgrep"), QStringLiteral("-u"), QString::number(getuid()), QStringLiteral("-x"), QStringLiteral("plasmashell")}).ok();
-    if (running)
+    if (running) {
         waitForPlasmaShell();
+        settlePlasmaShell(systemd, unit);
+    }
     // (Without systemd, the new shell is started from here -- in the old
     // one's environment, the session's, whatever this program was run from.)
     QStringList sessionEnv;
@@ -139,6 +166,7 @@ void Session::restartPlasmaShell(const std::function<void()> &whileStopped)
     } else {
         startDetached({QStringLiteral("plasmashell")}, sessionEnv);
     }
+    m_shellStarted.start();
     waitForPlasmaShell();
 }
 
