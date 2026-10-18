@@ -245,7 +245,6 @@ QString customLuna(const QString &source, const std::array<QColor, 4> &colours,
     auto elementTone=[](const auto &elements,const QStringList &ids){for(const auto &id:ids)for(const auto &entry:elements)if(entry.first==id && !entry.second.isNull())return imageTone(entry.second.scaled(32,32,Qt::IgnoreAspectRatio,Qt::SmoothTransformation));return .5;};
     const qreal titleTone=imageTone(decoration.element("decoration-top").scaled(32,32,Qt::IgnoreAspectRatio,Qt::SmoothTransformation));
     const qreal panelTone=elementTone(panel.panel,{"south-normal-center","south-center","center"});
-    const qreal trayTone=elementTone(panel.tray,{"tray-center","clock-center","center"});
     const qreal taskTone=elementTone(panel.tasks,{"normal-center","center"});
     QHash<QString, int> roles;
     QHash<QString, QString> surfaces;
@@ -339,8 +338,10 @@ QString customLuna(const QString &source, const std::array<QColor, 4> &colours,
         if(part==2)tone=titleTone;
         if(part==1){
             const auto section=surfaces.value(n);
-            if(section.startsWith("taskbar"))tone=panelTone;
-            else if(section.startsWith("traynotify") || section.startsWith("clock"))tone=trayTone;
+            // (The tray is shaded against the taskbar's tone, not its own: what
+            // the style draws lighter there -- Luna Blue's lighter notification
+            // area -- stays lighter than the taskbar in the new colour too.)
+            if(section.startsWith("taskbar") || section.startsWith("traynotify") || section.startsWith("clock"))tone=panelTone;
             else if(section.startsWith("taskband") || section.startsWith("task::"))tone=taskTone;
         }
         if(part==3 || part==4){
