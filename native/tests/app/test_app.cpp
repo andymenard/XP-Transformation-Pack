@@ -2541,15 +2541,17 @@ private Q_SLOTS:
         QVERIFY(before && after);
         int protectedImages=0;
         // Button symbols keep their art; only what the style's blue made (an
-        // inactive symbol's tint) turns grey, readable on any colour.
+        // inactive symbol's tint) turns grey, readable on any colour. The
+        // scrollbar arrows take neutral ink contrasting with their face.
         static const QRegularExpression buttonSymbol(QStringLiteral("(CLOSE|MINIMIZE|MAXIMIZE|RESTORE|HELP)GLYPH"));
         for(const auto &name:before->bitmapNames()) if(name.contains(QLatin1String("GLYPH"))) {
             const bool symbol=buttonSymbol.match(name).hasMatch();
+            const bool scrollArrow=name.contains(QLatin1String("SCROLLARROWGLYPH"));
             const QImage original=before->bitmap(name).image.convertToFormat(QImage::Format_RGB32),changed=after->bitmap(name).image.convertToFormat(QImage::Format_RGB32);
             QCOMPARE(changed.size(),original.size());
             for(int y=0;y<original.height();++y)for(int x=0;x<original.width();++x){
                 const QRgb was=original.pixel(x,y),now=changed.pixel(x,y);
-                if(symbol && lunaBlueMade(was))QVERIFY2(qRed(now)==qGreen(now) && qGreen(now)==qBlue(now),qPrintable(name));
+                if((symbol && lunaBlueMade(was)) || (scrollArrow && now!=was))QVERIFY2(qRed(now)==qGreen(now) && qGreen(now)==qBlue(now),qPrintable(name));
                 else QVERIFY2(now==was,qPrintable(name));
             }
             ++protectedImages;
