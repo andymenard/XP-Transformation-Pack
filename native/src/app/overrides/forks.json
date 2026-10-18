@@ -66,6 +66,14 @@
      "taskmanager/main.qml": "qml/main.qml",
      "taskmanager/Task.qml": "qml/Task.qml",
      "taskmanager/code/layoutmetrics.js": "qml/code/LayoutMetrics.js"
+    },
+    "extras": {
+     "XpTextStyle.qml": "qml/XpTextStyle.qml"
+    },
+    "register": {
+     "": [
+      "qml/XpTextStyle.qml"
+     ]
     }
    },
    {
@@ -164,6 +172,10 @@
     {
      "find": "            bottomMargin: taskFrame.margins.bottom\n        }\n\n        wrapMode",
      "replace": "            bottomMargin: taskFrame.margins.bottom + (task.tasksRoot.xpTaskband && !task.inPopup ? 1 : 0)\n        }\n\n        wrapMode"
+    },
+    {
+     "find": "        id: label\n",
+     "replace": "        id: label\n{{crisp-label}}"
     }
    ]
   }
@@ -235,6 +247,14 @@
      "taskmanager/main.qml": "qml/main.qml",
      "taskmanager/Task.qml": "qml/Task.qml",
      "taskmanager/code/layoutmetrics.js": "qml/code/LayoutMetrics.js"
+    },
+    "extras": {
+     "XpTextStyle.qml": "qml/XpTextStyle.qml"
+    },
+    "register": {
+     "": [
+      "qml/XpTextStyle.qml"
+     ]
     }
    },
    {
@@ -333,6 +353,10 @@
     {
      "find": "            bottomMargin: taskFrame.margins.bottom\n        }\n\n        wrapMode",
      "replace": "            bottomMargin: taskFrame.margins.bottom + (task.tasksRoot.xpTaskband && !task.inPopup ? 1 : 0)\n        }\n\n        wrapMode"
+    },
+    {
+     "find": "        id: label\n",
+     "replace": "        id: label\n{{crisp-label}}"
     }
    ]
   }
@@ -404,6 +428,14 @@
      "taskmanager/main.qml": "qml/main.qml",
      "taskmanager/Task.qml": "qml/Task.qml",
      "taskmanager/code/layoutmetrics.js": "qml/code/LayoutMetrics.js"
+    },
+    "extras": {
+     "XpTextStyle.qml": "qml/XpTextStyle.qml"
+    },
+    "register": {
+     "": [
+      "qml/XpTextStyle.qml"
+     ]
     }
    },
    {
@@ -502,6 +534,10 @@
     {
      "find": "            bottomMargin: taskFrame.margins.bottom\n        }\n\n        wrapMode",
      "replace": "            bottomMargin: taskFrame.margins.bottom + (task.tasksRoot.xpTaskband && !task.inPopup ? 1 : 0)\n        }\n\n        wrapMode"
+    },
+    {
+     "find": "        id: label\n",
+     "replace": "        id: label\n{{crisp-label}}"
     }
    ]
   }

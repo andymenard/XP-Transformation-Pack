@@ -142,7 +142,8 @@ const QList<Widget> kPanelWidgets{
      {QStringLiteral("main.qml"), QStringLiteral("items/AbstractItem.qml")}, {},
      {QStringLiteral("XpNotificationIcons.qml")}},
     {QStringLiteral("org.kde.plasma.taskmanager"), QStringLiteral("taskmanager"),
-     {QStringLiteral("main.qml"), QStringLiteral("Task.qml"), QStringLiteral("code/layoutmetrics.js")}, {}, {}},
+     {QStringLiteral("main.qml"), QStringLiteral("Task.qml"), QStringLiteral("code/layoutmetrics.js")}, {},
+     {QStringLiteral("XpTextStyle.qml")}},
     // The panel itself (a containment): the taskbar's colours for every
     // widget on it, not only those XPlasma patches.
     {QStringLiteral("org.kde.panel"), QStringLiteral("panel"), {QStringLiteral("main.qml")}, {}, {}},
@@ -340,7 +341,7 @@ bool installDesktopMenu(const QString &plasmoids, const QString &editor, QString
 {
     return installWidgets(plasmoids,
                           {{kDesktopId, QStringLiteral("desktopcontainment"), {QStringLiteral("FolderViewLayer.qml"), QStringLiteral("FolderView.qml"), QStringLiteral("FolderItemDelegate.qml")},
-                            {{QStringLiteral("LAUNCH"), launchLiteral(editor)}}, {}}},
+                            {{QStringLiteral("LAUNCH"), launchLiteral(editor)}}, {QStringLiteral("XpTextStyle.qml")}}},
                           error);
 }
 
@@ -348,7 +349,7 @@ bool checkDesktopMenu(const QString &plasmoids, QString *error)
 {
     return installWidgets(plasmoids,
                           {{kDesktopId, QStringLiteral("desktopcontainment"), {QStringLiteral("FolderViewLayer.qml"), QStringLiteral("FolderView.qml"), QStringLiteral("FolderItemDelegate.qml")},
-                            {{QStringLiteral("LAUNCH"), QStringLiteral("\"\"")}}, {}}},
+                            {{QStringLiteral("LAUNCH"), QStringLiteral("\"\"")}}, {QStringLiteral("XpTextStyle.qml")}}},
                           error, true);
 }
 

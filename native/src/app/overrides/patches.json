@@ -82,7 +82,7 @@
  "taskmanager/main.qml": [
   {
    "find": "    readonly property bool shouldShrinkToZero: tasksModel.count === 0\n",
-   "replace": "    // XPlasma: an XP taskbar's panel theme marks its task buttons, laid out\n    // as XP's TaskBand lays them out.\n    KSvg.Svg { id: xpTasksSvg; imagePath: \"widgets/tasks\" }\n    readonly property bool xpTaskband: xpTasksSvg.hasElement(\"hint-xplasma-taskband\") && !vertical\n    // ...and every XPlasma taskbar its colours: the theme's Complementary\n    // set (its Window set is XP's dialog colours, for Plasma's popups).\n    readonly property bool xpColours: xpTasksSvg.hasElement(\"hint-xplasma-colours\")\n    Kirigami.Theme.colorSet: xpColours ? Kirigami.Theme.Complementary : Kirigami.Theme.Window\n    Kirigami.Theme.inherit: !xpColours\n    readonly property bool shouldShrinkToZero: tasksModel.count === 0\n"
+   "replace": "    // XPlasma: an XP taskbar's panel theme marks its task buttons, laid out\n    // as XP's TaskBand lays them out.\n    KSvg.Svg { id: xpTasksSvg; imagePath: \"widgets/tasks\" }\n    readonly property bool xpTaskband: xpTasksSvg.hasElement(\"hint-xplasma-taskband\") && !vertical\n    // ...and every XPlasma taskbar its colours: the theme's Complementary\n    // set (its Window set is XP's dialog colours, for Plasma's popups).\n    readonly property bool xpColours: xpTasksSvg.hasElement(\"hint-xplasma-colours\")\n    Kirigami.Theme.colorSet: xpColours ? Kirigami.Theme.Complementary : Kirigami.Theme.Window\n    Kirigami.Theme.inherit: !xpColours\n    // ...and crisp XP text, when it's on, for its task buttons' labels (Task.qml).\n    XpTextStyle { id: xpPixelTextStyle }\n    readonly property var xpTextStyle: xpPixelTextStyle\n    readonly property bool shouldShrinkToZero: tasksModel.count === 0\n"
   },
   {
    "find": "        ToolTipDelegate {\n            id: openWindowToolTipDelegate\n",
@@ -125,6 +125,10 @@
   {
    "find": "            bottomMargin: taskFrame.margins.bottom\n        }\n\n        wrapMode",
    "replace": "            bottomMargin: taskFrame.margins.bottom + (tasksRoot.xpTaskband && !inPopup ? 1 : 0)\n        }\n\n        wrapMode"
+  },
+  {
+   "find": "        id: label\n",
+   "replace": "        id: label\n{{crisp-label}}"
   }
  ],
  "desktopcontainment/FolderViewLayer.qml": [
@@ -192,6 +196,10 @@
    "replace": "                // XPlasma: classic XP desktop selection (clear center, dashed edge).\n                radius: 0\n                border.width: 0\n                color: \"transparent\"\n\n                Canvas {\n                    anchors.fill: parent\n                    onWidthChanged: requestPaint()\n                    onHeightChanged: requestPaint()\n                    onPaint: {\n                        const ctx = getContext(\"2d\");\n                        ctx.reset();\n                        if (width < 1 || height < 1) return;\n                        ctx.lineWidth = 1;\n                        ctx.strokeStyle = \"white\";\n                        ctx.strokeRect(0.5, 0.5, width - 1, height - 1);\n                        ctx.setLineDash([2, 2]);\n                        ctx.strokeStyle = \"black\";\n                        ctx.strokeRect(0.5, 0.5, width - 1, height - 1);\n                    }\n                }",
    "optional": true,
    "unlessContains": "XPlasma: classic XP desktop selection"
+  },
+  {
+   "find": "    id: main\n",
+   "replace": "    id: main\n    // XPlasma: crisp XP text, when it's on, for its icons' labels (FolderItemDelegate.qml).\n    XpTextStyle { id: xpPixelTextStyle }\n    readonly property var xpTextStyle: xpPixelTextStyle\n"
   }
  ],
  "panel/main.qml": [
@@ -222,6 +230,10 @@
    "find": "                    renderShadow: main.isOnRootView && !renaming\n",
    "replace": "                    renderShadow: main.isOnRootView && !renaming && !(!!(main.selected || (main.model && main.model.selected)) && Window.active)\n",
    "unlessContains": "renderShadow: main.isOnRootView && !renaming && !("
+  },
+  {
+   "find": "                    id: label\n",
+   "replace": "                    id: label\n{{crisp-label}}"
   }
  ]
 }
