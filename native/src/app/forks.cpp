@@ -358,13 +358,35 @@ Checked check(Session &session, State &state, QString *what)
     const QString plasma = runningPlasma(session);
     if (plasma.isEmpty())
         return Checked::Fine;   // (can't tell: left as it is)
-    // (the same series as when chosen: nothing to do -- the usual login)
-    if (seriesOf(plasma) == seriesOf(state.settings.value(QStringLiteral("forkPlasma")).toString()))
+    const QString chosenFor = state.settings.value(QStringLiteral("forkPlasma")).toString();
+    // (the same Plasma as when chosen: nothing to do -- the usual login)
+    if (plasma == chosenFor)
         return Checked::Fine;
+    QString why;
+    // A bug-fix release of the same series: the builds in place still load,
+    // usually. Plasma's task manager library promises no ABI even between
+    // those, though, so they're tried -- once, this Plasma noted after.
+    if (seriesOf(plasma) == seriesOf(chosenFor)) {
+        for (const QJsonValue &v : state.settings.value(QStringLiteral("forkPlugins")).toArray()) {
+            QPluginLoader loader(v.toString());
+            if (!loader.load()) {
+                why = QStringLiteral("%1: %2").arg(QFileInfo(v.toString()).completeBaseName(), loader.errorString());
+                break;
+            }
+        }
+        if (why.isEmpty()) {
+            state.settings.insert(QStringLiteral("forkPlasma"), plasma);
+            return Checked::Fine;
+        }
+        remove(state);
+        state.settings.insert(QStringLiteral("forkLost"), plasma);
+        if (what)
+            *what = QStringLiteral("Plasma %1: XPlasma's builds of its widgets taken off, Plasma's own back (%2)").arg(plasma, why);
+        return Checked::Removed;
+    }
     QStringList ids;
     for (const QJsonValue &v : state.settings.value(QStringLiteral("forkPlugins")).toArray())
         ids << QFileInfo(v.toString()).completeBaseName();
-    QString why;
     if (const auto choice = choose(plasma, ids, &why)) {
         if (choice->series == state.settings.value(QStringLiteral("forkSeries")).toString()) {
             state.settings.insert(QStringLiteral("forkPlasma"), plasma);

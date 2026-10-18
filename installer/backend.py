@@ -19,7 +19,7 @@ THEMES={'Luna Blue':('Luna/luna.msstyles','NormalColor'),'Luna Silver':('Luna/lu
 USER_PATHS=['.local/share/applications/fyi.hotsocket.xp.accessories.desktop','.local/share/xp-accessories','.config/menus/applications-merged/xp-accessories.menu','.local/share/desktop-directories/xp-accessories.directory','.local/share/desktop-directories/xp-entertainment.directory','.local/share/desktop-directories/xp-games.directory','.local/share/konsole/XP Command Prompt.profile','.local/share/konsole/XP Command Prompt.colorscheme',*[('.local/share/applications/fyi.hotsocket.xp.'+key.replace('_','-')+'.desktop') for key in sorted(ACCESSORIES)],'.config/kdeglobals','.config/mimeapps.list','.config/kwinrc','.config/kwinrulesrc','.config/klaunchrc','.config/kcminputrc',
  '.config/plasmashellrc','.config/plasma-org.kde.plasma.desktop-appletsrc','.config/ksplashrc','.local/share/plasma/look-and-feel/local.xp.welcome.desktop','.config/xplasmarc','.config/plasma_workspace.notifyrc','.config/ksmserver.notifyrc',
  '.config/gtk-3.0','.config/gtk-4.0','.config/fontconfig','.config/plasma-workspace/env',
- '.local/share/applications/fyi.hotsocket.xp.caption-animation.desktop','.config/autostart/xp-decoration-compatibility.desktop','.config/systemd/user/xp-session-theme.path','.config/systemd/user/xp-session-theme.service',
+ '.local/share/applications/fyi.hotsocket.xp.caption-animation.desktop','.config/autostart/xp-decoration-compatibility.desktop','.config/autostart/kde-xp-suite-rebuild.desktop','.config/systemd/user/xp-session-theme.path','.config/systemd/user/xp-session-theme.service',
  '.config/systemd/user/xp-cursor-sync.path','.config/systemd/user/xp-cursor-sync.service',
  '.local/share/plasma','.local/share/knotifications6/xplasma.notifyrc','.local/share/aurorae','.local/share/kwin','.local/share/color-schemes',
  '.local/share/icons','.local/share/fonts/xp','.local/share/themes','.local/share/xplasma','.local/share/sounds',
@@ -329,6 +329,22 @@ def prepare_native(home,state,selected,theme,asset_options=None,keep_theme=False
  if 'taskbar' in selected or 'desktop_icons' in selected:
   run([kdbus(),'org.kde.plasmashell','/PlasmaShell','org.kde.PlasmaShell.evaluateScript',
    'desktops().forEach(function(d){d.currentConfigGroup=["General"];d.writeConfig("iconSize",1);d.writeConfig("arrangement",1);d.writeConfig("labelWidth",0);d.writeConfig("textLines",2);d.reloadConfig();});'],check=False)
+TASKBAR_CHECK='''var want={'fyi.hotsocket.xplasma.start':'Start button','org.kde.plasma.taskmanager':'task buttons','fyi.hotsocket.xplasma.clock':'clock'};
+var bottom=panels().filter(function(p){return p.location==='bottom';});
+var missing=bottom.length?Object.keys(want).filter(function(t){return !bottom.some(function(p){return p.widgets(t).length>0;});}).map(function(t){return want[t];}):['bottom panel'];
+print(desktops().length===0?'loading':(missing.length?missing.join(', '):'complete'));'''
+def verify_taskbar(wait=60):
+ # Seen through, never assumed: Plasma's shell can take the layout before
+ # it has loaded its panels (the activity manager down at login, say), and
+ # an installation must not report success without its taskbar.
+ import time
+ found=''
+ for attempt in range(wait//2):
+  found=run([kdbus(),'org.kde.plasmashell','/PlasmaShell','org.kde.PlasmaShell.evaluateScript',TASKBAR_CHECK],capture=True,check=False)
+  if found=='complete':return
+  time.sleep(2)
+ raise RuntimeError('The XP taskbar is incomplete: '+('Plasma\'s shell is not answering' if not found else 'Plasma\'s shell has not finished loading its desktop' if found=='loading' else 'the bottom panel has no '+found)
+  +'. Log out and back in, then run Setup again.')
 def config(file,group,key,value):
  run([detect()['writer'],'--file',file,'--group',group,'--key',key,str(value)])
 def basic(home,selected,native=False,asset_options=None):
@@ -451,20 +467,23 @@ def desktop_updates(home,state,selected,asset_options=None):
     for name in ['xp-cursor-sync.path','xp-cursor-sync.service']:copy(tools/name,home/'.config/systemd/user'/name)
     run(['systemctl','--user','daemon-reload']);run(['systemctl','--user','enable','--now','xp-cursor-sync.path'])
   else:log('Existing shared cursor fallback preserved; no application override was installed.')
- if 'caption_animation' in selected:
-  dest=home/'.local/share/kwin/xplasma/caption-source';copy(BASE/'payload/caption-animation',dest)
-  import build_cache
-  cached=build_cache.find_caption(BASE)
-  if cached:
-   copy(cached,home/'.local/lib/qt6/plugins/kwin/effects/plugins/xp-caption-animation.so')
-   log('Using the verified caption animation for this KWin version.')
-  else:
-   run([sys.executable,dest/'build-local.py'])
-   build_cache.store_component(home/'.local/lib/qt6/plugins/kwin/effects/plugins/xp-caption-animation.so',
-     'lib/xplasma/caption/xp-caption-animation.so',build_cache.caption_component_identity(BASE))
-  config('kwinrc','Plugins','xp-caption-animationEnabled','true')
-  for effect in ['maximize','squash','magiclamp']:config('kwinrc','Plugins',effect+'Enabled','false')
-  log('XP caption animation prepared for this computer. Log out/in to activate it.')
+ if 'caption_animation' in selected:caption_animation(home)
+
+def caption_animation(home):
+ # XP's caption animation, built for this KWin (or the verified build for it).
+ dest=home/'.local/share/kwin/xplasma/caption-source';copy(BASE/'payload/caption-animation',dest)
+ import build_cache
+ cached=build_cache.find_caption(BASE)
+ if cached:
+  copy(cached,home/'.local/lib/qt6/plugins/kwin/effects/plugins/xp-caption-animation.so')
+  log('Using the verified caption animation for this KWin version.')
+ else:
+  run([sys.executable,dest/'build-local.py'])
+  build_cache.store_component(home/'.local/lib/qt6/plugins/kwin/effects/plugins/xp-caption-animation.so',
+    'lib/xplasma/caption/xp-caption-animation.so',build_cache.caption_component_identity(BASE))
+ config('kwinrc','Plugins','xp-caption-animationEnabled','true')
+ for effect in ['maximize','squash','magiclamp']:config('kwinrc','Plugins',effect+'Enabled','false')
+ log('XP caption animation prepared for this computer. Log out/in to activate it.')
 
 def welcome_splash(home):
  copy(BASE/'payload/templates/welcome-splash',home/'.local/share/plasma/look-and-feel/local.xp.welcome.desktop')
@@ -642,6 +661,10 @@ def install(selected,theme,asset_options=None):
    staged.rename(bundle)
   apps=home/'.local/share/applications';apps.mkdir(parents=True,exist_ok=True)
   (apps/'kde-xp-suite.desktop').write_text('[Desktop Entry]\nType=Application\nName=Windows XP Theme Installer\nExec=python3 "'+str(bundle/'gui.py')+'"\nIcon=preferences-desktop-theme\nTerminal=false\nCategories=Settings;DesktopSettings;\n')
+  if 'taskbar' in selected:
+   # At login: says so when a Plasma update took the XP taskbar's builds off, and opens Setup to rebuild them.
+   autostart=home/'.config/autostart';autostart.mkdir(parents=True,exist_ok=True)
+   (autostart/'kde-xp-suite-rebuild.desktop').write_text('[Desktop Entry]\nType=Application\nName=XP Transformation Pack Plasma Update Check\nExec=python3 "'+str(bundle/'rebuild_notice.py')+'"\nTerminal=false\nNoDisplay=true\nOnlyShowIn=KDE;\nX-KDE-autostart-phase=2\n')
   (state/'platform.json').write_text(json.dumps(detect(),indent=2)+'\n')
   if selected&NATIVE:prepare_native(home,state,selected,theme,asset_options,keep_theme=upgrade)
   if not selected&NATIVE and 'wallpaper' in selected:prepare_wallpapers(home,asset_options)
@@ -665,6 +688,7 @@ def install(selected,theme,asset_options=None):
    run(['kwriteconfig6','--file','ksplashrc','--group','KSplash','--key','Engine','none'])
    phase('Installing selected login and boot screens');root('screens',selected,upgrade=bool(installed&{'login','boot'}))
   if 'welcome_splash' in selected:phase('Installing XP Welcome desktop splash');welcome_splash(home)
+  if 'taskbar' in selected:phase('Checking the XP taskbar');verify_taskbar()
   snapshot.finish()
   edition=json.loads((BASE/'edition.json').read_text()) if (BASE/'edition.json').is_file() else None
   result={'version':4,'edition':edition,'features':sorted(selected),'theme':theme,'asset_options':asset_options}
@@ -698,6 +722,45 @@ def install(selected,theme,asset_options=None):
    except Exception as e:log('System recovery needs retry: '+str(e))
   snapshot.finish();conflicts=snapshot.restore();refresh(home,state)
   (state/'incomplete.json').write_text(json.dumps({'features':sorted(selected),'conflicts':conflicts},indent=2)+'\n')
+  raise
+ return 0
+def rebuild():
+ # After a Plasma update took the XP taskbar's builds off: the native parts
+ # built again for this Plasma, from this installer's sources, and the look
+ # the desktop wears now applied again. Nothing else is changed.
+ import rebuild as plasma_update
+ home=Path.home();state=home/'.local/share'/STATE_NAME
+ record=state/'installation.json'
+ if not record.exists():raise RuntimeError('There is no installation to rebuild.')
+ previous=json.loads(record.read_text())
+ selected=set(previous['features'])&KNOWN
+ if not selected&NATIVE:raise RuntimeError('This installation has no desktop components to rebuild.')
+ lost=plasma_update.status(home,BASE)
+ if lost and not lost['available']:raise RuntimeError('This installer has no Plasma '+lost['series']+' sources. Download the latest release to rebuild for Plasma '+lost['plasma']+'.')
+ phase('Checking system and package');verify()
+ asset_options=dict(previous.get('asset_options') or {})
+ try:asset_options['dark_mode']=json.loads((home/'.local/share/xplasma/state.json').read_text()).get('settings',{}).get('darkMode',asset_options.get('dark_mode',False))
+ except (OSError,ValueError):pass
+ log('Rebuilding the desktop components'+(' for Plasma '+lost['plasma'] if lost else '')+'; your theme and settings are kept.')
+ phase('Preparing Linux dependencies — authentication may be requested')
+ if detect()['family']:root('dependencies',selected&(NATIVE|{'caption_animation'}))
+ # (What a failed rebuild goes back to.)
+ rollback=state/'upgrade'
+ if rollback.exists():shutil.rmtree(rollback)
+ undo=Snapshot(home,rollback,tracked_paths(home));undo.save()
+ try:
+  prepare_native(home,state,selected,previous['theme'],asset_options,keep_theme=True)
+  if 'caption_animation' in selected:phase('Rebuilding the XP caption animation');caption_animation(home)
+  if 'taskbar' in selected:phase('Checking the XP taskbar');verify_taskbar()
+  previous['rebuilds']=previous.get('rebuilds',[])+[{'plasma':'.'.join(map(str,detect().get('plasma',()))),'edition':previous.get('edition')}]
+  record.write_text(json.dumps(previous,indent=2)+'\n')
+  shutil.rmtree(rollback,ignore_errors=True)
+  phase('Rebuilt successfully')
+  log('The XP taskbar is back. No logout or reboot was performed.')
+ except Exception:
+  log('Rebuild failed. Restoring the installation as it was…')
+  undo.finish();conflicts=undo.restore();refresh(home,rollback)
+  if conflicts:log('Not restored, changed during the rebuild: '+'; '.join(conflicts))
   raise
  return 0
 def refresh(home,state):
@@ -759,10 +822,11 @@ def uninstall(delete_backups=False):
      +('Settings backups were deleted. ' if delete_backups else 'Settings backups are kept in '+str(state)+'. ')+'Reopen applications.')
  return 0
 def main():
- p=argparse.ArgumentParser();p.add_argument('action',choices=['install','uninstall','check']);p.add_argument('--features',default='');p.add_argument('--theme',default='Luna Blue');p.add_argument('--hidpi-icons',action='store_true');p.add_argument('--hires-wallpapers',action='store_true');p.add_argument('--dark-mode',action='store_true');p.add_argument('--delete-backups',action='store_true');a=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument('action',choices=['install','uninstall','check','rebuild']);p.add_argument('--features',default='');p.add_argument('--theme',default='Luna Blue');p.add_argument('--hidpi-icons',action='store_true');p.add_argument('--hires-wallpapers',action='store_true');p.add_argument('--dark-mode',action='store_true');p.add_argument('--delete-backups',action='store_true');a=p.parse_args()
  selected=validate_selection([x for x in a.features.split(',') if x],a.theme) if a.action!='uninstall' else set()
  if a.action=='install':return install(selected,a.theme,{'hidpi_icons':a.hidpi_icons,'hires_wallpapers':a.hires_wallpapers,'dark_mode':a.dark_mode})
  if a.action=='uninstall':return uninstall(a.delete_backups)
+ if a.action=='rebuild':return rebuild()
  preflight(selected);verify();log('Preflight passed; no settings changed.');return 0
 if __name__=='__main__':
  try:sys.exit(main())

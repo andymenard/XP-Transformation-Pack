@@ -55,8 +55,13 @@ public:
     // where the session has it; otherwise (a session without systemd:
     // Slackware's, Gentoo's...) quit over D-Bus and started again.
     void restartPlasmaShell(const std::function<void()> &whileStopped = {});
-    // Whether plasmashell's scripting interface answered within `ms`.
+    // Whether plasmashell answered within `ms` with its desktop loaded: its
+    // scripting interface answers a while before it has any desktops or
+    // panels to script (and never has, the activity manager down).
     bool waitForPlasmaShell(int ms = 20000);
+    // ...and if it hasn't, KDE's activity manager started again where it's
+    // down, and the shell with it. False, and *why, if it still isn't ready.
+    bool ensurePlasmaShell(QString *why = nullptr, int ms = 30000);
 };
 
 // The real one: host::run, QtDBus.

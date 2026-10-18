@@ -56,14 +56,38 @@ void Session::reconfigureKWin()
 
 bool Session::waitForPlasmaShell(int ms)
 {
-    // Until its scripting interface answers (it takes a few seconds).
+    // Until its scripting interface answers (it takes a few seconds) with
+    // a desktop loaded -- before that, panels() is empty however many
+    // panels there are, and a layout would find nothing to lay out.
     QElapsedTimer clock;
     clock.start();
     while (clock.elapsed() < ms) {
-        if (script(QStringLiteral("print('up')")).value_or(QString()) == QLatin1String("up"))
+        if (script(QStringLiteral("// XPLASMA_SHELL_READY\nprint(desktops().length > 0 ? 'up' : 'loading');")).value_or(QString()) == QLatin1String("up"))
             return true;
         QThread::msleep(500);
     }
+    return false;
+}
+
+bool Session::ensurePlasmaShell(QString *why, int ms)
+{
+    if (waitForPlasmaShell(ms))
+        return true;
+    // The shell loads no desktop without KDE's activity manager -- one that
+    // failed (at login, say) leaves it waiting -- so that's started again,
+    // and the shell after it.
+    const QString activities = QStringLiteral("plasma-kactivitymanagerd.service");
+    const QString state = QString::fromUtf8(run({QStringLiteral("systemctl"), QStringLiteral("--user"), QStringLiteral("is-active"), activities}).out).trimmed();
+    if (state != QLatin1String("active")) {
+        run({QStringLiteral("systemctl"), QStringLiteral("--user"), QStringLiteral("reset-failed"), activities});
+        run({QStringLiteral("systemctl"), QStringLiteral("--user"), QStringLiteral("start"), activities});
+        restartPlasmaShell();
+        if (waitForPlasmaShell(ms))
+            return true;
+    }
+    if (why)
+        *why = state == QLatin1String("active") ? QStringLiteral("Plasma's shell didn't finish loading the desktop")
+                                                : QStringLiteral("KDE's activity manager isn't running (%1)").arg(state.isEmpty() ? QStringLiteral("unknown") : state);
     return false;
 }
 

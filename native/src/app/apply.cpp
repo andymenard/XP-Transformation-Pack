@@ -584,6 +584,22 @@ bool lookOutdated(const State &state)
 }
 
 namespace {
+// What XP's taskbar still lacks on Plasma's bottom panel, by name ("the
+// clock, the Start button"); empty once it has all of it. (Plasma's shell
+// not answering is all of it.)
+QString missingTaskbar(Session &session)
+{
+    const auto missing = session.script(QStringLiteral(
+        "// XPLASMA_TASKBAR_CHECK\n"
+        "var want = {'%1': 'Start button', 'org.kde.plasma.taskmanager': 'task buttons', '%2': 'clock'};\n"
+        "var bottom = panels().filter(function (p) { return p.location === 'bottom'; });\n"
+        "print(bottom.length ? Object.keys(want).filter(function (t) {\n"
+        "    return !bottom.some(function (p) { return p.widgets(t).length > 0; }); })\n"
+        "    .map(function (t) { return want[t]; }).join(', ') : 'bottom panel');")
+        .arg(QLatin1String(kStartPlasmoidId), QLatin1String(kClockPlasmoidId)));
+    return missing ? missing->trimmed() : QStringLiteral("Start button, task buttons, clock");
+}
+
 QByteArray styleDigest(const QString &path)
 {
     QFile file(path);
@@ -1024,8 +1040,13 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
         session.script(QStringLiteral("panels().forEach(function(p){p.widgets('%1').forEach(function(w){w.currentConfigGroup=['General'];w.writeConfig('textColor','%2');});});").arg(QLatin1String(kClockPlasmoidId),shellArt.trayTextColour.name()));
     }
     if (o.taskbar && !colorOnly) {
+        // (The shell just restarted: laid out once it has its desktop and
+        // panels, or the layout finds none and quietly does nothing.)
+        if (!session.ensurePlasmaShell(&why))
+            return fail(error, QStringLiteral("the XP taskbar couldn't be set up: %1. Log out and back in, then try again.").arg(why));
         session.script(scriptFrom(QStringLiteral("panel"), {{QStringLiteral("HEIGHT"), shellArt.height}}));
-        if (!existingPanel) {
+        const auto layOut = [&] {
+            orders.clear();
             prepareLayout();
             if (!orders.isEmpty()) {
                 session.restartPlasmaShell([&] {
@@ -1035,6 +1056,21 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
                                             QStringLiteral("AppletOrder"), order, false);
                 });
             }
+        };
+        if (!existingPanel)
+            layOut();
+        // Seen through, not assumed: what the taskbar still lacks, laid out
+        // once more after the shell is ready again, and an error if it
+        // still lacks it -- never a finished look without its taskbar.
+        QString missing = missingTaskbar(session);
+        if (!missing.isEmpty()) {
+            report(o, QStringLiteral("  the taskbar has no %1 yet; laying it out again").arg(missing));
+            if (!session.ensurePlasmaShell(&why))
+                return fail(error, QStringLiteral("the XP taskbar couldn't be set up: %1. Log out and back in, then try again.").arg(why));
+            layOut();
+            missing = missingTaskbar(session);
+            if (!missing.isEmpty())
+                return fail(error, QStringLiteral("the XP taskbar couldn't be set up: Plasma's bottom panel has no %1. Log out and back in, then try again.").arg(missing));
         }
     }
 

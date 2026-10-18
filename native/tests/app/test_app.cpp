@@ -189,6 +189,9 @@ public:
     bool systemd = true;   // (the session's plasmashell a systemd user unit)
     bool runnerActive = false;
     QList<QStringList> detached;
+    int shellLoadingFor = 0;                // readiness probes answered "loading" first
+    QString activities = QStringLiteral("active");   // the activity manager's unit
+    QStringList taskbarChecks;              // what each taskbar check finds missing, in turn ("" after)
 
     host::Result run(const QStringList &argv) override
     {
@@ -198,6 +201,12 @@ public:
         r.exitCode = 0;
         if (argv.contains(QStringLiteral("plasma-krunner.service")) && argv.contains(QStringLiteral("is-active")))
             r.out = runnerActive ? "active\n" : "inactive\n";
+        if (argv.contains(QStringLiteral("plasma-kactivitymanagerd.service"))) {
+            if (argv.contains(QStringLiteral("is-active")))
+                r.out = activities.toUtf8() + '\n';
+            else if (argv.contains(QStringLiteral("start")))
+                activities = QStringLiteral("active"), shellLoadingFor = 0;
+        }
         if (argv.value(0) == QLatin1String("systemctl") && argv.contains(QStringLiteral("LoadState")))
             r.out = systemd ? "loaded\n" : "not-found\n";
         if (argv.value(0) == QLatin1String("kreadconfig6") || argv.value(0) == QLatin1String("kwriteconfig6")) {
@@ -219,8 +228,10 @@ public:
     std::optional<QString> script(const QString &js, QString *) override
     {
         scripts << js;
-        if (js.contains(QLatin1String("print('up')")))
-            return QStringLiteral("up");
+        if (js.contains(QLatin1String("XPLASMA_SHELL_READY")))
+            return activities != QLatin1String("active") || shellLoadingFor-- > 0 ? QStringLiteral("loading") : QStringLiteral("up");
+        if (js.contains(QLatin1String("XPLASMA_TASKBAR_CHECK")))
+            return taskbarChecks.isEmpty() ? QString() : taskbarChecks.takeFirst();
         if (js.contains(QLatin1String("XPLASMA_EXISTING_PANEL")))
             return existingPanel ? QStringLiteral("ready") : QStringLiteral("missing");
         if (js.contains(QLatin1String("LAUNCHER_KEYS")))
@@ -2853,6 +2864,97 @@ private Q_SLOTS:
         const int layout = int(session.seen.indexOf(QRegularExpression(QStringLiteral("^plasma-apply-lookandfeel .*--resetLayout \\[gone\\]$"))));
         QVERIFY2(stop >= 0 && start > stop && layout > start, qPrintable(session.seen.join(QLatin1Char('\n'))));
         QVERIFY(!forks::installed(State::load()));
+    }
+
+    void shellReadyMeansItsDesktopLoaded()
+    {
+        // Answering scripts isn't ready: a desktop loaded is. A shell that
+        // has none with the activity manager down gets the manager started
+        // again, and is restarted after it.
+        RecordingSession session;
+        session.shellLoadingFor = 2;
+        QVERIFY(session.waitForPlasmaShell(5000));
+        QVERIFY(!session.ran(QStringLiteral("systemctl")));
+
+        session.activities = QStringLiteral("failed");
+        QString why;
+        QVERIFY2(session.ensurePlasmaShell(&why, 1000), qPrintable(why));
+        const auto ranWith = [&](const QStringList &args) {
+            return std::any_of(session.runs.begin(), session.runs.end(), [&](const QStringList &a) {
+                return std::all_of(args.begin(), args.end(), [&](const QString &x) { return a.contains(x); }); });
+        };
+        QVERIFY(ranWith({QStringLiteral("start"), QStringLiteral("plasma-kactivitymanagerd.service")}));
+        QVERIFY(ranWith({QStringLiteral("start"), QStringLiteral("plasma-plasmashell.service")}));
+
+        // ...and a shell that never loads one says why.
+        session.shellLoadingFor = 1000000;
+        QVERIFY(!session.ensurePlasmaShell(&why, 1000));
+        QVERIFY2(why.contains(QLatin1String("didn't finish loading")), qPrintable(why));
+    }
+
+    void taskbarSeenThroughAfterLayout()
+    {
+        // The taskbar is checked once laid out: what it lacks is laid out
+        // again, and the look fails, not reports success, if it still lacks it.
+        if (m_realThemes.isEmpty() || m_realIso.isEmpty())
+            QSKIP("needs the asset library and the XP ISO");
+        State state;
+        state.media = m_realIso;
+        QVERIFY(state.save());
+        const auto look = Look::fromStyle(m_realThemes + QLatin1String("/Luna/luna.msstyles"), QStringLiteral("NORMALBLUE_INI"));
+        QVERIFY(look);
+        const auto layouts = [](const RecordingSession &s) {
+            return int(std::count_if(s.scripts.begin(), s.scripts.end(), [](const QString &js) { return js.contains(QLatin1String("LAUNCHER_KEYS")); }));
+        };
+        QString error;
+        {
+            RecordingSession session;
+            session.taskbarChecks = {QStringLiteral("clock")};
+            QVERIFY2(applyLook(session, *look, ApplyOptions{}, &error), qPrintable(error));
+            QCOMPARE(layouts(session), 2);
+        }
+        {
+            RecordingSession session;
+            session.taskbarChecks = {QStringLiteral("Start button, clock"), QStringLiteral("clock")};
+            QVERIFY(!applyLook(session, *look, ApplyOptions{}, &error));
+            QVERIFY2(error.contains(QLatin1String("has no clock")), qPrintable(error));
+        }
+    }
+
+    void bugFixPlasmaRechecksForks()
+    {
+        // A bug-fix release of the series they were chosen for: the builds
+        // in place are tried, and one that no longer loads takes them off,
+        // Plasma's own back, the Plasma that lost them noted for Setup.
+        RecordingSession session;
+        const QString plasma = forks::runningPlasma(session);
+        if (plasma.isEmpty())
+            QSKIP("no Plasma here");
+        const QVersionNumber series = forks::seriesOf(plasma);
+        const QString plugin = paths::stylePluginRoot(6) + QLatin1String("/plasma/applets/org.kde.plasma.taskmanager.so");
+        QVERIFY(QDir().mkpath(QFileInfo(plugin).path()));
+        QFile file(plugin);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("not a plugin");
+        file.close();
+        State state = State::load();
+        state.settings.insert(QStringLiteral("forkPlugins"), QJsonArray{plugin});
+        state.settings.insert(QStringLiteral("forkSeries"), series.toString());
+        // (another release of the same series, as far as check can tell)
+        const QString other = series.toString() + QLatin1String(".0");
+        state.settings.insert(QStringLiteral("forkPlasma"), other == plasma ? other + QLatin1String(".1") : other);
+
+        QString what;
+        QCOMPARE(forks::check(session, state, &what), forks::Checked::Removed);
+        QVERIFY2(what.contains(QLatin1String("org.kde.plasma.taskmanager")), qPrintable(what));
+        QVERIFY(!QFileInfo::exists(plugin));
+        QVERIFY(!forks::installed(state));
+        QCOMPARE(state.settings.value(QStringLiteral("forkLost")).toString(), plasma);
+
+        // ...and the same Plasma as when chosen isn't looked at again.
+        state.settings.insert(QStringLiteral("forkPlugins"), QJsonArray{plugin});
+        state.settings.insert(QStringLiteral("forkPlasma"), plasma);
+        QCOMPARE(forks::check(session, state), forks::Checked::Fine);
     }
 
     // --- setup ----------------------------------------------------------------------

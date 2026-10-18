@@ -8,6 +8,7 @@ except ImportError:
  from PySide6 import QtCore,QtGui,QtWidgets
 BASE=Path(__file__).resolve().parent
 from system_profile import detect,capabilities
+import rebuild as plasma_update
 FEATURES=json.loads((BASE/'features.json').read_text())
 EDITION=json.loads((BASE/'edition.json').read_text()) if (BASE/'edition.json').exists() else {}
 PROJECT_LABELS={'desktop':'XP Desktop (default)','firefox':'IE6 Firefox Theme (optional)','applications':'Windows XP Applications (optional)','tray':'XP System Tray Menus (optional)','shared':'Shared update support','extras':'Optional integrations'}
@@ -95,6 +96,8 @@ class Installer(QtWidgets.QMainWindow):
   self.description=QtWidgets.QLabel('Select a feature to read what it installs.');self.description.setWordWrap(True);self.description.setMinimumHeight(45);layout.addWidget(self.description)
   self.summary=QtWidgets.QLabel();self.summary.setWordWrap(True);layout.addWidget(self.summary)
   buttons=QtWidgets.QHBoxLayout();self.remove=QtWidgets.QPushButton('Remove installed features');buttons.addWidget(self.remove);buttons.addStretch()
+  # After a Plasma update took the XP taskbar's builds off: build them again for it.
+  self.rebuild=QtWidgets.QPushButton('Rebuild');self.rebuild.setVisible(False);buttons.addWidget(self.rebuild)
   self.install=QtWidgets.QPushButton('Install selected features');self.close_button=QtWidgets.QPushButton('Close');buttons.addWidget(self.install);buttons.addWidget(self.close_button);layout.addLayout(buttons)
   progress_page=QtWidgets.QWidget();progress_page.setObjectName('setupProgress');self.pages.addWidget(progress_page)
   progress_layout=QtWidgets.QVBoxLayout(progress_page);progress_layout.setContentsMargins(58,38,46,35)
@@ -126,7 +129,7 @@ class Installer(QtWidgets.QMainWindow):
   """)
   all_button.clicked.connect(lambda:self.select_all(True));none_button.clicked.connect(lambda:self.select_all(False));self.close_button.clicked.connect(self.close)
   self.tree.itemChanged.connect(self.component_changed);self.tree.currentItemChanged.connect(self.describe);self.theme.currentTextChanged.connect(self.update_summary)
-  self.install.clicked.connect(lambda:self.start('install'));self.remove.clicked.connect(lambda:self.start('uninstall'))
+  self.install.clicked.connect(lambda:self.start('install'));self.remove.clicked.connect(lambda:self.start('uninstall'));self.rebuild.clicked.connect(lambda:self.start('rebuild'))
   self.status.setText(self.profile['name']+' — Plasma '+'.'.join(map(str,self.profile['plasma']))+' — '+self.profile['arch']+'. Unavailable features are disabled.')
   self.set_step(0);self.update_summary()
  def lock_installed(self):
@@ -186,6 +189,12 @@ class Installer(QtWidgets.QMainWindow):
   upgrade=(STATE/'installation.json').exists()
   self.install.setText('Upgrade installation' if upgrade else 'Install selected features')
   self.intro.setText('This computer has an installation: Upgrade installs this release over it and keeps your theme and settings. Installed features stay selected; you can add more.' if upgrade else 'Install the XP desktop, with optional IE6 Firefox. Review the features below.')
+  lost=plasma_update.status(Path.home(),BASE) if upgrade else None
+  self.rebuild.setVisible(bool(lost));self.rebuild.setEnabled(bool(lost and lost['available']) and not running)
+  if lost:
+   self.rebuild.setText('Rebuild for Plasma '+lost['plasma'])
+   self.intro.setText('Plasma was updated to '+lost['plasma']+', so the XP taskbar is paused: its parts were built for the Plasma before. '
+    +('Rebuild builds them for this Plasma and keeps your theme and settings.' if lost['available'] else 'This installer has no parts for Plasma '+lost['series']+'. Download the latest XP Transformation Pack release to rebuild.'))
   self.install.setEnabled(bool(chosen) and not running)
   self.remove.setEnabled(not running and ((STATE/'installation.json').exists() or (STATE/'incomplete.json').exists()))
  def start(self,action):
@@ -234,7 +243,7 @@ class Installer(QtWidgets.QMainWindow):
   self.tip_timer.stop();self.dots.stop();self.set_step(4 if code==0 else 0);self.pages.setCurrentIndex(0);self.process.deleteLater();self.process=None;self.progress.setRange(0,100);self.progress.setValue(100 if code==0 else 0)
   self.tree.setEnabled(True);self.theme.setEnabled(True);self.close_button.setEnabled(True);self.lock_installed();self.update_summary()
   if code==0:
-   message=('Upgrade complete. Your theme and settings were kept. Reopen applications to load the new version. No logout or reboot was performed.' if self.upgrading else 'Installation complete. Reopen applications to load the themes. No logout or reboot was performed.') if self.current_action=='install' else 'Managed XP features removed. Reopen applications to refresh them.'
+   message='Rebuild complete. The XP taskbar is back, with your theme and settings. No logout or reboot was performed.' if self.current_action=='rebuild' else ('Upgrade complete. Your theme and settings were kept. Reopen applications to load the new version. No logout or reboot was performed.' if self.upgrading else 'Installation complete. Reopen applications to load the themes. No logout or reboot was performed.') if self.current_action=='install' else 'Managed XP features removed. Reopen applications to refresh them.'
    if self.current_action=='install' and set(self.selected())&{'codex_colors','clippy'}:message+=' Restart Codex; type /pet if Clippy is hidden.'
    self.status.setText(message);QtWidgets.QMessageBox.information(self,'Complete',message)
   else:
@@ -247,7 +256,7 @@ class Installer(QtWidgets.QMainWindow):
    QtWidgets.QMessageBox.information(self,'Installation running','Please wait for the current installation or recovery to finish.');event.ignore()
   else:event.accept()
 def main():
- p=argparse.ArgumentParser();p.add_argument('--preview');p.add_argument('--preview-stage',choices=['options','installing','complete'],default='options');p.add_argument('--test-mode',action='store_true');a=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument('--preview');p.add_argument('--preview-stage',choices=['options','installing','complete'],default='options');p.add_argument('--test-mode',action='store_true');p.add_argument('--rebuild',action='store_true',help='Open on Rebuild (from the Plasma update notice).');a=p.parse_args()
  app=QtWidgets.QApplication(sys.argv[:1]);app.setApplicationName('Windows XP Transformation Pack')
  app.setStyle('Windows')
  for name in ['tahoma.ttf','tahomabd.ttf','trebuc.ttf','trebucbd.ttf','trebucit.ttf','trebucbi.ttf','arial.ttf','arialbd.ttf','ariali.ttf','arialbi.ttf']:
@@ -261,6 +270,7 @@ def main():
   (QtGui.QPalette.ColorRole.Light,'#ffffff'),(QtGui.QPalette.ColorRole.Dark,'#aca899')]:palette.setColor(role,QtGui.QColor(color))
  app.setPalette(palette)
  window=Installer(a.test_mode or bool(a.preview));window.show()
+ if a.rebuild and window.rebuild.isVisible():window.rebuild.setDefault(True);window.rebuild.setFocus()
  if a.preview_stage=='installing':window.pages.setCurrentIndex(1);window.set_step(2);window.status.setText('Installing desktop components');window.progress.setValue(55)
  if a.preview_stage=='complete':window.pages.setCurrentIndex(1);window.set_step(4);window.tip_title.setText('Welcome');window.tip_text.setText('Setup is complete. Your XP-inspired desktop is ready.');window.progress.setValue(100)
  if a.preview:

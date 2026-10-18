@@ -25,7 +25,7 @@ class Upgrade(unittest.TestCase):
    patcher=patch.dict(os.environ,{target:value});patcher.start();self.addCleanup(patcher.stop)
   stubs={'BASE':self.bundle,'preflight':lambda selected,installed=():None,'verify':lambda:None,'root':self.root,
          'gnome':lambda:{},'run':lambda *a,**k:'','detect':lambda:{'family':None},'desktop_path':lambda home:home/'Desktop',
-         'prepare_native':self.native,'basic':self.basic,'desktop_updates':lambda *a,**k:None,
+         'prepare_native':self.native,'basic':self.basic,'verify_taskbar':lambda:None,'desktop_updates':lambda *a,**k:None,
          'taskbar_defaults':lambda home,selected:self.calls.append('taskbar_defaults')}
   for name,value in stubs.items():
    patcher=patch.object(b,name,value);patcher.start();self.addCleanup(patcher.stop)
