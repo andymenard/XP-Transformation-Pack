@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Package and verify the complete alpha installer, without changing its inputs."""
+"""Package and verify the complete installer, without changing its inputs."""
 import argparse,hashlib,json,os,re,shutil,tarfile,tempfile
 from pathlib import Path
 
 def package(bundle,output):
  bundle=Path(bundle).resolve();output=Path(output).resolve();output.mkdir(parents=True,exist_ok=True)
  edition=json.loads((bundle/'edition.json').read_text());version=edition['version']
- if not re.fullmatch(r'\d+\.\d+\.\d+-alpha\.\d+',version):raise ValueError('Expected an alpha semantic version')
+ # (A release, or a prerelease of one: 1.0.0, 1.0.0-beta.2, 1.0.0-alpha.10.)
+ if not re.fullmatch(r'\d+\.\d+\.\d+(-(alpha|beta|rc)\.\d+)?',version):raise ValueError('Expected a semantic version')
  features=json.loads((bundle/'features.json').read_text())
  if any(f.get('project') not in {'desktop','firefox','shared'} for f in features):raise ValueError('Excluded project remains in bundle')
  if any(f['id']=='updates' for f in features) or (bundle/'payload/updater').exists():raise ValueError('OTA updater is excluded from prereleases')

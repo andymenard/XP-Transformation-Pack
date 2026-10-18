@@ -32,15 +32,15 @@ existing installation. Running a newer installer over an existing installation
 upgrades it in place, keeping your theme and settings; Remove still restores the
 desktop from before the first installation.
 
-## Download the alpha installer
+## Download the installer
 
-See [1.0 Release Candidate 1](https://github.com/andymenard/XP-Transformation-Pack/releases/tag/v1.0.0-alpha.10).
+See [1.0 Public Beta](https://github.com/andymenard/XP-Transformation-Pack/releases/tag/v1.0.0).
 Extract the installer tar.gz, then launch **Start-Installer.desktop** from the
 extracted folder as your desktop user. Linux dependencies require internet
 access; an XP ISO is not needed. Desktop is selected by default; Firefox is optional.
-The release is a testing prerelease, with compatibility and validation limits
-listed in its notes. Signed checksums authenticate the installer download; this
-release does not activate an OTA payload.
+This is a public beta: please report problems on the repository's issue tracker.
+Compatibility notes are in the release notes. Signed checksums authenticate the
+installer download; this release does not activate an OTA payload.
 
 ## Interface fonts
 
