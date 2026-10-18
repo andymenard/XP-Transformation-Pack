@@ -372,6 +372,8 @@ def basic(home,selected,native=False,asset_options=None):
   if shutil.which('gsettings'):
    for key,value in [('font-name','Tahoma OS 8'),('monospace-font-name','Lucida Console 10')]:run(['gsettings','set','org.gnome.desktop.interface',key,value],check=False)
   run(['fc-cache','-f'])
+  # (Before any later password prompt: the login and boot screens'.)
+  restart_auth_agent()
  if 'icons' in selected and not native:
   copy(BASE/'payload/basic/icons',home/'.local/share/icons/xplasma-icons');config('kdeglobals','Icons','Theme','xplasma-icons')
  if 'pointers' in selected and not native:
@@ -774,6 +776,15 @@ def rebuild():
   if conflicts:log('Not restored, changed during the rebuild: '+'; '.join(conflicts))
   raise
  return 0
+def restart_auth_agent():
+ # KDE's password prompt is a long-running agent that keeps the fonts it
+ # loaded at login. Remove deletes the XP interface fonts and an install puts
+ # new ones at the same paths, so it would draw wrong glyphs until the next
+ # login: restarted, it uses the fonts there now. (Never while it's asking:
+ # nothing installs or removes fonts during a prompt.)
+ unit='plasma-polkit-agent.service'
+ if run(['systemctl','--user','is-active',unit],capture=True,check=False)=='active':
+  run(['systemctl','--user','restart',unit],check=False)
 def refresh(home,state):
  run(['fc-cache','-f'],check=False);run([kdbus(),'org.kde.KWin','/KWin','reconfigure'],check=False)
  run(['systemctl','--user','daemon-reload'],check=False)
@@ -782,6 +793,7 @@ def refresh(home,state):
  cursor=state/'cursor-unit-before.json'
  if cursor.exists() and json.loads(cursor.read_text()).get('enabled'):run(['systemctl','--user','enable','--now','xp-cursor-sync.path'],check=False)
  run(['systemctl','--user','restart','plasma-plasmashell.service'],check=False)
+ restart_auth_agent()
 def remove_generated(home,before,earlier=False):
  # XPlasma's own files that weren't there before the installation, made by
  # it or by Properties since; folders they leave empty go with them.
