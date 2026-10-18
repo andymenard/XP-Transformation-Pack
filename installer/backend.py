@@ -807,11 +807,20 @@ def uninstall(delete_backups=False):
  run(['systemctl','--user','disable','--now','xp-session-theme.path'],check=False)
  if 'pointers' in set(info['features']):run(['systemctl','--user','disable','--now','xp-cursor-sync.path'],check=False)
  if set(info['features'])&{'login','boot'}:root('restore',purge=delete_backups)
- paths=json.loads((state/'tracked.json').read_text());conflicts=Snapshot(home,state,paths).restore()
- phase('Removing XP looks and caches made since installation')
- remove_generated(home,json.loads((state/'before.json').read_text()))
- conflicts=[name for name in conflicts if (home/name.split(': ')[0]).exists()]
- refresh(home,state)
+ # Flush the live panel before restoring its config, otherwise it can write
+ # removed-browser pins back over the restored file when refresh stops it.
+ run(['systemctl','--user','stop','plasma-plasmashell.service'],check=False)
+ try:
+  paths=json.loads((state/'tracked.json').read_text());conflicts=Snapshot(home,state,paths).restore()
+  phase('Removing XP looks and caches made since installation')
+  remove_generated(home,json.loads((state/'before.json').read_text()))
+  if 'firefox' in set(info['features']):
+   import firefox_cleanup
+   cleanup_env=firefox_cleanup.desktop_environment()
+   report=firefox_cleanup.cleanup(home,state,execute=lambda argv:run(argv,check=False,env=cleanup_env)==0)
+   log('Removed obsolete IE6 browser launchers and references: '+json.dumps(report))
+  conflicts=[name for name in conflicts if (home/name.split(': ')[0]).exists()]
+ finally:refresh(home,state)
  record.rename(state/'removed.json')
  tidy_state(state,delete_backups)
  phase('Selected features removed')
