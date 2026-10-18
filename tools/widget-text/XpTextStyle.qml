@@ -21,6 +21,15 @@ Item {
         const optical = "XPlasma Tahoma Pixel " + physical(pixels, dpr);
         return families.indexOf(optical) >= 0 ? optical : "XPlasma Tahoma Pixel";
     }
+    // XpText's font, for controls that draw their own text (fields, areas).
+    function font(original, points, dpr) {
+        const pixels = points * 96 / 72;
+        const active = crispEnabled && supports(original);
+        return Qt.font({family: family(original, pixels, dpr),
+                        pointSize: active ? physical(pixels, dpr) / dpr * 72 / 96 : points,
+                        kerning: !active,
+                        hintingPreference: active ? Font.PreferFullHinting : Font.PreferDefaultHinting});
+    }
     function read() { debounce.restart(); }
     Component.onCompleted: read()
     onSettingsDirectoryChanged: read()
