@@ -1,6 +1,6 @@
-# XP Transformation Pack — Alpha 1.0
+# XPlasma Plus — 1.0 Public Beta
 
-A KDE Plasma transformation pack **based on [hotsocket's XPlasma](https://tangled.org/hotsocket.fyi/xplasma/)**. The native visual-style engine, Qt style, Properties editor and desktop generators originate in that project. This repository contains our ports, integration and changes; it does not claim authorship of the upstream foundation.
+A KDE Plasma transformation pack and **modified fork of [hotsocket's XPlasma](https://tangled.org/hotsocket.fyi/xplasma/)**. The native visual-style engine, Qt style, Properties editor and desktop generators originate in that project. This repository contains our ports, integration and changes; it does not claim authorship of the upstream foundation.
 
 The alpha includes the XP desktop by default and the IE6 Firefox theme optionally. XP Explorer, Control Panel, accessories, games, custom tray panels, Codex colors and Clippy are excluded. Existing Linux applications still receive XP widget styling. XPlasma Properties and its theme configuration remain included.
 
@@ -34,7 +34,7 @@ desktop from before the first installation.
 
 ## Download the installer
 
-See [1.0 Public Beta](https://github.com/andymenard/XP-Transformation-Pack/releases/tag/v1.0.0).
+See [1.0 Public Beta](https://github.com/andymenard/XPlasma-Plus/releases/tag/v1.0.0).
 Extract the installer tar.gz, then launch **Start-Installer.desktop** from the
 extracted folder as your desktop user. Linux dependencies require internet
 access; an XP ISO is not needed. Desktop is selected by default; Firefox is optional.

@@ -1,7 +1,7 @@
 {
   "label": "1.0 Public Beta",
   "version": "1.0.0",
-  "repository": "andymenard/XP-Transformation-Pack",
+  "repository": "andymenard/XPlasma-Plus",
   "channel": "beta",
   "projects": [
     "desktop",

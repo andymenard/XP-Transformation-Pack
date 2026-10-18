@@ -14,4 +14,4 @@ The boot screen change in this release needs a fresh install of the boot screen 
 
 The complete installer and OTA carry separate SHA-256 checks and signatures. Original Microsoft assets retain their copyrights; reused code, fonts, and other artwork retain their separate licenses and are listed in CREDITS.md. This is an alpha prerelease.
 
-[Full credits and upstream projects](https://github.com/andymenard/XP-Transformation-Pack/blob/main/CREDITS.md), including [hotsocket’s original XPlasma](https://tangled.org/hotsocket.fyi/xplasma/).
+[Full credits and upstream projects](https://github.com/andymenard/XPlasma-Plus/blob/main/CREDITS.md), including [hotsocket’s original XPlasma](https://tangled.org/hotsocket.fyi/xplasma/).

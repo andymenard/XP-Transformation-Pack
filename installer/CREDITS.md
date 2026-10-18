@@ -1,6 +1,6 @@
 # Credits and licenses
 
-XP Transformation Pack is based on **XPlasma by hotsocket (© 2026 Sock)**.
+XPlasma Plus is a modified fork of **XPlasma by hotsocket (© 2026 Sock)**.
 The native visual-style engine, Qt style, Properties editor and desktop generators
 originate in XPlasma. The transformation-pack contributors provide adaptations,
 installer integration and additional desktop features.
@@ -88,7 +88,7 @@ the same attribution. Charles O’Rear’s Bliss attribution is also documented 
 
 Original Microsoft and stock-photo assets retain their separate rights; the
 project’s code licenses do not grant redistribution rights to those assets.
-See [ASSET-DISTRIBUTION.md](https://github.com/andymenard/XP-Transformation-Pack/blob/main/ASSET-DISTRIBUTION.md).
+See [ASSET-DISTRIBUTION.md](https://github.com/andymenard/XPlasma-Plus/blob/main/ASSET-DISTRIBUTION.md).
 
 Windows and Windows XP are trademarks of Microsoft Corporation. KDE and the KDE
 logo are trademarks of KDE e.V. This project is not endorsed by Microsoft, KDE,

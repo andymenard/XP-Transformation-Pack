@@ -1,7 +1,7 @@
 # Prerelease update policy
 
 OTA updates are excluded from prerelease installers. Use the complete installer
-from [GitHub releases](https://github.com/andymenard/XP-Transformation-Pack/releases)
+from [GitHub releases](https://github.com/andymenard/XPlasma-Plus/releases)
 and follow its migration instructions. Properties opens that page directly and
 does not launch an update client. Existing updater installations are not removed
 or reconfigured by this change.
