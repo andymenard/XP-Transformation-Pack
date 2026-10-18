@@ -18,9 +18,6 @@ target_link_libraries(test-preview PRIVATE stdc++ xplasma-app Qt6::Widgets Qt6::
 add_test(NAME test-preview COMMAND test-preview)
 set_tests_properties(test-preview PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_STYLE_OVERRIDE=Fusion")
 
-add_executable(test-customluna test_customluna.cpp)
-target_link_libraries(test-customluna PRIVATE xplasma-app Qt6::Core Qt6::Gui)
-
 # Manual GPU check (run in a graphical session; not the software CI renderer).
 if(Qt6Quick_FOUND)
   add_executable(live-tint-probe ../manual/live_tint_probe.cpp)

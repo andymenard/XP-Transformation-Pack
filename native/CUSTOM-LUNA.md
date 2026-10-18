@@ -6,13 +6,13 @@ Source was copied from the existing XPlasma/native source tree into this workspa
 
 Validation performed:
 - Qt 6 native editor build.
-- test-customluna against the installed original Luna: all four areas change; bitmap sizes, alpha, transparency keys, and other variants are preserved; regeneration is stable; missing input fails.
+- test-app's customLunaKeepsStructure against the installed original Luna: all four areas change; bitmap sizes, alpha, transparency keys, and other variants are preserved; regeneration is stable; missing input fails.
 - Offscreen screenshots of all seven tabs, Advanced, and Extras, including reopening a saved custom palette.
 - Offscreen UI smoke checks (tests/manual/customluna_ui.cpp) for restored palette, reset, enable, choosing a new color, and cancel. Reset was also checked with the asset library accessed through a symbolic link.
 
 Build: cmake -S native -B native/build-dev -G Ninja -DQT_MAJOR=6
-Then: cmake --build native/build-dev --target xplasma-edit test-customluna
-Generator check: native/build-dev/tests/app/test-customluna /path/to/Luna/luna.msstyles
+Then: cmake --build native/build-dev --target xplasma-edit test-app
+Generator check: native/build-dev/tests/app/test-app customLunaKeepsStructure closeKeepsItsRedNotLunasBlue (needs the asset library's Luna installed)
 
 Apply crash fix (2026-10-15): the reported core and journal showed a Plasma shutdown abort (QPixmap creation after QGuiApplication teardown), during the second of two immediate restarts. Existing XP panels now receive Start data and pending AppletOrder changes before one combined restart. The applyAndReset regression asserts exactly one stop for an existing XP panel. Both that test and restartWithoutSystemd pass. A live reapply of the user's saved custom colors completed with one restart and no new core dump. Fresh installations retain the package-discovery restart when the XP Start applet is not yet present.
 

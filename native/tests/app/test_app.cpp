@@ -2457,6 +2457,49 @@ private Q_SLOTS:
         }
     }
 
+    void customLunaKeepsStructure()
+    {
+        // Custom colors change Luna's blue artwork and nothing else about it:
+        // the same bitmaps at the same sizes, the same alpha, the magenta key
+        // kept, the other colour schemes' artwork untouched. The Start
+        // button's rounded edge takes the new taskbar behind it, and the
+        // same colours again are the same (cached) style.
+        const QString source=m_realThemes+"/Luna/luna.msstyles";if(!QFileInfo::exists(source))QSKIP("needs Luna");
+        const std::array<QColor,4> colors{QColor("#862ba8"),QColor("#9d3535"),QColor("#268a64"),QColor("#bd8825")};
+        const QString dir=paths::data()+"/custom-luna";
+        QString error;
+        const auto generated=editor::customLuna(source,colors,dir,&error);QVERIFY2(!generated.isEmpty(),qPrintable(error));
+        const auto original=Theme::load(source,"NORMALBLUE_INI"),custom=Theme::load(generated,"NORMALBLUE_INI");
+        QVERIFY(original);QVERIFY(custom);
+        QCOMPARE(custom->bitmapNames(),original->bitmapNames());
+        const QStringList changed{"BLUE_STARTBUTTON_BMP","BLUE_TASKBARBACKGROUND_BMP","BLUE_FRAMECAPTION_BMP","BLUE_CAPTIONBUTTON_BMP",
+                                  "BLUE_STARTUSERPANEL_BMP","BLUE_STARTPANELPLACESBACKGROUND_BMP","BLUE_STARTPANELLOGOFFBACKGROUND_BMP"};
+        for(const auto &name:original->bitmapNames()){
+            const auto a=original->bitmap(name).image,b=custom->bitmap(name).image;
+            QVERIFY2(a.size()==b.size(),qPrintable(name));
+            if(changed.contains(name))QVERIFY2(a!=b,qPrintable(name+QStringLiteral(" unchanged")));
+            if(!name.startsWith(QLatin1String("BLUE_"))){QVERIFY2(a==b,qPrintable(name+QStringLiteral(" changed")));continue;}
+            for(int y=0;y<a.height();++y)for(int x=0;x<a.width();++x){
+                const QRgb p=a.pixel(x,y),q=b.pixel(x,y);
+                if(qAlpha(p)!=qAlpha(q))QFAIL(qPrintable(QStringLiteral("%1: alpha changed at %2,%3").arg(name).arg(x).arg(y)));
+                if(p==qRgb(255,0,255)&&q!=p)QFAIL(qPrintable(QStringLiteral("%1: magenta key recoloured at %2,%3").arg(name).arg(x).arg(y)));
+            }
+        }
+        // The rounded Start edge: the taskbar backdrop's hue, not Start's.
+        const auto edge=custom->bitmap("BLUE_STARTBUTTON_BMP").image,oldEdge=original->bitmap("BLUE_STARTBUTTON_BMP").image;
+        int checkedEdge=0;
+        for(int y=0;y<edge.height();++y){
+            const QColor old(oldEdge.pixel(edge.width()-1,y));
+            if(old.rgb()==qRgb(255,0,255)||old.hsvSaturationF()<.12)continue;
+            const float distance=qAbs(QColor(edge.pixel(edge.width()-1,y)).hsvHueF()-colors[1].hsvHueF());
+            QVERIFY2(qMin(distance,1-distance)<=.04,qPrintable(QStringLiteral("Start edge row %1").arg(y)));
+            ++checkedEdge;
+        }
+        QVERIFY(checkedEdge>0);
+        QCOMPARE(editor::customLuna(source,colors,dir,&error),generated);
+        QVERIFY(editor::customLuna(dir+"/missing.msstyles",colors,dir,&error).isEmpty());
+    }
+
     void closeKeepsItsRedNotLunasBlue()
     {
         // Custom colors keep Close's red, but what Luna blended with its blue
