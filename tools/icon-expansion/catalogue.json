@@ -1,5 +1,6 @@
 {
   "roles": {
+    "applications-system": "Additional Settings",
     "software-installed": "Change or Remove Programs",
     "software-install": "Add New Programs",
     "software-upgrade": "Microsoft Update",
@@ -47,7 +48,9 @@
     "preferences-desktop-language": "preferences-language",
     "preferences-desktop-icons": "view-list-icons",
     "preferences-desktop-wallpaper": "user-desktop",
-    "preferences-other": "preferences-system",
+    "preferences-other": "applications-system",
+    "preferences-desktop-default-applications": "applications-system",
+    "kcm_componentchooser": "applications-system",
     "preferences-plugin": "applications-addons",
     "preferences-system-services": "applications-system",
     "preferences-system-hardware": "preferences-hardware",

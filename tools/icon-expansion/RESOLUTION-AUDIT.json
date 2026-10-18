@@ -1,8 +1,23 @@
 {
   "passed": true,
-  "mapped_names": 9872,
-  "registered_images_per_option": 70700,
-  "provenance_aliases": 7390,
+  "mapped_names": 7391,
+  "registered_images_per_option": 70434,
   "fallback_maps_identical": true,
-  "note": "Both options install the same complete fallback theme. HiDPI additionally overrides eligible primary-theme 48/64/128px icons with CC0 recreations. Small and tray icons retain original artwork; unavailable high-resolution equivalents keep the fallback."
+  "alias_roles_identical": true,
+  "effective_name_coverage_identical": true,
+  "missing_names_standard": [],
+  "missing_names_hidpi": [],
+  "all_aliases_have_sizes": [
+    16,
+    22,
+    24,
+    32,
+    48,
+    64,
+    128
+  ],
+  "standard_primary_images": 3363,
+  "hidpi_primary_images": 3861,
+  "default_applications_artwork": "Original XP shell32.dll group 274 cog; HiDPI marchmountain Additional Settings cog",
+  "note": "Both options install the same complete fallback and aliases. HiDPI overrides eligible primary-theme 48/64/128px icons with CC0 recreations; small/status icons and unavailable equivalents retain original artwork. Coverage equality does not mean pixel-identical artwork."
 }

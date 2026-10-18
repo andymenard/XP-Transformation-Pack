@@ -28,6 +28,10 @@ window and XPlasma Properties.
 | Gough Lui | [Microsoft Windows XP Install Process](https://www.youtube.com/watch?v=vTheKjAtnKs&t=134s) | Visual reference for the installer from 2:14 onward; no video frames or audio redistributed. |
 | Microsoft and original asset creators | [Windows XP](https://www.microsoft.com/en-us/legal/intellectualproperty/copyright/permissions) | Original visual styles, icons, fonts, cursors, sounds and artwork retain their separate rights. |
 
+## Inspiration and projects to explore
+
+**Rozniak and the xfce-winxp-tc contributors** — [Windows XP Total Conversion for XFCE](https://github.com/rozniak/xfce-winxp-tc) is an inspiration for this project. Please check out their work bringing the Windows XP experience to XFCE. This acknowledgement credits inspiration; it does not identify their code or assets as bundled components or imply their endorsement.
+
 ## Libraries and runtime dependencies
 
 - Tim Kientzle and libarchive contributors — [libarchive](https://www.libarchive.org/), BSD-style notices; bundled reader source.

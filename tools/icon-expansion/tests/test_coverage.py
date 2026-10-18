@@ -6,6 +6,12 @@ def load(name,file):
  spec=importlib.util.spec_from_file_location(name,root/file);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
 b=load('coverage_build','build.py');i=load('coverage_install','install.py')
 class Coverage(unittest.TestCase):
+ def test_default_applications_matches_original_cog_in_hidpi(self):
+  for name in ['applications-system','preferences-other','preferences-desktop-default-applications','kcm_componentchooser']:
+   role,reason=b.role(name)
+   self.assertEqual(b.ROLES[role],'Additional Settings')
+   self.assertEqual(reason,'exact')
+
  def test_network_places_is_not_wireless_connection(self):
   role,reason=b.role('network-workgroup')
   self.assertEqual(b.ROLES[role],'My Network Places')
