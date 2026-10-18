@@ -117,12 +117,41 @@ class Upgrade(unittest.TestCase):
   self.assertIn(('root','restore',False),self.calls)
   self.assertEqual(self.record()['features'],['desktop','taskbar'])
 
+ def test_upgrade_from_a_release_with_the_retired_updater(self):
+  self.install_v1()
+  record=self.record();record['features']+=['updates'];(self.state()/'installation.json').write_text(json.dumps(record))
+  self.release='v2'
+  b.install({'desktop','taskbar'},'Luna Blue')
+  self.assertEqual(self.record()['features'],['desktop','taskbar'])
+
+ def test_newly_tracked_xp_settings_are_not_kept_as_originals(self):
+  self.install_v1()
+  state=self.state()
+  tracked=[p for p in json.loads((state/'tracked.json').read_text()) if p!='.gtkrc-2.0']
+  (state/'tracked.json').write_text(json.dumps(tracked))
+  (self.home/'.gtkrc-2.0').write_text('gtk-theme-name="XPlasma-xplasma-v2-aaa"\n')
+  self.release='v2';b.install({'desktop','taskbar'},'Luna Blue')
+  self.assertNotIn('.gtkrc-2.0',json.loads((state/'before.json').read_text()))
+  b.uninstall()
+  self.assertFalse((self.home/'.gtkrc-2.0').exists())
+
  def test_system_screens_upgrade_through_the_helper(self):
   self.install_v1()
   self.release='v2';self.calls.clear()
   record=self.record();record['features']+=['login'];(self.state()/'installation.json').write_text(json.dumps(record))
   b.install({'desktop','taskbar','login'},'Luna Blue')
   self.assertIn(('root','screens',True),self.calls)
+
+class LockScreenCapability(unittest.TestCase):
+ def test_own_lock_screen_shell_stays_upgradable(self):
+  import system_profile
+  profile={'plasma':(6,7,5),'writer':'kwriteconfig6','kde':True,'dbus':'qdbus6','qt':(6,11,0),'family':'apt','arch':'amd64','systemd':True,'boot':None,'splash':False}
+  with tempfile.TemporaryDirectory() as home,patch.dict(os.environ,{'HOME':home}):
+   (Path(home)/'.local/share/plasma/shells/org.kde.plasma.desktop').mkdir(parents=True)
+   self.assertTrue(system_profile.capabilities(profile,b.FEATURES)['lock'])
+   state=Path(home)/'.local/share/kde-xp-suite';state.mkdir(parents=True)
+   (state/'installation.json').write_text(json.dumps({'features':['lock']}))
+   self.assertEqual(system_profile.capabilities(profile,b.FEATURES)['lock'],'')
 
 class SystemScreens(unittest.TestCase):
  def setUp(self):

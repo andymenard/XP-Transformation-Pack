@@ -27,7 +27,28 @@ USER_PATHS=['.local/share/applications/fyi.hotsocket.xp.accessories.desktop','.l
  '.local/share/firefox-esr-ie6','.local/share/applications/firefox-esr-ie6.desktop',
  '.local/share/applications/fyi.hotsocket.xplasma.desktop','.local/share/applications/fyi.hotsocket.xplasma.datetime.desktop',
  '.local/share/applications/kde-xp-suite.desktop','.local/share/xp-desktop-shell',
- '.local/share/applications/fyi.hotsocket.xp.explorer.desktop','.local/share/applications/fyi.hotsocket.xp.control-panel.desktop','.local/share/applications/fyi.hotsocket.xp.shell.desktop','.codex/config.toml','.codex/pets/clippy','.icons']
+ '.local/share/applications/fyi.hotsocket.xp.explorer.desktop','.local/share/applications/fyi.hotsocket.xp.control-panel.desktop','.local/share/applications/fyi.hotsocket.xp.shell.desktop','.codex/config.toml','.codex/pets/clippy','.icons',
+ # Written by KDE's own tools when XPlasma applies a look (Plasma's theme
+ # name, GTK 2 and X settings), and the Firefox launcher's hidden alias.
+ '.config/plasmarc','.config/Trolltech.conf','.config/gtkrc','.config/gtkrc-2.0','.gtkrc-2.0','.config/xsettingsd',
+ '.config/xplasma-live-colors.json','.local/share/applications/firefox-esr.desktop']
+# What only XPlasma makes, by name: Remove takes away those it made after the
+# installation too (Properties' looks, custom colours, backups). Anything
+# that was there before the installation stays.
+GENERATED=['.local/share/xplasma','.local/share/themes/XPlasma-*','.local/share/color-schemes/xplasma-*',
+ '.local/share/plasma/desktoptheme/xplasma-*','.local/share/aurorae/themes/xplasma-*','.local/share/icons/xplasma-*',
+ '.local/share/icons/xp-desktop-shortcuts','.icons/xplasma-*','.local/share/sounds/xplasma-*',
+ '.local/share/plasma/plasmoids/fyi.hotsocket.*','.local/share/plasma/look-and-feel/local.xp.*','.local/share/kwin/xplasma',
+ '.local/share/fonts/xp','.local/share/xp-desktop-shell','.local/share/xp-accessories','.local/share/firefox-esr-ie6',
+ '.local/share/applications/fyi.hotsocket.*','.config/xplasmarc','.config/xplasma-live-colors.json']
+CACHES=['.cache/xplasma','.cache/plasma_theme_xplasma-*.kcache']
+# What the user made in them stays: saved and imported themes, the custom
+# colour styles saved themes use, and the IE6 browser's profile.
+USER_CONTENT=['.local/share/xplasma/schemes','.local/share/xplasma/assets/themes/Saved','.local/share/xplasma/assets/themes/Custom',
+ '.local/share/xplasma/custom-luna','.local/share/firefox-esr-ie6/profile']
+# The installer's own folder after Remove: the settings backups and records
+# stay (unless deleted too); the runtime, installer copy and builds go.
+KEPT_STATE={'backup','installed-config','behavior-backup'}
 GNOME_KEYS=['gtk-theme','icon-theme','font-name','monospace-font-name','cursor-theme','cursor-size']
 def log(message):print(message,flush=True)
 def phase(message):print('@@'+json.dumps({'phase':message}),flush=True)
@@ -65,6 +86,15 @@ def inventory(home,paths):
     if (value:=digest(child)):result[str(child.relative_to(home))]=value
   elif (value:=digest(p)):result[name]=value
  return result
+def ours(text):
+ # A setting or file that names XPlasma's generated looks is the XP desktop's,
+ # whenever it was written: left behind, it points at what Remove deletes.
+ return bool(text) and 'xplasma' in str(text).lower()
+def mentions_xplasma(p,name=''):
+ # (Never in what the user made: a browser profile may name XPlasma too.)
+ if any(name.startswith(kept+'/') for kept in USER_CONTENT):return False
+ try:return p.is_file() and not p.is_symlink() and p.stat().st_size<1024*1024 and b'xplasma' in p.read_bytes().lower()
+ except OSError:return False
 def ini(p):
  c=configparser.RawConfigParser(strict=False,delimiters=('=',));c.optionxform=str;c.read(p);return c
 def ini_map(c):return {(g,k):v for g in c.sections() for k,v in c.items(g)}
@@ -73,14 +103,15 @@ def restore_ini(before,after,current):
  for g,k in set(bm)|set(am):
   key=(g,k)
   if bm.get(key)==am.get(key):continue
-  if cm.get(key)!=am.get(key):conflicts.append(g+'/'+k);continue
+  if cm.get(key)!=am.get(key) and not ours(cm.get(key)):conflicts.append(g+'/'+k);continue
   if key in bm:
    if not c.has_section(g):c.add_section(g)
    c.set(g,k,bm[key])
   else:c.remove_option(g,k)
  for g in c.sections():
   if not c.items(g) and g not in b.sections():c.remove_section(g)
- with current.open('w') as f:c.write(f)
+ # (As KDE writes them: key=value.)
+ with current.open('w') as f:c.write(f,space_around_delimiters=False)
  return conflicts
 def restore_toml(before,after,current):
  b=tomlkit.parse(before.read_text());a=tomlkit.parse(after.read_text());c=tomlkit.parse(current.read_text())
@@ -134,7 +165,9 @@ class Snapshot:
   self.paths=tracked+new
   if not new:return
   before=json.loads((self.state/'before.json').read_text())
-  data={name:value for name,value in inventory(self.home,new).items() if name not in before}
+  # (Except what already names XPlasma's looks: that is the XP desktop's
+  # state, not the user's, and Remove clears it as the installation's.)
+  data={name:value for name,value in inventory(self.home,new).items() if name not in before and not mentions_xplasma(self.home/name,name)}
   for name in data:copy(self.home/name,self.state/'backup'/name)
   before.update(data)
   (self.state/'before.json').write_text(json.dumps(before,indent=2)+'\n')
@@ -144,7 +177,7 @@ class Snapshot:
   for name,installed in after.items():
    if name in before:continue
    p=self.home/name
-   if digest(p)==installed:p.unlink()
+   if digest(p)==installed or mentions_xplasma(p,name):p.unlink()
    elif p.exists() or p.is_symlink():conflicts.append(name)
   for name,saved in before.items():
    if saved==after.get(name):continue
@@ -154,7 +187,11 @@ class Snapshot:
     try:
      changed=restore_toml(backup,installed,p) if name=='.codex/config.toml' else restore_ini(backup,installed,p)
      conflicts.extend(name+': '+x for x in changed)
-    except (ValueError,configparser.Error):conflicts.append(name)
+    except (ValueError,configparser.Error):
+     # (Not an INI file after all, as GTK's gtkrc isn't.)
+     if mentions_xplasma(p,name):copy(backup,p)
+     else:conflicts.append(name)
+   elif mentions_xplasma(p,name):copy(backup,p)
    elif saved!=after.get(name):conflicts.append(name)
   b=json.loads((self.state/'gnome-before.json').read_text());a=json.loads((self.state/'gnome-after.json').read_text());now=gnome()
   for key,value in b.items():
@@ -171,6 +208,7 @@ def validate_selection(selected,theme):
  if not selected:raise RuntimeError('Select at least one feature.')
  if not selected<=KNOWN:raise RuntimeError('Unknown feature: '+', '.join(sorted(selected-KNOWN)))
  if 'explorer_default' in selected and 'explorer' not in selected:raise RuntimeError('Select XP Explorer before making it the default file manager.')
+ if 'firefox_default' in selected and 'firefox' not in selected:raise RuntimeError('Select IE6 Replica before making it the default web browser.')
  if theme not in THEMES:raise RuntimeError('Unknown XP theme.')
  return selected
 def preflight(selected,installed=()):
@@ -217,11 +255,12 @@ def verify():
     raise RuntimeError('Package resource link is missing or damaged: '+name)
   elif not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=expected:
    raise RuntimeError('Package file missing or damaged: '+name)
-def root(action,selected=(),native_ready=False,caption_ready=False,upgrade=False):
+def root(action,selected=(),native_ready=False,caption_ready=False,upgrade=False,purge=False):
  args=['pkexec',sys.executable,BASE/'root_helper.py',action,'--features',','.join(sorted(selected))]
  if native_ready:args.append('--native-ready')
  if caption_ready:args.append('--caption-ready')
  if upgrade:args.append('--upgrade')
+ if purge:args.append('--purge')
  run(args)
 def desktop_path(home):
  p=Path(run(['xdg-user-dir','DESKTOP'],capture=True)) if shutil.which('xdg-user-dir') else home/'Desktop'
@@ -471,13 +510,25 @@ def firefox(home):
  firefox_profile_defaults(profile,seed if seed.exists() else BASE/'payload/firefox/profile/prefs.js')
  launcher=dest/'launch';launcher.write_text('#!/bin/sh\nexec "$HOME/.local/share/firefox-esr-ie6/firefox/firefox" --new-instance --profile "$HOME/.local/share/firefox-esr-ie6/profile" "$@"\n');launcher.chmod(0o755)
  entries=home/'.local/share/applications';entries.mkdir(parents=True,exist_ok=True)
- (entries/'firefox-esr-ie6.desktop').write_text('[Desktop Entry]\nType=Application\nName=IE6 Replica — Firefox ESR\nExec="'+str(launcher)+'" %U\nIcon=firefox\nTerminal=false\nCategories=Network;WebBrowser;\nStartupNotify=true\n')
+ (entries/'firefox-esr-ie6.desktop').write_text('[Desktop Entry]\nType=Application\nName=IE6 Replica — Firefox ESR\nExec="'+str(launcher)+'" %U\nIcon=firefox\nTerminal=false\nCategories=Network;WebBrowser;\nMimeType='+';'.join(WEB_TYPES)+';\nStartupNotify=true\n')
  import importlib.util
  icon_helper=BASE/'payload/firefox/install-icon.py'
  spec=importlib.util.spec_from_file_location('ie6_install_icon',icon_helper)
  module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
  module.install(home=home,source=BASE/'payload/firefox')
 
+WEB_TYPES=['text/html','application/xhtml+xml','x-scheme-handler/http','x-scheme-handler/https']
+def browser_default(home):
+ # The web's types and KDE's preferred browser (what preferred://browser and
+ # "Open with web browser" use); both files are restored by Remove.
+ entry='firefox-esr-ie6.desktop'
+ for name,group,values in [('mimeapps.list','Default Applications',{t:entry+';' for t in WEB_TYPES}),
+                           ('kdeglobals','General',{'BrowserApplication':entry})]:
+  path=home/'.config'/name;path.parent.mkdir(parents=True,exist_ok=True)
+  parser=configparser.RawConfigParser(strict=False,delimiters=('=',));parser.optionxform=str;parser.read(path)
+  if not parser.has_section(group):parser.add_section(group)
+  for key,value in values.items():parser.set(group,key,value)
+  with path.open('w') as f:parser.write(f,space_around_delimiters=False)
 def shortcuts(home,state,selected,asset_options=None):
  icons=home/'.local/share/icons/xp-desktop-shortcuts';copy(BASE/'payload/assets/desktop-icons',icons)
  if (asset_options or {}).get('hidpi_icons'):
@@ -539,6 +590,9 @@ def install(selected,theme,asset_options=None):
  record=state/'installation.json'
  previous=json.loads(record.read_text()) if record.exists() else None
  installed=set(previous['features']) if previous else set()
+ retired=installed-KNOWN
+ if retired:log('No longer part of the installer, so not carried over: '+', '.join(sorted(retired))+'.')
+ installed-=retired
  upgrade=previous is not None
  selected=validate_selection(selected,theme);phase('Checking system and package');preflight(selected,installed);verify()
  if upgrade:
@@ -601,6 +655,8 @@ def install(selected,theme,asset_options=None):
   if 'user_pictures' in selected:phase('Installing XP user account pictures');user_pictures(home)
   if 'lock' in selected:phase('Installing XP lock screen');lock_screen(home,state,'lock' in installed)
   if 'firefox' in selected:phase('Installing IE6-style Firefox ESR');firefox(home)
+  # (Once: an upgrade keeps a browser chosen since.)
+  if 'firefox_default' in selected and 'firefox_default' not in installed:phase('Making IE6 Firefox the default web browser');browser_default(home)
   # (Seeded once: an upgrade keeps the Quick Launch as it has been edited.)
   if 'taskbar' in selected and 'taskbar' not in installed:phase('Setting default taskbar shortcuts');taskbar_defaults(home,selected)
   if 'desktop_icons' in selected:phase('Adding XP desktop shortcuts');shortcuts(home,state,selected,asset_options)
@@ -652,7 +708,34 @@ def refresh(home,state):
  cursor=state/'cursor-unit-before.json'
  if cursor.exists() and json.loads(cursor.read_text()).get('enabled'):run(['systemctl','--user','enable','--now','xp-cursor-sync.path'],check=False)
  run(['systemctl','--user','restart','plasma-plasmashell.service'],check=False)
-def uninstall():
+def remove_generated(home,before):
+ # XPlasma's own files that weren't there before the installation, made by
+ # it or by Properties since; folders they leave empty go with them.
+ import glob
+ for pattern in GENERATED+CACHES:
+  for match in sorted(glob.glob(str(home/pattern))):
+   root=Path(match)
+   if root.is_symlink() or not root.is_dir():
+    if str(root.relative_to(home)) not in before and (root.is_symlink() or root.is_file()):root.unlink()
+    continue
+   for folder,dirs,files in os.walk(root,topdown=False):
+    for name in files+[d for d in dirs if (Path(folder)/d).is_symlink()]:
+     p=Path(folder)/name;rel=str(p.relative_to(home))
+     if any(rel.startswith(kept+'/') for kept in USER_CONTENT):continue
+     if rel not in before or pattern in CACHES:p.unlink()
+    try:Path(folder).rmdir()
+    except OSError:pass
+ # The IE6 Firefox launcher's alias is named after Firefox's own ID.
+ for p in (home/'.local/share/applications').glob('*.desktop'):
+  if str(p.relative_to(home)) not in before and p.is_file() and not p.is_symlink() and 'X-XPlasma-IE6=true' in p.read_text(errors='replace'):p.unlink()
+def tidy_state(state,delete_backups):
+ if delete_backups:
+  shutil.rmtree(state,ignore_errors=True);return
+ for p in state.iterdir():
+  if p.suffix=='.json' or p.name in KEPT_STATE:continue
+  if p.is_dir() and not p.is_symlink():shutil.rmtree(p,ignore_errors=True)
+  else:p.unlink()
+def uninstall(delete_backups=False):
  home=Path.home();state=home/'.local/share'/STATE_NAME
  record=state/'installation.json'
  if not record.exists():record=state/'incomplete.json'
@@ -660,18 +743,26 @@ def uninstall():
  info=json.loads(record.read_text());phase('Restoring your saved settings')
  run(['systemctl','--user','disable','--now','xp-session-theme.path'],check=False)
  if 'pointers' in set(info['features']):run(['systemctl','--user','disable','--now','xp-cursor-sync.path'],check=False)
- if set(info['features'])&{'login','boot'}:root('restore')
- paths=json.loads((state/'tracked.json').read_text());conflicts=Snapshot(home,state,paths).restore();refresh(home,state)
+ if set(info['features'])&{'login','boot'}:root('restore',purge=delete_backups)
+ paths=json.loads((state/'tracked.json').read_text());conflicts=Snapshot(home,state,paths).restore()
+ phase('Removing XP looks and caches made since installation')
+ remove_generated(home,json.loads((state/'before.json').read_text()))
+ conflicts=[name for name in conflicts if (home/name.split(': ')[0]).exists()]
+ refresh(home,state)
  record.rename(state/'removed.json')
+ tidy_state(state,delete_backups)
  phase('Selected features removed')
  if conflicts:log('Later edits were retained: '+'; '.join(conflicts))
- log('Managed settings restored where they still matched the installed values. Linux dependencies and backups are retained. Reopen applications.')
+ kept=[home/name for name in USER_CONTENT if (home/name).is_dir() and any((home/name).iterdir())]
+ if kept:log('Kept what you made: '+'; '.join(map(str,kept)))
+ log('Managed settings restored where they still matched the installed values. Linux dependencies are retained. '
+     +('Settings backups were deleted. ' if delete_backups else 'Settings backups are kept in '+str(state)+'. ')+'Reopen applications.')
  return 0
 def main():
- p=argparse.ArgumentParser();p.add_argument('action',choices=['install','uninstall','check']);p.add_argument('--features',default='');p.add_argument('--theme',default='Luna Blue');p.add_argument('--hidpi-icons',action='store_true');p.add_argument('--hires-wallpapers',action='store_true');p.add_argument('--dark-mode',action='store_true');a=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument('action',choices=['install','uninstall','check']);p.add_argument('--features',default='');p.add_argument('--theme',default='Luna Blue');p.add_argument('--hidpi-icons',action='store_true');p.add_argument('--hires-wallpapers',action='store_true');p.add_argument('--dark-mode',action='store_true');p.add_argument('--delete-backups',action='store_true');a=p.parse_args()
  selected=validate_selection([x for x in a.features.split(',') if x],a.theme) if a.action!='uninstall' else set()
  if a.action=='install':return install(selected,a.theme,{'hidpi_icons':a.hidpi_icons,'hires_wallpapers':a.hires_wallpapers,'dark_mode':a.dark_mode})
- if a.action=='uninstall':return uninstall()
+ if a.action=='uninstall':return uninstall(a.delete_backups)
  preflight(selected);verify();log('Preflight passed; no settings changed.');return 0
 if __name__=='__main__':
  try:sys.exit(main())

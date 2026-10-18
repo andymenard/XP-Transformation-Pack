@@ -22,7 +22,7 @@ class FirefoxInstallTests(unittest.TestCase):
    for name,data in [('firefox/firefox',b'not-run'),('firefox/ie6-ui.cfg',b'// obsolete runtime'),('firefox/application.ini',b'[App]\nRemotingName=firefox-esr\n')]:
     info=tarfile.TarInfo(name);info.size=len(data);archive.addfile(info,io.BytesIO(data))
   tree=ast.parse((ROOT/'backend.py').read_text());functions=[node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name in ['copy','firefox','firefox_profile_defaults']]
-  self.ns={'BASE':self.base,'Path':Path,'tarfile':tarfile,'shutil':shutil,'tempfile':tempfile,'os':__import__('os'),'detect':lambda:{'arch':'arm64'}}
+  self.ns={'BASE':self.base,'Path':Path,'tarfile':tarfile,'shutil':shutil,'tempfile':tempfile,'os':__import__('os'),'detect':lambda:{'arch':'arm64'},'WEB_TYPES':['text/html','x-scheme-handler/https']}
   exec(compile(ast.Module(body=functions,type_ignores=[]),'backend.py','exec'),self.ns)
  def tearDown(self):self.temp.cleanup()
  def install(self):
@@ -30,6 +30,8 @@ class FirefoxInstallTests(unittest.TestCase):
  def test_fresh_install_registers_real_application_identity_and_icon(self):
   self.install();entries=self.home/'.local/share/applications';primary=(entries/'firefox-esr-ie6.desktop').read_text();alias=(entries/'firefox-esr.desktop').read_text()
   self.assertIn('StartupWMClass=firefox-esr',primary);self.assertIn('application-ie.png',primary);self.assertNotIn('Icon=firefox\n',primary);self.assertIn('NoDisplay=true',alias)
+  # (Declares the web's types, so KDE offers it as a browser.)
+  self.assertIn('MimeType=text/html;x-scheme-handler/https;',primary)
   runtime=self.home/'.local/share/firefox-esr-ie6/firefox/ie6-ui.cfg'
   self.assertIn('readAppearance',runtime.read_text());self.assertNotIn('obsolete',runtime.read_text())
   profile=self.home/'.local/share/firefox-esr-ie6/profile'

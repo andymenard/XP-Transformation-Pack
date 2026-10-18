@@ -29,3 +29,9 @@ existing installation and keeps your current theme, dark mode and Quick Launch.
 Installed features stay selected (new ones can be added); to drop one, remove the
 installation first. Remove still restores the settings from before the first
 installation, and a failed upgrade returns to the release it was upgrading.
+
+Remove also deletes the XP looks and caches made since installation (by
+Properties too), keeping saved and imported themes, custom colour styles and the
+IE6 browser profile. Settings backups stay in ~/.local/share/kde-xp-suite unless
+"Also delete the settings backups" is checked. IE6 Firefox can be made the
+default web browser; Remove restores the previous one.

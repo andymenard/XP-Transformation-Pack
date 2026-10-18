@@ -165,6 +165,9 @@ class Installer(QtWidgets.QMainWindow):
   checked=item.checkState(0)==QtCore.Qt.CheckState.Checked
   if name=='explorer_default' and checked:self.items['explorer'].setCheckState(0,QtCore.Qt.CheckState.Checked)
   if name=='explorer' and not checked:self.items['explorer_default'].setCheckState(0,QtCore.Qt.CheckState.Unchecked)
+  if name=='firefox_default' and checked:self.items['firefox'].setCheckState(0,QtCore.Qt.CheckState.Checked)
+  # (Choosing the IE6 browser makes it the default too, unless unticked.)
+  if name=='firefox':self.items['firefox_default'].setCheckState(0,QtCore.Qt.CheckState.Checked if checked else QtCore.Qt.CheckState.Unchecked)
   self.update_summary()
  def selected(self):return [name for name,item in self.items.items() if item.checkState(0)==QtCore.Qt.CheckState.Checked and not self.support[name]]
  def select_all(self,checked):
@@ -187,10 +190,11 @@ class Installer(QtWidgets.QMainWindow):
   self.remove.setEnabled(not running and ((STATE/'installation.json').exists() or (STATE/'incomplete.json').exists()))
  def start(self,action):
   if self.test_mode:return
-  if action=='uninstall':
-   answer=QtWidgets.QMessageBox.question(self,'Remove XP features','Restore the saved settings for this installation? Later edits are preserved when possible. Linux dependencies and backups are kept.')
-   if answer!=QtWidgets.QMessageBox.StandardButton.Yes:return
   args=['-u',str(BASE/'backend.py'),action]
+  if action=='uninstall':
+   box=self.removal_question()
+   if box.exec()!=QtWidgets.QMessageBox.StandardButton.Yes:return
+   if box.checkBox().isChecked():args.append('--delete-backups')
   if action=='install':args+=['--features',','.join(self.selected()),'--theme',self.theme.currentText()]
   if action=='install':
    if self.dark_mode.isChecked():args+=['--dark-mode']
@@ -201,6 +205,14 @@ class Installer(QtWidgets.QMainWindow):
   self.process=QtCore.QProcess(self);self.process.setProcessChannelMode(QtCore.QProcess.ProcessChannelMode.MergedChannels)
   self.process.readyReadStandardOutput.connect(self.read_output);self.process.finished.connect(self.finished)
   self.process.errorOccurred.connect(self.process_error);self.process.start(sys.executable,args);self.update_summary()
+ def removal_question(self):
+  box=QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Question,'Remove XP features',
+   'Restore the settings from before the installation and remove the XP looks it made, including those made in Properties since? '
+   'Later edits are preserved when possible. Your saved themes, custom colours and IE6 browser profile are kept. Linux dependencies are kept.',
+   QtWidgets.QMessageBox.StandardButton.Yes|QtWidgets.QMessageBox.StandardButton.No,self)
+  # (Parented to the dialog: PyQt doesn't hand setCheckBox's box to Qt.)
+  box.setCheckBox(QtWidgets.QCheckBox('Also delete the settings backups (they can\'t be restored again afterwards)',box))
+  return box
  def append_log(self,text):
   self.terminal_log.appendPlainText(text)
  def read_output(self):

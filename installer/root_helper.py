@@ -149,7 +149,7 @@ def screens(home,store,features,upgrade=False):
   raise
  print('System screens prepared. No logout or reboot was performed.',flush=True)
 def main():
- p=argparse.ArgumentParser();p.add_argument('action',choices=['dependencies','screens','restore','bootstrap']);p.add_argument('--features',default='');p.add_argument('--native-ready',action='store_true');p.add_argument('--caption-ready',action='store_true');p.add_argument('--upgrade',action='store_true');a=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument('action',choices=['dependencies','screens','restore','bootstrap']);p.add_argument('--features',default='');p.add_argument('--native-ready',action='store_true');p.add_argument('--caption-ready',action='store_true');p.add_argument('--upgrade',action='store_true');p.add_argument('--purge',action='store_true');a=p.parse_args()
  home,store=context()
  if not detect()['family']:raise RuntimeError('No supported package manager detected.')
  features=[x for x in a.features.split(',') if x]
@@ -157,7 +157,10 @@ def main():
  if not set(features)<=known:raise RuntimeError('Unknown installer feature.')
  if a.action=='dependencies':deps(features,a.native_ready,a.caption_ready)
  elif a.action=='screens':screens(home,store,features,a.upgrade)
- elif a.action=='restore':restore(store)
+ elif a.action=='restore':
+  restore(store)
+  # (Remove's "delete the backups too": the system screens' backups as well.)
+  if a.purge and not (store/'system.json').exists():shutil.rmtree(store,ignore_errors=True)
  else:install(detect()['family'],[],run,bootstrap=True)
 if __name__=='__main__':
  try:main()

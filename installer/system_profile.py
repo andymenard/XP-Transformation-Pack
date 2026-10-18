@@ -1,5 +1,5 @@
 """Read-only platform detection and per-feature compatibility decisions."""
-import os,platform,re,shutil,subprocess
+import json,os,platform,re,shutil,subprocess
 from pathlib import Path
 
 def output(args):
@@ -43,7 +43,7 @@ def capabilities(profile,features):
  def disable(names,reason):
   for name in names:result[name]=reason
  if profile['plasma'][0]!=6 or not profile['writer']:
-  disable([n for n in result if n not in {'firefox','codex_colors','clippy','desktop_icons'}],'Requires Plasma 6 and kwriteconfig6.')
+  disable([n for n in result if n not in {'firefox','firefox_default','codex_colors','clippy','desktop_icons'}],'Requires Plasma 6 and kwriteconfig6.')
  if not profile['kde']:disable(['wallpaper','taskbar','behavior','session','lock','tray'],'Run inside a KDE Plasma session.')
  if not shutil.which('plasma-apply-cursortheme'):disable(['pointers'],'Plasma cursor-theme utility is missing.')
  if not shutil.which('fc-cache'):disable(['fonts'],'Fontconfig is missing.')
@@ -56,8 +56,11 @@ def capabilities(profile,features):
  if not profile['family']:
   disable(['pinball','minesweeper','solitaire'],'Game build dependencies require a supported package-manager adapter.')
  if not profile['family']:disable(['theme_manager','desktop','apps','taskbar','login','boot','caption_animation'],'Automatic dependency installation supports APT, DNF, pacman and Zypper families.')
- if profile['arch'] not in {'amd64','arm64'}:disable(['firefox'],'Bundled Firefox ESR supports Intel/AMD 64-bit and ARM64.')
+ if profile['arch'] not in {'amd64','arm64'}:disable(['firefox','firefox_default'],'Bundled Firefox ESR supports Intel/AMD 64-bit and ARM64.')
  if not profile['systemd']:disable(['login','session'],'This feature requires systemd.')
  if not profile['boot'] or not profile['splash']:disable(['boot'],'Requires an existing splash-enabled Plymouth setup using dracut or update-initramfs. Configure that first; the installer does not alter bootloader arguments.')
- if (Path.home()/'.local/share/plasma/shells/org.kde.plasma.desktop').exists():disable(['lock'],'A custom user Plasma shell is already installed.')
+ # (Unless it's the XP lock screen's own, which an upgrade replaces.)
+ try:installed=set(json.loads((Path.home()/'.local/share/kde-xp-suite/installation.json').read_text()).get('features',[]))
+ except (OSError,ValueError):installed=set()
+ if 'lock' not in installed and (Path.home()/'.local/share/plasma/shells/org.kde.plasma.desktop').exists():disable(['lock'],'A custom user Plasma shell is already installed.')
  return result

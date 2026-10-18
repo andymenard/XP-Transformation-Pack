@@ -152,5 +152,13 @@
     "default": false,
     "native": false,
     "project": "firefox"
+  },
+  {
+    "id": "firefox_default",
+    "name": "Use IE6 Firefox as the default web browser",
+    "description": "Requires IE6 Replica. Opens web links and pages in it, and makes it KDE's preferred browser; Remove returns the previous choices.",
+    "default": false,
+    "native": false,
+    "project": "firefox"
   }
 ]

@@ -20,7 +20,7 @@ class GuiTests(unittest.TestCase):
   window.select_all(True);self.assertNotIn('taskbar',window.selected());self.assertIn('Unsupported series',window.items['taskbar'].toolTip(0));window.close()
  def test_browser_can_be_selected_without_desktop(self):
   self.window.select_all(False);self.window.items['firefox'].setCheckState(0,g.QtCore.Qt.CheckState.Checked)
-  self.assertEqual(self.window.selected(),['firefox']);self.assertIn('No login or boot',self.window.summary.text())
+  self.assertEqual(set(self.window.selected()),{'firefox','firefox_default'});self.assertIn('No login or boot',self.window.summary.text())
  def test_theme_variants_and_system_change_notice(self):
   self.assertEqual(self.window.theme.count(),len(g.THEMES));self.assertGreaterEqual(self.window.theme.findText('Zune'),0)
   self.window.select_all(False);self.window.items['boot'].setCheckState(0,g.QtCore.Qt.CheckState.Checked)
@@ -40,6 +40,15 @@ class GuiTests(unittest.TestCase):
     self.assertEqual(window.install.text(),'Install selected features')
     window.select_all(False);self.assertEqual(window.selected(),[])
     window.close()
+ def test_removal_offers_to_delete_backups_unchecked(self):
+  box=self.window.removal_question()
+  self.assertIn('settings backups',box.checkBox().text());self.assertFalse(box.checkBox().isChecked())
+  self.assertIn('IE6 browser profile are kept',box.text())
+ def test_choosing_ie6_firefox_makes_it_the_default_too(self):
+  self.window.select_all(False);self.window.items['firefox'].setCheckState(0,g.QtCore.Qt.CheckState.Checked)
+  self.assertEqual(set(self.window.selected()),{'firefox','firefox_default'})
+  self.window.items['firefox_default'].setCheckState(0,g.QtCore.Qt.CheckState.Unchecked);self.assertEqual(self.window.selected(),['firefox'])
+  self.window.items['firefox'].setCheckState(0,g.QtCore.Qt.CheckState.Unchecked);self.assertEqual(self.window.selected(),[])
  def test_preview_mode_cannot_execute_installation(self):
   self.window.start('install');self.assertIsNone(self.window.process)
  def test_live_output_is_visible_beside_progress_page(self):
