@@ -201,7 +201,9 @@ bool apply(Session &session, const Look &look, State &state, QStringList *log, Q
     const QByteArray rc = "[Theme]\nPath=" + frozen.toUtf8() + "\nVariant=" + (look.classic() ? QByteArray() : look.variant.toUtf8())
                           + "\nSource=" + source.toUtf8() + "\n"
                           // (XP's text: GDI never kerned. See xptext.h.)
-                          + "\n[Text]\nKerning=false\n";
+                          + "\n[Text]\nKerning=false\n"
+                          // (Rewriting it must not drop crisp text: a color-only apply never re-runs crisptext.)
+                          + (state.settings.value(QStringLiteral("crispText")).toBool() ? "Crisp=true\n" : "");
     if (!writeAtomically(configPath(), rc, error))
         return false;
     // (And beside the look, for Flatpak apps: their sandboxes see that folder
