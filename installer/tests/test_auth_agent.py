@@ -34,6 +34,13 @@ class AuthAgent(unittest.TestCase):
   self.assertIn(['systemctl','--user','restart',UNIT],seen)
   self.assertGreater(seen.index(['systemctl','--user','restart',UNIT]),seen.index(['systemctl','--user','restart','plasma-plasmashell.service']))
 
+ def test_each_password_prompt_comes_from_a_restarted_agent(self):
+  # (An agent left over from before an earlier Remove draws the first prompt too.)
+  seen,run=self.calls('active')
+  with patch.object(b,'run',run),patch('time.sleep') as slept:b.root('dependencies',{'taskbar'})
+  restart=seen.index(['systemctl','--user','restart',UNIT]);pkexec=next(i for i,c in enumerate(seen) if c[0]=='pkexec')
+  self.assertLess(restart,pkexec);slept.assert_called_once_with(1)
+
  def test_installing_the_xp_fonts_restarts_it(self):
   seen,run=self.calls('active')
   with tempfile.TemporaryDirectory() as folder:

@@ -267,6 +267,9 @@ def verify():
   elif not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=expected:
    raise RuntimeError('Package file missing or damaged: '+name)
 def root(action,selected=(),native_ready=False,caption_ready=False,upgrade=False,purge=False):
+ # (The prompt pkexec brings up draws with the fonts there now, even if an
+ # earlier installation or Remove changed them since the agent started.)
+ restart_auth_agent(settle=True)
  args=['pkexec',sys.executable,BASE/'root_helper.py',action,'--features',','.join(sorted(selected))]
  if native_ready:args.append('--native-ready')
  if caption_ready:args.append('--caption-ready')
@@ -776,7 +779,7 @@ def rebuild():
   if conflicts:log('Not restored, changed during the rebuild: '+'; '.join(conflicts))
   raise
  return 0
-def restart_auth_agent():
+def restart_auth_agent(settle=False):
  # KDE's password prompt is a long-running agent that keeps the fonts it
  # loaded at login. Remove deletes the XP interface fonts and an install puts
  # new ones at the same paths, so it would draw wrong glyphs until the next
@@ -784,7 +787,11 @@ def restart_auth_agent():
  # nothing installs or removes fonts during a prompt.)
  unit='plasma-polkit-agent.service'
  if run(['systemctl','--user','is-active',unit],capture=True,check=False)=='active':
+  # (A D-Bus service: the restart returns once the new agent has its name.
+  # Before a prompt, a moment more for it to register with polkit.)
   run(['systemctl','--user','restart',unit],check=False)
+  if settle:
+   import time;time.sleep(1)
 def refresh(home,state):
  run(['fc-cache','-f'],check=False);run([kdbus(),'org.kde.KWin','/KWin','reconfigure'],check=False)
  run(['systemctl','--user','daemon-reload'],check=False)
