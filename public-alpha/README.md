@@ -26,8 +26,9 @@ opens the GitHub releases page in your browser. Signed checksums are provided
 for verifying each installer download.
 
 Read the new release's installation and migration notes before changing an
-existing installation. The current installer requires removal of an overlapping
-installation before reinstalling; an in-place upgrade is not supported yet.
+existing installation. Running a newer installer over an existing installation
+upgrades it in place, keeping your theme and settings; Remove still restores the
+desktop from before the first installation.
 
 ## Download the alpha installer
 

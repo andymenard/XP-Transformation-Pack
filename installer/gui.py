@@ -27,7 +27,7 @@ class SetupStep(QtWidgets.QLabel):
   painter.setPen(QtGui.QColor('#f1f5ff'));painter.setBrush(gradient);painter.drawEllipse(QtCore.QRectF(2,y+2,14,14))
 class Installer(QtWidgets.QMainWindow):
  def __init__(self,test_mode=False):
-  super().__init__();self.test_mode=test_mode;self.process=None;self.buffer='';self.current_action=None
+  super().__init__();self.test_mode=test_mode;self.process=None;self.buffer='';self.current_action=None;self.upgrading=False
   self.setWindowTitle('XP Transformation Pack Setup');self.resize(1024,768)
   self._tip_index=0
   self.setWindowIcon(QtGui.QIcon(str(BASE/'payload/assets/desktop-icons/computer.png')))
@@ -57,7 +57,7 @@ class Installer(QtWidgets.QMainWindow):
   layout=QtWidgets.QVBoxLayout(content);layout.setContentsMargins(18,20,18,16);layout.setSpacing(7)
   dialog_title=QtWidgets.QLabel('XP Transformation Pack Setup');dialog_title.setObjectName('setupDialogTitle');layout.addWidget(dialog_title)
   header=QtWidgets.QLabel('Choose your components');header.setObjectName('header');layout.addWidget(header)
-  intro=QtWidgets.QLabel('Install the XP desktop, with optional IE6 Firefox. Review the features below.');intro.setWordWrap(True);layout.addWidget(intro)
+  self.intro=QtWidgets.QLabel();self.intro.setWordWrap(True);layout.addWidget(self.intro)
   row=QtWidgets.QHBoxLayout();row.addWidget(QtWidgets.QLabel('Theme:'));self.theme=QtWidgets.QComboBox();self.theme.addItems(THEMES);row.addWidget(self.theme,1)
   all_button=QtWidgets.QPushButton('Select all');none_button=QtWidgets.QPushButton('Select none');self.selection_buttons=[all_button,none_button];row.addWidget(all_button);row.addWidget(none_button);layout.addLayout(row)
   self.tree=QtWidgets.QTreeWidget();self.tree.setHeaderHidden(True);self.tree.setRootIsDecorated(True);self.tree.setUniformRowHeights(False);layout.addWidget(self.tree,1)
@@ -69,6 +69,8 @@ class Installer(QtWidgets.QMainWindow):
    group.setFlags(group.flags()|QtCore.Qt.ItemFlag.ItemIsUserCheckable|QtCore.Qt.ItemFlag.ItemIsAutoTristate)
    group.setToolTip(0,'Select or clear the supported features in this project.');group.setExpanded(key=='desktop');self.groups[key]=group
   installed=STATE/'installation.json';saved=json.loads(installed.read_text()) if installed.exists() else None
+  # An upgrade keeps what is installed: those features stay checked.
+  self.locked=set(saved['features']) if saved else set()
   for feature in FEATURES:
    item=QtWidgets.QTreeWidgetItem(self.groups[feature.get('project','desktop')],[feature['name']]);item.setData(0,QtCore.Qt.ItemDataRole.UserRole,feature['id']);item.setToolTip(0,feature['description'])
    item.setFlags(item.flags()|QtCore.Qt.ItemFlag.ItemIsUserCheckable)
@@ -78,6 +80,7 @@ class Installer(QtWidgets.QMainWindow):
    checked=(feature['id'] in saved['features'] if saved else feature['default']) and not reason
    item.setCheckState(0,QtCore.Qt.CheckState.Checked if checked else QtCore.Qt.CheckState.Unchecked)
    self.items[feature['id']]=item
+  self.lock_installed()
   if saved:self.theme.setCurrentText(saved['theme'])
   options=(saved or {}).get('asset_options',{})
   quality=QtWidgets.QVBoxLayout()
@@ -126,6 +129,16 @@ class Installer(QtWidgets.QMainWindow):
   self.install.clicked.connect(lambda:self.start('install'));self.remove.clicked.connect(lambda:self.start('uninstall'))
   self.status.setText(self.profile['name']+' — Plasma '+'.'.join(map(str,self.profile['plasma']))+' — '+self.profile['arch']+'. Unavailable features are disabled.')
   self.set_step(0);self.update_summary()
+ def lock_installed(self):
+  installed=STATE/'installation.json'
+  self.locked=set(json.loads(installed.read_text())['features']) if installed.exists() else set()
+  for feature in FEATURES:
+   item=self.items[feature['id']];reason=self.support[feature['id']]
+   locked=feature['id'] in self.locked and not reason
+   tip=feature['description']+('\nUnavailable: '+reason if reason else '')+('\nInstalled: an upgrade keeps it. Remove the installation to drop it.' if locked else '')
+   item.setToolTip(0,tip)
+   if locked:item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsUserCheckable)
+   elif not reason:item.setFlags(item.flags()|QtCore.Qt.ItemFlag.ItemIsUserCheckable)
  def rotate_tip(self):
   tips=[('An exciting familiar look','XP-inspired window borders, a familiar Start menu and labeled task buttons bring a classic desktop to modern KDE.\n\nYour Linux applications and files stay available.'),('Choose the look you like','Use Luna, Royale, Zune or a custom XP visual style. Dark application colors can be enabled independently.\n\nChoose original or high-resolution icons and wallpapers.'),('Built on the work of others','The desktop foundation is XPlasma by hotsocket. The optional browser theme builds on RetroThemesFirefox by matthewmx86.\n\nXP icon recreations are by marchmountain. Complete credits and license notices are included.'),('A modern browser, a familiar face','Optional Firefox ESR retains modern browsing capabilities beneath the IE6-inspired toolbar.\n\nYour toolbar choices and browser profile are preserved.'),('Preparing your desktop','The installer keeps a backup for removal and recovery. Login and boot changes take effect on the next login or reboot.\n\nSetup will not restart your computer automatically.')]
   title,text=tips[self._tip_index%len(tips)];self._tip_index+=1;self.tip_title.setText(title);self.tip_text.setText(text)
@@ -155,7 +168,8 @@ class Installer(QtWidgets.QMainWindow):
   self.update_summary()
  def selected(self):return [name for name,item in self.items.items() if item.checkState(0)==QtCore.Qt.CheckState.Checked and not self.support[name]]
  def select_all(self,checked):
-  for name,item in self.items.items():item.setCheckState(0,QtCore.Qt.CheckState.Checked if checked and not self.support[name] else QtCore.Qt.CheckState.Unchecked)
+  for name,item in self.items.items():
+   if name not in self.locked:item.setCheckState(0,QtCore.Qt.CheckState.Checked if checked and not self.support[name] else QtCore.Qt.CheckState.Unchecked)
  def describe(self,item,previous=None):
   if item:self.description.setText(item.toolTip(0))
  def update_summary(self,*unused):
@@ -166,7 +180,10 @@ class Installer(QtWidgets.QMainWindow):
   self.hidpi_icons.setEnabled(not running and bool(set(chosen)&{'icons','desktop_icons'}))
   self.hires_wallpapers.setEnabled(not running and bool(set(chosen)&{'wallpaper','theme_manager'}))
   for button in self.selection_buttons:button.setEnabled(not running)
-  self.install.setEnabled(bool(chosen) and not running and not (STATE/'installation.json').exists())
+  upgrade=(STATE/'installation.json').exists()
+  self.install.setText('Upgrade installation' if upgrade else 'Install selected features')
+  self.intro.setText('This computer has an installation: Upgrade installs this release over it and keeps your theme and settings. Installed features stay selected; you can add more.' if upgrade else 'Install the XP desktop, with optional IE6 Firefox. Review the features below.')
+  self.install.setEnabled(bool(chosen) and not running)
   self.remove.setEnabled(not running and ((STATE/'installation.json').exists() or (STATE/'incomplete.json').exists()))
  def start(self,action):
   if self.test_mode:return
@@ -179,6 +196,7 @@ class Installer(QtWidgets.QMainWindow):
    if self.dark_mode.isChecked():args+=['--dark-mode']
    if self.hidpi_icons.isChecked():args+=['--hidpi-icons']
    if self.hires_wallpapers.isChecked():args+=['--hires-wallpapers']
+  self.upgrading=action=='install' and (STATE/'installation.json').exists()
   self.set_step(1);self.pages.setCurrentIndex(1);self.tip_timer.start();self.dots.start();self.current_action=action;self.terminal_log.clear();self.progress.setRange(0,0);self.tree.setEnabled(False);self.theme.setEnabled(False);self.close_button.setEnabled(False)
   self.process=QtCore.QProcess(self);self.process.setProcessChannelMode(QtCore.QProcess.ProcessChannelMode.MergedChannels)
   self.process.readyReadStandardOutput.connect(self.read_output);self.process.finished.connect(self.finished)
@@ -202,9 +220,9 @@ class Installer(QtWidgets.QMainWindow):
   self.read_output()
   if self.buffer:self.append_log(self.buffer);self.buffer=''
   self.tip_timer.stop();self.dots.stop();self.set_step(4 if code==0 else 0);self.pages.setCurrentIndex(0);self.process.deleteLater();self.process=None;self.progress.setRange(0,100);self.progress.setValue(100 if code==0 else 0)
-  self.tree.setEnabled(True);self.theme.setEnabled(True);self.close_button.setEnabled(True);self.update_summary()
+  self.tree.setEnabled(True);self.theme.setEnabled(True);self.close_button.setEnabled(True);self.lock_installed();self.update_summary()
   if code==0:
-   message='Installation complete. Reopen applications to load the themes. No logout or reboot was performed.' if self.current_action=='install' else 'Managed XP features removed. Reopen applications to refresh them.'
+   message=('Upgrade complete. Your theme and settings were kept. Reopen applications to load the new version. No logout or reboot was performed.' if self.upgrading else 'Installation complete. Reopen applications to load the themes. No logout or reboot was performed.') if self.current_action=='install' else 'Managed XP features removed. Reopen applications to refresh them.'
    if self.current_action=='install' and set(self.selected())&{'codex_colors','clippy'}:message+=' Restart Codex; type /pet if Clippy is hidden.'
    self.status.setText(message);QtWidgets.QMessageBox.information(self,'Complete',message)
   else:

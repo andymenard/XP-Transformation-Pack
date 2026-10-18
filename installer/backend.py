@@ -126,6 +126,19 @@ class Snapshot:
    if name.startswith('.config/') or name=='.codex/config.toml':copy(p,self.state/'installed-config'/name)
   (self.state/'gnome-after.json').write_text(json.dumps(gnome())+'\n')
   snapshot_retention(self.home,self.state,True)
+ def extend(self,paths):
+  # An upgrade keeps the original snapshot. Paths a newer release tracks that
+  # it did not have no earlier state than today's, so that becomes theirs.
+  tracked=json.loads((self.state/'tracked.json').read_text())
+  new=[p for p in paths if p not in tracked]
+  self.paths=tracked+new
+  if not new:return
+  before=json.loads((self.state/'before.json').read_text())
+  data={name:value for name,value in inventory(self.home,new).items() if name not in before}
+  for name in data:copy(self.home/name,self.state/'backup'/name)
+  before.update(data)
+  (self.state/'before.json').write_text(json.dumps(before,indent=2)+'\n')
+  (self.state/'tracked.json').write_text(json.dumps(self.paths)+'\n')
  def restore(self):
   before=json.loads((self.state/'before.json').read_text());after=json.loads((self.state/'after.json').read_text());conflicts=[]
   for name,installed in after.items():
@@ -160,7 +173,7 @@ def validate_selection(selected,theme):
  if 'explorer_default' in selected and 'explorer' not in selected:raise RuntimeError('Select XP Explorer before making it the default file manager.')
  if theme not in THEMES:raise RuntimeError('Unknown XP theme.')
  return selected
-def preflight(selected):
+def preflight(selected,installed=()):
  if os.geteuid()==0:raise RuntimeError('Launch this installer as your desktop user, not as root.')
  for other in ['kubuntu-xp-suite']:
   if (Path.home()/'.local/share'/other/'installation.json').exists():raise RuntimeError('Remove the existing '+other+' installation before using the portable installer.')
@@ -192,7 +205,8 @@ def preflight(selected):
    if path==home:break
    if path.is_symlink():links.add(str(path))
  if links:raise RuntimeError('Managed configuration contains symbolic links; safe backup requires regular paths: '+', '.join(sorted(links)))
- if 'lock' in selected and (Path.home()/'.local/share/plasma/shells/org.kde.plasma.desktop').exists():raise RuntimeError('A custom Plasma shell is already present. Uncheck XP lock screen to preserve it.')
+ # (An upgrade replaces the lock screen shell it installed itself.)
+ if 'lock' in selected and 'lock' not in installed and (Path.home()/'.local/share/plasma/shells/org.kde.plasma.desktop').exists():raise RuntimeError('A custom Plasma shell is already present. Uncheck XP lock screen to preserve it.')
 def verify():
  manifest=BASE/'SHA256SUMS.json'
  if not manifest.exists():raise RuntimeError('The package checksum manifest is missing.')
@@ -203,10 +217,11 @@ def verify():
     raise RuntimeError('Package resource link is missing or damaged: '+name)
   elif not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=expected:
    raise RuntimeError('Package file missing or damaged: '+name)
-def root(action,selected=(),native_ready=False,caption_ready=False):
+def root(action,selected=(),native_ready=False,caption_ready=False,upgrade=False):
  args=['pkexec',sys.executable,BASE/'root_helper.py',action,'--features',','.join(sorted(selected))]
  if native_ready:args.append('--native-ready')
  if caption_ready:args.append('--caption-ready')
+ if upgrade:args.append('--upgrade')
  run(args)
 def desktop_path(home):
  p=Path(run(['xdg-user-dir','DESKTOP'],capture=True)) if shutil.which('xdg-user-dir') else home/'Desktop'
@@ -235,7 +250,14 @@ def look_args(cli,theme,selected):
   'taskbar':['--no-taskbar'],'icons':['--no-icons'],'sounds':['--no-sounds'],'wallpaper':['--no-wallpaper'],'theme_manager':['--no-properties']}.items():
   if feature not in selected:args.extend(flags)
  return args
-def prepare_native(home,state,selected,theme,asset_options=None):
+def current_theme(home):
+ # The .theme the desktop wears now (Properties records it), for an upgrade
+ # to reapply instead of resetting to the installer's preset.
+ path=home/'.local/share/xplasma/state.json'
+ try:theme=json.loads(path.read_text()).get('applied',{}).get('themeFile','')
+ except (OSError,ValueError):return None
+ return Path(theme) if theme and Path(theme).is_file() else None
+def prepare_native(home,state,selected,theme,asset_options=None,keep_theme=False):
  copy(BASE/'payload/assets/xplasma',home/'.local/share/xplasma')
  prepare_wallpapers(home,asset_options or {})
  path=home/'.local/share/xplasma/state.json';data=json.loads(path.read_text()) if path.exists() else {}
@@ -249,6 +271,7 @@ def prepare_native(home,state,selected,theme,asset_options=None):
  run([BASE/'build-native.sh',build,'taskbar' if 'taskbar' in selected else 'core'])
  copy(build/'runtime',state/'runtime')
  cli=state/'runtime/bin/xplasma';choice=presets(home)/(theme+'.theme')
+ if keep_theme:choice=current_theme(home) or choice
  if selected&LOOK:phase('Applying selected desktop features');run(look_args(cli,choice,selected))
  # Apply explicitly after the desktop operation: its sound step is optional,
  # and optimized/repeated applies can skip it. Installation must report failures.
@@ -325,11 +348,12 @@ def tray_widgets(home):
  path=BASE/'payload/tray/integration.py';spec=importlib.util.spec_from_file_location('xp_tray_registration',path)
  module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
  module.register(home,BASE/'payload/tray',copy,run,kdbus())
-def behavior(home,state):
+def behavior(home,state,upgrade=False):
  folder=state/'behavior-backup';folder.mkdir(exist_ok=True)
  for name in ['kwinrc','klaunchrc','plasma-org.kde.plasma.desktop-appletsrc']:
   p=home/'.config'/name
-  if p.exists():copy(p,folder/name)
+  # (An upgrade keeps the copies from before XP, not the XP desktop's.)
+  if p.exists() and not (upgrade and (folder/name).exists()):copy(p,folder/name)
  (folder/'loaded-effects.txt').write_text(run([kdbus(),'org.kde.KWin','/Effects','org.kde.kwin.Effects.loadedEffects'],capture=True,check=False)+'\n')
  run([sys.executable,state/'runtime/tools/xp-behavior.py'])
 def session(home,state):
@@ -412,8 +436,11 @@ def user_pictures(home):
  copy(BASE/'payload/assets/user-pictures',home/'.local/share/plasma/avatars/windows-xp')
  log('XP user pictures added to System Settings → Users → Change avatar; current picture preserved.')
 
-def lock_screen(home,state):
+def lock_screen(home,state,upgrade=False):
  src=Path('/usr/share/plasma/shells/org.kde.plasma.desktop');dest=home/'.local/share/plasma/shells/org.kde.plasma.desktop'
+ # (Its own shell from the release being upgraded: links to the system's
+ # files and copies of the XP lock screen, rebuilt from this release.)
+ if upgrade and dest.is_dir() and not dest.is_symlink():shutil.rmtree(dest)
  dest.mkdir(parents=True);copy(src/'metadata.json',dest/'metadata.json');(dest/'contents').mkdir()
  for p in (src/'contents').iterdir():
   if p.name!='lockscreen':(dest/'contents'/p.name).symlink_to(p)
@@ -489,7 +516,7 @@ def shortcuts(home,state,selected,asset_options=None):
  else:
   command='"'+str(home/'.local/share/firefox-esr-ie6/launch')+'" %U' if 'firefox' in selected else 'xdg-open https://www.google.com/'
   p.write_text('[Desktop Entry]\nType=Application\nName=Internet Explorer\nComment=Modern browser with an XP-era desktop icon\nIcon='+str(icons/'browser.png')+'\nExec='+command+'\nTerminal=false\nStartupNotify=true\n');p.chmod(0o755)
-def codex(home,selected):
+def codex(home,selected,upgrade=False):
  folder=home/'.codex';folder.mkdir(exist_ok=True);path=folder/'config.toml'
  doc=tomlkit.parse(path.read_text()) if path.exists() else tomlkit.document()
  if 'desktop' not in doc:doc['desktop']=tomlkit.table()
@@ -501,15 +528,27 @@ def codex(home,selected):
    'semanticColors':{'diffAdded':'#008000','diffRemoved':'#ba2623','skill':'#924ff7'}}
  if 'clippy' in selected:
   dest=folder/'pets/clippy'
-  if dest.exists():raise RuntimeError('A Clippy pet already exists; uncheck Clippy to preserve it.')
+  if dest.exists() and not upgrade:raise RuntimeError('A Clippy pet already exists; uncheck Clippy to preserve it.')
+  if dest.is_dir() and not dest.is_symlink():shutil.rmtree(dest)
   copy(BASE/'payload/codex/clippy',dest)
   desk['selected-avatar-id']='custom:clippy';desk['avatar-overlay-pet-visible']=True;desk['pet-visibility']='always-visible'
  path.write_text(tomlkit.dumps(doc))
 def install(selected,theme,asset_options=None):
- asset_options=asset_options or {}
- selected=validate_selection(selected,theme);phase('Checking system and package');preflight(selected);verify()
+ asset_options=dict(asset_options or {})
  home=Path.home();state=home/'.local/share'/STATE_NAME
- if (state/'installation.json').exists():raise RuntimeError('An XP Suite installation already exists. Use Remove installed features before choosing a new selection.')
+ record=state/'installation.json'
+ previous=json.loads(record.read_text()) if record.exists() else None
+ installed=set(previous['features']) if previous else set()
+ upgrade=previous is not None
+ selected=validate_selection(selected,theme);phase('Checking system and package');preflight(selected,installed);verify()
+ if upgrade:
+  # An upgrade adds to an installation; it can't take features away.
+  dropped=installed-selected
+  if dropped:raise RuntimeError('An upgrade keeps the installed features. Use Remove installed features first to drop: '+', '.join(sorted(dropped))+'.')
+  # Dark mode is a Properties setting after installation: keep today's.
+  try:asset_options['dark_mode']=json.loads((home/'.local/share/xplasma/state.json').read_text()).get('settings',{}).get('darkMode',asset_options.get('dark_mode',False))
+  except (OSError,ValueError):pass
+  log('Upgrading the installed '+str((previous.get('edition') or {}).get('version','XP Suite'))+' in place; the original settings backup is kept.')
  phase('Preparing Linux dependencies — authentication may be requested')
  if detect()['family'] and selected&(NATIVE|ACCESSORIES|{'login','boot','firefox','explorer','control_panel','tray','caption_animation','icons'}):
   import build_cache
@@ -526,42 +565,75 @@ def install(selected,theme,asset_options=None):
     log('System libraries changed while installing packages; refreshing matching build dependencies.')
     root('dependencies',selected,native_ready=still_ready,caption_ready=caption_ok)
  state.mkdir(parents=True,exist_ok=True)
- snapshot=Snapshot(home,state,tracked_paths(home));snapshot.save()
+ if upgrade:
+  # The original snapshot stays what Remove restores. A second one, of the
+  # installation being upgraded, is what a failed upgrade goes back to.
+  snapshot=Snapshot(home,state,tracked_paths(home));snapshot.extend(tracked_paths(home))
+  rollback=state/'upgrade'
+  if rollback.exists():shutil.rmtree(rollback)
+  undo=Snapshot(home,rollback,tracked_paths(home));undo.save()
+ else:
+  snapshot=Snapshot(home,state,tracked_paths(home));snapshot.save()
  try:
   phase('Preparing bundled resources')
   copy(BASE/'payload/templates',state/'templates');copy(BASE/'payload/tools',state/'runtime/tools')
   # Keep the installer bundle so recovery and future reinstall do not need
-  # the original extraction folder (or an XP ISO).
+  # the original extraction folder (or an XP ISO). An upgrade replaces it.
   bundle=state/'installer'
-  if BASE.resolve()!=bundle.resolve():copy(BASE,bundle)
+  if BASE.resolve()!=bundle.resolve():
+   staged=state/'installer.new'
+   if staged.exists():shutil.rmtree(staged)
+   copy(BASE,staged)
+   if bundle.exists():shutil.rmtree(bundle)
+   staged.rename(bundle)
   apps=home/'.local/share/applications';apps.mkdir(parents=True,exist_ok=True)
   (apps/'kde-xp-suite.desktop').write_text('[Desktop Entry]\nType=Application\nName=Windows XP Theme Installer\nExec=python3 "'+str(bundle/'gui.py')+'"\nIcon=preferences-desktop-theme\nTerminal=false\nCategories=Settings;DesktopSettings;\n')
   (state/'platform.json').write_text(json.dumps(detect(),indent=2)+'\n')
-  if selected&NATIVE:prepare_native(home,state,selected,theme,asset_options)
+  if selected&NATIVE:prepare_native(home,state,selected,theme,asset_options,keep_theme=upgrade)
   if not selected&NATIVE and 'wallpaper' in selected:prepare_wallpapers(home,asset_options)
   basic(home,selected,native=bool(selected&NATIVE),asset_options=asset_options)
   if selected&ACCESSORIES:phase('Installing selected XP accessories and games');accessories(home,selected,state)
   if selected&{'explorer','control_panel'}:phase('Installing XP Explorer and Control Panel');desktop_shell(home,selected)
   if 'tray' in selected:phase('Installing XP system tray panels');tray_widgets(home)
-  if 'behavior' in selected:phase('Applying window and alert behavior');behavior(home,state)
+  if 'behavior' in selected:phase('Applying window and alert behavior');behavior(home,state,upgrade)
   if 'session' in selected:phase('Installing persistent XP session menus');session(home,state)
   desktop_updates(home,state,selected,asset_options)
   if 'user_pictures' in selected:phase('Installing XP user account pictures');user_pictures(home)
-  if 'lock' in selected:phase('Installing XP lock screen');lock_screen(home,state)
+  if 'lock' in selected:phase('Installing XP lock screen');lock_screen(home,state,'lock' in installed)
   if 'firefox' in selected:phase('Installing IE6-style Firefox ESR');firefox(home)
-  if 'taskbar' in selected:phase('Setting default taskbar shortcuts');taskbar_defaults(home,selected)
+  # (Seeded once: an upgrade keeps the Quick Launch as it has been edited.)
+  if 'taskbar' in selected and 'taskbar' not in installed:phase('Setting default taskbar shortcuts');taskbar_defaults(home,selected)
   if 'desktop_icons' in selected:phase('Adding XP desktop shortcuts');shortcuts(home,state,selected,asset_options)
-  if selected&{'codex_colors','clippy'}:phase('Configuring Codex extras');codex(home,selected)
+  if selected&{'codex_colors','clippy'}:phase('Configuring Codex extras');codex(home,selected,'clippy' in installed)
   if selected&{'login','boot'}:
    run(['kwriteconfig6','--file','ksplashrc','--group','KSplash','--key','Engine','none'])
-   phase('Installing selected login and boot screens');root('screens',selected)
+   phase('Installing selected login and boot screens');root('screens',selected,upgrade=bool(installed&{'login','boot'}))
   if 'welcome_splash' in selected:phase('Installing XP Welcome desktop splash');welcome_splash(home)
-  snapshot.finish();(state/'installation.json').write_text(json.dumps({'version':4,'edition':json.loads((BASE/'edition.json').read_text()) if (BASE/'edition.json').is_file() else None,'features':sorted(selected),'theme':theme,'asset_options':asset_options},indent=2)+'\n')
-  phase('Installed successfully')
+  snapshot.finish()
+  edition=json.loads((BASE/'edition.json').read_text()) if (BASE/'edition.json').is_file() else None
+  result={'version':4,'edition':edition,'features':sorted(selected),'theme':theme,'asset_options':asset_options}
+  if upgrade:
+   result['installed_edition']=previous.get('installed_edition',previous.get('edition'))
+   result['upgrades']=previous.get('upgrades',[])+[{'from':previous.get('edition'),'to':edition}]
+   shutil.rmtree(state/'upgrade',ignore_errors=True)
+  record.write_text(json.dumps(result,indent=2)+'\n')
+  phase('Upgraded successfully' if upgrade else 'Installed successfully')
   log('Reopen applications to refresh their themes. No logout or reboot was performed.')
   if 'login' in selected or 'boot' in selected:log('Login and boot screens apply at the next login/reboot. Test the lock screen first.')
   if selected&{'codex_colors','clippy'}:log('Restart Codex; use /pet if Clippy is hidden.')
  except Exception:
+  if upgrade:
+   # Back to the installation as it was: still installed, still removable.
+   # (The system helper puts its own screens back if they failed.)
+   log('Upgrade failed. Restoring the installation it was upgrading…')
+   # System screens this upgrade added first: the installation it goes back
+   # to doesn't have them, so neither may the system.
+   if selected&{'login','boot'} and not installed&{'login','boot'}:
+    try:root('restore')
+    except Exception as e:log('System recovery needs retry: '+str(e))
+   undo.finish();conflicts=undo.restore();refresh(home,rollback)
+   if conflicts:log('Not restored, changed during the upgrade: '+'; '.join(conflicts))
+   raise
   log('Installation failed. Restoring managed settings…')
   run(['systemctl','--user','disable','--now','xp-session-theme.path'],check=False)
   if 'pointers' in selected:run(['systemctl','--user','disable','--now','xp-cursor-sync.path'],check=False)

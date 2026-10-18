@@ -23,5 +23,9 @@ The Welcome splash is separate from login and boot screens and appears as Plasma
 starts. Remove an older overlapping installer before switching installation managers.
 
 New versions are distributed as complete installers on GitHub. Properties links
-to that releases page; no OTA updater or updater feed is installed. Follow each
-release's migration notes and remove an overlapping installation before reinstalling.
+to that releases page; no OTA updater or updater feed is installed. To upgrade,
+run the new installer and choose Upgrade installation: it installs over the
+existing installation and keeps your current theme, dark mode and Quick Launch.
+Installed features stay selected (new ones can be added); to drop one, remove the
+installation first. Remove still restores the settings from before the first
+installation, and a failed upgrade returns to the release it was upgrading.

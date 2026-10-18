@@ -25,6 +25,21 @@ class GuiTests(unittest.TestCase):
   self.assertEqual(self.window.theme.count(),len(g.THEMES));self.assertGreaterEqual(self.window.theme.findText('Zune'),0)
   self.window.select_all(False);self.window.items['boot'].setCheckState(0,g.QtCore.Qt.CheckState.Checked)
   self.assertIn('authentication',self.window.summary.text())
+ def test_installed_features_are_kept_by_an_upgrade(self):
+  with tempfile.TemporaryDirectory() as folder:
+   state=Path(folder);(state/'installation.json').write_text('{"features":["desktop","taskbar"],"theme":"Royale","asset_options":{}}')
+   with patch.object(g,'STATE',state):
+    window=g.Installer(test_mode=True)
+    self.assertEqual(window.install.text(),'Upgrade installation');self.assertTrue(window.install.isEnabled())
+    self.assertEqual(window.theme.currentText(),'Royale')
+    window.select_all(False);self.assertEqual(set(window.selected()),{'desktop','taskbar'})
+    self.assertFalse(window.items['taskbar'].flags()&g.QtCore.Qt.ItemFlag.ItemIsUserCheckable)
+    self.assertIn('an upgrade keeps it',window.items['taskbar'].toolTip(0))
+    # Removed: everything is selectable again.
+    (state/'installation.json').unlink();window.lock_installed();window.update_summary()
+    self.assertEqual(window.install.text(),'Install selected features')
+    window.select_all(False);self.assertEqual(window.selected(),[])
+    window.close()
  def test_preview_mode_cannot_execute_installation(self):
   self.window.start('install');self.assertIsNone(self.window.process)
  def test_live_output_is_visible_beside_progress_page(self):

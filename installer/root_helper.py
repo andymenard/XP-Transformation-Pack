@@ -68,28 +68,47 @@ def restore(store):
   run(['systemctl','daemon-reload'])
  if 'boot' in record['features']:rebuild()
  file.rename(store/'system-restored.json')
-def screens(home,store,features):
+def put_back(store,entries):
+ for item in entries:
+  p=Path(item['path']);remove(p)
+  if item['existed']:copy(store/item['backup'],p)
+def screens(home,store,features,upgrade=False):
  features=sorted(set(features)&set(PATHS))
  if not features:return
- if (store/'system.json').exists():raise RuntimeError('System screens are already managed; remove the previous installation first.')
+ file=store/'system.json'
+ if file.exists() and not upgrade:raise RuntimeError('System screens are already managed; remove the previous installation first.')
  if any(p.parent!=store for p in store.parent.glob('*/system.json')):raise RuntimeError('Another user manages the system XP screens.')
  store.mkdir(parents=True,exist_ok=True);store.chmod(0o700)
- paths=[]
- for name in features:
-  for entry in PATHS[name]:
-   p=Path(entry);existed=p.exists() or p.is_symlink();saved='saved/'+str(len(paths))
+ # An upgrade keeps the backups from before XP (what Remove restores) and
+ # saves the screens it replaces, which a failed upgrade puts back.
+ record=json.loads(file.read_text()) if file.exists() else {'features':[],'paths':[]}
+ if any(item['path'] not in {p for values in PATHS.values() for p in values} for item in record['paths']):raise RuntimeError('Invalid system backup paths.')
+ managed=set(record['features']);added=[name for name in features if name not in managed]
+ replaced=[]
+ if managed:
+  upgrading=store/'upgrade-saved'
+  if upgrading.exists():shutil.rmtree(upgrading)
+  for item in record['paths']:
+   p=Path(item['path']);existed=p.exists() or p.is_symlink();saved='upgrade-saved/'+str(len(replaced))
    if existed:copy(p,store/saved)
-   paths.append({'path':entry,'existed':existed,'backup':saved})
- record={'features':features,'paths':paths}
- if 'boot' in features and detect()['family']=='apt':
+   replaced.append({'path':item['path'],'existed':existed,'backup':saved})
+ originals=[]
+ for name in added:
+  for entry in PATHS[name]:
+   p=Path(entry);existed=p.exists() or p.is_symlink();saved='saved/'+str(len(record['paths']))
+   if existed:copy(p,store/saved)
+   item={'path':entry,'existed':existed,'backup':saved};record['paths'].append(item);originals.append(item)
+ if 'boot' in added and detect()['family']=='apt':
   query=subprocess.run(['update-alternatives','--query','default.plymouth'],text=True,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL).stdout
   record['alternative']=next((line[7:] for line in query.splitlines() if line.startswith('Value: ')),None)
   record['alternative_auto']='Status: auto' in query
  dm=Path('/etc/systemd/system/display-manager.service')
  previous=dm.resolve().name if dm.is_symlink() else None
- record['previous_display_manager']=previous
- record['changed_display_manager']='login' in features and previous!='sddm.service'
- (store/'system.json').write_text(json.dumps(record,indent=2)+'\n')
+ if 'login' in added:
+  record['previous_display_manager']=previous
+  record['changed_display_manager']=previous!='sddm.service'
+ record['features']=sorted(managed|set(added))
+ file.write_text(json.dumps(record,indent=2)+'\n')
  source=home/'.local/share'/STATE/'templates'
  try:
   if 'login' in features:
@@ -101,7 +120,7 @@ def screens(home,store,features):
     dest=Path(dest);remove(dest);copy(source/'login-status'/name,dest);dest.chmod(mode)
    run(['systemd-tmpfiles','--create',PATHS['login'][5]])
    if shutil.which('restorecon'):subprocess.run(['restorecon','-RF',*PATHS['login'],'/run/xp-logonui'],check=False)
-   if record['changed_display_manager']:
+   if 'login' in added and record['changed_display_manager']:
     if previous:run(['systemctl','disable',previous])
     run(['systemctl','enable','sddm.service']);run(['systemctl','daemon-reload'])
   if 'boot' in features:
@@ -111,22 +130,33 @@ def screens(home,store,features):
    c.set('Daemon','Theme','xp-boot');p=Path(PATHS['boot'][0]);p.parent.mkdir(parents=True,exist_ok=True)
    with p.open('w') as f:c.write(f)
    theme='/usr/share/plymouth/themes/xp-boot/xp-boot.plymouth'
-   if detect()['family']=='apt' and record.get('alternative'):
+   if 'boot' in added and detect()['family']=='apt' and record.get('alternative'):
     run(['update-alternatives','--install','/usr/share/plymouth/themes/default.plymouth','default.plymouth',theme,'50'])
     run(['update-alternatives','--set','default.plymouth',theme])
    rebuild()
  except Exception:
-  restore(store);raise
+  if not managed:restore(store);raise
+  # A failed upgrade: the screens it replaced come back, and those it added
+  # go back to the system's own.
+  put_back(store,replaced);put_back(store,originals)
+  record['paths']=[item for item in record['paths'] if item not in originals];record['features']=sorted(managed)
+  if 'login' in added and record.get('changed_display_manager'):
+   run(['systemctl','disable','sddm.service'])
+   if previous:run(['systemctl','enable',previous])
+   run(['systemctl','daemon-reload'])
+  file.write_text(json.dumps(record,indent=2)+'\n')
+  if 'boot' in features:rebuild()
+  raise
  print('System screens prepared. No logout or reboot was performed.',flush=True)
 def main():
- p=argparse.ArgumentParser();p.add_argument('action',choices=['dependencies','screens','restore','bootstrap']);p.add_argument('--features',default='');p.add_argument('--native-ready',action='store_true');p.add_argument('--caption-ready',action='store_true');a=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument('action',choices=['dependencies','screens','restore','bootstrap']);p.add_argument('--features',default='');p.add_argument('--native-ready',action='store_true');p.add_argument('--caption-ready',action='store_true');p.add_argument('--upgrade',action='store_true');a=p.parse_args()
  home,store=context()
  if not detect()['family']:raise RuntimeError('No supported package manager detected.')
  features=[x for x in a.features.split(',') if x]
  known={x['id'] for x in json.loads((BASE/'features.json').read_text())}
  if not set(features)<=known:raise RuntimeError('Unknown installer feature.')
  if a.action=='dependencies':deps(features,a.native_ready,a.caption_ready)
- elif a.action=='screens':screens(home,store,features)
+ elif a.action=='screens':screens(home,store,features,a.upgrade)
  elif a.action=='restore':restore(store)
  else:install(detect()['family'],[],run,bootstrap=True)
 if __name__=='__main__':
