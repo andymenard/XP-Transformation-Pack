@@ -41,6 +41,7 @@ public:
         for(auto *w:effects->stackingOrder())manage(w);
     }
     ~XPCaptionAnimation() override {finish();}
+    void reconfigure(ReconfigureFlags) override {readColours();}
     bool isActive() const override {return !m_window.isNull();}
     // Frames come from the compositor, not a timer: every refresh at the
     // output's own rate, none while nothing is drawn.
@@ -131,12 +132,16 @@ private:
         if(!snapshotted)redirect(w);
         m_window=w;m_oldGeometry=old;m_from=from;m_to=to;m_restoreMin=restore;
         m_title=w->caption();m_icon=w->icon();
+        // External theme writers do not necessarily emit KConfig notifications.
+        // Refresh once per animation, never once per painted frame.
+        readColours();
         m_scale=w->screen()?w->screen()->scale():1;
         m_label=XP::captionLabel(qMax(from.width(),to.width()),from.height(),m_scale,m_title,m_icon,m_font,m_text);
         if(qEnvironmentVariableIsSet("XPLASMA_ANIMATION_TEST"))fprintf(stderr,"XP_CAPTION_START %s %g,%g -> %g,%g h=%g\n",restore?"restore":(m_minVisible?"minimize":"maximize"),from.x(),from.y(),to.x(),to.y(),from.height());
         m_caption->setVisible(true);m_clock.start();m_tick=-1;tick();effects->addRepaintFull();
     }
     void readColours(){
+        m_config->reparseConfiguration();
         KConfigGroup wm(m_config,QStringLiteral("WM"));
         m_left=wm.readEntry("activeBackground",QColor(0,84,227));m_right=wm.readEntry("activeBlend",QColor(61,149,255));m_text=wm.readEntry("activeForeground",QColor(Qt::white));
         m_font=wm.readEntry("activeFont",QFont(QStringLiteral("Trebuchet MS"),10,QFont::Bold));
