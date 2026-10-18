@@ -13,7 +13,7 @@ class RetentionTests(unittest.TestCase):
  def folder(self,relative,age=10000):
   p=self.file(relative+'/data',b'x'*10,age).parent;os.utime(p,(self.now-age,)*2);return p
  def state(self,ids,active=''):
-  self.file('.local/share/xplasma/state.json',json.dumps({'settings':{'generatedLooks':{i:'source' for i in ids},'appliedPackageId':active}}).encode())
+  self.file('.local/share/xplasma/state.json',json.dumps({'settings':{'themeCacheEnabled':True,'generatedLooks':{i:'source' for i in ids},'appliedPackageId':active}}).encode())
  def backup(self,index,age=10000,size=10,complete=True):
   rel=f'.local/share/xplasma/maintenance/test-20260101-{index:06d}'
   p=self.file(rel+'/data',b'x'*size,age).parent
@@ -28,6 +28,26 @@ class RetentionTests(unittest.TestCase):
   dry=r.cleanup(self.home);self.assertEqual(len(dry['looks']['removed']),5);self.assertEqual(len(list((self.home/'.local/share/plasma/desktoptheme').iterdir())),22)
   real=r.cleanup(self.home,apply=True);self.assertEqual(real['looks']['after_count'],16)
   self.assertTrue((self.home/'.local/share/plasma/desktoptheme'/ (ids[0]+'-taskbar')).exists());self.assertEqual(source.read_bytes(),b'KEEP')
+ def test_cache_off_discards_unused_artwork_but_keeps_current_theme_and_sources(self):
+  ids=['xplasma-v2-active','xplasma-v2-unused'];self.state(ids,ids[0])
+  path=self.home/'.local/share/xplasma/state.json';data=json.loads(path.read_text());data['settings']['themeCacheEnabled']=False;path.write_text(json.dumps(data))
+  for name in ids:self.folder('.local/share/themes/XPlasma-'+name)
+  source=self.file('.local/share/xplasma/custom-luna/user.msstyles',b'SAVED')
+  backups=[self.backup(i,age=10000-i) for i in range(3)]
+  report=r.cleanup(self.home,True)
+  self.assertEqual(len(report['looks']['removed']),1)
+  self.assertTrue((self.home/'.local/share/themes'/('XPlasma-'+ids[0])).exists())
+  self.assertEqual(source.read_bytes(),b'SAVED')
+  self.assertTrue(all(p.exists() for p in backups))
+ def test_cache_is_opt_in_and_current_dark_build_is_retained(self):
+  self.state([])
+  path=self.home/'.local/share/xplasma/state.json';data=json.loads(path.read_text());del data['settings']['themeCacheEnabled'];path.write_text(json.dumps(data))
+  root='.cache/xplasma/dark-mode/';names=['a'*64,'b'*64]
+  for name in names:
+   p=self.folder(root+name);(p/'source.json').write_text('{"source":"saved.msstyles"}')
+  self.file('.config/xplasmarc',('[Theme]\nSource='+str(self.home/root/names[0]/'applications.msstyles')+'\n').encode())
+  r.cleanup(self.home,True)
+  self.assertTrue((self.home/root/names[0]).exists());self.assertFalse((self.home/root/names[1]).exists())
  def test_actual_kde_references_protect_components(self):
   ids=['xplasma-v2-a','xplasma-v2-b'];self.state(ids)
   for name in ids:self.folder('.local/share/themes/XPlasma-'+name)

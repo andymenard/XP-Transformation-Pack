@@ -54,3 +54,7 @@ came out darker and more saturated than the active button. Tests:
 `closeKeepsSkinArtwork`, and Royale's Close compared against Royale's own.
 
 Generator 20 retains custom scrollbar face colors and recolors their separate XP arrow glyph resources to automatic contrasting ink. Dark application rendering retains light glyphs on its dark controls. Saved styles from earlier generators rebuild on Apply.
+
+Properties' Custom Colors tab identifies Luna as the only extensively tested
+base. Other themes remain available, but their Custom Colors support is
+experimental.

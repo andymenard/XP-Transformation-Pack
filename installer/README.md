@@ -42,3 +42,10 @@ associations. It restores a valid previous browser association when available,
 otherwise using an installed regular browser. Unrelated browser launchers are
 preserved. Plasma saves its live panel before restoration, and its application
 cache is refreshed with the graphical session's Snap/Flatpak search paths.
+
+Properties asks whether to cache generated theme artwork the first time a theme
+is applied. Caching is optional and can be changed under Appearance. With it
+off, unused generated looks are discarded while active resources and recovery
+data remain protected. With it on, the existing disk/count limits still apply.
+The Custom Colors tab notes that only Luna has been extensively tested; other
+base themes are experimental.

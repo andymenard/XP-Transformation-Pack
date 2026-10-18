@@ -211,7 +211,10 @@ def cleanup(home, apply=False, adopt_legacy=False, keep_looks=(), keep_dark=(), 
     home = Path(home).resolve()
     state = read_json(home/'.local/share/xplasma/state.json', home)
     keep_looks, keep_dark = current_references(home, state, keep_looks, keep_dark)
-    limits = limits or LIMITS
+    if limits is None:
+        limits = dict(LIMITS)
+        if state.get('settings', {}).get('themeCacheEnabled') is not True:
+            limits.update(looks=(0, 0), dark=(0, 0))
     collections = {'looks': collect_looks(home,state,keep_looks), 'dark': collect_dark(home,keep_dark),
                    'backups': collect_backups(home,adopt_legacy,set(map(str,keep_backups)))}
     report = {'dry_run': not apply}

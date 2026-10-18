@@ -112,6 +112,7 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 add_executable(xplasma-edit
   editor/main.cpp
   editor/displayproperties.cpp
+  editor/cachepreferences.cpp
   editor/datetime.cpp
   editor/soundstab.cpp
   editor/abouttab.cpp
