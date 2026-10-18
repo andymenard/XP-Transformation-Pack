@@ -1,5 +1,5 @@
 import importlib.util,sys,tempfile,unittest
-from unittest.mock import patch
+from unittest.mock import Mock,patch
 from pathlib import Path
 BASE=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(BASE))
@@ -49,6 +49,33 @@ class GuiTests(unittest.TestCase):
   self.assertEqual(set(self.window.selected()),{'firefox','firefox_default'})
   self.window.items['firefox_default'].setCheckState(0,g.QtCore.Qt.CheckState.Unchecked);self.assertEqual(self.window.selected(),['firefox'])
   self.window.items['firefox'].setCheckState(0,g.QtCore.Qt.CheckState.Unchecked);self.assertEqual(self.window.selected(),[])
+ def test_install_asks_to_close_other_programs_first(self):
+  box=self.window.close_programs_question()
+  self.assertIn('Please close all other programs',box.text())
+  self.assertEqual(box.button(g.QtWidgets.QMessageBox.StandardButton.Ok).text(),'Continue')
+  self.assertIsNotNone(box.button(g.QtWidgets.QMessageBox.StandardButton.Cancel))
+  # Cancel: nothing starts. (Remove has its own question instead.)
+  self.window.test_mode=False
+  asked=[]
+  def question():
+   asked.append(True);answer=g.QtWidgets.QMessageBox(self.window)
+   answer.exec=lambda:g.QtWidgets.QMessageBox.StandardButton.Cancel;return answer
+  with patch.object(self.window,'close_programs_question',question),patch.object(g.QtCore,'QProcess') as process:
+   self.window.start('install');self.window.start('rebuild')
+   self.assertEqual(len(asked),2);process.assert_not_called();self.assertIsNone(self.window.process)
+   with patch.object(self.window,'removal_question') as removal:
+    removal.return_value.exec.return_value=g.QtWidgets.QMessageBox.StandardButton.No
+    self.window.start('uninstall')
+   self.assertEqual(len(asked),2)
+  self.window.test_mode=True
+ def test_finished_install_asks_to_log_out_and_back_in(self):
+  for action,upgrading,expected in [('install',False,True),('install',True,True),('rebuild',False,True),('uninstall',False,False)]:
+   # (A finished backend: its output read, the process handed back.)
+   self.window.current_action=action;self.window.upgrading=upgrading;self.window.process=Mock()
+   with patch.object(self.window,'read_output'),patch.object(g.QtWidgets.QMessageBox,'information') as shown:self.window.finished(0,None)
+   self.assertIsNone(self.window.process)
+   message=shown.call_args.args[2]
+   self.assertEqual('Please log out and back in for all changes to take effect.' in message,expected,message)
  def test_preview_mode_cannot_execute_installation(self):
   self.window.start('install');self.assertIsNone(self.window.process)
  def test_live_output_is_visible_beside_progress_page(self):
