@@ -3,9 +3,9 @@
     XPlasma's taskbar clock: XP's -- the time alone, in the look's clock font
     at XP's 96 dpi and its clock colour, on the look's tray art (xp-tray's
     "clock" frame, which carries on from the notification area to the
-    panel's right edge). The long date as its tooltip. A click does nothing;
-    a double-click, or "Adjust Date/Time" on its menu, opens Date and Time
-    Properties.
+    panel's right edge). The long date as its tooltip. A click opens XP's
+    month calendar over it; a double-click, or "Adjust Date/Time" on its
+    menu, opens Date and Time Properties.
 */
 import QtQuick
 import QtQuick.Layouts
@@ -49,8 +49,21 @@ PlasmoidItem {
     toolTipSubText: ""
 
     function openDateTime() {
+        calendar.visible = false;
         launcher.connectSource(Plasmoid.configuration.dateTimeCommand);
     }
+    // (A click on the clock while the calendar is up closes it, as it takes
+    // the focus away: that click mustn't open it again.)
+    property real calendarClosed: 0
+    function toggleCalendar() {
+        if (!calendar.visible && Date.now() - calendarClosed < 300)
+            return;
+        root.now = new Date();
+        calendar.visible = !calendar.visible;
+    }
+    Plasmoid.onActivated: toggleCalendar()
+    // The calendar is the clock's own popup, not Plasma's expanded view.
+    onExpandedChanged: if (root.expanded) root.expanded = false
     P5Support.DataSource {
         id: launcher
         engine: "executable"
@@ -71,6 +84,7 @@ PlasmoidItem {
         Layout.maximumWidth: Layout.minimumWidth
         Layout.minimumHeight: horizontal ? 0 : label.implicitHeight + Kirigami.Units.smallSpacing
         acceptedButtons: Qt.LeftButton
+        onClicked: root.toggleCalendar()
         onDoubleClicked: root.openDateTime()
 
         // XP's tray art behind the clock: over the panel's whole height, from
@@ -130,6 +144,30 @@ PlasmoidItem {
             xpWeight: Plasmoid.configuration.fontWeight
             color: Plasmoid.configuration.textColor.length > 0 ? Plasmoid.configuration.textColor : Kirigami.Theme.textColor
             renderType: Text.NativeRendering
+        }
+    }
+
+    PlasmaCore.Dialog {
+        id: calendar
+        type: PlasmaCore.Dialog.PopupMenu
+        flags: Qt.Popup | Qt.FramelessWindowHint
+        backgroundHints: PlasmaCore.Dialog.NoBackground
+        location: Plasmoid.location
+        visualParent: root.compactRepresentationItem
+        hideOnWindowDeactivate: true
+        onVisibleChanged: {
+            if (visible) {
+                monthCalendar.reset();
+                monthCalendar.forceActiveFocus();
+            } else {
+                root.calendarClosed = Date.now();
+            }
+        }
+        mainItem: CalendarPanel {
+            id: monthCalendar
+            xpTextStyle: pixelTextStyle
+            today: root.now
+            onCloseRequested: calendar.visible = false
         }
     }
 }
