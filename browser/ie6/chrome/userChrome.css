@@ -493,3 +493,11 @@ menupopup menuseparator { appearance: none !important; border: 0 !important; bor
 #downloads-indicator-anchor { padding:0 !important; margin:2px !important; }
 #nav-bar .subviewbutton-nav::after { content:none !important; }
 :is(panel,panelview) .subviewbutton-nav::after { content:url("ie6-icons/arrow-right.svg") !important; }
+
+/* Firefox and page/video full screen must reclaim the status-bar space. */
+:root:is([inFullscreen], [inDOMFullscreen]) :is(#ie6-statusbar, #browser-bottombox) {
+ display:none !important;
+}
+:root:is([inFullscreen], [inDOMFullscreen]) #browser {
+ padding-bottom:0 !important;
+}

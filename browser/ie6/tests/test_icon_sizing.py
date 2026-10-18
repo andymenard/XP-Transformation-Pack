@@ -147,6 +147,39 @@ class GeckoSizingTests(unittest.TestCase):
                             '#nav-bar :is(#back-button,#forward-button) .toolbarbutton-icon'
                             )).map(n=>n.getBoundingClientRect().width);''')
                         self.assertEqual(main, [24, 24])
+                        # The custom status bar is mounted by autoconfig in #browser.
+                        # Exercise its real chrome layout, including the reserved gap,
+                        # for browser F11 and page/video full-screen state flags.
+                        fullscreen = client.script('''
+                            const root=document.documentElement, browser=document.getElementById('browser');
+                            const status=document.createXULElement('hbox');status.id='ie6-statusbar';browser.append(status);
+                            // Newer ESR builds omit this legacy container.
+                            const existingBottom=document.getElementById('browser-bottombox');
+                            const bottom=existingBottom||document.createXULElement('hbox');
+                            if(!existingBottom){bottom.id='browser-bottombox';root.append(bottom);}
+                            const snapshot=()=>({status:getComputedStyle(status).display,
+                                bottom:getComputedStyle(bottom).display,
+                                padding:parseFloat(getComputedStyle(browser).paddingBottom)});
+                            const rows=[];
+                            for(const dark of [false,true]) {
+                                if(dark)root.setAttribute('xplasma-dark','true');else root.removeAttribute('xplasma-dark');
+                                rows.push({mode:'normal',dark,...snapshot()});
+                                root.setAttribute('sizemode','maximized');
+                                rows.push({mode:'maximized',dark,...snapshot()});
+                                root.removeAttribute('sizemode');
+                                for(const flag of ['inFullscreen','inDOMFullscreen']) {
+                                    root.setAttribute(flag,'true');rows.push({mode:flag,dark,...snapshot()});
+                                    root.removeAttribute(flag);rows.push({mode:'restored',dark,...snapshot()});
+                                }
+                            }
+                            root.removeAttribute('xplasma-dark');status.remove();
+                            if(!existingBottom)bottom.remove();return rows;
+                        ''')
+                        for row in fullscreen:
+                            hidden = row['mode'] in ('inFullscreen', 'inDOMFullscreen')
+                            self.assertEqual(row['status'] == 'none', hidden, row)
+                            self.assertEqual(row['bottom'] == 'none', hidden, row)
+                            self.assertEqual(row['padding'], 0 if hidden else 21, row)
                         library = client.script('''
                             const done=arguments[arguments.length-1];
                             const win=Services.ww.openWindow(null,
