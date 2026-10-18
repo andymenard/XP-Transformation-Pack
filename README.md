@@ -1,4 +1,4 @@
-# XPlasma Plus — 1.0 Public Beta
+# XPlasma Plus — 1.0.1 Public Beta
 
 A KDE Plasma transformation pack and **modified fork of [hotsocket's XPlasma](https://tangled.org/hotsocket.fyi/xplasma/)**. The native visual-style engine, Qt style, Properties editor and desktop generators originate in that project. This repository contains our ports, integration and changes; it does not claim authorship of the upstream foundation.
 
@@ -35,7 +35,7 @@ installation before reinstalling; an in-place upgrade is not supported yet.
 
 ## Download the installer
 
-See [1.0 Public Beta](https://github.com/andymenard/XPlasma-Plus/releases/tag/v1.0.0).
+See [1.0.1 Public Beta](https://github.com/andymenard/XPlasma-Plus/releases/tag/v1.0.1).
 Extract the installer tar.gz, then launch **Start-Installer.desktop** from the
 extracted folder as your desktop user. Linux dependencies require internet
 access; an XP ISO is not needed. Desktop is selected by default; Firefox is optional.

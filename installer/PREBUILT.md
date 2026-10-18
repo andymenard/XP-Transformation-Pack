@@ -17,8 +17,8 @@ helper is built once as part of the native project. Compatible prebuilt installs
 skip native and widget development dependencies; a matching caption binary also
 skips the KWin development dependencies.
 
-Run the **Build Kubuntu prebuilt components** GitHub workflow to build the
-Intel/AMD package using Ubuntu 26.04 libraries. It builds the core, four Plasma
+Run the **Build release prebuilt components** GitHub workflow to build the
+Kubuntu/Ubuntu 26.04 and Fedora 44 packages for Intel/AMD 64-bit and ARM64 using native GitHub runners and distribution containers. It builds the core, four Plasma
 plugins and caption effect; the Plasma source archives have pinned checksums.
 It produces a tar archive inside the workflow artifact, preserving executable
 permissions and links. Extract its hash directories into `private-assets/prebuilt/`, then run `installer/sync-payload.py`

@@ -717,8 +717,8 @@ QWidget *DisplayProperties::appearanceTab()
     m_darkMode = new QCheckBox(QStringLiteral("&Dark application colors"));
     m_darkMode->setToolTip(QStringLiteral("Dark backgrounds and light text for applications and IE6 Firefox; keeps the selected theme\'s titlebars and taskbar"));
     layout->addWidget(m_darkMode);
-    m_crispText = new QCheckBox(QStringLiteral("Crisp XP text"));
-    m_crispText->setToolTip(QStringLiteral("XP-rendered pixel Tahoma for XPlasma widgets and IE6 Firefox, with a legacy pixel-font fallback. Aligns glyph sizes to physical pixels at fractional scaling; preserves explicit document and code font choices."));
+    m_crispText = new QCheckBox(QStringLiteral("Crisp XP text (experimental)"));
+    m_crispText->setToolTip(QStringLiteral("Experimental: XP-rendered pixel Tahoma for XPlasma widgets and IE6 Firefox, with a legacy pixel-font fallback. Aligns glyph sizes to physical pixels at fractional scaling; preserves explicit document and code font choices."));
     layout->addWidget(m_crispText);
     connect(m_crispText,&QCheckBox::toggled,this,[this]{updateApply();});
     m_hidpiStart = new QCheckBox(QStringLiteral("Sharp Start button on &HiDPI screens"));

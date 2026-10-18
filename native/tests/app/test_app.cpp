@@ -1763,6 +1763,26 @@ private Q_SLOTS:
         QVERIFY(!overrides::patched(QStringLiteral("systemtray/main.qml"), QStringLiteral("not KDE's QML")));
     }
 
+    void recoversOrphanedDesktopTextHelper()
+    {
+        if (!QFileInfo::exists(QStringLiteral("/usr/share/plasma/plasmoids/org.kde.desktopcontainment/contents/ui/FolderView.qml")))
+            QSKIP("no desktop containment here");
+        const QString plasmoids = m_home.filePath(QStringLiteral("orphan-plasmoids"));
+        QString error;
+        // An old uninstall may leave only the shared helper, without metadata.
+        const QString orphan = plasmoids + QStringLiteral("/org.kde.desktopcontainment");
+        writeFile(orphan + QStringLiteral("/contents/ui/XpTextStyle.qml"),
+                  overrides::resourceText(QStringLiteral("XpTextStyle.qml")).toUtf8());
+        // Additional files still make this an unknown override: preserve it.
+        writeFile(orphan + QStringLiteral("/custom.qml"), "// user's widget");
+        QVERIFY(!overrides::installDesktopMenu(plasmoids, QStringLiteral("/opt/xplasma-edit"), &error));
+        QVERIFY(QFileInfo::exists(orphan + QStringLiteral("/custom.qml")));
+        QVERIFY(QFile::remove(orphan + QStringLiteral("/custom.qml")));
+        QVERIFY2(overrides::installDesktopMenu(plasmoids, QStringLiteral("/opt/xplasma-edit"), &error), qPrintable(error));
+        QVERIFY(QFileInfo::exists(orphan + QStringLiteral("/metadata.json")));
+        overrides::removeDesktopMenu(plasmoids);
+    }
+
     void desktopSelectionSurvivesThemeReapply()
     {
         if (!QFileInfo::exists(QStringLiteral("/usr/share/plasma/plasmoids/org.kde.desktopcontainment/contents/ui/FolderView.qml")))
