@@ -42,3 +42,14 @@ installer module. Run the retention tests with:
 ```
 python3 -m unittest discover -s installer/tests -p test_retention.py -v
 ```
+
+Theme artwork caching is opt-in (`settings.themeCacheEnabled` in XPlasma's
+state). Properties asks on the first theme Apply unless its Appearance checkbox
+was chosen explicitly. Yes/No is remembered; Cancel applies nothing. The same
+checkbox can enable or disable caching later. Until enabled, the unused-look
+and unused-dark-build targets are zero. Active/referenced artwork and the last
+look protected during a switch remain available; saved/imported theme sources,
+original assets and recovery backups are preserved. When enabled, the bounded
+16-look/8-dark-build policy above applies. Recovery-backup limits are independent
+of this preference. This setting does not disable Qt/KDE's internal caches or
+the installer's compiler/prebuilt caches.

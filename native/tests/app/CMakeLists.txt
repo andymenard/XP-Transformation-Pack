@@ -33,3 +33,8 @@ endif()
 # Isolated baked-color cache and decoration preparation timings (no desktop writes).
 add_executable(theme-performance-probe ../manual/theme_performance_probe.cpp)
 target_link_libraries(theme-performance-probe PRIVATE xplasma-app Qt6::Widgets)
+
+add_executable(test-cachepreferences test_cachepreferences.cpp ${PROJECT_SOURCE_DIR}/src/app/editor/cachepreferences.cpp)
+target_link_libraries(test-cachepreferences PRIVATE stdc++ xplasma-app Qt6::Widgets Qt6::Test)
+add_test(NAME test-cachepreferences COMMAND test-cachepreferences)
+set_tests_properties(test-cachepreferences PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_STYLE_OVERRIDE=Fusion")

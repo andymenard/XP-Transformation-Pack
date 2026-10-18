@@ -35,3 +35,10 @@ Properties too), keeping saved and imported themes, custom colour styles and the
 IE6 browser profile. Settings backups stay in ~/.local/share/kde-xp-suite unless
 "Also delete the settings backups" is checked. IE6 Firefox can be made the
 default web browser; Remove restores the previous one.
+
+Properties asks whether to cache generated theme artwork the first time a theme
+is applied. Caching is optional and can be changed under Appearance. With it
+off, unused generated looks are discarded while active resources and recovery
+data remain protected. With it on, the existing disk/count limits still apply.
+The Custom Colors tab notes that only Luna has been extensively tested; other
+base themes are experimental.

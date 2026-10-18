@@ -23,6 +23,8 @@
 #include "core/schema.h"
 
 #include <QApplication>
+#include "app/editor/cachepreferences.h"
+#include "app/maintenance.h"
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCryptographicHash>
@@ -199,6 +201,8 @@ DisplayProperties::DisplayProperties(QWidget *parent)
     // Open on what's applied now.
     const State state = State::load();
     m_loading = true;
+    m_appliedThemeCache = state.settings.value(QStringLiteral("themeCacheEnabled")).toBool();
+    m_themeCache->setChecked(m_appliedThemeCache);
     m_appliedDark = state.settings.value(QStringLiteral("darkMode")).toBool();
     m_darkMode->setChecked(m_appliedDark);
     m_appliedCrisp = state.settings.value(QStringLiteral("crispText")).toBool();
@@ -437,6 +441,10 @@ QWidget *DisplayProperties::customLunaTab()
     });
     m_customLunaEnabled = new QCheckBox(QStringLiteral("Use custom theme colors"));
     layout->addWidget(m_customLunaEnabled);
+    auto *testingNote = new QLabel(QStringLiteral("Luna is the only theme extensively tested with Custom Colors. Other themes may work, but support is experimental."));
+    testingNote->setObjectName(QStringLiteral("customColorsTestingNote"));
+    testingNote->setWordWrap(true);
+    layout->addWidget(testingNote);
     auto *grid = new QGridLayout;
     const char *labels[] = {"Start button:", "Taskbar / Start menu:", "Titlebars and borders:", "Titlebar buttons (Close stays red):"};
     const char *defaults[] = {"#3c9b35", "#245edb", "#245edb", "#245edb"};
@@ -716,6 +724,11 @@ QWidget *DisplayProperties::appearanceTab()
     m_hidpiStart = new QCheckBox(QStringLiteral("Sharp Start button on &HiDPI screens"));
     m_hidpiStart->setToolTip(QStringLiteral("Draws the Start button's label and logo at the screen's own resolution when the display is scaled; XP's button stays its own pixels, made bigger."));
     layout->addWidget(m_hidpiStart);
+    m_themeCache = new QCheckBox(QStringLiteral("Cache themes for faster switching"));
+    m_themeCache->setObjectName(QStringLiteral("themeCacheEnabled"));
+    m_themeCache->setToolTip(QStringLiteral("Keep generated artwork from previously applied themes to save time when switching. Uses more disk space, within the cache limits. When off, unused artwork is removed; the current theme, saved themes and recovery data are kept."));
+    layout->addWidget(m_themeCache);
+    connect(m_themeCache, &QCheckBox::clicked, this, [this] { m_themeCacheChosen = true; updateApply(); });
     connect(m_hidpiStart,&QCheckBox::toggled,this,[this]{updateApply();});
     connect(m_darkMode, &QCheckBox::toggled, this, [this] { renderAppearance(); updateApply(); });
     layout->addStretch(1);
@@ -1466,13 +1479,26 @@ bool DisplayProperties::apply()
     const bool crispChanged = m_crispText->isChecked() != m_appliedCrisp;
     const bool hidpiChanged = m_hidpiStart->isChecked() != m_appliedHiDpiStart;
     const bool darkChanged = m_darkMode->isChecked() != m_appliedDark;
+    const bool cacheChanged = m_themeCache->isChecked() != m_appliedThemeCache
+        || (m_themeCacheChosen && !State::load().settings.contains(QStringLiteral("themeCacheEnabled")));
     const bool linkChanged=m_linkTitleColor->isChecked()!=m_appliedTitleLink;
     const bool liveChanged=liveStartColors()!=m_appliedLiveStart;
-    if (!lookChanged && !desktopChanged && !pointersChanged && !startChanged && !darkChanged && !crispChanged && !hidpiChanged && !liveChanged && !linkChanged && m_themeFile == m_appliedThemeFile)
+    if (!lookChanged && !desktopChanged && !pointersChanged && !startChanged && !darkChanged && !crispChanged && !hidpiChanged && !liveChanged && !linkChanged && !cacheChanged && m_themeFile == m_appliedThemeFile)
         return m_sounds->apply();
 
     QString error;
     bool ok = true;
+    if (lookChanged || cacheChanged) {
+        const auto choice = cachepreferences::choose(this, m_themeCache->isChecked(), m_themeCacheChosen, &error);
+        if (!choice) {
+            if (!error.isEmpty()) QMessageBox::warning(this, QStringLiteral("Theme caching"), error);
+            return false;
+        }
+        m_themeCache->setChecked(*choice);
+        m_appliedThemeCache = *choice;
+        m_themeCacheChosen = false;
+        if (cacheChanged && !lookChanged) { LiveSession session; maintenance::run(session); }
+    }
     if (startChanged || hidpiChanged) {
         // (Kept first: a look applied now draws its Start button with them.)
         State state = State::load();
@@ -1584,7 +1610,8 @@ void DisplayProperties::updateApply()
     m_apply->setToolTip(m_outdated ? QStringLiteral("XPlasma has been updated since this look was applied. Apply rebuilds it with this "
                                                     "version.\nHold Shift to rebuild and apply everything, changed or not.")
                                    : QStringLiteral("Hold Shift to rebuild and apply everything, changed or not."));
-    m_apply->setEnabled(shiftHeld() || lookKey(look()) != m_appliedLook || !sameDesktop(wallpaper(), m_appliedDesktop)
+    m_apply->setEnabled(m_themeCache->isChecked() != m_appliedThemeCache
+                        || (m_themeCacheChosen && !State::load().settings.contains(QStringLiteral("themeCacheEnabled"))) || shiftHeld() || lookKey(look()) != m_appliedLook || !sameDesktop(wallpaper(), m_appliedDesktop)
                         || m_themeFile != m_appliedThemeFile || pointersDiffer() || m_startExtras != m_appliedStartExtras
                         || m_linkTitleColor->isChecked()!=m_appliedTitleLink || liveStartColors()!=m_appliedLiveStart || m_sounds->pending() || m_darkMode->isChecked() != m_appliedDark || m_crispText->isChecked() != m_appliedCrisp
                         || m_hidpiStart->isChecked() != m_appliedHiDpiStart);

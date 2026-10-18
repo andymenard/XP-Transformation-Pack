@@ -165,6 +165,9 @@ private:
     QCheckBox *m_crispText;
     bool m_appliedHiDpiStart = false;
     QCheckBox *m_hidpiStart;
+    QCheckBox *m_themeCache;
+    bool m_appliedThemeCache = false;
+    bool m_themeCacheChosen = false;
     QCheckBox *m_darkMode;
     QCheckBox *m_kdeLogo;
     QCheckBox *m_tux;   // Tux for the Start flag: a shortcut to Extras' picture
