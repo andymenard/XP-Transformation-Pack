@@ -32,12 +32,12 @@ class SetupStep(QtWidgets.QLabel):
 class Installer(QtWidgets.QMainWindow):
  def __init__(self,test_mode=False):
   super().__init__();self.test_mode=test_mode;self.process=None;self.buffer='';self.current_action=None;self.upgrading=False
-  self.setWindowTitle('XP Transformation Pack Setup');self.resize(1024,768)
+  self.setWindowTitle('XPlasma Plus Setup');self.resize(1024,768)
   self._tip_index=0
   self.setWindowIcon(QtGui.QIcon(str(BASE/'payload/assets/desktop-icons/computer.png')))
   host=QtWidgets.QWidget();host.setObjectName('setupBackground');self.setCentralWidget(host)
   host_layout=QtWidgets.QVBoxLayout(host);host_layout.setContentsMargins(0,0,0,0);host_layout.setSpacing(0)
-  banner=QtWidgets.QLabel('XP Transformation Pack');banner.setObjectName('setupBrand');banner.setFixedHeight(56);banner.setContentsMargins(24,0,0,0);host_layout.addWidget(banner)
+  banner=QtWidgets.QLabel('XPlasma Plus');banner.setObjectName('setupBrand');banner.setFixedHeight(56);banner.setContentsMargins(24,0,0,0);host_layout.addWidget(banner)
   body=QtWidgets.QWidget();body.setObjectName('setupBody');host_layout.addWidget(body,1)
   outer=QtWidgets.QHBoxLayout(body);outer.setContentsMargins(0,0,0,0);outer.setSpacing(0)
   rail=QtWidgets.QWidget();rail.setObjectName('setupRail');rail.setFixedWidth(250);outer.addWidget(rail)
@@ -59,7 +59,7 @@ class Installer(QtWidgets.QMainWindow):
   self.pages=QtWidgets.QStackedWidget();outer.addWidget(self.pages,1)
   content=QtWidgets.QWidget();content.setObjectName('setupContent');self.pages.addWidget(content)
   layout=QtWidgets.QVBoxLayout(content);layout.setContentsMargins(18,20,18,16);layout.setSpacing(7)
-  dialog_title=QtWidgets.QLabel('XP Transformation Pack Setup');dialog_title.setObjectName('setupDialogTitle');layout.addWidget(dialog_title)
+  dialog_title=QtWidgets.QLabel('XPlasma Plus Setup');dialog_title.setObjectName('setupDialogTitle');layout.addWidget(dialog_title)
   header=QtWidgets.QLabel('Choose your components');header.setObjectName('header');layout.addWidget(header)
   self.intro=QtWidgets.QLabel();self.intro.setWordWrap(True);layout.addWidget(self.intro)
   row=QtWidgets.QHBoxLayout();row.addWidget(QtWidgets.QLabel('Theme:'));self.theme=QtWidgets.QComboBox();self.theme.addItems(THEMES);row.addWidget(self.theme,1)
@@ -108,7 +108,7 @@ class Installer(QtWidgets.QMainWindow):
   self.tip_text=QtWidgets.QLabel();self.tip_text.setObjectName('tipText');self.tip_text.setMaximumWidth(520);self.tip_text.setWordWrap(True);progress_layout.addWidget(self.tip_text);progress_layout.addStretch()
   self.tip_timer=QtCore.QTimer(self);self.tip_timer.setInterval(14000);self.tip_timer.timeout.connect(self.rotate_tip);self.rotate_tip()
   self.credits_button=QtWidgets.QPushButton('Credits and licenses');buttons.insertWidget(1,self.credits_button);self.credits_button.clicked.connect(self.show_credits)
-  footer=QtWidgets.QLabel(EDITION.get('label','XP Transformation Pack')+' — based on XPlasma by hotsocket');footer.setObjectName('setupFooter');footer.setFixedHeight(30);footer.setContentsMargins(24,0,0,0);host_layout.addWidget(footer)
+  footer=QtWidgets.QLabel(EDITION.get('label','XPlasma Plus')+' — based on XPlasma by hotsocket');footer.setObjectName('setupFooter');footer.setFixedHeight(30);footer.setContentsMargins(24,0,0,0);host_layout.addWidget(footer)
   self.setStyleSheet("""
    QWidget#setupBackground {background:#516bd0;}
    QLabel#setupBrand {background:#003399;color:white;font:italic bold 26px "Trebuchet MS";border-bottom:2px solid #97b2ee;}
@@ -197,7 +197,7 @@ class Installer(QtWidgets.QMainWindow):
   if lost:
    self.rebuild.setText('Rebuild for Plasma '+lost['plasma'])
    self.intro.setText('Plasma was updated to '+lost['plasma']+', so the XP taskbar is paused: its parts were built for the Plasma before. '
-    +('Rebuild builds them for this Plasma and keeps your theme and settings.' if lost['available'] else 'This installer has no parts for Plasma '+lost['series']+'. Download the latest XP Transformation Pack release to rebuild.'))
+    +('Rebuild builds them for this Plasma and keeps your theme and settings.' if lost['available'] else 'This installer has no parts for Plasma '+lost['series']+'. Download the latest XPlasma Plus release to rebuild.'))
   self.install.setEnabled(bool(chosen) and not running)
   self.remove.setEnabled(not running and ((STATE/'installation.json').exists() or (STATE/'incomplete.json').exists()))
  def start(self,action):
@@ -270,7 +270,7 @@ class Installer(QtWidgets.QMainWindow):
   else:event.accept()
 def main():
  p=argparse.ArgumentParser();p.add_argument('--preview');p.add_argument('--preview-stage',choices=['options','installing','complete'],default='options');p.add_argument('--test-mode',action='store_true');p.add_argument('--rebuild',action='store_true',help='Open on Rebuild (from the Plasma update notice).');a=p.parse_args()
- app=QtWidgets.QApplication(sys.argv[:1]);app.setApplicationName('Windows XP Transformation Pack')
+ app=QtWidgets.QApplication(sys.argv[:1]);app.setApplicationName('XPlasma Plus')
  app.setStyle('Windows')
  for name in ['tahoma.ttf','tahomabd.ttf','trebuc.ttf','trebucbd.ttf','trebucit.ttf','trebucbi.ttf','arial.ttf','arialbd.ttf','ariali.ttf','arialbi.ttf']:
   QtGui.QFontDatabase.addApplicationFont(str(BASE/'payload/assets/fonts'/name))

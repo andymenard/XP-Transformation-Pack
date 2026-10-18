@@ -1,6 +1,6 @@
-# XP Transformation Pack — Alpha 1.0
+# XPlasma Plus — 1.0 Public Beta
 
-A KDE Plasma transformation pack **based on [hotsocket's XPlasma](https://tangled.org/hotsocket.fyi/xplasma/)**. The native visual-style engine, Qt style, Properties editor and desktop generators originate in that project. This repository contains our ports, integration and changes; it does not claim authorship of the upstream foundation.
+A KDE Plasma transformation pack and **modified fork of [hotsocket's XPlasma](https://tangled.org/hotsocket.fyi/xplasma/)**. The native visual-style engine, Qt style, Properties editor and desktop generators originate in that project. This repository contains our ports, integration and changes; it does not claim authorship of the upstream foundation.
 
 Also check out **[Rozniak's Windows XP Total Conversion for XFCE](https://github.com/rozniak/xfce-winxp-tc)**, an inspiration for this project. If you enjoy bringing the XP experience to Linux, give Rozniak and the project's contributors a visit and explore their work.
 
@@ -35,7 +35,7 @@ installation before reinstalling; an in-place upgrade is not supported yet.
 
 ## Download the installer
 
-See [1.0 Public Beta](https://github.com/andymenard/XP-Transformation-Pack/releases/tag/v1.0.0).
+See [1.0 Public Beta](https://github.com/andymenard/XPlasma-Plus/releases/tag/v1.0.0).
 Extract the installer tar.gz, then launch **Start-Installer.desktop** from the
 extracted folder as your desktop user. Linux dependencies require internet
 access; an XP ISO is not needed. Desktop is selected by default; Firefox is optional.

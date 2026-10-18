@@ -87,9 +87,9 @@ AboutTab::AboutTab(QWidget *parent)
     name->setFont(big);
     words->addWidget(name);
     words->addWidget(new QLabel(QStringLiteral("Engine revision %1").arg(project::kVersion)));
-    words->addWidget(new QLabel(QStringLiteral("Based on XPlasma by hotsocket (© 2026 Sock)")));
+    words->addWidget(new QLabel(QStringLiteral("Modified fork of XPlasma by hotsocket (© 2026 Sock)")));
     words->addStretch(1);
-    words->addWidget(wrapped(QStringLiteral("XP Transformation Pack edition, with bundled XP assets and additional desktop integration.")));
+    words->addWidget(wrapped(QStringLiteral("XPlasma Plus includes bundled XP assets and additional desktop integration.")));
     head->addLayout(words, 1);
     layout->addLayout(head);
     layout->addSpacing(6);
@@ -113,7 +113,7 @@ AboutTab::AboutTab(QWidget *parent)
         auto *updates = new QPushButton(QStringLiteral("&Download New Releases"));
         legal->addWidget(updates);
         connect(updates, &QPushButton::clicked, this, [] {
-            QDesktopServices::openUrl(QUrl(QStringLiteral("https://github.com/andymenard/XP-Transformation-Pack/releases")));
+            QDesktopServices::openUrl(QUrl(QStringLiteral("https://github.com/andymenard/XPlasma-Plus/releases")));
         });
     }
     layout->addLayout(legal);

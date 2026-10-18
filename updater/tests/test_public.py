@@ -36,7 +36,7 @@ class PublicUpdateTests(unittest.TestCase):
   with tempfile.TemporaryDirectory() as directory:
    home=Path(directory)/'home';source=Path(directory)/'source';source.mkdir()
    for name in ['core.py','gui.py','release-key.pem','README.md']:(source/name).write_text('test')
-   public={'repository':'andymenard/XP-Transformation-Pack','channel':'alpha','access':'public'}
+   public={'repository':'andymenard/XPlasma-Plus','channel':'alpha','access':'public'}
    (source/'config.json').write_text(json.dumps(public))
    existing=home/'.local/share/xplasma-updater/config.json';existing.parent.mkdir(parents=True)
    private={'repository':'andymenard/XPlasma','channel':'stable','access':'private'}

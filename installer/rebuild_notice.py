@@ -23,7 +23,7 @@ def message(lost):
   return ('Plasma was updated to '+lost['plasma'],
           'The XP taskbar is paused: its parts were built for the Plasma before. Choose Rebuild to build them for this one.')
  return ('Plasma was updated to '+lost['plasma'],
-         'The XP taskbar is paused: this installer has no parts for Plasma '+lost['series']+'. Download the latest XP Transformation Pack release to bring it back.')
+         'The XP taskbar is paused: this installer has no parts for Plasma '+lost['series']+'. Download the latest XPlasma Plus release to bring it back.')
 
 def notify(lost,home=None):
  from PyQt6 import QtCore,QtDBus
@@ -52,7 +52,7 @@ def notify(lost,home=None):
    return
   timer.stop()
   call=QtDBus.QDBusMessage.createMethodCall(SERVICE,PATH,INTERFACE,'Notify')
-  call.setArguments(['XP Transformation Pack',QtDBus.QDBusArgument(0,QtCore.QMetaType.Type.UInt.value),'preferences-desktop-theme',title,body,
+  call.setArguments(['XPlasma Plus',QtDBus.QDBusArgument(0,QtCore.QMetaType.Type.UInt.value),'preferences-desktop-theme',title,body,
                      QtDBus.QDBusArgument(actions,QtCore.QMetaType.Type.QStringList.value),{'desktop-entry':'kde-xp-suite'},0])
   reply=bus.call(call)
   if reply.type()!=QtDBus.QDBusMessage.MessageType.ReplyMessage:app.quit();return

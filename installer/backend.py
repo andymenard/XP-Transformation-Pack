@@ -676,11 +676,11 @@ def install(selected,theme,asset_options=None):
    if bundle.exists():shutil.rmtree(bundle)
    staged.rename(bundle)
   apps=home/'.local/share/applications';apps.mkdir(parents=True,exist_ok=True)
-  (apps/'kde-xp-suite.desktop').write_text('[Desktop Entry]\nType=Application\nName=Windows XP Theme Installer\nExec=python3 "'+str(bundle/'gui.py')+'"\nIcon=preferences-desktop-theme\nTerminal=false\nCategories=Settings;DesktopSettings;\n')
+  (apps/'kde-xp-suite.desktop').write_text('[Desktop Entry]\nType=Application\nName=XPlasma Plus Installer\nExec=python3 "'+str(bundle/'gui.py')+'"\nIcon=preferences-desktop-theme\nTerminal=false\nCategories=Settings;DesktopSettings;\n')
   if 'taskbar' in selected:
    # At login: says so when a Plasma update took the XP taskbar's builds off, and opens Setup to rebuild them.
    autostart=home/'.config/autostart';autostart.mkdir(parents=True,exist_ok=True)
-   (autostart/'kde-xp-suite-rebuild.desktop').write_text('[Desktop Entry]\nType=Application\nName=XP Transformation Pack Plasma Update Check\nExec=python3 "'+str(bundle/'rebuild_notice.py')+'"\nTerminal=false\nNoDisplay=true\nOnlyShowIn=KDE;\nX-KDE-autostart-phase=2\n')
+   (autostart/'kde-xp-suite-rebuild.desktop').write_text('[Desktop Entry]\nType=Application\nName=XPlasma Plus Plasma Update Check\nExec=python3 "'+str(bundle/'rebuild_notice.py')+'"\nTerminal=false\nNoDisplay=true\nOnlyShowIn=KDE;\nX-KDE-autostart-phase=2\n')
   (state/'platform.json').write_text(json.dumps(detect(),indent=2)+'\n')
   if selected&NATIVE:prepare_native(home,state,selected,theme,asset_options,keep_theme=upgrade)
   if not selected&NATIVE and 'wallpaper' in selected:prepare_wallpapers(home,asset_options)

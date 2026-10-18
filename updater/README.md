@@ -1,6 +1,6 @@
 # XP Transformation Pack Update
 
-The public alpha feed is https://github.com/andymenard/XP-Transformation-Pack .
+The public alpha feed is https://github.com/andymenard/XPlasma-Plus .
 Checks and downloads use anonymous HTTPS. No GitHub CLI or account is needed.
 The alpha channel accepts complete signed prereleases such as 1.0.0-alpha.1;
 stable clients exclude prereleases. The current updater completes supported native
