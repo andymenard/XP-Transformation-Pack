@@ -9,7 +9,7 @@ class FontDefaults(unittest.TestCase):
   tree=ast.parse((ROOT/'backend.py').read_text())
   node=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='basic')
   config=Mock();copy=Mock()
-  namespace=dict(Path=Path,BASE=ROOT,copy=copy,config=config,run=Mock(),shutil=Mock(which=Mock(return_value=None)))
+  namespace=dict(Path=Path,BASE=ROOT,copy=copy,config=config,run=Mock(),shutil=Mock(which=Mock(return_value=None)),restart_auth_agent=Mock())
   exec(compile(ast.Module(body=[node],type_ignores=[]),'backend.py','exec'),namespace)
   from unittest.mock import patch
   with patch.dict(sys.modules,{'tahoma_os':types.SimpleNamespace(generate=Mock())}), tempfile.TemporaryDirectory() as directory:
