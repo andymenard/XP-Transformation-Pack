@@ -153,3 +153,5 @@ qt_add_resources(xplasma-app "darkmode" PREFIX /dark-mode BASE data/dark-mode FI
 
 # Generate the interface family from the original Tahoma faces.
 qt_add_resources(xplasma-app "interfacefonts" PREFIX /fonts BASE data/fonts FILES data/fonts/tahoma_os.py)
+
+qt_add_resources(xplasma-app "maintenance" PREFIX /maintenance BASE data FILES data/cache_maintenance.py)

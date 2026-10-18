@@ -253,6 +253,7 @@ QString customLuna(const QString &source, const std::array<QColor, 4> &colours,
     QHash<QString, QRgb> keys;
     QSet<QString> untouched;
     QHash<QString,QRgb> glyphs;
+    QSet<QString> scrollGlyphs;
     for (auto it = selected->ini().sections().cbegin(); it != selected->ini().sections().cend(); ++it) {
         const auto &key = it.key();
         int role = -1;
@@ -274,7 +275,8 @@ QString customLuna(const QString &source, const std::array<QColor, 4> &colours,
             if (prop.key().startsWith(QLatin1String("imagefile")) || prop.key()==QLatin1String("glyphimagefile")) {
                 const QString resource = Theme::resourceName(prop.value());
                 if (resource.contains(QLatin1String("GLYPH")) || prop.key()==QLatin1String("glyphimagefile")) {
-                    if (role==3 || role==4) {
+                    if (role==3 || role==4 || (key.cls==QLatin1String("scrollbar") && key.part==QLatin1String("arrowbtn"))) {
+                        if(key.cls==QLatin1String("scrollbar"))scrollGlyphs.insert(resource);
                         QRgb transparent=qRgb(255,0,255);
                         parseColour(selected->property(key.cls,key.part,key.state,u"glyphtransparentcolor",key.sub).value_or(QString()),&transparent);
                         glyphs.insert(resource,transparent);
@@ -318,7 +320,9 @@ QString customLuna(const QString &source, const std::array<QColor, 4> &colours,
             // their blue-made tints (the inactive and disabled symbols'
             // lavender, a faded white) turn grey, readable on any colour.
             QByteArray bitmap=r.data;
-            const bool drawn = textModes[3]
+            const bool drawn = scrollGlyphs.contains(n)
+                ? recolour(bitmap,accentText(colours[1]),QColor(),QColor(),false,QSize(),glyphs[n],false,true)
+                : textModes[3]
                 ? recolour(bitmap,textModes[3]==1 ? QColor(Qt::white) : QColor(Qt::black),QColor("#808080"),QColor(),false,QSize(),glyphs[n],false,true)
                 : recolour(bitmap,QColor(),QColor(),QColor(),false,QSize(),glyphs[n],true);
             if (!drawn)

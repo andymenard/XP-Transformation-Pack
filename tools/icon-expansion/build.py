@@ -124,6 +124,9 @@ def build(pack,output):
   for name,item in mappings.items():
    context=context_names.get(item['context'].lower(),'Actions');folder=f'{size}x{size}/{context.lower()}';dest=output/folder/(name+'.png');dest.parent.mkdir(parents=True,exist_ok=True)
    if folder not in directories:directories.append(folder)
+   if item['reason']=='control-glyph':
+    dest.with_suffix('.svg').write_bytes(glyphs.control_svg(item['control']))
+    continue
    if item['reason'] in {'control-glyph','xp-styled-kde-glyph'}:
     symbolic='-symbolic' in name
     cache=(item['source'],size,symbolic)
@@ -161,7 +164,7 @@ def build(pack,output):
    if not path.exists():rendered[cache].save(path)
    if dest.exists() or dest.is_symlink():dest.unlink()
    dest.symlink_to(canonical)
- index='[Icon Theme]\nName=XPlasma XP Extended\nComment=XP recreations by marchmountain; XPlasma Linux name mappings\nInherits=hicolor\nDirectories='+','.join(sorted(directories))+'\n'
+ index='[Icon Theme]\nName=XPlasma XP Extended\nFollowsColorScheme=true\nComment=XP recreations by marchmountain; XPlasma Linux name mappings\nInherits=hicolor\nDirectories='+','.join(sorted(directories))+'\n'
  for folder in sorted(directories):
   size=folder.split('x')[0];context=next((v for v in context_names.values() if v.lower()==folder.split('/')[1]),'Actions');index+=f'\n[{folder}]\nSize={size}\nContext={context}\nType=Fixed\n'
  (output/'index.theme').write_text(index)

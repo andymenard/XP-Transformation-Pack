@@ -43,3 +43,13 @@ field and suggestions, tab/new-tab bevels, menu states and monochrome glyphs.
 The original XP flag retains its frames and colors; flag-canvas.svg removes
 only its white bitmap canvas when dark mode is active. Light mode keeps the
 original canvas. Colorful toolbar icons and website favicons are unaffected.
+
+Static replacement artwork uses `ie6-icons/sized/*.svg`: each wrapper embeds
+the unchanged high-resolution PNG with a 16 CSS-pixel intrinsic size. This
+prevents Library buttons, password prompts and other unsized controls from
+expanding to the PNG's 64/96-pixel source size. Firefox's explicit control sizes
+still take precedence, including the 24-pixel main toolbar and larger notices.
+The original PNGs remain available for application branding and asset tools;
+the animated Windows flag and real website/extension icons are unchanged.
+Run `python3 browser/ie6/build-icon-wrappers.py` after editing PNG artwork.
+Installer payload synchronization checks that these wrappers are current.

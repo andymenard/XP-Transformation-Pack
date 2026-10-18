@@ -116,6 +116,7 @@ def sync(suite, icons=None, wallpapers=None):
         shutil.copytree(crisp_fonts,suite/'payload/assets/fonts',dirs_exist_ok=True)
         shutil.copy2(ROOT/'tools/crisp-text/CREDITS.md',suite/'payload/assets/fonts/CRISP-FONT-CREDITS.md')
     browser = ROOT / 'browser/ie6'
+    subprocess.run(['python3', str(browser/'build-icon-wrappers.py'), '--check'], check=True)
     payload = suite / 'payload/firefox'
     for source, destination in [(browser / 'chrome', payload / 'profile/chrome'),
                                 (browser / 'runtime-overrides', payload / 'runtime-overrides'),

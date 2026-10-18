@@ -31,15 +31,15 @@
   padding: 0 !important; margin: 3px !important;
   background: none !important; border-radius: 0 !important;
 }
-#back-button .toolbarbutton-icon { list-style-image: url("ie6-icons/back.png") !important; }
-#forward-button .toolbarbutton-icon { list-style-image: url("ie6-icons/forward.png") !important; }
-#reload-button .toolbarbutton-icon { list-style-image: url("ie6-icons/refresh.png") !important; }
-#stop-button .toolbarbutton-icon { list-style-image: url("ie6-icons/stop.png") !important; }
-#home-button .toolbarbutton-icon { list-style-image: url("ie6-icons/home.png") !important; }
-#bookmarks-menu-button .toolbarbutton-icon { list-style-image: url("ie6-icons/favorites.png") !important; }
-#history-panelmenu .toolbarbutton-icon { list-style-image: url("ie6-icons/history.png") !important; }
-#downloads-button .toolbarbutton-icon { list-style-image: url("ie6-icons/downloads.png") !important; }
-#print-button .toolbarbutton-icon { list-style-image: url("ie6-icons/print.png") !important; }
+#back-button .toolbarbutton-icon { list-style-image: url("ie6-icons/sized/back.svg") !important; }
+#forward-button .toolbarbutton-icon { list-style-image: url("ie6-icons/sized/forward.svg") !important; }
+#reload-button .toolbarbutton-icon { list-style-image: url("ie6-icons/sized/refresh.svg") !important; }
+#stop-button .toolbarbutton-icon { list-style-image: url("ie6-icons/sized/stop.svg") !important; }
+#home-button .toolbarbutton-icon { list-style-image: url("ie6-icons/sized/home.svg") !important; }
+#bookmarks-menu-button .toolbarbutton-icon { list-style-image: url("ie6-icons/sized/favorites.svg") !important; }
+#history-panelmenu .toolbarbutton-icon { list-style-image: url("ie6-icons/sized/history.svg") !important; }
+#downloads-button .toolbarbutton-icon { list-style-image: url("ie6-icons/sized/downloads.svg") !important; }
+#print-button .toolbarbutton-icon { list-style-image: url("ie6-icons/sized/print.svg") !important; }
 #nav-bar .toolbarbutton-1[disabled] { opacity: .5 !important; }
 #back-button .toolbarbutton-text { display: flex !important; padding-inline-end: 5px !important; }
 #bookmarks-menu-button .toolbarbutton-text, #history-panelmenu .toolbarbutton-text { display: flex !important; margin-inline: 4px !important; }
@@ -85,17 +85,17 @@
 #stop-button { order:0 !important; }
 #reload-button { order:1 !important; }
 #history-panelmenu .toolbarbutton-text { display:none !important; }
-#urlbar-go-button { display:flex !important; list-style-image:url("ie6-icons/forward.png") !important; width:22px !important; height:22px !important; }
+#urlbar-go-button { display:flex !important; list-style-image:url("ie6-icons/sized/forward.svg") !important; width:22px !important; height:22px !important; }
 #PersonalToolbar:empty { display:none !important; }
 #nav-bar :is(#back-button,#forward-button,#stop-button,#reload-button,#home-button,#bookmarks-menu-button,#history-panelmenu,#downloads-button,#print-button) .toolbarbutton-icon { width:24px !important; height:24px !important; }
 #personal-toolbar-empty-description { display:none !important; }
 /* Actual IE6-style controls supplied by the local toolbar configuration. */
 #search-container { display:none !important; }
-#ie6-search-button { list-style-image:url("ie6-icons/search.png") !important; }
+#ie6-search-button { list-style-image:url("ie6-icons/sized/search.svg") !important; }
 #ie6-search-button .toolbarbutton-text { display:flex !important; padding-inline:4px !important; }
 #ie6-search-button .toolbarbutton-icon { width:24px !important; height:24px !important; padding:0 !important; }
 #urlbar-container { padding-inline-end:55px !important; }
-#ie6-go-button { position:absolute !important; right:0 !important; top:2px !important; width:51px !important; height:24px !important; list-style-image:url("ie6-icons/forward.png") !important; padding:1px !important; }
+#ie6-go-button { position:absolute !important; right:0 !important; top:2px !important; width:51px !important; height:24px !important; list-style-image:url("ie6-icons/sized/forward.svg") !important; padding:1px !important; }
 #ie6-go-button .toolbarbutton-icon { width:20px !important; height:20px !important; }
 #ie6-go-button .toolbarbutton-text { display:flex !important; margin-inline:3px !important; }
 #urlbar-go-button { display:none !important; }
@@ -117,14 +117,14 @@
 .tab-close-button { border:1px solid transparent !important; border-radius:2px !important; padding:2px !important; width:16px !important; height:16px !important; }
 .tab-close-button:hover { background:#f8f5eb !important; border-color:#fff #919b9c #919b9c #fff !important; }
 /* Keep the native security state and warnings; change only their artwork. */
-#trust-icon { list-style-image:url("ie6-icons/info.png") !important; -moz-context-properties:none !important; }
+#trust-icon { list-style-image:url("ie6-icons/sized/info.svg") !important; -moz-context-properties:none !important; }
 #trust-icon-container.secure #trust-icon,
 #trust-icon-container.secureConnection #trust-icon,
 #identity-box.secureConnection #identity-icon,
-#identity-box.verifiedDomain #identity-icon { list-style-image:url("ie6-icons/secure.png") !important; }
+#identity-box.verifiedDomain #identity-icon { list-style-image:url("ie6-icons/sized/secure.svg") !important; }
 #identity-box:not(.secureConnection):not(.verifiedDomain) #identity-icon,
 #urlbar-revert-button { list-style-image:url("ie6-icons/page.png") !important; }
-#star-button { list-style-image:url("ie6-icons/bookmark.png") !important; opacity:.65 !important; }
+#star-button { list-style-image:url("ie6-icons/sized/bookmark.svg") !important; opacity:.65 !important; }
 #star-button[starred] { opacity:1 !important; }
 #trust-icon, #identity-icon { width:16px !important; height:16px !important; }
 #identity-icon-box, #trust-icon-container { border-radius:0 !important; }
@@ -182,7 +182,7 @@
 #urlbar .searchmode-switcher { order:100 !important; margin-inline:2px 0 !important; padding:0 !important; align-self:center !important; }
 #urlbar .searchmode-switcher::part(button) { background:transparent !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; padding:0 !important; min-height:0 !important; }
 #urlbar .searchmode-switcher-dropmarker { width:15px !important; height:17px !important; margin:0 !important; padding:3px !important; box-sizing:border-box !important; border:0 !important; background:none !important; box-shadow:none !important; }
-#permissions-granted-icon { list-style-image:url("ie6-icons/info.png") !important; -moz-context-properties:none !important; }
+#permissions-granted-icon { list-style-image:url("ie6-icons/sized/info.svg") !important; -moz-context-properties:none !important; }
 #urlbar #page-action-buttons .urlbar-icon { width:16px !important; height:16px !important; }
 #ie6-windows-logo[loading] { list-style-image:url("ie6-icons/windows-loading.png") !important; }
 
@@ -198,12 +198,12 @@
 #PersonalToolbar .bookmark-item:hover { border-color:white #aca899 #aca899 white !important; background:#f4f1e8 !important; }
 #PersonalToolbar .bookmark-item[open] { border-color:#aca899 white white #aca899 !important; background:#dedacd !important; }
 #PersonalToolbar .bookmark-item .toolbarbutton-icon { width:16px !important; height:16px !important; margin-inline-end:3px !important; -moz-context-properties:none !important; }
-#PersonalToolbar .bookmark-item[container] { list-style-image:url("ie6-icons/bookmark-folder.png") !important; }
-#PersonalToolbar .bookmark-item[container][open] { list-style-image:url("ie6-icons/bookmark-folder-open.png") !important; }
+#PersonalToolbar .bookmark-item[container] { list-style-image:url("ie6-icons/sized/bookmark-folder.svg") !important; }
+#PersonalToolbar .bookmark-item[container][open] { list-style-image:url("ie6-icons/sized/bookmark-folder-open.svg") !important; }
 #PersonalToolbar .bookmark-item:not([container]):not([image]),
 #PersonalToolbar .bookmark-item:not([container])[image=""],
 #PersonalToolbar .bookmark-item[image^="chrome://global/skin/icons/defaultFavicon"],
-#PersonalToolbar .bookmark-item[image^="chrome://mozapps/skin/places/defaultFavicon"] { list-style-image:url("ie6-icons/bookmark-page.png") !important; }
+#PersonalToolbar .bookmark-item[image^="chrome://mozapps/skin/places/defaultFavicon"] { list-style-image:url("ie6-icons/sized/bookmark-page.svg") !important; }
 #PlacesChevron .toolbarbutton-icon,
 #nav-bar-overflow-button .toolbarbutton-icon { list-style-image:url("ie6-icons/overflow.svg") !important; width:10px !important; height:9px !important; padding:0 !important; }
 #alltabs-button .toolbarbutton-icon { list-style-image:url("ie6-icons/tab-list.svg") !important; width:9px !important; height:9px !important; padding:0 !important; }
@@ -214,7 +214,7 @@
 #tabs-newtab-button:hover, #new-tab-button:hover { border-color:#7f9db9 !important; background:#fff3d6 !important; }
 #tabs-newtab-button:active, #new-tab-button:active { box-shadow:inset 1px 1px #aaa596 !important; }
 
-#PersonalToolbar .bookmark-item[xp-default-favicon] .toolbarbutton-icon { list-style-image:url("ie6-icons/bookmark-page.png") !important; }
+#PersonalToolbar .bookmark-item[xp-default-favicon] .toolbarbutton-icon { list-style-image:url("ie6-icons/sized/bookmark-page.svg") !important; }
 
 /* Clear XP plus and opaque focused address/results surfaces. */
 #tabs-newtab-button, #new-tab-button, #ie6-new-tab-button { list-style-image:url("ie6-icons/new-tab-plus.svg") !important; }
@@ -223,13 +223,13 @@
 #urlbar .urlbarView { background-color:white !important; color:black !important; opacity:1 !important; }
 #urlbar .urlbarView { border:1px solid #7f9db9 !important; border-radius:0 !important; box-shadow:1px 2px 3px #0004 !important; margin-inline:0 !important; }
 #urlbar { --urlbarView-highlight-background:#316ac5 !important; --urlbarView-highlight-color:white !important; }
-#urlbar .urlbarView-type-icon { background-image:url("ie6-icons/history.png") !important; background-color:transparent !important; mask-image:none !important; background-size:16px 16px !important; background-repeat:no-repeat !important; background-position:center !important; }
-#urlbar .urlbarView-row[type="search"] .urlbarView-type-icon { background-image:url("ie6-icons/search.png") !important; }
-#urlbar .urlbarView-row[type="bookmark"] .urlbarView-type-icon { background-image:url("ie6-icons/bookmark.png") !important; }
+#urlbar .urlbarView-type-icon { background-image:url("ie6-icons/sized/history.svg") !important; background-color:transparent !important; mask-image:none !important; background-size:16px 16px !important; background-repeat:no-repeat !important; background-position:center !important; }
+#urlbar .urlbarView-row[type="search"] .urlbarView-type-icon { background-image:url("ie6-icons/sized/search.svg") !important; }
+#urlbar .urlbarView-row[type="bookmark"] .urlbarView-type-icon { background-image:url("ie6-icons/sized/bookmark.svg") !important; }
 
-#urlbar .urlbarView-favicon[src="chrome://global/skin/icons/search-glass.svg"] { content:url("ie6-icons/search.png") !important; }
+#urlbar .urlbarView-favicon[src="chrome://global/skin/icons/search-glass.svg"] { content:url("ie6-icons/sized/search.svg") !important; }
 #urlbar .urlbarView-favicon[src^="chrome://global/skin/icons/defaultFavicon"],
-#urlbar .urlbarView-favicon[src^="chrome://mozapps/skin/places/defaultFavicon"] { content:url("ie6-icons/bookmark-page.png") !important; }
+#urlbar .urlbarView-favicon[src^="chrome://mozapps/skin/places/defaultFavicon"] { content:url("ie6-icons/sized/bookmark-page.svg") !important; }
 #urlbar .urlbarView-row[type="switchtab"] .urlbarView-type-icon { background-image:url("ie6-icons/new-tab-plus.svg") !important; }
 
 /* Square XP autocomplete rows, action chips and popup corners. */
@@ -245,7 +245,7 @@
 #urlbar .urlbarView-action-btn { border-radius:0 !important; border:1px solid !important; border-color:white #aca899 #aca899 white !important; background:linear-gradient(#fffef9,#ece9d8) !important; font:11px Tahoma,sans-serif !important; }
 #urlbar .urlbarView-action-btn:hover { background:#fff3d6 !important; }
 #urlbar .urlbarView-action-btn:active { border-color:#aca899 white white #aca899 !important; }
-#urlbar .urlbarView-action-btn img[src="chrome://browser/skin/bookmark.svg"] { content:url("ie6-icons/bookmark.png") !important; }
+#urlbar .urlbarView-action-btn img[src="chrome://browser/skin/bookmark.svg"] { content:url("ie6-icons/sized/bookmark.svg") !important; }
 
 /* The input container has its own Firefox radius, separate from popup rows. */
 #urlbar, #urlbar .urlbar-input-container, #urlbar .urlbar-input-box,
@@ -342,7 +342,7 @@ menupopup menuseparator { appearance: none !important; border: 0 !important; bor
  border-top:1px solid #aca899 !important; box-shadow:inset 0 1px white !important;
  font:11px Tahoma,sans-serif !important; z-index:1 !important; pointer-events:none !important;
 }
-#ie6-status-icon { list-style-image:url("ie6-icons/status-ie.png"); width:16px; height:16px; margin:1px 3px 0 2px; }
+#ie6-status-icon { list-style-image:url("ie6-icons/sized/status-ie.svg"); width:16px; height:16px; margin:1px 3px 0 2px; }
 #ie6-status-text { flex:1; min-width:0; margin:0 3px; }
 #ie6-status-progress { width:96px; height:18px; border-left:1px solid #aca899; box-shadow:inset 1px 0 white; align-items:center; justify-content:center; }
 #ie6-status-progress .ie6-load-meter { width:84px; height:12px; box-sizing:border-box; overflow:hidden; background:#ece9d8; border:1px solid #aca899; border-radius:0; }
@@ -352,29 +352,29 @@ menupopup menuseparator { appearance: none !important; border: 0 !important; bor
 @keyframes ie6-load-unknown { from { transform:translateX(-100%); } to { transform:translateX(420%); } }
 @media (prefers-reduced-motion:reduce) { #ie6-status-progress .indeterminate .ie6-load-fill { animation:none; transform:translateX(150%); } }
 #ie6-status-location { width:177px; height:18px; border-left:1px solid #aca899; box-shadow:inset 1px 0 white; align-items:center; padding-inline:6px; }
-#ie6-status-location image { width:16px; height:16px; margin-inline-end:4px; list-style-image:url("ie6-icons/status-local.png"); }
-#ie6-status-location[remote] image { list-style-image:url("ie6-icons/status-internet.png"); }
+#ie6-status-location image { width:16px; height:16px; margin-inline-end:4px; list-style-image:url("ie6-icons/sized/status-local.svg"); }
+#ie6-status-location[remote] image { list-style-image:url("ie6-icons/sized/status-internet.svg"); }
 #ie6-status-location label { margin:0; font:11px Tahoma,sans-serif; }
 #statuspanel { left:24px !important; max-width:calc(100% - 300px) !important; }
 /* Firefox-internal tab placeholders use the IE page icon; real favicons stay. */
 .tab-icon-image[src^="chrome://branding/"], .tab-icon-image[src^="chrome://browser/skin/new-tab"],
-.tab-icon-image[src="chrome://global/skin/icons/defaultFavicon.svg"] { content:url("ie6-icons/bookmark-page.png") !important; }
+.tab-icon-image[src="chrome://global/skin/icons/defaultFavicon.svg"] { content:url("ie6-icons/sized/bookmark-page.svg") !important; }
 /* Reserve both right-hand controls inside Firefox's explicit URL width. */
 #urlbar { width:calc(var(--urlbar-width) - 158px) !important; }
 /* Softer separators requested for the beige XP toolbar. */
 .ie6-toolbar-separator { opacity:.5 !important; }
 
 /* IE6 Mail, Edit and Discuss icons; existing Print/New Tab remain in place. */
-#ie6-mail-button { list-style-image:url("ie6-icons/mail.png") !important; }
-#ie6-edit-button { list-style-image:url("ie6-icons/edit-page.png") !important; }
-#ie6-discuss-button { list-style-image:url("ie6-icons/discuss.png") !important; }
+#ie6-mail-button { list-style-image:url("ie6-icons/sized/mail.svg") !important; }
+#ie6-edit-button { list-style-image:url("ie6-icons/sized/edit-page.svg") !important; }
+#ie6-discuss-button { list-style-image:url("ie6-icons/sized/discuss.svg") !important; }
 .ie6-extra-tool .toolbarbutton-icon { width:24px !important; height:24px !important; padding:0 !important; margin:2px !important; }
 .ie6-extra-tool .toolbarbutton-text { display:none !important; }
 .ie6-tool-menu::after { content:""; width:0; height:0; border-inline:3px solid transparent; border-top:3px solid black; margin-inline:0 2px; align-self:center; }
 
 /* Firefox icon coverage: indicator children, panels and modern browser tools. */
 #downloads-button, #downloads-indicator-anchor, #downloads-indicator-icon,
-#downloads-button .toolbarbutton-icon { list-style-image:url("ie6-icons/downloads.png") !important; -moz-context-properties:none !important; }
+#downloads-button .toolbarbutton-icon { list-style-image:url("ie6-icons/sized/downloads.svg") !important; -moz-context-properties:none !important; }
 #downloads-indicator-anchor, #downloads-indicator-icon { width:24px !important; height:24px !important; }
 #downloads-button #downloads-indicator-icon { visibility:visible !important; }
 /* Retain actual download progress as a small XP-style bar, not a modern ring. */
@@ -389,105 +389,105 @@ menupopup menuseparator { appearance: none !important; border: 0 !important; bor
  background:#316ac5 !important; border-radius:0 !important; mask-image:none !important; clip-path:none !important;
 }
 #downloads-button[attention="success"] { border-color:#6e9b49 !important; }
-#downloads-button[attention="warning"] #downloads-indicator-icon { list-style-image:url("ie6-icons/security-warning.png") !important; }
-#downloads-button[attention="severe"] #downloads-indicator-icon { list-style-image:url("ie6-icons/security-error.png") !important; }
-#downloadsSummary .downloadTypeIcon { list-style-image:url("ie6-icons/downloads.png") !important; }
+#downloads-button[attention="warning"] #downloads-indicator-icon { list-style-image:url("ie6-icons/sized/security-warning.svg") !important; }
+#downloads-button[attention="severe"] #downloads-indicator-icon { list-style-image:url("ie6-icons/sized/security-error.svg") !important; }
+#downloadsSummary .downloadTypeIcon { list-style-image:url("ie6-icons/sized/downloads.svg") !important; }
 .downloadIconCancel .button-icon { list-style-image:url("ie6-icons/close.svg") !important; }
-.downloadIconRetry .button-icon { list-style-image:url("ie6-icons/refresh.png") !important; }
-.downloadIconShow .button-icon { list-style-image:url("ie6-icons/bookmark-folder-open.png") !important; }
+.downloadIconRetry .button-icon { list-style-image:url("ie6-icons/sized/refresh.svg") !important; }
+.downloadIconShow .button-icon { list-style-image:url("ie6-icons/sized/bookmark-folder-open.svg") !important; }
 .downloadIconSubviewArrow .button-icon { list-style-image:url("ie6-icons/arrow-right.svg") !important; }
-#downloadsPanel .downloadTypeIcon[src^="moz-icon:"] { content:url("ie6-icons/document-file.png") !important; }
-#downloadsPanel .downloadTypeIcon:is([src*=".zip" i],[src*=".7z" i],[src*=".rar" i],[src*=".tar" i],[src*=".gz" i]) { content:url("ie6-icons/archive-file.png") !important; }
-#downloadsPanel .downloadTypeIcon[src*=".pdf" i] { content:url("ie6-icons/pdf-file.png") !important; }
-#downloadsPanel .downloadTypeIcon:is([src*=".png" i],[src*=".jpg" i],[src*=".jpeg" i],[src*=".gif" i],[src*=".webp" i]) { content:url("ie6-icons/image-file.png") !important; }
-#downloadsPanel .downloadTypeIcon:is([src*=".mp3" i],[src*=".wav" i],[src*=".ogg" i],[src*=".flac" i]) { content:url("ie6-icons/audio-file.png") !important; }
-#downloadsPanel .downloadTypeIcon:is([src*=".mp4" i],[src*=".mkv" i],[src*=".avi" i],[src*=".webm" i]) { content:url("ie6-icons/video-file.png") !important; }
-#downloadsPanel .downloadTypeIcon[src*=".txt" i] { content:url("ie6-icons/text-file.png") !important; }
-#downloadsPanel .downloadTypeIcon:is([src*=".exe" i],[src*=".msi" i]) { content:url("ie6-icons/program-file.png") !important; }
+#downloadsPanel .downloadTypeIcon[src^="moz-icon:"] { content:url("ie6-icons/sized/document-file.svg") !important; }
+#downloadsPanel .downloadTypeIcon:is([src*=".zip" i],[src*=".7z" i],[src*=".rar" i],[src*=".tar" i],[src*=".gz" i]) { content:url("ie6-icons/sized/archive-file.svg") !important; }
+#downloadsPanel .downloadTypeIcon[src*=".pdf" i] { content:url("ie6-icons/sized/pdf-file.svg") !important; }
+#downloadsPanel .downloadTypeIcon:is([src*=".png" i],[src*=".jpg" i],[src*=".jpeg" i],[src*=".gif" i],[src*=".webp" i]) { content:url("ie6-icons/sized/image-file.svg") !important; }
+#downloadsPanel .downloadTypeIcon:is([src*=".mp3" i],[src*=".wav" i],[src*=".ogg" i],[src*=".flac" i]) { content:url("ie6-icons/sized/audio-file.svg") !important; }
+#downloadsPanel .downloadTypeIcon:is([src*=".mp4" i],[src*=".mkv" i],[src*=".avi" i],[src*=".webm" i]) { content:url("ie6-icons/sized/video-file.svg") !important; }
+#downloadsPanel .downloadTypeIcon[src*=".txt" i] { content:url("ie6-icons/sized/text-file.svg") !important; }
+#downloadsPanel .downloadTypeIcon:is([src*=".exe" i],[src*=".msi" i]) { content:url("ie6-icons/sized/program-file.svg") !important; }
 
-#reader-mode-button-icon { list-style-image:url("ie6-icons/reader.png") !important; }
-#translations-button-icon { list-style-image:url("ie6-icons/translate.png") !important; }
-#translations-button-circle-arrows { list-style-image:url("ie6-icons/refresh.png") !important; }
-#picture-in-picture-button-icon, #document-pip-return-to-opener-button .toolbarbutton-icon { list-style-image:url("ie6-icons/screen.png") !important; }
-#unified-extensions-button .toolbarbutton-icon, .addons-notification-icon { list-style-image:url("ie6-icons/addon.png") !important; }
-#PanelUI-menu-button .toolbarbutton-icon { list-style-image:url("ie6-icons/menu.png") !important; }
-#bookmarks-toolbar-button .toolbarbutton-icon { list-style-image:url("ie6-icons/bookmark-folder.png") !important; }
-#smartwindow-ask-button-inner .toolbarbutton-icon, #cfr-notification-header-image { list-style-image:url("ie6-icons/help.png") !important; }
-.tab-note-icon, .tab-note-icon-overlay { list-style-image:url("ie6-icons/notes.png") !important; }
-#pinned-drop-indicator-icon { content:url("ie6-icons/pin.png") !important; }
+#reader-mode-button-icon { list-style-image:url("ie6-icons/sized/reader.svg") !important; }
+#translations-button-icon { list-style-image:url("ie6-icons/sized/translate.svg") !important; }
+#translations-button-circle-arrows { list-style-image:url("ie6-icons/sized/refresh.svg") !important; }
+#picture-in-picture-button-icon, #document-pip-return-to-opener-button .toolbarbutton-icon { list-style-image:url("ie6-icons/sized/screen.svg") !important; }
+#unified-extensions-button .toolbarbutton-icon, .addons-notification-icon { list-style-image:url("ie6-icons/sized/addon.svg") !important; }
+#PanelUI-menu-button .toolbarbutton-icon { list-style-image:url("ie6-icons/sized/menu.svg") !important; }
+#bookmarks-toolbar-button .toolbarbutton-icon { list-style-image:url("ie6-icons/sized/bookmark-folder.svg") !important; }
+#smartwindow-ask-button-inner .toolbarbutton-icon, #cfr-notification-header-image { list-style-image:url("ie6-icons/sized/help.svg") !important; }
+.tab-note-icon, .tab-note-icon-overlay { list-style-image:url("ie6-icons/sized/notes.svg") !important; }
+#pinned-drop-indicator-icon { content:url("ie6-icons/sized/pin.svg") !important; }
 #vertical-tabs-newtab-button .toolbarbutton-icon { list-style-image:url("ie6-icons/new-tab-plus.svg") !important; }
 .tab-close-button, .close-icon, .close-button .toolbarbutton-icon { list-style-image:url("ie6-icons/close.svg") !important; -moz-context-properties:none !important; }
 #sidebar-switcher-arrow { list-style-image:url("ie6-icons/tab-list.svg") !important; }
 .subviewbutton-nav::after, .menu-right { content:url("ie6-icons/arrow-right.svg") !important; }
 
 /* Permission roles and blocked states remain visually distinct. */
-.camera-icon, #webRTC-selectCamera-icon, #webrtc-sharing-icon[sharing="camera"] { list-style-image:url("ie6-icons/camera.png") !important; }
-.microphone-icon, #webRTC-selectMicrophone-icon, #webrtc-sharing-icon[sharing="microphone"] { list-style-image:url("ie6-icons/microphone.png") !important; }
-.screen-icon, #webrtc-sharing-icon[sharing="screen"] { list-style-image:url("ie6-icons/screen.png") !important; }
-.speaker-icon, #webRTC-selectSpeaker-icon { list-style-image:url("ie6-icons/speaker.png") !important; }
-.geo-icon, #geo-sharing-icon[sharing] { list-style-image:url("ie6-icons/location.png") !important; }
-.desktop-notification-icon { list-style-image:url("ie6-icons/notification.png") !important; }
-.persistent-storage-icon, .indexedDB-icon { list-style-image:url("ie6-icons/storage.png") !important; }
-.serial-icon, #serial-sharing-icon[sharing] { list-style-image:url("ie6-icons/serial.png") !important; }
-.midi-icon { list-style-image:url("ie6-icons/midi.png") !important; }
-.canvas-icon { list-style-image:url("ie6-icons/image-file.png") !important; }
-.local-network-icon, .loopback-network-icon { list-style-image:url("ie6-icons/network.png") !important; }
-#password-notification-icon, #identity-credential-notification-icon, #credential-chooser-notification-icon { list-style-image:url("ie6-icons/password.png") !important; }
-#webauthn-notification-icon, .popup-notification-icon[popupid^="webauthn-prompt-"] { list-style-image:url("ie6-icons/certificate.png") !important; }
-.popup-icon { list-style-image:url("ie6-icons/security-warning.png") !important; }
-.focus-tab-by-prompt-icon, .notification-anchor-icon:not(.camera-icon,.microphone-icon,.screen-icon,.speaker-icon,.geo-icon,.desktop-notification-icon,.persistent-storage-icon,.indexedDB-icon,.serial-icon,.midi-icon,.canvas-icon,.local-network-icon,.loopback-network-icon,.addons-notification-icon,.autoplay-media-icon,.xr-icon,.storage-access-icon) { list-style-image:url("ie6-icons/info.png") !important; }
-.camera-icon.blocked-permission-icon { list-style-image:url("ie6-icons/camera-blocked.png") !important; }
-.microphone-icon.blocked-permission-icon { list-style-image:url("ie6-icons/microphone-blocked.png") !important; }
-.screen-icon.blocked-permission-icon { list-style-image:url("ie6-icons/screen-blocked.png") !important; }
-.geo-icon.blocked-permission-icon { list-style-image:url("ie6-icons/location-blocked.png") !important; }
-.desktop-notification-icon.blocked-permission-icon { list-style-image:url("ie6-icons/notification-blocked.png") !important; }
-.persistent-storage-icon.blocked-permission-icon { list-style-image:url("ie6-icons/storage-blocked.png") !important; }
-.serial-icon.blocked-permission-icon { list-style-image:url("ie6-icons/serial-blocked.png") !important; }
-.midi-icon.blocked-permission-icon { list-style-image:url("ie6-icons/midi-blocked.png") !important; }
-.canvas-icon.blocked-permission-icon { list-style-image:url("ie6-icons/image-file-blocked.png") !important; }
-:is(.local-network-icon,.loopback-network-icon).blocked-permission-icon { list-style-image:url("ie6-icons/network-blocked.png") !important; }
+.camera-icon, #webRTC-selectCamera-icon, #webrtc-sharing-icon[sharing="camera"] { list-style-image:url("ie6-icons/sized/camera.svg") !important; }
+.microphone-icon, #webRTC-selectMicrophone-icon, #webrtc-sharing-icon[sharing="microphone"] { list-style-image:url("ie6-icons/sized/microphone.svg") !important; }
+.screen-icon, #webrtc-sharing-icon[sharing="screen"] { list-style-image:url("ie6-icons/sized/screen.svg") !important; }
+.speaker-icon, #webRTC-selectSpeaker-icon { list-style-image:url("ie6-icons/sized/speaker.svg") !important; }
+.geo-icon, #geo-sharing-icon[sharing] { list-style-image:url("ie6-icons/sized/location.svg") !important; }
+.desktop-notification-icon { list-style-image:url("ie6-icons/sized/notification.svg") !important; }
+.persistent-storage-icon, .indexedDB-icon { list-style-image:url("ie6-icons/sized/storage.svg") !important; }
+.serial-icon, #serial-sharing-icon[sharing] { list-style-image:url("ie6-icons/sized/serial.svg") !important; }
+.midi-icon { list-style-image:url("ie6-icons/sized/midi.svg") !important; }
+.canvas-icon { list-style-image:url("ie6-icons/sized/image-file.svg") !important; }
+.local-network-icon, .loopback-network-icon { list-style-image:url("ie6-icons/sized/network.svg") !important; }
+#password-notification-icon, #identity-credential-notification-icon, #credential-chooser-notification-icon { list-style-image:url("ie6-icons/sized/password.svg") !important; }
+#webauthn-notification-icon, .popup-notification-icon[popupid^="webauthn-prompt-"] { list-style-image:url("ie6-icons/sized/certificate.svg") !important; }
+.popup-icon { list-style-image:url("ie6-icons/sized/security-warning.svg") !important; }
+.focus-tab-by-prompt-icon, .notification-anchor-icon:not(.camera-icon,.microphone-icon,.screen-icon,.speaker-icon,.geo-icon,.desktop-notification-icon,.persistent-storage-icon,.indexedDB-icon,.serial-icon,.midi-icon,.canvas-icon,.local-network-icon,.loopback-network-icon,.addons-notification-icon,.autoplay-media-icon,.xr-icon,.storage-access-icon) { list-style-image:url("ie6-icons/sized/info.svg") !important; }
+.camera-icon.blocked-permission-icon { list-style-image:url("ie6-icons/sized/camera-blocked.svg") !important; }
+.microphone-icon.blocked-permission-icon { list-style-image:url("ie6-icons/sized/microphone-blocked.svg") !important; }
+.screen-icon.blocked-permission-icon { list-style-image:url("ie6-icons/sized/screen-blocked.svg") !important; }
+.geo-icon.blocked-permission-icon { list-style-image:url("ie6-icons/sized/location-blocked.svg") !important; }
+.desktop-notification-icon.blocked-permission-icon { list-style-image:url("ie6-icons/sized/notification-blocked.svg") !important; }
+.persistent-storage-icon.blocked-permission-icon { list-style-image:url("ie6-icons/sized/storage-blocked.svg") !important; }
+.serial-icon.blocked-permission-icon { list-style-image:url("ie6-icons/sized/serial-blocked.svg") !important; }
+.midi-icon.blocked-permission-icon { list-style-image:url("ie6-icons/sized/midi-blocked.svg") !important; }
+.canvas-icon.blocked-permission-icon { list-style-image:url("ie6-icons/sized/image-file-blocked.svg") !important; }
+:is(.local-network-icon,.loopback-network-icon).blocked-permission-icon { list-style-image:url("ie6-icons/sized/network-blocked.svg") !important; }
 
 /* Preserve connection and tracking-protection meanings, rather than one lock. */
-#identity-icon { list-style-image:url("ie6-icons/info.png") !important; }
-#identity-box.chromeUI #identity-icon, #identity-box.localResource #identity-icon { list-style-image:url("ie6-icons/bookmark-page.png") !important; }
-#identity-box:is(.verifiedDomain,.mixedActiveBlocked) #identity-icon { list-style-image:url("ie6-icons/secure.png") !important; }
-#identity-box:is(.weakCipher,.mixedDisplayContent,.mixedDisplayContentLoadedActiveBlocked,.certUserOverridden,.certErrorPage) #identity-icon { list-style-image:url("ie6-icons/security-warning.png") !important; }
-#identity-box:is(.notSecure,.mixedActiveContent,.httpsOnlyErrorPage) #identity-icon { list-style-image:url("ie6-icons/security-error.png") !important; }
-#trust-icon-container.secure, #trust-icon-container.secure #trust-icon { list-style-image:url("ie6-icons/secure.png") !important; }
-#trust-icon-container.insecure, #trust-icon-container.insecure #trust-icon { list-style-image:url("ie6-icons/security-warning.png") !important; }
-#trust-icon-container.breached::after { background-image:url("ie6-icons/security-error.png") !important; }
-#tracking-protection-icon-box { list-style-image:url("ie6-icons/privacy.png") !important; }
-#tracking-protection-icon-box[active] { list-style-image:url("ie6-icons/security-ok.png") !important; }
-#tracking-protection-icon-box[hasException] { list-style-image:url("ie6-icons/security-warning.png") !important; }
-.autoplay-media-icon { list-style-image:url("ie6-icons/play.png") !important; }
-.autoplay-media-icon.blocked-permission-icon { list-style-image:url("ie6-icons/play-blocked.png") !important; }
-.xr-icon, #xr-sharing-icon { list-style-image:url("ie6-icons/xr.png") !important; }
-.xr-icon.blocked-permission-icon { list-style-image:url("ie6-icons/xr-blocked.png") !important; }
-.storage-access-icon { list-style-image:url("ie6-icons/privacy.png") !important; }
-.storage-access-icon.blocked-permission-icon { list-style-image:url("ie6-icons/privacy-blocked.png") !important; }
-#addons-notification-icon { list-style-image:url("ie6-icons/addon.png") !important; }
-#eme-notification-icon { list-style-image:url("ie6-icons/drm.png") !important; }
-.private-browsing-indicator-icon { list-style-image:url("ie6-icons/privacy.png") !important; }
-.content-analysis-indicator-icon, .content-analysis-indicator-icon .toolbarbutton-icon { list-style-image:url("ie6-icons/security-warning.png") !important; }
+#identity-icon { list-style-image:url("ie6-icons/sized/info.svg") !important; }
+#identity-box.chromeUI #identity-icon, #identity-box.localResource #identity-icon { list-style-image:url("ie6-icons/sized/bookmark-page.svg") !important; }
+#identity-box:is(.verifiedDomain,.mixedActiveBlocked) #identity-icon { list-style-image:url("ie6-icons/sized/secure.svg") !important; }
+#identity-box:is(.weakCipher,.mixedDisplayContent,.mixedDisplayContentLoadedActiveBlocked,.certUserOverridden,.certErrorPage) #identity-icon { list-style-image:url("ie6-icons/sized/security-warning.svg") !important; }
+#identity-box:is(.notSecure,.mixedActiveContent,.httpsOnlyErrorPage) #identity-icon { list-style-image:url("ie6-icons/sized/security-error.svg") !important; }
+#trust-icon-container.secure, #trust-icon-container.secure #trust-icon { list-style-image:url("ie6-icons/sized/secure.svg") !important; }
+#trust-icon-container.insecure, #trust-icon-container.insecure #trust-icon { list-style-image:url("ie6-icons/sized/security-warning.svg") !important; }
+#trust-icon-container.breached::after { background-image:url("ie6-icons/sized/security-error.svg") !important; }
+#tracking-protection-icon-box { list-style-image:url("ie6-icons/sized/privacy.svg") !important; }
+#tracking-protection-icon-box[active] { list-style-image:url("ie6-icons/sized/security-ok.svg") !important; }
+#tracking-protection-icon-box[hasException] { list-style-image:url("ie6-icons/sized/security-warning.svg") !important; }
+.autoplay-media-icon { list-style-image:url("ie6-icons/sized/play.svg") !important; }
+.autoplay-media-icon.blocked-permission-icon { list-style-image:url("ie6-icons/sized/play-blocked.svg") !important; }
+.xr-icon, #xr-sharing-icon { list-style-image:url("ie6-icons/sized/xr.svg") !important; }
+.xr-icon.blocked-permission-icon { list-style-image:url("ie6-icons/sized/xr-blocked.svg") !important; }
+.storage-access-icon { list-style-image:url("ie6-icons/sized/privacy.svg") !important; }
+.storage-access-icon.blocked-permission-icon { list-style-image:url("ie6-icons/sized/privacy-blocked.svg") !important; }
+#addons-notification-icon { list-style-image:url("ie6-icons/sized/addon.svg") !important; }
+#eme-notification-icon { list-style-image:url("ie6-icons/sized/drm.svg") !important; }
+.private-browsing-indicator-icon { list-style-image:url("ie6-icons/sized/privacy.svg") !important; }
+.content-analysis-indicator-icon, .content-analysis-indicator-icon .toolbarbutton-icon { list-style-image:url("ie6-icons/sized/security-warning.svg") !important; }
 
 /* Built-in icon resource attributes in popup/component markup. */
-:is(image,img)[src^="chrome://"][src$="/settings.svg"], :is(image,img)[src^="resource://"][src$="/settings.svg"] { content:url("ie6-icons/settings.png") !important; }
-:is(image,img)[src^="chrome://"][src$="/help.svg"], :is(image,img)[src^="resource://"][src$="/help.svg"] { content:url("ie6-icons/help.png") !important; }
-:is(image,img)[src^="chrome://"][src$="/info.svg"], :is(image,img)[src^="resource://"][src$="/info.svg"] { content:url("ie6-icons/info.png") !important; }
-:is(image,img)[src^="chrome://"][src$="/info-filled.svg"], :is(image,img)[src^="resource://"][src$="/info-filled.svg"] { content:url("ie6-icons/info.png") !important; }
-:is(image,img)[src^="chrome://"][src$="/warning.svg"], :is(image,img)[src^="resource://"][src$="/warning.svg"] { content:url("ie6-icons/security-warning.png") !important; }
-:is(image,img)[src^="chrome://"][src$="/error.svg"], :is(image,img)[src^="resource://"][src$="/error.svg"] { content:url("ie6-icons/security-error.png") !important; }
-:is(image,img)[src^="chrome://"][src$="/folder.svg"], :is(image,img)[src^="resource://"][src$="/folder.svg"] { content:url("ie6-icons/bookmark-folder.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/settings.svg"], :is(image,img)[src^="resource://"][src$="/settings.svg"] { content:url("ie6-icons/sized/settings.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/help.svg"], :is(image,img)[src^="resource://"][src$="/help.svg"] { content:url("ie6-icons/sized/help.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/info.svg"], :is(image,img)[src^="resource://"][src$="/info.svg"] { content:url("ie6-icons/sized/info.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/info-filled.svg"], :is(image,img)[src^="resource://"][src$="/info-filled.svg"] { content:url("ie6-icons/sized/info.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/warning.svg"], :is(image,img)[src^="resource://"][src$="/warning.svg"] { content:url("ie6-icons/sized/security-warning.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/error.svg"], :is(image,img)[src^="resource://"][src$="/error.svg"] { content:url("ie6-icons/sized/security-error.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/folder.svg"], :is(image,img)[src^="resource://"][src$="/folder.svg"] { content:url("ie6-icons/sized/bookmark-folder.svg") !important; }
 :is(image,img)[src^="chrome://"][src$="/close.svg"], :is(image,img)[src^="resource://"][src$="/close.svg"] { content:url("ie6-icons/close.svg") !important; }
 :is(image,img)[src^="chrome://"][src$="/close-12.svg"], :is(image,img)[src^="resource://"][src$="/close-12.svg"] { content:url("ie6-icons/close.svg") !important; }
-:is(image,img)[src^="chrome://"][src$="/page-portrait.svg"], :is(image,img)[src^="resource://"][src$="/page-portrait.svg"] { content:url("ie6-icons/document-file.png") !important; }
-:is(image,img)[src^="chrome://"][src$="/extension.svg"], :is(image,img)[src^="resource://"][src$="/extension.svg"] { content:url("ie6-icons/addon.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/page-portrait.svg"], :is(image,img)[src^="resource://"][src$="/page-portrait.svg"] { content:url("ie6-icons/sized/document-file.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/extension.svg"], :is(image,img)[src^="resource://"][src$="/extension.svg"] { content:url("ie6-icons/sized/addon.svg") !important; }
 :is(image,img)[src^="chrome://"][src$="/chevron.svg"], :is(image,img)[src^="resource://"][src$="/chevron.svg"] { content:url("ie6-icons/overflow.svg") !important; }
 :is(image,img)[src^="chrome://"][src$="/arrow-down.svg"], :is(image,img)[src^="resource://"][src$="/arrow-down.svg"] { content:url("ie6-icons/tab-list.svg") !important; }
 :is(image,img)[src^="chrome://"][src$="/arrow-right.svg"], :is(image,img)[src^="resource://"][src$="/arrow-right.svg"] { content:url("ie6-icons/arrow-right.svg") !important; }
-:is(image,img)[src^="chrome://"][src$="/search-glass.svg"], :is(image,img)[src^="resource://"][src$="/search-glass.svg"] { content:url("ie6-icons/search.png") !important; }
-:is(image,img)[src^="chrome://"][src$="/login.svg"], :is(image,img)[src^="resource://"][src$="/login.svg"] { content:url("ie6-icons/password.png") !important; }
-:is(image,img)[src^="chrome://"][src$="/translations.svg"], :is(image,img)[src^="resource://"][src$="/translations.svg"] { content:url("ie6-icons/translate.png") !important; }
+:is(image,img)[src^="chrome://"][src$="/search-glass.svg"], :is(image,img)[src^="resource://"][src$="/search-glass.svg"] { content:url("ie6-icons/sized/search.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/login.svg"], :is(image,img)[src^="resource://"][src$="/login.svg"] { content:url("ie6-icons/sized/password.svg") !important; }
+:is(image,img)[src^="chrome://"][src$="/translations.svg"], :is(image,img)[src^="resource://"][src$="/translations.svg"] { content:url("ie6-icons/sized/translate.svg") !important; }
 /* Keep native indicator wrappers from widening the XP toolbar row. */
 #downloads-button .toolbarbutton-badge-stack { padding:0 !important; min-width:28px !important; }
 #downloads-indicator-anchor { padding:0 !important; margin:2px !important; }

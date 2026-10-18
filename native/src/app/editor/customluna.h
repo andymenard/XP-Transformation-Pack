@@ -7,7 +7,7 @@
 #include <QJsonObject>
 namespace xpl::editor {
 // Bumped when generated styles change: saved themes baked earlier are rebuilt.
-constexpr int kCustomLunaGenerator = 19;
+constexpr int kCustomLunaGenerator = 20;
 // Writes a standalone msstyles: no renderer extensions or runtime filters.
 QString customLuna(const QString &source, const std::array<QColor, 4> &colours,
                    const QString &directory, QString *error, const QString &variant = QString(), int textMode = 0, std::array<int,4> textModes = {-1,-1,-1,-1}, int menuTextMode = -1);

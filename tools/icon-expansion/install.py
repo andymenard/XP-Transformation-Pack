@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Install the expanded XP layer and repair the primary theme's inheritance."""
-import argparse,json,shutil,re,hashlib,tempfile
+import argparse,json,shutil,re,hashlib,tempfile,html
 from pathlib import Path
 from PIL import Image
 LAYER='xplasma-xp-extended'
@@ -41,6 +41,7 @@ def repair(home=None):
  home=Path(home or Path.home());icons=home/'.local/share/icons';primary=icons/'xplasma-icons';layer=icons/LAYER
  if not (layer/'index.theme').is_file() or not (primary/'index.theme').is_file():return
  provenance=json.loads((layer/'ALIAS-PROVENANCE.json').read_text());names=set(provenance)
+ controls={name:item['control'] for name,item in provenance.items() if item.get('reason')=='control-glyph' and item.get('control')}
  metadata=primary/'xplasma-icons.json'
  native_names=set(json.loads(metadata.read_text()).get('icons',{})) if metadata.is_file() else set()
  changed=set()
@@ -64,7 +65,7 @@ def repair(home=None):
  if (backup/'primary').exists():
   paths.update(primary/p.relative_to(backup/'primary') for p in (backup/'primary').rglob('*.svg'))
  for path in paths:
-  if path.stem not in names:continue
+  if path.stem not in names or path.stem in controls:continue
   dest=backup/'primary'/path.relative_to(primary);dest.parent.mkdir(parents=True,exist_ok=True)
   if path.exists() and not dest.exists():shutil.copy2(path,dest)
   name=path.stem
@@ -88,6 +89,7 @@ def repair(home=None):
  # shortening can select a generic KDE icon before inheritance is searched.
  # Retain original Microsoft capacity, charging and native tray renders.
  for name,item in provenance.items():
+  if name in controls:continue
   if item.get('reason') not in {'tray-state','control-glyph'} or (item.get('reason')=='tray-state' and name in native_names):continue
   for path in layer.glob('*x*/*/'+name+'.png'):
    target=primary/path.relative_to(layer);target.parent.mkdir(parents=True,exist_ok=True)
@@ -111,6 +113,40 @@ def repair(home=None):
      s=re.sub(r'^Directories=(.*)$',lambda m:m.group(0)+','+folder,s,flags=re.M)
      s+='\n['+folder+']\nSize='+path.parent.parent.name.split('x')[0]+'\nContext='+context.parent.name.title()+'\nType=Fixed\n'
   index.write_text(s)
+ # Control marks are foreground ink, not fixed-color XP pictograms. Keep
+ # their existing XP silhouettes while allowing KDE to apply the text palette.
+ for name,spec in controls.items():
+  svg=('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">'
+       '<style type="text/css" id="current-color-scheme">.ColorScheme-Text {color:#000000;}</style>'
+       '<path class="ColorScheme-Text" fill="currentColor" fill-rule="evenodd" d="'+html.escape(spec[1],quote=True)+'"/></svg>').encode()
+  sources=list(layer.glob('*x*/*/'+name+'.png'))+list(layer.glob('*x*/*/'+name+'.svg'))
+  folders={path.parent for path in sources}
+  targets={folder/(name+'.svg') for folder in folders}
+  targets.update(primary/path.relative_to(layer) for path in list(targets))
+  targets.update(primary.glob('*x*/*/'+name+'.svg'))
+  targets.update(path.with_suffix('.svg') for path in primary.glob('*x*/*/'+name+'.png'))
+  for target in targets:
+   target.parent.mkdir(parents=True,exist_ok=True)
+   png=target.with_suffix('.png')
+   if png.exists() or png.is_symlink():
+    saved=backup/('primary' if png.is_relative_to(primary) else 'layer')/png.relative_to(primary if png.is_relative_to(primary) else layer)
+    if not saved.exists():saved.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(png,saved)
+    png.unlink();changed.add(png)
+   if target.is_symlink():target.unlink()
+   if not target.exists() or target.read_bytes()!=svg:target.write_bytes(svg);changed.add(target)
+   if target.is_relative_to(primary):
+    folder=str(target.parent.relative_to(primary))
+    if '\n['+folder+']' not in s:
+     s=re.sub(r'^Directories=(.*)$',lambda m:m.group(0)+','+folder,s,flags=re.M)
+     s+='\n['+folder+']\nSize='+target.parent.parent.name.split('x')[0]+'\nContext='+target.parent.name.title()+'\nType=Fixed\n'
+ index.write_text(s)
+ # KDE recolors SVGs only when the supplying theme opts into its palette.
+ if controls:
+  for theme_index in [index,layer/'index.theme']:
+   text=s if theme_index==index else theme_index.read_text()
+   if re.search(r'^FollowsColorScheme=',text,re.M):text=re.sub(r'^FollowsColorScheme=.*$', 'FollowsColorScheme=true',text,flags=re.M)
+   else:text=text.replace('[Icon Theme]','[Icon Theme]\nFollowsColorScheme=true',1)
+   theme_index.write_text(text);changed.add(theme_index)
  # Keep the generated-theme provenance in step with the actual files.
  metadata=primary/'xplasma-icons.json'
  if metadata.is_file():
@@ -128,7 +164,10 @@ def repair(home=None):
   if key in data:data[key]={'kind':'file','value':hashlib.sha256(index.read_bytes()).hexdigest()}
   if metadata.is_file() and str(metadata.relative_to(home)) in data:data[str(metadata.relative_to(home))]={'kind':'file','value':hashlib.sha256(metadata.read_bytes()).hexdigest()}
   if key in data:
-   for path in changed:data[str(path.relative_to(home))]={'kind':'file','value':hashlib.sha256(path.read_bytes()).hexdigest()}
+   for path in changed:
+    key=str(path.relative_to(home))
+    if path.is_file():data[key]={'kind':'file','value':hashlib.sha256(path.read_bytes()).hexdigest()}
+    else:data.pop(key,None)
   record.write_text(json.dumps(data,indent=2)+'\n')
  print('XP fallback selected;',removed,'covered Breeze SVG overrides removed.')
 

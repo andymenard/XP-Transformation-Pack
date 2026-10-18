@@ -95,10 +95,22 @@ def restore_toml(before,after,current):
 def gnome():
  if not shutil.which('gsettings'):return {}
  return {key:run(['gsettings','get','org.gnome.desktop.interface',key],capture=True,check=False) for key in GNOME_KEYS}
+def snapshot_retention(home,state,complete):
+ import importlib.util
+ policy=BASE/'cache_maintenance.py'
+ if not policy.is_file():return
+ try:
+  spec=importlib.util.spec_from_file_location('xp_snapshot_retention',policy)
+  module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+  if module.note_snapshot(home,state,complete) and complete:
+   module.locked_cleanup(home,apply=True,keep_backups=[state])
+ except (OSError,ValueError) as error:log('Maintenance cleanup skipped: '+str(error))
+
 class Snapshot:
  def __init__(self,home,state,paths):self.home,self.state,self.paths=home,state,paths
  def save(self):
   self.state.mkdir(parents=True,exist_ok=True);self.state.chmod(0o700)
+  snapshot_retention(self.home,self.state,False)
   data=inventory(self.home,self.paths)
   for name in data:copy(self.home/name,self.state/'backup'/name)
   (self.state/'before.json').write_text(json.dumps(data,indent=2)+'\n')
@@ -113,6 +125,7 @@ class Snapshot:
    p=self.home/name
    if name.startswith('.config/') or name=='.codex/config.toml':copy(p,self.state/'installed-config'/name)
   (self.state/'gnome-after.json').write_text(json.dumps(gnome())+'\n')
+  snapshot_retention(self.home,self.state,True)
  def restore(self):
   before=json.loads((self.state/'before.json').read_text());after=json.loads((self.state/'after.json').read_text());conflicts=[]
   for name,installed in after.items():

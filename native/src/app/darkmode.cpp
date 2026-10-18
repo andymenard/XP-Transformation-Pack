@@ -5,6 +5,7 @@
 #include "app/gtk.h"
 #include "app/panel.h"
 #include "app/paths.h"
+#include "app/maintenance.h"
 #include "app/qttarget.h"
 #include "app/state.h"
 #include "core/themefile.h"
@@ -58,6 +59,7 @@ std::optional<Look> applicationLook(const Look &source, bool dark, QString *erro
   QFile known(folder+QStringLiteral("/source.json"));
   if((!known.open(QIODevice::ReadOnly) || known.readAll()!=marker) && !write(known.fileName(),marker,error))return {};
   const auto loaded=Look::fromStyle(generated,source.variant,error);if(!loaded)return {};result=*loaded;
+  LiveSession previewSession;maintenance::run(previewSession,{},folder,true);
  }
  result.id=source.id+QStringLiteral("-dark-applications");result.name=source.name+QStringLiteral(" (dark applications)");result.system.name=result.name;
  return result;
@@ -88,6 +90,7 @@ bool apply(Session &session,const Look &source,bool dark,QString *error){
  session.writeConfig(QStringLiteral("kdeglobals"),{QStringLiteral("General")},QStringLiteral("ColorScheme"),QString(),false);
  if(!session.run({QStringLiteral("plasma-apply-colorscheme"),schemeId}).ok()){if(error)*error=QStringLiteral("Could not apply application colors");return false;}
  state.settings.insert(QStringLiteral("darkMode"),dark);if(!state.save(error))return false;
+ maintenance::run(session);
  if(state.settings.value(QStringLiteral("crispText")).toBool())return crisptext::apply(session,true,error);
  return publish(dark,error);
 }

@@ -67,10 +67,18 @@ class ControlGlyphs(unittest.TestCase):
   with tempfile.TemporaryDirectory() as d:
    home=Path(d);icons=home/'.local/share/icons';layer=icons/i.LAYER;main=icons/'xplasma-icons'
    for folder in [layer,main]:(folder/'16x16/actions').mkdir(parents=True);(folder/'index.theme').write_text('[Icon Theme]\nInherits=breeze\n')
-   (layer/'ALIAS-PROVENANCE.json').write_text(json.dumps({'go-next-symbolic':{'reason':'control-glyph'}}))
+   (layer/'ALIAS-PROVENANCE.json').write_text(json.dumps({'go-next-symbolic':{'reason':'control-glyph','control':b.glyphs.control('go-next-symbolic')}}))
    Image.new('RGBA',(16,16),'red').save(layer/'16x16/actions/go-next-symbolic.png')
    Image.new('RGBA',(16,16),'green').save(main/'16x16/actions/go-next-symbolic.png')
-   i.repair(home);self.assertEqual(Image.open(main/'16x16/actions/go-next-symbolic.png').getpixel((0,0)),(255,0,0,255))
+   i.repair(home)
+   self.assertFalse((main/'16x16/actions/go-next-symbolic.png').exists())
+   svg=(main/'16x16/actions/go-next-symbolic.svg').read_bytes()
+   self.assertEqual(svg,b.glyphs.control_svg(b.glyphs.control('go-next-symbolic')))
+   self.assertEqual(svg,(layer/'16x16/actions/go-next-symbolic.svg').read_bytes())
+   self.assertIn(b'fill="currentColor"',svg)
+   for theme in [main,layer]:self.assertIn('FollowsColorScheme=true',(theme/'index.theme').read_text())
+   i.repair(home)
+   self.assertEqual(svg,(main/'16x16/actions/go-next-symbolic.svg').read_bytes())
 
 class LedgerTests(unittest.TestCase):
  def test_layer_update_tracks_links_and_preserves_unrelated_themes(self):

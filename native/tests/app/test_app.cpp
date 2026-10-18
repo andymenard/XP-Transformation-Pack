@@ -40,6 +40,7 @@
 #include "app/host.h"
 #include "app/library.h"
 #include "app/paths.h"
+#include "app/maintenance.h"
 #include "app/state.h"
 #include "app/themeimport.h"
 #include "app/xptext.h"
@@ -698,6 +699,19 @@ private Q_SLOTS:
         QVERIFY(!presets::owned(s.base));
     }
 
+    void maintenancePolicyIsEmbeddedAndUsesIsolatedHome()
+    {
+        QVERIFY(QFile::exists(QStringLiteral(":/maintenance/cache_maintenance.py")));
+        RecordingSession session;
+        maintenance::run(session,QStringLiteral("xplasma-v2-previous"));
+        QCOMPARE(session.runs.size(),1);
+        const auto args=session.runs.first();
+        QVERIFY(args.contains(QStringLiteral("--apply")));
+        QVERIFY(args.contains(QStringLiteral("--keep-look")));
+        QCOMPARE(args.value(args.indexOf(QStringLiteral("--home"))+1),paths::home());
+        QCOMPARE(args.value(args.indexOf(QStringLiteral("--keep-look"))+1),QStringLiteral("xplasma-v2-previous"));
+    }
+
     void unsavedCustomLooksArePruned()
     {
         // Custom colors build a style and a set of packages per choice: kept
@@ -1179,19 +1193,15 @@ private Q_SLOTS:
         writeFile(extended + QStringLiteral("/index.theme"), "[Icon Theme]\n");
         writeFile(extended + QStringLiteral("/ALIAS-PROVENANCE.json"),
                   "{\"go-next-symbolic\":{\"reason\":\"control-glyph\"}}");
-        QImage control(16, 16, QImage::Format_ARGB32);
-        control.fill(Qt::transparent);
-        control.setPixelColor(8, 8, Qt::black);
-        QDir().mkpath(extended + QStringLiteral("/16x16/actions"));
-        QVERIFY(control.save(extended + QStringLiteral("/16x16/actions/go-next-symbolic.png")));
+        const QByteArray control="<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><style id=\"current-color-scheme\">.ColorScheme-Text {color:#000000;}</style><path class=\"ColorScheme-Text\" fill=\"currentColor\" d=\"M6 3L11 8L6 13Z\"/></svg>";
+        writeFile(extended + QStringLiteral("/16x16/actions/go-next-symbolic.svg"),control);
         for (int i = 0; i < 3; ++i) {
             QString error;
             const QString theme = writeIconTheme(m_home.filePath(QStringLiteral("out")), QStringLiteral("breeze"), QColor(), &error);
             QVERIFY2(!theme.isEmpty(), qPrintable(error));
-            const QImage generated(theme + QStringLiteral("/16x16/actions/go-next-symbolic.png"));
-            QVERIFY(!generated.isNull());
-            QCOMPARE(generated.pixelColor(8, 8), QColor(Qt::black));
-            QCOMPARE(generated.pixelColor(0, 0).alpha(), 0);
+            QCOMPARE(readFile(theme + QStringLiteral("/16x16/actions/go-next-symbolic.svg")),control);
+            QVERIFY(!QFileInfo::exists(theme + QStringLiteral("/16x16/actions/go-next-symbolic.png")));
+            QVERIFY(readFile(theme + QStringLiteral("/index.theme")).contains("FollowsColorScheme=true"));
             QVERIFY(readFile(theme + QStringLiteral("/index.theme")).contains("Inherits=xplasma-xp-extended,"));
         }
     }
@@ -2236,6 +2246,41 @@ private Q_SLOTS:
             QVERIFY(run.value(0) != QLatin1String("plasma-apply-colorscheme"));
             QVERIFY(run.value(0) != QLatin1String("plasma-apply-desktoptheme"));
             QVERIFY(run.value(0) != QLatin1String("kwriteconfig6"));
+        }
+    }
+
+    void customScrollbarArrowsKeepContrast()
+    {
+        const QString source=m_realThemes+"/Luna/luna.msstyles";
+        if(!QFileInfo::exists(source))QSKIP("needs Luna");
+        QString error;const auto base=Look::fromStyle(source,"NORMALBLUE_INI",&error);QVERIFY2(base,qPrintable(error));
+        for(const QColor accent:{QColor("#111117"),QColor("#7c7c5c"),QColor("#e5e5d0")}) {
+            const QJsonObject colors{{"enabled",true},{"start","#315c43"},{"menu",accent.name()},{"title","#445566"},{"buttons","#728392"}};
+            const auto look=editor::staticColorLook(*base,colors,&error);QVERIFY2(look,qPrintable(error));
+            const auto dark=darkmode::applicationLook(*look,true,&error);QVERIFY2(dark,qPrintable(error));
+            for(int state:{1,2,3,5,9,13}) {
+                const PartRef ref{QStringLiteral("scrollbar"),schema::partId(u"scrollbar",u"arrowbtn"),state,{}};
+                const auto glyph=look->renderer->stateImage(ref,true).convertToFormat(QImage::Format_ARGB32);
+                QVERIFY(!glyph.isNull());
+                int ink=0;
+                for(int y=0;y<glyph.height();++y)for(int x=0;x<glyph.width();++x) {
+                    const QColor c=glyph.pixelColor(x,y);if(c.alpha()<128)continue;
+                    ++ink;
+                    // Colored shell surfaces get neutral, contrasting glyph ink,
+                    // not Luna's original low-contrast blue glyph pixels.
+                    QCOMPARE(c.red(),c.green());QCOMPARE(c.green(),c.blue());
+                    if(accent.lightness()<160)QVERIFY(c.red()>220);else QVERIFY(c.red()<35);
+                }
+                QVERIFY(ink>0);
+                const auto darkGlyph=dark->renderer->stateImage(ref,true).convertToFormat(QImage::Format_ARGB32);
+                QVERIFY(!darkGlyph.isNull());
+                for(int y=0;y<darkGlyph.height();++y)for(int x=0;x<darkGlyph.width();++x) {
+                    const QColor c=darkGlyph.pixelColor(x,y);
+                    if(c.alpha()>128)QVERIFY(c.lightness()>200);
+                }
+                // The custom-color scrollbar face remains tinted.
+                QVERIFY(look->renderer->stateImage(ref,false)!=base->renderer->stateImage(ref,false));
+            }
         }
     }
 

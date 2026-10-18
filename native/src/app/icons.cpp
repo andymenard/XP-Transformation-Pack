@@ -457,7 +457,7 @@ QString writeIconTheme(const QString &directory, const QString &inheritFrom, con
     QSet<QString> extendedNames;
     QHash<QString, QMap<int, QString>> extendedFiles;
     if (extendedInstalled) {
-        QDirIterator icons(extendedRoot, {QStringLiteral("*.png")}, QDir::Files, QDirIterator::Subdirectories);
+        QDirIterator icons(extendedRoot, {QStringLiteral("*.png"),QStringLiteral("*.svg")}, QDir::Files, QDirIterator::Subdirectories);
         while (icons.hasNext()) {
             const QFileInfo icon(icons.next());
             extendedNames.insert(icon.completeBaseName());
@@ -485,7 +485,7 @@ QString writeIconTheme(const QString &directory, const QString &inheritFrom, con
                     if (!icon.open(QIODevice::ReadOnly)) continue;
                     const QString folder = QStringLiteral("%1x%1/%2").arg(size).arg(it.value().context.toLower());
                     directories.insert(folder, {size, it.value().context});
-                    pkg.write(folder + QLatin1Char('/') + it.key() + QLatin1String(".png"), icon.readAll());
+                    pkg.write(folder + QLatin1Char('/') + it.key() + QLatin1Char('.') + QFileInfo(icon.fileName()).suffix(), icon.readAll());
                 }
             }
         }
@@ -505,7 +505,7 @@ QString writeIconTheme(const QString &directory, const QString &inheritFrom, con
                     if (!icon.open(QIODevice::ReadOnly)) continue;
                     const QString folder = QStringLiteral("%1x%1/actions").arg(size);
                     directories.insert(folder, {size, QStringLiteral("Actions")});
-                    pkg.write(folder + QLatin1Char('/') + it.key() + QLatin1String(".png"), icon.readAll());
+                    pkg.write(folder + QLatin1Char('/') + it.key() + QLatin1Char('.') + QFileInfo(icon.fileName()).suffix(), icon.readAll());
                 }
             }
         }
@@ -521,7 +521,7 @@ QString writeIconTheme(const QString &directory, const QString &inheritFrom, con
                 if (!icon.open(QIODevice::ReadOnly)) continue;
                 const QString folder = QStringLiteral("%1x%1/status").arg(size);
                 directories.insert(folder, {size, QStringLiteral("Status")});
-                pkg.write(folder + QLatin1Char('/') + name + QLatin1String(".png"), icon.readAll());
+                pkg.write(folder + QLatin1Char('/') + name + QLatin1Char('.') + QFileInfo(icon.fileName()).suffix(), icon.readAll());
             }
             continue;
         }
@@ -542,7 +542,7 @@ QString writeIconTheme(const QString &directory, const QString &inheritFrom, con
     }
 
     QString index = QStringLiteral("[Icon Theme]\nName=Windows XP\nComment=Windows XP's own icons, taken from your XP media by XPlasma\n"
-                                   "Inherits=%1,hicolor\nDirectories=%2\n")
+                                   "FollowsColorScheme=true\nInherits=%1,hicolor\nDirectories=%2\n")
                         .arg(extendedInstalled ? QStringLiteral("xplasma-xp-extended,") + inherit : inherit, QStringList(directories.keys()).join(QLatin1Char(',')));
     for (const auto &[folder, spec] : directories.asKeyValueRange())
         index += QStringLiteral("\n[%1]\nSize=%2\nContext=%3\nType=Fixed\n").arg(folder).arg(spec.first).arg(spec.second);

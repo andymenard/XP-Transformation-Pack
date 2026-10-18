@@ -4,6 +4,7 @@ import argparse
 import configparser
 import json
 import os
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from PIL import Image
 
@@ -34,7 +35,7 @@ def audit(theme, qt=True):
         if not folder.is_dir():
             errors.append('Missing declared directory: ' + directory)
             continue
-        for path in folder.glob('*.png'):
+        for path in list(folder.glob('*.png'))+list(folder.glob('*.svg')):
             resolved = path.resolve()
             if not resolved.is_relative_to(theme) or not resolved.is_file():
                 errors.append('Invalid alias: ' + str(path.relative_to(theme)))
@@ -43,10 +44,15 @@ def audit(theme, qt=True):
                 continue
             images.add(resolved)
             try:
+                if resolved.suffix=='.svg':
+                    svg=ET.fromstring(resolved.read_bytes())
+                    if not svg.findall('{http://www.w3.org/2000/svg}path'):
+                        errors.append('Empty SVG control: '+str(path.relative_to(theme)))
+                    continue
                 with Image.open(resolved) as image:
                     if image.size != (size, size) or image.convert('RGBA').getchannel('A').getbbox() is None:
                         errors.append('Wrong size or empty image: ' + str(path.relative_to(theme)))
-            except OSError:
+            except (OSError, ValueError, ET.ParseError):
                 errors.append('Unreadable image: ' + str(path.relative_to(theme)))
     missing_breeze = sorted(breeze - aliases.keys())
     missing_desktop = sorted(desktop_icons - aliases.keys())

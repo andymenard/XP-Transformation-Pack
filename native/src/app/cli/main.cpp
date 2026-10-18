@@ -227,6 +227,10 @@ int apply(const QString &name, const QCommandLineParser &parser)
     o.icons = !parser.isSet(QStringLiteral("no-icons"));
     o.sounds = !parser.isSet(QStringLiteral("no-sounds"));
     o.progress = say;
+    // Theme provenance is also needed for custom-style regeneration when
+    // wallpaper application is explicitly disabled.
+    if (spec.endsWith(QLatin1String(".theme"), Qt::CaseInsensitive))
+        o.themeFile = QFileInfo(spec).absoluteFilePath();
     // The wallpaper: a .theme's own, or Windows Classic's desktop colour.
     if (!parser.isSet(QStringLiteral("no-wallpaper"))) {
         if (spec.endsWith(QLatin1String(".theme"), Qt::CaseInsensitive)) {

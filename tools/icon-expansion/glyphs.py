@@ -44,7 +44,8 @@ def control(name):
 
 def control_svg(spec):
     return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">'
-            '<path fill="#000000" fill-rule="evenodd" d="' + spec[1] + '"/></svg>').encode()
+            '<style type="text/css" id="current-color-scheme">.ColorScheme-Text {color:#000000;}</style>'
+            '<path class="ColorScheme-Text" fill="currentColor" fill-rule="evenodd" d="' + spec[1] + '"/></svg>').encode()
 
 
 def render(svg, size, symbolic=False):

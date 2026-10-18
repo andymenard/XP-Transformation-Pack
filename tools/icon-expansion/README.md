@@ -35,3 +35,7 @@ before installation and packaging. The current build has seven size variants,
 Tests cover submenu-mask silhouettes and RTL, corrected Discover roles, stale
 converted-primary refresh, state preservation and repeat installation. A native
 Qt test regenerates control glyphs across three theme writes.
+
+Control arrows and other small UI marks are palette-aware SVGs with KDE’s `ColorScheme-Text` class. Both supplying icon themes set `FollowsColorScheme=true`; fixed-color XP pictograms remain PNGs. Installation migrates older black control PNGs to the same vector silhouettes and refreshes owned-file fingerprints.
+
+`tests/palette.cpp` verifies white and black foreground rendering with the native KDE icon loader. Build with Qt6Widgets and KF6IconThemes, then pass the SVG path and optional theme name.

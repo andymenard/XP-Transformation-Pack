@@ -17,6 +17,7 @@
 #include "app/pointers.h"
 #include "app/project.h"
 #include "app/paths.h"
+#include "app/maintenance.h"
 #include "app/qttarget.h"
 #include "app/sounds.h"
 #include "app/startmenu.h"
@@ -713,11 +714,24 @@ void pruneGeneratedLooks(State &state, const QString &previousId, const QString 
         if (!f.fileName().startsWith(QLatin1String("xplasma-v2-")) && f.fileName() != startLook)
             QDir(f.absoluteFilePath()).removeRecursively();
 
+    QSet<QString> referenced;
+    for(const QString name:{"plasmarc","kdeglobals","kwinrc","plasma-org.kde.plasma.desktop-appletsrc","gtk-3.0/settings.ini","gtk-4.0/settings.ini"}) {
+        QFile config(paths::config()+QLatin1Char('/')+name);
+        if(!config.open(QIODevice::ReadOnly))continue;
+        auto matches=QRegularExpression(QStringLiteral("xplasma-v2-[A-Za-z0-9_-]+")).globalMatch(QString::fromUtf8(config.readAll()));
+        while(matches.hasNext()) {
+            QString id=matches.next().captured();
+            if(id.endsWith(QLatin1String("-dark-applications")))id.chop(18);
+            if(id.endsWith(QLatin1String("-taskbar")))id.chop(8);
+            referenced.insert(id);
+        }
+    }
+    referenced.insert(state.settings.value(QLatin1String(kStartButtonLookKey)).toString());
     QJsonObject sources = state.settings.value(QLatin1String(kGeneratedLooksKey)).toObject();
     QList<std::pair<QDateTime, QString>> cached;
     for (auto it = looks.cbegin(); it != looks.cend(); ++it) {
         const QString &id = it.key();
-        if (id == activeId || id == previousId) continue;
+        if (id == activeId || id == previousId || referenced.contains(id)) continue;
         // (Without a record, a look predates them: built again when chosen.)
         const QString source = sources.value(id).toString();
         if (source.isEmpty() || !wanted(source)) {
@@ -1072,6 +1086,7 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
     state.settings.remove(QLatin1String(kLiveStartColorsKey));
     state.save();
     darkmode::publish(dark);
+    maintenance::run(session,previousId);
     if(!colorOnly && state.settings.value(QStringLiteral("crispText")).toBool())crisptext::apply(session,true);
     report(o, QStringLiteral("  Theme update completed in %1 ms.").arg(elapsed.elapsed()));
     report(o, QStringLiteral("Done."));
