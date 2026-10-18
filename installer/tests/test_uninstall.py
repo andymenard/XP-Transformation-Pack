@@ -53,6 +53,25 @@ class Uninstall(unittest.TestCase):
  def state(self):return self.home/'.local/share/kde-xp-suite'
  def outside_state(self):return {k:v for k,v in self.files().items() if not k.startswith('.local/share/kde-xp-suite/')}
 
+ def test_remove_clears_what_an_earlier_installation_left(self):
+  # Leftovers of an earlier XP installation are in the snapshot taken before
+  # this one: they're still the XP desktop's, not the user's, and go.
+  self.write('.local/share/sounds/xplasma-sounds-0ld/stereo/start.oga')
+  self.write('.local/share/sounds/xplasma-sounds-0ld/index.theme')
+  self.write('.local/share/knotifications6/xplasma.notifyrc','[Event/windowOpen]\nAction=Sound\n')
+  self.write('.local/share/sounds/Mine/index.theme','[Sound Theme]\nName=Mine\n')
+  self.write('.config/kdeglobals','[General]\nColorScheme=BreezeLight\n\n[KFileDialog Settings]\nRecent URLs=file:///home/u/XPlasma-Installer/\n\n[Sounds]\nTheme=xplasma-sounds-0ld\n')
+  # (that earlier installation, by this installer, was removed: its record stays)
+  self.write('.local/share/kde-xp-suite/removed.json','{"features":["sounds"]}')
+  self.install();b.uninstall()
+  left=self.outside_state()
+  self.assertFalse([k for k in left if 'xplasma' in k.lower()],left.keys())
+  self.assertIn('.local/share/sounds/Mine/index.theme',left)
+  self.assertNotIn(b'Theme=xplasma',left['.config/kdeglobals'])
+  self.assertIn(b'ColorScheme=BreezeLight',left['.config/kdeglobals'])
+  # (only theme settings naming XPlasma's own: a path the user opened stays)
+  self.assertIn(b'Recent URLs=file:///home/u/XPlasma-Installer/',left['.config/kdeglobals'])
+
  def test_remove_leaves_the_desktop_as_it_was(self):
   self.install()
   # Then Properties: another look, custom colours, a theme of the user's own.

@@ -36,6 +36,13 @@ IE6 browser profile. Settings backups stay in ~/.local/share/kde-xp-suite unless
 "Also delete the settings backups" is checked. IE6 Firefox can be made the
 default web browser; Remove restores the previous one.
 
+Firefox removal also cleans hidden Firefox-generated launchers that point into
+the dedicated IE6 runtime, obsolete panel/favourite references and browser
+associations. It restores a valid previous browser association when available,
+otherwise using an installed regular browser. Unrelated browser launchers are
+preserved. Plasma saves its live panel before restoration, and its application
+cache is refreshed with the graphical session's Snap/Flatpak search paths.
+
 Properties asks whether to cache generated theme artwork the first time a theme
 is applied. Caching is optional and can be changed under Appearance. With it
 off, unused generated looks are discarded while active resources and recovery

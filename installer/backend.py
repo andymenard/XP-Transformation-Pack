@@ -40,7 +40,18 @@ GENERATED=['.local/share/xplasma','.local/share/themes/XPlasma-*','.local/share/
  '.local/share/icons/xp-desktop-shortcuts','.icons/xplasma-*','.local/share/sounds/xplasma-*',
  '.local/share/plasma/plasmoids/fyi.hotsocket.*','.local/share/plasma/look-and-feel/local.xp.*','.local/share/kwin/xplasma',
  '.local/share/fonts/xp','.local/share/xp-desktop-shell','.local/share/xp-accessories','.local/share/firefox-esr-ie6',
- '.local/share/applications/fyi.hotsocket.*','.config/xplasmarc','.config/xplasma-live-colors.json']
+ '.local/share/applications/fyi.hotsocket.*','.config/xplasmarc','.config/xplasma-live-colors.json',
+ '.local/share/knotifications6/xplasma.notifyrc']
+# Of those, the ones named as XPlasma's own. After an earlier installation by
+# this installer was removed, what matches them was that one's leftovers, not
+# the user's, even though the snapshot saw it first: Remove takes it then. (A
+# plain "fonts/xp" may be the user's.)
+BRANDED=[p for p in GENERATED if p!='.local/share/fonts/xp']
+# Theme settings whose whole value names an XPlasma look, sound or pointer
+# theme, style or plugin, which such leftovers point at.
+GENERATED_SETTING=re.compile(r'(?i)^(__aurorae__svg__)?(xplasma([-.][\w.-]+)?|fyi\.hotsocket\.[\w.]+)$')
+SCRUBBED=['.config/kdeglobals','.config/kcminputrc','.config/plasmarc','.config/kwinrc','.config/Trolltech.conf',
+ '.config/gtk-3.0/settings.ini','.config/gtk-4.0/settings.ini','.config/ksplashrc']
 CACHES=['.cache/xplasma','.cache/plasma_theme_xplasma-*.kcache']
 # What the user made in them stays: saved and imported themes, the custom
 # colour styles saved themes use, and the IE6 browser's profile.
@@ -107,7 +118,7 @@ def restore_ini(before,after,current):
   if key in bm:
    if not c.has_section(g):c.add_section(g)
    c.set(g,k,bm[key])
-  else:c.remove_option(g,k)
+  elif c.has_section(g):c.remove_option(g,k)
  for g in c.sections():
   if not c.items(g) and g not in b.sections():c.remove_section(g)
  # (As KDE writes them: key=value.)
@@ -771,7 +782,7 @@ def refresh(home,state):
  cursor=state/'cursor-unit-before.json'
  if cursor.exists() and json.loads(cursor.read_text()).get('enabled'):run(['systemctl','--user','enable','--now','xp-cursor-sync.path'],check=False)
  run(['systemctl','--user','restart','plasma-plasmashell.service'],check=False)
-def remove_generated(home,before):
+def remove_generated(home,before,earlier=False):
  # XPlasma's own files that weren't there before the installation, made by
  # it or by Properties since; folders they leave empty go with them.
  import glob
@@ -779,18 +790,32 @@ def remove_generated(home,before):
   for match in sorted(glob.glob(str(home/pattern))):
    root=Path(match)
    if root.is_symlink() or not root.is_dir():
-    if str(root.relative_to(home)) not in before and (root.is_symlink() or root.is_file()):root.unlink()
+    if (str(root.relative_to(home)) not in before or (earlier and pattern in BRANDED)) and (root.is_symlink() or root.is_file()):root.unlink()
     continue
    for folder,dirs,files in os.walk(root,topdown=False):
     for name in files+[d for d in dirs if (Path(folder)/d).is_symlink()]:
      p=Path(folder)/name;rel=str(p.relative_to(home))
      if any(rel.startswith(kept+'/') for kept in USER_CONTENT):continue
-     if rel not in before or pattern in CACHES:p.unlink()
+     if rel not in before or pattern in CACHES or (earlier and pattern in BRANDED):p.unlink()
     try:Path(folder).rmdir()
     except OSError:pass
  # The IE6 Firefox launcher's alias is named after Firefox's own ID.
  for p in (home/'.local/share/applications').glob('*.desktop'):
   if str(p.relative_to(home)) not in before and p.is_file() and not p.is_symlink() and 'X-XPlasma-IE6=true' in p.read_text(errors='replace'):p.unlink()
+def scrub_settings(home):
+ # An earlier installation's leftover theme settings, restored from the
+ # snapshot this one took, point at what Remove just deleted: they go, and
+ # KDE falls back to its defaults.
+ for name in SCRUBBED:
+  p=home/name
+  if not p.is_file() or p.is_symlink():continue
+  try:c=ini(p)
+  except configparser.Error:continue
+  stale=[(g,k) for g in c.sections() for k,v in c.items(g) if GENERATED_SETTING.match(v.strip())]
+  if not stale:continue
+  for g,k in stale:c.remove_option(g,k)
+  for g in [g for g in c.sections() if not c.items(g)]:c.remove_section(g)
+  with p.open('w') as f:c.write(f,space_around_delimiters=False)
 def tidy_state(state,delete_backups):
  if delete_backups:
   shutil.rmtree(state,ignore_errors=True);return
@@ -804,14 +829,27 @@ def uninstall(delete_backups=False):
  if not record.exists():record=state/'incomplete.json'
  if not record.exists():raise RuntimeError('There is no managed installation to remove.')
  info=json.loads(record.read_text());phase('Restoring your saved settings')
+ # (An earlier installation was removed before this one: what it left behind
+ # is in this one's snapshot as if it were the user's.)
+ earlier=(state/'removed.json').exists()
  run(['systemctl','--user','disable','--now','xp-session-theme.path'],check=False)
  if 'pointers' in set(info['features']):run(['systemctl','--user','disable','--now','xp-cursor-sync.path'],check=False)
  if set(info['features'])&{'login','boot'}:root('restore',purge=delete_backups)
- paths=json.loads((state/'tracked.json').read_text());conflicts=Snapshot(home,state,paths).restore()
- phase('Removing XP looks and caches made since installation')
- remove_generated(home,json.loads((state/'before.json').read_text()))
- conflicts=[name for name in conflicts if (home/name.split(': ')[0]).exists()]
- refresh(home,state)
+ # Flush the live panel before restoring its config, otherwise it can write
+ # removed-browser pins back over the restored file when refresh stops it.
+ run(['systemctl','--user','stop','plasma-plasmashell.service'],check=False)
+ try:
+  paths=json.loads((state/'tracked.json').read_text());conflicts=Snapshot(home,state,paths).restore()
+  phase('Removing XP looks and caches made since installation')
+  remove_generated(home,json.loads((state/'before.json').read_text()),earlier)
+  if earlier:scrub_settings(home)
+  if 'firefox' in set(info['features']):
+   import firefox_cleanup
+   cleanup_env=firefox_cleanup.desktop_environment()
+   report=firefox_cleanup.cleanup(home,state,execute=lambda argv:run(argv,check=False,env=cleanup_env)==0)
+   log('Removed obsolete IE6 browser launchers and references: '+json.dumps(report))
+  conflicts=[name for name in conflicts if (home/name.split(': ')[0]).exists()]
+ finally:refresh(home,state)
  record.rename(state/'removed.json')
  tidy_state(state,delete_backups)
  phase('Selected features removed')
