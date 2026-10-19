@@ -64,7 +64,7 @@ def bundle(suite,destination):
  shutil.copy2(ROOT/'CREDITS.md',destination/'CREDITS.md')
  (destination/'README.md').write_text((ROOT/'public-alpha/README.md').read_text())
  (destination/'ASSET-DISTRIBUTION.md').write_text((ROOT/'public-alpha/ASSET-DISTRIBUTION.md').read_text())
- (destination/'PROJECTS.md').write_text('Alpha 1.0: Desktop (default) and Firefox (optional). OTA updates and other projects are excluded.\n')
+ (destination/'PROJECTS.md').write_text('XPlasma Plus: Desktop (default) and Firefox (optional). OTA updates and other projects are excluded.\n')
  # Excluded projects' integration tests are not part of this edition.
  for name in ['test_accessory_integration.py','test_shell_integration.py','test_updater_integration.py']:
   test=destination/'tests'/name

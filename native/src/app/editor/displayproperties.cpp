@@ -659,6 +659,10 @@ void DisplayProperties::customLunaChanged()
             QString generated;
             runResponsiveTask(this,[&](QString *e){generated=customLuna(source,colours,paths::data()+QStringLiteral("/custom-luna"),e,variant,0,textModes,menuMode);return !generated.isEmpty();},&error);
             m_customLunaPath=generated;
+            if(!generated.isEmpty()) {
+                const QString baseSource=colorMetadata(generated).value(QStringLiteral("source")).toString(source);
+                m_customBaseLabel->setText(QStringLiteral("Base: ")+Library::style(baseSource).label+QStringLiteral(". Choose another base on Appearance."));
+            }
         }
         m_customLunaStatus->setText(m_customLunaPath.isEmpty() ? error : QStringLiteral("Start menu and highlights follow the taskbar color. Apply to use these colors."));
     } else {
@@ -717,8 +721,8 @@ QWidget *DisplayProperties::appearanceTab()
     m_darkMode = new QCheckBox(QStringLiteral("&Dark application colors"));
     m_darkMode->setToolTip(QStringLiteral("Dark backgrounds and light text for applications and IE6 Firefox; keeps the selected theme\'s titlebars and taskbar"));
     layout->addWidget(m_darkMode);
-    m_crispText = new QCheckBox(QStringLiteral("Crisp XP text"));
-    m_crispText->setToolTip(QStringLiteral("XP-rendered pixel Tahoma for XPlasma widgets and IE6 Firefox, with a legacy pixel-font fallback. Aligns glyph sizes to physical pixels at fractional scaling; preserves explicit document and code font choices."));
+    m_crispText = new QCheckBox(QStringLiteral("Crisp XP text (experimental)"));
+    m_crispText->setToolTip(QStringLiteral("Experimental: XP-rendered pixel Tahoma for XPlasma widgets and IE6 Firefox, with a legacy pixel-font fallback. Aligns glyph sizes to physical pixels at fractional scaling; preserves explicit document and code font choices."));
     layout->addWidget(m_crispText);
     connect(m_crispText,&QCheckBox::toggled,this,[this]{updateApply();});
     m_hidpiStart = new QCheckBox(QStringLiteral("Sharp Start button on &HiDPI screens"));
@@ -1130,7 +1134,7 @@ Look DisplayProperties::look() const
 {
     if (m_customLunaEnabled->isChecked() && m_customClassic) return Look::fromScheme(*m_customClassic);
     if (m_customLunaEnabled->isChecked() && !m_customLunaPath.isEmpty())
-        if (auto custom = Look::fromStyle(m_customLunaPath, m_customLunaVariant)) return *custom;
+        if (auto custom = Look::fromStyle(m_customLunaPath, colorMetadata(m_customLunaPath).value(QStringLiteral("variant")).toString(m_customLunaVariant))) return *custom;
 
     if (const int i = styleIndex(); i >= 0) {
         const StyleInfo &s = m_styles.at(i);

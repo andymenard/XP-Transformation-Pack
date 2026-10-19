@@ -58,3 +58,14 @@ Generator 20 retains custom scrollbar face colors and recolors their separate XP
 Properties' Custom Colors tab identifies Luna as the only extensively tested
 base. Other themes remain available, but their Custom Colors support is
 experimental.
+
+Generator 22 uses the original Royale style as the shared custom-color base for
+Royale, Royale Noir, Embedded and Zune. Stock styles remain distinct when custom
+colors are disabled. The generated style records Royale's actual variant so
+preview, saved profiles and application colors all load the same base correctly.
+Royale's opaque title-button fringe follows the caption color independently of
+the button-face color; the red Close face and its symbols remain protected.
+Regression tests compare every sprite frame's outer edge while changing only
+button colors, and verify that all four family members share one generated style.
+The native CI matrix runs these tests against the bundled artwork on Qt 6.10
+and 6.11 for both x86-64 and ARM64.

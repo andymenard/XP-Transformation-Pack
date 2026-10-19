@@ -147,6 +147,34 @@ class GeckoSizingTests(unittest.TestCase):
                             '#nav-bar :is(#back-button,#forward-button) .toolbarbutton-icon'
                             )).map(n=>n.getBoundingClientRect().width);''')
                         self.assertEqual(main, [24, 24])
+                        cfg = (ROOT/'runtime/ie6-ui.cfg').read_text()
+                        menu_init = 'function initializeMenuBar(win) {' + cfg.split(' function initializeMenuBar(win) {', 1)[1].split('\n const observers=', 1)[0]
+                        menu = client.script(menu_init + '''
+                            const initialize=initializeMenuBar,bar=document.getElementById('toolbar-menubar');
+                            const uri=document.documentURI;
+                            const snapshot=()=>({autohide:bar.getAttribute('autohide'),
+                                saved:Services.xulStore.getValue(uri,bar.id,'autohide')});
+                            Services.prefs.clearUserPref('xplasma.ie6.menuBarDefaultsVersion');
+                            Services.prefs.clearUserPref('xplasma.ie6.menuBarInitialized');
+                            window.setToolbarVisibility(bar,false);initialize(window);
+                            const first=snapshot();
+                            window.setToolbarVisibility(bar,false);initialize(window);
+                            const choice=snapshot();
+                            Services.prefs.clearUserPref('xplasma.ie6.menuBarDefaultsVersion');
+                            initialize(window);const migratedChoice=snapshot();
+                            Services.prefs.clearUserPref('xplasma.ie6.menuBarDefaultsVersion');
+                            bar.setAttribute('autohide','false');
+                            Services.xulStore.setValue(uri,bar.id,'autohide','false');initialize(window);
+                            const legacy=snapshot();
+                            Services.prefs.clearUserPref('xplasma.ie6.menuBarDefaultsVersion');
+                            Services.xulStore.removeValue(uri,bar.id,'autohide');initialize(window);
+                            return {first,choice,migratedChoice,legacy,repaired:snapshot()};
+                        ''')
+                        self.assertEqual(menu['first'], {'autohide': None, 'saved': '-moz-missing\n'})
+                        self.assertEqual(menu['choice'], {'autohide': '', 'saved': ''})
+                        self.assertEqual(menu['migratedChoice'], menu['choice'])
+                        self.assertEqual(menu['legacy'], menu['first'])
+                        self.assertEqual(menu['repaired'], menu['first'])
                         # The custom status bar is mounted by autoconfig in #browser.
                         # Exercise its real chrome layout, including the reserved gap,
                         # for browser F11 and page/video full-screen state flags.

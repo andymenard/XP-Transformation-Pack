@@ -121,13 +121,16 @@ def sync(suite, icons=None, wallpapers=None):
     for source, destination in [(browser / 'chrome', payload / 'profile/chrome'),
                                 (browser / 'runtime-overrides', payload / 'runtime-overrides'),
                                 (ROOT / 'apps/tray', suite / 'payload/tray')]:
+        if not source.exists():
+            continue
         shutil.copytree(source, destination, dirs_exist_ok=True,
                         ignore=shutil.ignore_patterns('__pycache__'))
     for name in ['user.js', 'initial-prefs.js']:
         shutil.copy2(browser / name, payload / 'profile' / name)
     shutil.copy2(browser / 'runtime/ie6-ui.cfg', payload / 'runtime-overrides/ie6-ui.cfg')
     shutil.copy2(browser / 'install-icon.py', payload / 'install-icon.py')
-    shutil.copy2(ROOT / 'projects/README.md', suite / 'PROJECTS.md')
+    if (ROOT / 'projects/README.md').is_file():
+        shutil.copy2(ROOT / 'projects/README.md', suite / 'PROJECTS.md')
     # Preserve the audited icon build as a private package input, so future
     # installer rebuilds cannot revert to the earlier partial layer.
     saved_icons = ROOT / 'private-assets/icons.tar.gz'
@@ -141,6 +144,8 @@ def sync(suite, icons=None, wallpapers=None):
         with tarfile.open(temporary, 'w:gz') as target:
             target.add(icons, arcname='xplasma-xp-extended')
         temporary.replace(saved_icons)
+    if not saved_icons.exists():
+        saved_icons = ROOT / 'non-free/payload/tools/icons.tar.gz'
     if saved_icons.exists():
         shutil.copy2(saved_icons, suite / 'payload/tools/icons.tar.gz')
     shutil.copy2(ROOT / 'tools/icon-expansion/install.py', suite / 'payload/tools/xp-icons.py')

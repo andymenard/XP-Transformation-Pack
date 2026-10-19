@@ -1,4 +1,4 @@
-name: Build Kubuntu prebuilt components
+name: Build release prebuilt components
 on:
   push:
     branches: ['codex/prebuilt-*']
@@ -6,31 +6,64 @@ on:
 permissions:
   contents: read
 jobs:
-  kubuntu-amd64:
-    runs-on: ubuntu-24.04
-    container: ubuntu:26.04
+  components:
+    name: ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: kubuntu-26.04-amd64
+            runner: ubuntu-24.04
+            image: ubuntu:26.04
+            family: apt
+          - target: kubuntu-26.04-arm64
+            runner: ubuntu-24.04-arm
+            image: ubuntu:26.04
+            family: apt
+          - target: fedora-44-amd64
+            runner: ubuntu-24.04
+            image: fedora:44
+            family: dnf
+          - target: fedora-44-arm64
+            runner: ubuntu-24.04-arm
+            image: fedora:44
+            family: dnf
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.image }}
+    timeout-minutes: 90
     env:
       DEBIAN_FRONTEND: noninteractive
       QT_QPA_PLATFORM: offscreen
       XP_BUILD_JOBS: '3'
       XP_BUILD_CACHE: /tmp/xp-native-cache
     steps:
+      - name: Bootstrap build container
+        run: |
+          if [ "${{ matrix.family }}" = apt ]; then
+            apt-get update
+            apt-get install -y python3 ca-certificates git tar gzip zstd
+          else
+            dnf install -y python3 ca-certificates git tar gzip zstd
+          fi
       - uses: actions/checkout@v4
       - name: Restore verified component caches
         uses: actions/cache@v4
         with:
           path: /tmp/xp-native-cache
-          key: kubuntu-26.04-amd64-components-v1-${{ hashFiles('native/**', 'installer/build_cache.py', 'installer/build-widgets.py', 'effects/xp-caption-animation/**') }}
-          restore-keys: kubuntu-26.04-amd64-components-v1-
+          key: ${{ matrix.target }}-components-v2-${{ hashFiles('native/**', 'installer/build_cache.py', 'installer/build-widgets.py', 'effects/xp-caption-animation/**') }}
+          restore-keys: ${{ matrix.target }}-components-v2-
       - name: Install build dependencies
         run: |
-          apt-get update
-          apt-get install -y python3 ca-certificates git plasma-workspace
+          if [ "${{ matrix.family }}" = apt ]; then
+            apt-get install -y plasma-workspace
+          else
+            dnf install -y plasma-workspace
+          fi
           python3 - <<'PY'
           import sys,subprocess
           sys.path.insert(0,'installer')
           import dependencies
-          dependencies.install('apt',{'taskbar','caption_animation'},lambda args:subprocess.run(args,check=True))
+          dependencies.install('${{ matrix.family }}',{'taskbar','caption_animation'},lambda args:subprocess.run(args,check=True))
           PY
       - name: Check shared credits and licenses
         # (After the dependencies: the bare container has no python3 before.)
@@ -49,6 +82,14 @@ jobs:
                       archive.add(p,arcname='xplasma/'+str(p.relative_to('native')))
           PY
           bash /tmp/xp-suite/build-native.sh /tmp/xp-build core
+      - name: Test Royale custom colors against original artwork
+        run: |
+          cmake --build /tmp/xp-build/native --parallel 3 --target test-app
+          mkdir -p /tmp/xp-regression-home/.local/share/xplasma/assets
+          cp -a non-free/payload/assets/xplasma/assets/themes /tmp/xp-regression-home/.local/share/xplasma/assets/themes
+          HOME=/tmp/xp-regression-home QT_QPA_PLATFORM=offscreen /tmp/xp-build/native/tests/app/test-app \
+            royaleFamilyCustomColorsShareBaseAndCaptionFringes customRoyalePreservesIconsAndLiveShading \
+            customColorsForInstalledSkins customLunaKeepsStructure savedLiveProfilesBecomeStaticStyles
       - name: Fetch verified Plasma sources and build widgets
         run: |
           python3 - <<'PY'
@@ -96,9 +137,9 @@ jobs:
           folder=build_cache.find('/tmp/xp-suite','taskbar',cache='/tmp/xp-prebuilt')
           assert folder and build_cache.usable(folder) and build_cache.caption_ready('/tmp/xp-suite',folder)
           PY
-          tar -C /tmp/xp-prebuilt -czf /tmp/kubuntu-26.04-amd64-prebuilt.tar.gz .
+          tar -C /tmp/xp-prebuilt -czf /tmp/${{ matrix.target }}-prebuilt.tar.gz .
       - uses: actions/upload-artifact@v4
         with:
-          name: kubuntu-26.04-amd64-prebuilt
-          path: /tmp/kubuntu-26.04-amd64-prebuilt.tar.gz
+          name: ${{ matrix.target }}-prebuilt
+          path: /tmp/${{ matrix.target }}-prebuilt.tar.gz
           retention-days: 30

@@ -1,7 +1,7 @@
-# Alpha installer
+# XPlasma Plus installer
 
 The public edition includes Desktop by default and optional IE6 Firefox.
-OTA updates are excluded from prereleases. XP applications, custom tray menus, Codex colors and
+OTA updates are excluded. XP applications, custom tray menus, Codex colors and
 Clippy are excluded. See the root README and CREDITS for scope and attribution.
 
 This source checkout alone is not the complete asset-bearing installer. Local

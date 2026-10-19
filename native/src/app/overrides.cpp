@@ -54,8 +54,26 @@ QString systemDir(const QString &relative)
 bool ownedWidget(const QString &dir)
 {
     QFile f(dir + QLatin1String("/metadata.json"));
-    if (!f.open(QIODevice::ReadOnly))
-        return false;
+    if (!f.open(QIODevice::ReadOnly)) {
+        // Older removal paths could leave only our shared text helper behind.
+        // Recognize that exact fragment, never an unmarked third-party package.
+        if (QFileInfo::exists(f.fileName()) || QFileInfo(dir).isSymLink())
+            return false;
+        const QString helper = QStringLiteral("contents/ui/XpTextStyle.qml");
+        QDirIterator it(dir, QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot,
+                        QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            const QString path = it.next();
+            const QFileInfo info(path);
+            const QString relative = QDir(dir).relativeFilePath(path);
+            if (info.isSymLink() || (info.isDir()
+                    ? relative != QLatin1String("contents") && relative != QLatin1String("contents/ui")
+                    : !info.isFile() || relative != helper))
+                return false;
+        }
+        const QString expected = resource(QStringLiteral("XpTextStyle.qml"));
+        return !expected.isEmpty() && readText(dir + QLatin1Char('/') + helper) == expected;
+    }
     const QJsonObject meta = QJsonDocument::fromJson(f.readAll()).object();
     if (meta.value(QLatin1String(kMarker)).toBool())
         return true;

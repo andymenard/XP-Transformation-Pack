@@ -4,7 +4,7 @@
 import argparse,hashlib,json,os,re,shutil,tarfile,tempfile
 from pathlib import Path
 
-def package(bundle,output):
+def package(bundle,output,variant=None):
  bundle=Path(bundle).resolve();output=Path(output).resolve();output.mkdir(parents=True,exist_ok=True)
  edition=json.loads((bundle/'edition.json').read_text());version=edition['version']
  # (A release, or a prerelease of one: 1.0.0, 1.0.0-beta.2, 1.0.0-alpha.10.)
@@ -19,8 +19,10 @@ def package(bundle,output):
   if isinstance(expected,dict):
    if not file.is_symlink() or str(file.readlink())!=expected['target']:raise ValueError('Invalid link: '+relative)
   elif hashlib.sha256(file.read_bytes()).hexdigest()!=expected:raise ValueError('Checksum mismatch: '+relative)
- root='XP-Transformation-Pack-Alpha-1.0'
- archive=output/f'xp-transformation-pack-{version}-installer.tar.gz'
+ if variant is not None and not re.fullmatch(r'[a-z0-9][a-z0-9.-]*',variant):raise ValueError('Invalid installer variant')
+ root='XPlasma-Plus-'+version
+ suffix='-'+variant if variant else ''
+ archive=output/f'xplasma-plus-{version}-installer{suffix}.tar.gz'
  temporary=archive.with_suffix('.new')
  def clean(info):
   if '__pycache__' in Path(info.name).parts or info.name.endswith('.pyc'):return None
@@ -39,4 +41,4 @@ def package(bundle,output):
  print('Verified',len(manifest),'resources;',archive.stat().st_size,'bytes;',archive,flush=True)
  return archive
 if __name__=='__main__':
- parser=argparse.ArgumentParser();parser.add_argument('bundle',type=Path);parser.add_argument('output',type=Path);args=parser.parse_args();package(args.bundle,args.output)
+ parser=argparse.ArgumentParser();parser.add_argument('bundle',type=Path);parser.add_argument('output',type=Path);parser.add_argument('--variant');args=parser.parse_args();package(args.bundle,args.output,args.variant)

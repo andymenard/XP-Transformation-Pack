@@ -29,8 +29,7 @@ visibility in prefs.js only for a fresh profile. Keep these choices out of user.
 which Firefox reapplies on every launch. Existing prefs.js files must be preserved.
 
 The runtime enables Firefox's actual Menu Bar toggle on its first themed launch
-using the persisted toolbar autohide setting. The xplasma.ie6.menuBarInitialized
-marker prevents later launches from resetting the user's menu-bar choice.
+using Firefox's toolbar-visibility API and the persisted toolbar autohide setting. A versioned initialization marker repairs older profiles without a saved choice while preserving explicit user choices on subsequent launches.
 
 XPlasma's **Dark application colors** preference also controls the IE6 browser
 chrome. The autoconfig reads the small appearance flag every 1.5 seconds and
