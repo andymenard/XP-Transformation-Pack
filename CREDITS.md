@@ -5,6 +5,13 @@ The native visual-style engine, Qt style, Properties editor and desktop generato
 originate in XPlasma. The transformation-pack contributors provide adaptations,
 installer integration and additional desktop features.
 
+XPlasma’s lineage also includes **xp2plasma**, its predecessor. Upstream’s
+[preserved xp2plasma documentation](https://tangled.org/hotsocket.fyi/xplasma/tree/trunk/docs/xp2plasma)
+and [import record](https://tangled.org/hotsocket.fyi/xplasma/commit/2c6fa557666accfc31a21c88df06bb7417ed464b)
+document the earlier desktop integration work carried into XPlasma before its
+application was rewritten in C++/Qt. We acknowledge xp2plasma as part of the
+foundation inherited through XPlasma, rather than describing it only as inspiration.
+
 The project code is GPL-3.0-or-later unless a file states otherwise. Third-party
 code, fonts and artwork retain their own copyrights and licenses. The complete
 notices and license texts are available in the installer’s Credits and licenses

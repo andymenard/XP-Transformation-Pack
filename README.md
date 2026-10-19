@@ -68,6 +68,7 @@ XPlasma Plus exists because other people shared their work. Thank you to the cre
 | People / project | What we are thanking them for |
 | --- | --- |
 | **hotsocket (Sock) — [XPlasma](https://tangled.org/hotsocket.fyi/xplasma/)** | The upstream project we forked: the native XP visual-style engine, Qt application style, Properties editor and desktop generators. This is the foundation of XPlasma Plus. |
+| **xp2plasma — [preserved project documentation](https://tangled.org/hotsocket.fyi/xplasma/tree/trunk/docs/xp2plasma)** | XPlasma’s predecessor. Upstream imported its earlier desktop integration work and later rewrote the application around the native C++/Qt engine; this is part of the lineage inherited by XPlasma Plus. See the [upstream import record](https://tangled.org/hotsocket.fyi/xplasma/commit/2c6fa557666accfc31a21c88df06bb7417ed464b). |
 | **Rozniak and contributors — [Windows XP Total Conversion for XFCE](https://github.com/rozniak/xfce-winxp-tc)** | The main inspiration for this project. Please check out their work, especially if you use XFCE. This is an inspiration credit, not a claim that their code or assets are bundled here. |
 | **matthewmx86 — [RetroThemesFirefox](https://github.com/matthewmx86/RetroThemesFirefox)** | The foundation and legacy chrome assets for our optional IE6-style Firefox theme. |
 | **marchmountain — [Windows XP High Resolution Icon Pack](https://github.com/marchmountain/-Windows-XP-High-Resolution-Icon-Pack)** | The high-resolution XP icon recreations used by our HiDPI option. |
