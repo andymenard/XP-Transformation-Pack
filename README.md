@@ -49,13 +49,9 @@ The XP desktop on a HiDPI display at 250% scaling.
 
 ### Lock screen
 
-The installed XP lock screen captured in KDE’s test mode at 1024×768.
-
 ![XP lock screen at 1024×768](docs/screenshots/07-lockscreen-1024x768.png)
 
 ### Boot screen
-
-A 1024×768 preview rendered from the bundled boot-screen artwork and the Plymouth theme’s layout, showing one frame of the loading animation.
 
 ![XP boot-screen preview at 1024×768](docs/screenshots/08-bootscreen-1024x768.png)
 
