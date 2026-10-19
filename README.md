@@ -1,5 +1,5 @@
 > [!WARNING]
-> **This project is vibecoded.** Hands-on testing has been limited to **Asahi Linux (ARM64)** and **Kubuntu on Intel/AMD x86-64**. Issues are expected, including on these systems; builds for other platforms do not mean they have been tested on real hardware. **I do not recommend installing this on a computer without backing up your data and system configuration first. While I personally run this on my main computers and have tried my best to audit the code, I am not a software engineer.**
+> **This project is vibecoded.** Hands-on testing has been limited to **Asahi Linux (ARM64)** and **Kubuntu on Intel/AMD x86-64**. Issues are expected; builds for other platforms do not mean they have been tested on real hardware. **I do not recommend installing this on a computer without backing up your data and system configuration first. While I personally run this on my main computers and have tried my best to audit the code, I am not a software engineer.**
 
 # XPlasma Plus — 1.0.1 Public Beta
 
