@@ -27,6 +27,29 @@ def context():
  uid=int(os.environ.get('PKEXEC_UID',os.environ.get('SUDO_UID','0')))
  if uid<=0:raise RuntimeError('Launch from your desktop user account.')
  return Path(pwd.getpwuid(uid).pw_dir),Path('/var/lib')/STATE/str(uid)
+# The screens are system-wide, so one account's installation manages them. Its
+# record is root-only; screens.json beside it tells every account which one.
+def managing_account(store):
+ return next((int(p.parent.name) for p in sorted(store.parent.glob('*/system.json')) if p.parent!=store and p.parent.name.isdigit()),None)
+def account_name(uid):
+ try:return pwd.getpwuid(uid).pw_name
+ except KeyError:return 'user '+str(uid)
+def publish(store,features):
+ marker=store.parent/'screens.json'
+ marker.write_text(json.dumps({'uid':int(store.name),'user':account_name(int(store.name)),'features':sorted(features)},indent=2)+'\n');marker.chmod(0o644)
+def withdraw(store):
+ marker=store.parent/'screens.json'
+ try:
+  if json.loads(marker.read_text()).get('uid')==int(store.name):marker.unlink()
+ except (OSError,ValueError):pass
+def check_screens(store,features):
+ # Before anything is installed: installations from before screens.json
+ # existed get it now, so Setup shows the screens as unavailable from here on.
+ other=managing_account(store)
+ if other is None or not set(features)&set(PATHS):return
+ manager=store.parent/str(other)
+ if not (store.parent/'screens.json').exists():publish(manager,json.loads((manager/'system.json').read_text()).get('features',[]))
+ raise RuntimeError('The XPlasma Plus installation of the '+account_name(other)+' account manages the system login and boot screens, which already apply to every account. Clear XP Welcome login screen and XP boot splash to install the other features here.')
 # Per-session program counts for the Welcome screen's "N programs running." status.
 LOGIN_STATUS=[('xp-logon-status',PATHS['login'][3],0o755),('xp-logon-status.desktop',PATHS['login'][4],0o644),('xp-logonui.conf',PATHS['login'][5],0o644)]
 def greeter_environment():
@@ -68,6 +91,7 @@ def restore(store):
   run(['systemctl','daemon-reload'])
  if 'boot' in record['features']:rebuild()
  file.rename(store/'system-restored.json')
+ withdraw(store)
 def put_back(store,entries):
  for item in entries:
   p=Path(item['path']);remove(p)
@@ -77,7 +101,8 @@ def screens(home,store,features,upgrade=False):
  if not features:return
  file=store/'system.json'
  if file.exists() and not upgrade:raise RuntimeError('System screens are already managed; remove the previous installation first.')
- if any(p.parent!=store for p in store.parent.glob('*/system.json')):raise RuntimeError('Another user manages the system XP screens.')
+ other=managing_account(store)
+ if other is not None:raise RuntimeError('The XPlasma Plus installation of the '+account_name(other)+' account manages the system XP screens.')
  store.mkdir(parents=True,exist_ok=True);store.chmod(0o700)
  # An upgrade keeps the backups from before XP (what Remove restores) and
  # saves the screens it replaces, which a failed upgrade puts back.
@@ -109,6 +134,7 @@ def screens(home,store,features,upgrade=False):
   record['changed_display_manager']=previous!='sddm.service'
  record['features']=sorted(managed|set(added))
  file.write_text(json.dumps(record,indent=2)+'\n')
+ publish(store,record['features'])
  source=home/'.local/share'/STATE/'templates'
  try:
   if 'login' in features:
@@ -155,7 +181,7 @@ def main():
  features=[x for x in a.features.split(',') if x]
  known={x['id'] for x in json.loads((BASE/'features.json').read_text())}
  if not set(features)<=known:raise RuntimeError('Unknown installer feature.')
- if a.action=='dependencies':deps(features,a.native_ready,a.caption_ready)
+ if a.action=='dependencies':check_screens(store,features);deps(features,a.native_ready,a.caption_ready)
  elif a.action=='screens':screens(home,store,features,a.upgrade)
  elif a.action=='restore':
   restore(store)
