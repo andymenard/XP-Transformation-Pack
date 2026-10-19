@@ -13,6 +13,44 @@ Desktop features include Start/taskbar/clock, decorations, dark application colo
 
 The installer follows the blue graphical XP Setup sequence, with inset component-selection dialogs, progress/sidebar stages and rotating information pages. Visual reference: [Gough Lui's Windows XP install video](https://www.youtube.com/watch?v=vTheKjAtnKs&t=134s), from 2:14 onward, and the user's own XP installation media. Branding identifies this transformation pack and its upstream author.
 
+## Screenshots
+
+### Default theme
+
+The default Windows XP desktop theme on Kubuntu.
+
+![Default theme: The default Windows XP desktop theme on Kubuntu.](docs/screenshots/01-default-theme.png)
+
+### Custom colors
+
+Customize the theme colors in XPlasma Plus Properties.
+
+![Custom colors: Customize the theme colors in XPlasma Plus Properties.](docs/screenshots/02-custom-colors.png)
+
+### Customizable Start button
+
+Choose your own Start button logo and appearance.
+
+![Customizable Start button: Choose your own Start button logo and appearance.](docs/screenshots/03-custom-start-button.png)
+
+### Internet Explorer appearance
+
+The optional IE6 replica theme for Firefox ESR.
+
+![Internet Explorer appearance: The optional IE6 replica theme for Firefox ESR.](docs/screenshots/04-internet-explorer-theme.png)
+
+### Dark mode
+
+Dark application colors with a matching Firefox theme.
+
+![Dark mode: Dark application colors with a matching Firefox theme.](docs/screenshots/05-dark-mode.png)
+
+### HiDPI support
+
+The XP desktop on a HiDPI display at 250% scaling.
+
+![HiDPI support: The XP desktop on a HiDPI display at 250% scaling.](docs/screenshots/06-hidpi-support.png)
+
 ## Licence
 
 The source code in this repository — essentially any *text* files, such as C++, QML, Python, JavaScript and shell scripts — is licensed under the GPL; see [LICENSE](LICENSE). Reused components keep their own notices and licenses: read [CREDITS.md](CREDITS.md), [native/THIRD-PARTY-NOTICES](native/THIRD-PARTY-NOTICES) and [installer/THIRD-PARTY-NOTICES](installer/THIRD-PARTY-NOTICES). This modified project is not endorsed by upstream developers or Microsoft.
