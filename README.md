@@ -9,6 +9,10 @@ Also check out **[Rozniak's Windows XP Total Conversion for XFCE](https://github
 
 The alpha includes the XP desktop by default and the IE6 Firefox theme as an option. There are currently no XP remake applications included, but I may include them in the future. 
 
+## Tutorials
+
+New to XPlasma Plus? Follow the **[tutorial wiki](https://github.com/andymenard/XPlasma-Plus/wiki)** for installation, desktop customization, IE6 Firefox, lock/login/boot screens, upgrades, removal and troubleshooting. A [copy of the tutorials](docs/wiki/Home.md) is also kept in this repository.
+
 ## Screenshots
 
 ### Default theme
