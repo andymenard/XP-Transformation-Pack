@@ -2,6 +2,8 @@
 
 A KDE Plasma transformation pack and **modified fork of [hotsocket's XPlasma](https://tangled.org/hotsocket.fyi/xplasma/)**. The native visual-style engine, Qt style, Properties editor and desktop generators originate in that project. This repository contains our ports, integration and changes; it does not claim authorship of the upstream foundation.
 
+Also check out **[Rozniak's Windows XP Total Conversion for XFCE](https://github.com/rozniak/xfce-winxp-tc)**, an inspiration for this project. If you enjoy bringing the XP experience to Linux, give Rozniak and the project's contributors a visit and explore their work.
+
 The alpha includes the XP desktop by default and the IE6 Firefox theme optionally. XP Explorer, Control Panel, accessories, games, custom tray panels, Codex colors and Clippy are excluded. Existing Linux applications still receive XP widget styling. XPlasma Properties and its theme configuration remain included.
 
 Desktop features include Start/taskbar/clock, decorations, dark application colors, icon-resolution options, fonts/cursors/sounds/wallpapers, desktop shortcuts, checkered selection/snapping, caption animations, session dialogs, lock/login/boot screens and the XP Welcome session splash.
