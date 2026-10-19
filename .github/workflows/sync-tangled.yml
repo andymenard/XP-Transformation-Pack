@@ -1,0 +1,92 @@
+name: Sync Tangled
+
+on:
+  push:
+  workflow_dispatch:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-tangled
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Configure Tangled authentication
+        env:
+          TANGLED_KEY: ${{ secrets.TANGLED_SSH_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$TANGLED_KEY"
+          umask 077
+          printf '%s\n' "$TANGLED_KEY" > "$RUNNER_TEMP/tangled-key"
+          cat > "$RUNNER_TEMP/tangled-known-hosts" <<'HOSTKEY'
+          tangled.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII2UShEm/FFPmYZUizaPnIqOJuynoCQpcLhl5PPHd02n
+          HOSTKEY
+          echo "GIT_SSH_COMMAND=ssh -4 -i $RUNNER_TEMP/tangled-key -o IdentitiesOnly=yes -o UserKnownHostsFile=$RUNNER_TEMP/tangled-known-hosts -o StrictHostKeyChecking=yes -o ConnectTimeout=20" >> "$GITHUB_ENV"
+      - name: Synchronize branches and tags without force pushes
+        shell: python
+        run: |
+          import subprocess
+
+          def git(*args):
+              return subprocess.check_output(['git', *args], text=True).strip()
+
+          tangled = 'andymenard.tngl.sh@tangled.org:did:plc:542lcc5ibttwp5eceiou5ken'
+          for name, remote in [('github', 'origin'), ('tangled', tangled)]:
+              git('fetch', '--no-tags', remote,
+                  f'+refs/heads/*:refs/sync/{name}/heads/*',
+                  f'+refs/tags/*:refs/sync/{name}/tags/*')
+
+          def refs(name):
+              prefix = f'refs/sync/{name}/'
+              lines = git('for-each-ref', '--format=%(refname) %(objectname)', prefix)
+              return {ref[len(prefix):]: sha for ref, sha in
+                      (line.split() for line in lines.splitlines())}
+
+          github, other = refs('github'), refs('tangled')
+          pushes = {'github': [], 'tangled': []}
+          conflicts = []
+          for ref in sorted(github.keys() | other.keys()):
+              # Preserve the original upstream branch only on Tangled.
+              if ref == 'heads/trunk':
+                  continue
+              left, right = github.get(ref), other.get(ref)
+              if left == right:
+                  continue
+              source = None
+              if left is None:
+                  source = 'tangled'
+              elif right is None:
+                  source = 'github'
+              elif ref.startswith('heads/'):
+                  if subprocess.run(['git', 'merge-base', '--is-ancestor', left, right]).returncode == 0:
+                      source = 'tangled'
+                  elif subprocess.run(['git', 'merge-base', '--is-ancestor', right, left]).returncode == 0:
+                      source = 'github'
+              if source is None:
+                  conflicts.append(ref)
+                  continue
+              destination = 'tangled' if source == 'github' else 'github'
+              pushes[destination].append(f'refs/sync/{source}/{ref}:refs/{ref}')
+          if conflicts:
+              raise SystemExit('Merge divergent branches or resolve conflicting tags before syncing: ' + ', '.join(conflicts))
+          for destination, remote in [('github', 'origin'), ('tangled', tangled)]:
+              if pushes[destination]:
+                  git('push', '--atomic', remote, *pushes[destination])
+          print('GitHub and Tangled branches/tags are synchronized (upstream trunk preserved).')
+      - name: Remove temporary credentials
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/tangled-key" "$RUNNER_TEMP/tangled-known-hosts"
