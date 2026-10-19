@@ -2589,6 +2589,48 @@ private Q_SLOTS:
         QVERIFY(button(after,"minimize","inactive-center")!=button(before,"minimize","inactive-center"));
     }
 
+    void royaleFamilyCustomColorsShareBaseAndCaptionFringes()
+    {
+        const QString source=m_realThemes+QStringLiteral("/Royale/Royale.msstyles");
+        if(!QFileInfo::exists(source))QSKIP("needs Royale");
+        QString error;
+        const std::array<QColor,4> colors{QColor("#315c43"),QColor("#644576"),QColor("#225577"),QColor("#e58a22")};
+        const QString directory=paths::data()+QStringLiteral("/custom-luna");
+        const QString shared=editor::customLuna(source,colors,directory,&error);
+        QVERIFY2(!shared.isEmpty(),qPrintable(error));
+        const auto metadata=editor::colorMetadata(shared);
+        QCOMPARE(QFileInfo(metadata.value("source").toString()).canonicalFilePath(),QFileInfo(source).canonicalFilePath());
+        for(const QString relative:{QStringLiteral("Royale Noir/Royale Noir.msstyles"),QStringLiteral("Embedded/Embedded.msstyles"),QStringLiteral("Zune/Zune.msstyles")}) {
+            const QString derivative=m_realThemes+QLatin1Char('/')+relative;
+            QVERIFY2(QFileInfo::exists(derivative),qPrintable(derivative));
+            const auto style=Library::style(derivative);
+            QCOMPARE(editor::customLuna(derivative,colors,directory,&error,style.defaultVariant),shared);
+            const auto base=Look::fromStyle(derivative,style.defaultVariant,&error);QVERIFY2(base,qPrintable(error));
+            const QJsonObject profile{{"enabled",true},{"start",colors[0].name()},{"menu",colors[1].name()},
+                {"title",colors[2].name()},{"buttons",colors[3].name()},{"linkTitleToTaskbar",false}};
+            const auto baked=editor::staticColorLook(*base,profile,&error);QVERIFY2(baked,qPrintable(error));
+            QCOMPARE(baked->stylePath,shared);
+        }
+        auto changedColors=colors;changedColors[3]=QColor("#784caa");
+        const auto changed=editor::customLuna(source,changedColors,directory,&error);
+        QVERIFY2(!changed.isEmpty(),qPrintable(error));
+        const auto first=Theme::load(shared),second=Theme::load(changed);QVERIFY(first && second);
+        for(const QString part:{QStringLiteral("closebutton"),QStringLiteral("maxbutton")}) {
+            const QString resource=first->property(u"window",part,u"",u"imagefile").value_or(QString());
+            const QImage a=first->bitmap(resource).image,b=second->bitmap(resource).image;
+            QVERIFY(!a.isNull());QCOMPARE(a.size(),b.size());
+            const int count=first->property(u"window",part,u"",u"imagecount").value_or(QStringLiteral("1")).toInt();
+            const int frameHeight=a.height()/qMax(1,count);int checked=0,faceChanged=0;
+            for(int y=0;y<a.height();++y)for(int x=0;x<a.width();++x) {
+                const int fy=y%frameHeight;
+                if(x==0 || x==a.width()-1 || fy==0 || fy==frameHeight-1) {
+                    QCOMPARE(a.pixel(x,y),b.pixel(x,y));++checked;
+                } else if(a.pixel(x,y)!=b.pixel(x,y))++faceChanged;
+            }
+            QVERIFY(checked>0);QVERIFY(faceChanged>0);
+        }
+    }
+
     void customRoyalePreservesIconsAndLiveShading()
     {
         const QString source=m_realThemes+QLatin1String("/Royale/Royale.msstyles");
@@ -2668,12 +2710,14 @@ private Q_SLOTS:
                 QString error;
                 const auto generated = editor::customLuna(source, colors, paths::data() + QLatin1String("/custom-luna"), &error, variant);
                 QVERIFY2(!generated.isEmpty(), qPrintable(source + QLatin1Char(':') + variant + QLatin1Char(' ') + error));
-                const auto custom = Theme::load(generated, variant); QVERIFY(custom);
+                const auto metadata=editor::colorMetadata(generated);
+                const auto generatedVariant=metadata.value(QStringLiteral("variant")).toString(variant);
+                const auto custom = Theme::load(generated, generatedVariant); QVERIFY(custom);
                 QRgb color;
                 QVERIFY(parseColour(custom->property(u"sysmetrics", u"", u"", u"highlight").value_or(QString()), &color));
                 QCOMPARE(QColor(color), colors[1]);
-                QCOMPARE(custom->bitmapNames(), theme->bitmapNames());
-                const auto originalVariant = Theme::load(source, variant); QVERIFY(originalVariant);
+                const auto originalVariant = Theme::load(metadata.value(QStringLiteral("source")).toString(source), generatedVariant); QVERIFY(originalVariant);
+                QCOMPARE(custom->bitmapNames(), originalVariant->bitmapNames());
                 Renderer before(originalVariant), after(custom);
                 for (const auto &ref : {PartRef{QStringLiteral("button"), 1, 1, QStringLiteral("start")},
                     PartRef{QStringLiteral("taskbar"), schema::partId(u"taskbar",u"backgroundbottom"),0,{}},

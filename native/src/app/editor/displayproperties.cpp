@@ -659,6 +659,10 @@ void DisplayProperties::customLunaChanged()
             QString generated;
             runResponsiveTask(this,[&](QString *e){generated=customLuna(source,colours,paths::data()+QStringLiteral("/custom-luna"),e,variant,0,textModes,menuMode);return !generated.isEmpty();},&error);
             m_customLunaPath=generated;
+            if(!generated.isEmpty()) {
+                const QString baseSource=colorMetadata(generated).value(QStringLiteral("source")).toString(source);
+                m_customBaseLabel->setText(QStringLiteral("Base: ")+Library::style(baseSource).label+QStringLiteral(". Choose another base on Appearance."));
+            }
         }
         m_customLunaStatus->setText(m_customLunaPath.isEmpty() ? error : QStringLiteral("Start menu and highlights follow the taskbar color. Apply to use these colors."));
     } else {
@@ -1130,7 +1134,7 @@ Look DisplayProperties::look() const
 {
     if (m_customLunaEnabled->isChecked() && m_customClassic) return Look::fromScheme(*m_customClassic);
     if (m_customLunaEnabled->isChecked() && !m_customLunaPath.isEmpty())
-        if (auto custom = Look::fromStyle(m_customLunaPath, m_customLunaVariant)) return *custom;
+        if (auto custom = Look::fromStyle(m_customLunaPath, colorMetadata(m_customLunaPath).value(QStringLiteral("variant")).toString(m_customLunaVariant))) return *custom;
 
     if (const int i = styleIndex(); i >= 0) {
         const StyleInfo &s = m_styles.at(i);

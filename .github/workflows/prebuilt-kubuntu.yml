@@ -82,6 +82,14 @@ jobs:
                       archive.add(p,arcname='xplasma/'+str(p.relative_to('native')))
           PY
           bash /tmp/xp-suite/build-native.sh /tmp/xp-build core
+      - name: Test Royale custom colors against original artwork
+        run: |
+          cmake --build /tmp/xp-build/native --parallel 3 --target test-app
+          mkdir -p /tmp/xp-regression-home/.local/share/xplasma/assets
+          cp -a non-free/payload/assets/xplasma/assets/themes /tmp/xp-regression-home/.local/share/xplasma/assets/themes
+          HOME=/tmp/xp-regression-home QT_QPA_PLATFORM=offscreen /tmp/xp-build/native/tests/app/test-app \
+            royaleFamilyCustomColorsShareBaseAndCaptionFringes customRoyalePreservesIconsAndLiveShading \
+            customColorsForInstalledSkins customLunaKeepsStructure savedLiveProfilesBecomeStaticStyles
       - name: Fetch verified Plasma sources and build widgets
         run: |
           python3 - <<'PY'

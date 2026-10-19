@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "customluna.h"
 #include "app/paths.h"
+#include "app/library.h"
 #include "app/decoration.h"
 #include "app/panel.h"
 #include "core/pe.h"
@@ -127,7 +128,7 @@ QByteArray accentIni(const QByteArray &resource, const std::array<QColor,4> &col
 // frameBase: the tone dark (frame) pixels are mapped with, where a bitmap
 // shares its outline with others drawn beside it. keepRed: only the pixels
 // Luna's blue made (Close's blue edges, its inactive mauve) follow `target`.
-bool recolour(QByteArray &dib, QColor target, QColor base, const QColor &backdrop = QColor(), bool glyphs = false, QSize frame = QSize(), QRgb keyColor = qRgb(255,0,255), bool keepRed = false, bool glyphOnly = false, int foregroundMode = 0, const QColor &frameBase = QColor())
+bool recolour(QByteArray &dib, QColor target, QColor base, const QColor &backdrop = QColor(), bool glyphs = false, QSize frame = QSize(), QRgb keyColor = qRgb(255,0,255), bool keepRed = false, bool glyphOnly = false, int foregroundMode = 0, const QColor &frameBase = QColor(), const QColor &caption = QColor(), const QColor &captionBase = QColor())
 {
     if (dib.size() < 40) return false;
     const auto *raw = reinterpret_cast<const uchar *>(dib.constData());
@@ -143,6 +144,17 @@ bool recolour(QByteArray &dib, QColor target, QColor base, const QColor &backdro
         if (input == keyColor || input == qRgb(255,0,255)) return;
         if (glyphOnly) { p[0]=target.blue(); p[1]=target.green(); p[2]=target.red(); return; }
         const QColor originalColor(input);
+        // Royale's button sprites include opaque caption-colored fringes.
+        // Those pixels belong to the titlebar, independently of the face color.
+        if (caption.isValid() && x >= 0 && y >= 0 && frame.width() > 3 && frame.height() > 3) {
+            const int fx=x%frame.width(), fy=y%frame.height();
+            const bool corner=(fx<2 || fx>=frame.width()-2) && (fy<2 || fy>=frame.height()-2);
+            const bool edge=fx==0 || fy==0 || fx==frame.width()-1 || fy==frame.height()-1 || corner;
+            if (edge && (originalColor.hsvSaturationF()<.12 || originalColor.hsvHueF()>=.5)) {
+                const QRgb out=tint(input,caption,captionBase);
+                p[0]=qBlue(out);p[1]=qGreen(out);p[2]=qRed(out);return;
+            }
+        }
         if (glyphs) {
             const QColor c(input);
             const int fx = frame.width() > 0 && x >= 0 ? x % frame.width() : -1;
@@ -211,12 +223,30 @@ bool recolour(QByteArray &dib, QColor target, QColor base, const QColor &backdro
     return true;
 }
 }
-QString customLuna(const QString &source, const std::array<QColor, 4> &colours,
-                   const QString &directory, QString *error, const QString &variant, int textMode, std::array<int,4> textModes, int menuTextMode)
+QString customLuna(const QString &requestedSource, const std::array<QColor, 4> &colours,
+                   const QString &directory, QString *error, const QString &requestedVariant, int textMode, std::array<int,4> textModes, int menuTextMode)
 {
     for (int &mode : textModes) mode=qBound(0,mode<0 ? textMode : mode,2);
     menuTextMode=menuTextMode<0 ? textModes[1] : qBound(0,menuTextMode,2);
     auto fail = [&](const QString &why) { if (error) *error = why; return QString(); };
+    QString source=requestedSource, variant=requestedVariant;
+    const QString filename=QFileInfo(source).fileName().toLower();
+    const bool royaleFamily=QStringList{QStringLiteral("royale.msstyles"),QStringLiteral("royale noir.msstyles"),QStringLiteral("embedded.msstyles"),QStringLiteral("zune.msstyles")}.contains(filename);
+    if (royaleFamily) {
+        const auto original=Library::style(source);
+        QString size;
+        if(const auto *v=original.variant(variant.isEmpty()?original.defaultVariant:variant))size=v->size;
+        const QStringList candidates{filename==QLatin1String("royale.msstyles")?source:QString(),
+            QFileInfo(source).dir().filePath(QStringLiteral("../Royale/Royale.msstyles")),
+            paths::themes()+QStringLiteral("/Royale/Royale.msstyles")};
+        QString canonical;
+        for(const auto &path:candidates)if(!path.isEmpty() && QFileInfo::exists(path)){canonical=QFileInfo(path).canonicalFilePath();break;}
+        if(canonical.isEmpty())return fail(QStringLiteral("Custom colors for the Royale family require the original Royale base style."));
+        source=canonical;
+        const auto base=Library::style(source);
+        variant=base.defaultVariant;
+        for(const auto &v:base.variants)if(!size.isEmpty() && v.size==size){variant=v.ini;break;}
+    }
     QFile input(source);
     if (!input.open(QIODevice::ReadOnly)) return fail(input.errorString());
     QByteArray bytes = input.readAll();
@@ -359,7 +389,8 @@ QString customLuna(const QString &source, const std::array<QColor, 4> &colours,
         QColor target=part==4 ? colours[3] : colours[part];
         if (part==1 && (surfaces[n].startsWith(QLatin1String("startpanel")) || surfaces[n].startsWith(QLatin1String("startmenu::"))))
             target=menuSurface(colours[1],surfaces[n]);
-        if (!recolour(bitmap,target,base,part==0 && blueLuna ? colours[1] : QColor(),part==3 || part==4 || n.contains(QLatin1String("CHEVRON")),frames[n],keys.value(n,qRgb(255,0,255)),part==4,false,(part==3 || part==4) ? textModes[3] : 0,frameBase))
+        const bool captionFringe=royaleFamily && (part==3 || part==4);
+        if (!recolour(bitmap,target,base,part==0 && blueLuna ? colours[1] : QColor(),part==3 || part==4 || n.contains(QLatin1String("CHEVRON")),frames[n],keys.value(n,qRgb(255,0,255)),part==4,false,(part==3 || part==4) ? textModes[3] : 0,frameBase,captionFringe?colours[2]:QColor(),QColor::fromRgbF(titleTone,titleTone,titleTone)))
             return fail(QStringLiteral("Unsupported theme bitmap: %1").arg(n));
         const qsizetype offset = r.fileOffset;
         if (offset < 0) return fail(QStringLiteral("Cannot locate Luna bitmap: %1").arg(n));
@@ -433,7 +464,7 @@ std::optional<Look> staticColorLook(const Look &base,const QJsonObject &settings
     }
     const QString path=customLuna(source,colors,paths::data()+"/custom-luna",error,base.variant,0,modes,menuMode);
     if(path.isEmpty())return std::nullopt;
-    return Look::fromStyle(path,base.variant,error);
+    return Look::fromStyle(path,colorMetadata(path).value(QStringLiteral("variant")).toString(base.variant),error);
 }
 
 
