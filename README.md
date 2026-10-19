@@ -1,17 +1,13 @@
 > [!WARNING]
-> **This project is vibecoded.** Hands-on testing has been limited to **Asahi Linux (ARM64)** and **Kubuntu on Intel/AMD x86-64**. Issues are expected, including on these systems; builds for other platforms do not mean they have been tested on real hardware. **I do not recommend installing this on a computer without backing up your data and system configuration first.**
+> **This project is vibecoded.** Hands-on testing has been limited to **Asahi Linux (ARM64)** and **Kubuntu on Intel/AMD x86-64**. Issues are expected, including on these systems; builds for other platforms do not mean they have been tested on real hardware. **I do not recommend installing this on a computer without backing up your data and system configuration first. While I personally run this on my main computers and have tried my best to audit the code, I am not a software engineer.**
 
 # XPlasma Plus — 1.0.1 Public Beta
 
-A KDE Plasma transformation pack and **modified fork of [hotsocket's XPlasma](https://tangled.org/hotsocket.fyi/xplasma/)**. The native visual-style engine, Qt style, Properties editor and desktop generators originate in that project. This repository contains our ports, integration and changes; it does not claim authorship of the upstream foundation.
+This is a project I've been working on for personal use that I wanted to share with anyone else who might enjoy it. This is a KDE Plasma transformation pack and **modified fork of [hotsocket's XPlasma](https://tangled.org/hotsocket.fyi/xplasma/)**. The native visual-style engine, Qt style, Properties editor and desktop generators are forked from that. This repository contains our (me and AI's) ports, integration and changes; it does not claim authorship of the upstream foundation.
 
-Also check out **[Rozniak's Windows XP Total Conversion for XFCE](https://github.com/rozniak/xfce-winxp-tc)**, an inspiration for this project. If you enjoy bringing the XP experience to Linux, give Rozniak and the project's contributors a visit and explore their work.
+Also check out **[Rozniak's Windows XP Total Conversion for XFCE](https://github.com/rozniak/xfce-winxp-tc)**, the main inspiration for this project. If you enjoy bringing the XP experience to Linux and are partial to XFCE, give Rozniak's project a look.
 
-The alpha includes the XP desktop by default and the IE6 Firefox theme optionally. XP Explorer, Control Panel, accessories, games, custom tray panels, Codex colors and Clippy are excluded. Existing Linux applications still receive XP widget styling. XPlasma Properties and its theme configuration remain included.
-
-Desktop features include Start/taskbar/clock, decorations, dark application colors, icon-resolution options, fonts/cursors/sounds/wallpapers, desktop shortcuts, checkered selection/snapping, caption animations, session dialogs, lock/login/boot screens and the XP Welcome session splash.
-
-The installer follows the blue graphical XP Setup sequence, with inset component-selection dialogs, progress/sidebar stages and rotating information pages. Visual reference: [Gough Lui's Windows XP install video](https://www.youtube.com/watch?v=vTheKjAtnKs&t=134s), from 2:14 onward, and the user's own XP installation media. Branding identifies this transformation pack and its upstream author.
+The alpha includes the XP desktop by default and the IE6 Firefox theme as an option. There are currently no XP remake applications included, but I may include them in the future. 
 
 ## Screenshots
 
