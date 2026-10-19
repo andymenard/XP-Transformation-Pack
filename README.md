@@ -51,6 +51,18 @@ The XP desktop on a HiDPI display at 250% scaling.
 
 ![HiDPI support: The XP desktop on a HiDPI display at 250% scaling.](docs/screenshots/06-hidpi-support.png)
 
+### Lock screen
+
+The installed XP lock screen captured in KDE’s test mode at 1024×768.
+
+![XP lock screen at 1024×768](docs/screenshots/07-lockscreen-1024x768.png)
+
+### Boot screen
+
+A 1024×768 preview rendered from the bundled boot-screen artwork and the Plymouth theme’s layout, showing one frame of the loading animation.
+
+![XP boot-screen preview at 1024×768](docs/screenshots/08-bootscreen-1024x768.png)
+
 ## Licence
 
 The source code in this repository — essentially any *text* files, such as C++, QML, Python, JavaScript and shell scripts — is licensed under the GPL; see [LICENSE](LICENSE). Reused components keep their own notices and licenses: read [CREDITS.md](CREDITS.md), [native/THIRD-PARTY-NOTICES](native/THIRD-PARTY-NOTICES) and [installer/THIRD-PARTY-NOTICES](installer/THIRD-PARTY-NOTICES). This modified project is not endorsed by upstream developers or Microsoft.
