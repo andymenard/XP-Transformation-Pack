@@ -27,3 +27,7 @@ The publisher includes the renamed Microsoft Tahoma regular and bold faces in
 export's font exclusion. Their original embedded copyright and license records
 remain, and they are not relicensed under the project GPL. The generator and
 source/derived hashes accompany the faces.
+
+## High-resolution wallpaper collection source
+
+WindowsAesthetics is credited for finding and collecting the high-resolution XP wallpapers: [Windows XP HD Wallpaper Pack](https://www.deviantart.com/windowsaesthetics/art/Windows-XP-HD-Wallpaper-Pack-776806652). The pack maintainer supplied this source attribution. It does not identify WindowsAesthetics as the original photographer or grant redistribution rights; the original artwork and photographer notices remain applicable.

@@ -65,6 +65,8 @@ not establish redistribution permission. See the bundled font provenance.
 
 ## Wallpaper credits
 
+**WindowsAesthetics** — [Windows XP HD Wallpaper Pack](https://www.deviantart.com/windowsaesthetics/art/Windows-XP-HD-Wallpaper-Pack-776806652) — is credited for finding and collecting the high-resolution XP wallpapers used by this pack. This collection-source attribution was supplied by the pack maintainer; it does not replace the original photographers’ credits or establish redistribution permission.
+
 The following attributions are recorded in the supplied files’ Artist metadata;
 they do not establish redistribution licenses. Resized and cropped variants keep
 the same attribution. Charles O’Rear’s Bliss attribution is also documented by
@@ -90,7 +92,7 @@ the same attribution. Charles O’Rear’s Bliss attribution is also documented 
 | Timothy Alt | Vortec space.jpg |
 | Jeff Vanuga | Wind.jpg |
 
-89 image files have no Artist metadata; their photographers remain unresolved. The supplied SOURCE-NOTES.txt identifies Getty/Corbis and other sources but does not supply complete per-image attribution. The collection compiler is also unidentified.
+89 image files have no Artist metadata; their photographers remain unresolved. The supplied SOURCE-NOTES.txt identifies Getty/Corbis and other sources but does not supply complete per-image attribution. WindowsAesthetics is credited above for finding and collecting the high-resolution wallpaper pack; individual photographers remain credited separately.
 
 
 Original Microsoft and stock-photo assets retain their separate rights; the
