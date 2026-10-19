@@ -38,7 +38,10 @@ class FirefoxInstallTests(unittest.TestCase):
   self.assertIn('initial-toolbar',(profile/'prefs.js').read_text());self.assertNotIn('browser.uiCustomization.state',(profile/'user.js').read_text())
  def test_existing_customization_survives_installation(self):
   profile=self.home/'.local/share/firefox-esr-ie6/profile';profile.mkdir(parents=True);saved='user_pref("browser.uiCustomization.state", "customized-toolbar");\n'
+  store={'chrome://browser/content/browser.xhtml':{'toolbar-menubar':{'autohide':'true'}},'other-window':{'width':'900'}}
+  (profile/'xulstore.json').write_text(json.dumps(store))
   (profile/'prefs.js').write_text(saved);self.install();self.assertEqual((profile/'prefs.js').read_text(),saved)
+  self.assertEqual(json.loads((profile/'xulstore.json').read_text()),store)
 if __name__=='__main__':unittest.main()
 
 class BundledBrowserTests(unittest.TestCase):
