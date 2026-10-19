@@ -3,7 +3,7 @@
 
 # XPlasma Plus — 1.0.1 Public Beta
 
-This is a project I've been working on for personal use that I wanted to share with anyone else who might enjoy it. This is a KDE Plasma transformation pack and **modified fork of [hotsocket's XPlasma](https://tangled.org/hotsocket.fyi/xplasma/)**. The native visual-style engine, Qt style, Properties editor and desktop generators are forked from that. This repository contains our (me and AI's) ports, integration and changes; it does not claim authorship of the upstream foundation. It also includes a KDE lock screen theme, SDDM theme, boot splash theme, and icon theme with a special thanks to [marchmountain for the hi-res icons](https://github.com/marchmountain/-Windows-XP-High-Resolution-Icon-Pack).
+This is a project I've been working on for personal use that I wanted to share with anyone else who might enjoy it. This is a KDE Plasma transformation pack and **modified fork of [hotsocket's XPlasma](https://tangled.org/hotsocket.fyi/xplasma/)**. The native visual-style engine, Qt style, Properties editor and desktop generators are forked from that. This repository contains our (me and AI's) ports, integration and changes; it does not claim authorship of the upstream foundation. It also includes a KDE lock screen theme, SDDM theme, Plymouth boot splash theme, and icon theme with a special thanks to [marchmountain for the hi-res icons](https://github.com/marchmountain/-Windows-XP-High-Resolution-Icon-Pack).
 
 Also check out **[Rozniak's Windows XP Total Conversion for XFCE](https://github.com/rozniak/xfce-winxp-tc)**, the main inspiration for this project. If you enjoy bringing the XP experience to Linux and are partial to XFCE, give Rozniak's project a look.
 
