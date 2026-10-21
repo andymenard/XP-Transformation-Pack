@@ -38,6 +38,16 @@ def detect():
   'kde':'KDE' in os.environ.get('XDG_CURRENT_DESKTOP','').upper(),'boot':boot,
   'splash':bool(set(Path('/proc/cmdline').read_text().split())&{'splash','rhgb'}),
   'systemd':Path('/run/systemd/system').is_dir()}
+# The login and boot screens belong to the whole system, so one account's
+# installation manages them; root_helper.py publishes which one here, since
+# its per-account records are readable by root only.
+SCREENS_MARKER=Path('/var/lib/kde-xp-suite/screens.json')
+def screens_manager(marker=None):
+ """The other account whose installation manages the system screens, or None."""
+ try:record=json.loads((marker or SCREENS_MARKER).read_text());uid=int(record['uid'])
+ except (OSError,ValueError,KeyError,TypeError):return None
+ if uid==os.getuid():return None
+ return str(record.get('user') or 'user '+str(uid))
 def capabilities(profile,features):
  result={f['id']:'' for f in features}
  def disable(names,reason):
@@ -63,4 +73,6 @@ def capabilities(profile,features):
  try:installed=set(json.loads((Path.home()/'.local/share/kde-xp-suite/installation.json').read_text()).get('features',[]))
  except (OSError,ValueError):installed=set()
  if 'lock' not in installed and (Path.home()/'.local/share/plasma/shells/org.kde.plasma.desktop').exists():disable(['lock'],'A custom user Plasma shell is already installed.')
+ manager=screens_manager()
+ if manager:disable(['login','boot'],'The XPlasma Plus installation of the '+manager+' account manages the system login and boot screens, which already apply to every account. Remove it there to manage them from this account.')
  return result
