@@ -1,7 +1,5 @@
 name: XP widgets across Plasma 6
 on:
-  push:
-    branches: [codex/open-issues-generic-plasma6]
   pull_request:
     paths: ['native/**', 'installer/**', '.github/workflows/plasma-widget-compatibility.yml']
   workflow_dispatch:
@@ -56,6 +54,72 @@ jobs:
       - name: Build the XP engine and Start menu on the oldest Plasma 6 Qt
         run: |
           cmake -S native -B /tmp/build -G Ninja -DQT_MAJOR=6 -DCMAKE_BUILD_TYPE=Release
-          cmake --build /tmp/build --parallel 3 --target xplasma-runtime test-startmenu test-style-geometry
+          cmake --build /tmp/build --parallel 3 --target xplasma-runtime test-startmenu test-style-geometry -- -k 0
           /tmp/build/tests/app/test-startmenu
           /tmp/build/tests/style/test-style-geometry
+  compiled-widgets:
+    name: XP plugins / Plasma ${{ matrix.plasma }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - plasma: '6.5'
+            image: fedora:43
+            family: dnf
+            release_only: '0'
+          - plasma: '6.6'
+            image: fedora:44
+            family: dnf
+            release_only: '1'
+          - plasma: '6.7'
+            image: fedora:44
+            family: dnf
+            release_only: '0'
+          - plasma: '6.8'
+            image: archlinux:latest
+            family: pacman
+            release_only: '0'
+    container: ${{ matrix.image }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+      XP_RELEASE_ONLY: ${{ matrix.release_only }}
+      XP_EXPECTED_PLASMA: ${{ matrix.plasma }}
+      XP_FAMILY: ${{ matrix.family }}
+    steps:
+      - name: Bootstrap container
+        run: |
+          if [ "$XP_FAMILY" = dnf ]; then
+            dnf install -y python3 git ca-certificates
+          else
+            pacman -Syu --noconfirm --needed python git ca-certificates
+          fi
+      - uses: actions/checkout@v4
+      - name: Install this distribution's complete widget SDK
+        run: |
+          python3 - <<'PY'
+          import os,subprocess,sys
+          sys.path.insert(0,'installer')
+          from dependencies import install
+          family=os.environ['XP_FAMILY']
+          def run(args):
+              if args[0]=='dnf' and os.environ['XP_RELEASE_ONLY']=='1':args=[args[0],'--disablerepo=updates','--setopt=tsflags=noscripts',*args[1:]]
+              subprocess.run(args,check=True)
+          if family=='dnf':run(['dnf','install','-y','plasma-workspace'])
+          install(family,{'taskbar'},run)
+          from system_profile import detect,widget_target
+          profile=detect();print(profile,flush=True)
+          if widget_target(profile)!=os.environ['XP_EXPECTED_PLASMA']:
+              raise RuntimeError('Container no longer supplies the expected Plasma ABI; update its snapshot before certifying this target.')
+          PY
+      - name: Build the engine against this host's Qt and KDE
+        run: |
+          cmake -S native -B /tmp/build -G Ninja -DQT_MAJOR=6 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/tmp/xp/runtime
+          cmake --build /tmp/build --parallel 3 --target xplasma-runtime
+          cmake --install /tmp/build
+      - name: Build every required XP plugin and check public Qt ABI use
+        run: |
+          mkdir -p /tmp/xp/source
+          ln -s "$GITHUB_WORKSPACE/native" /tmp/xp/source/xplasma
+          python3 installer/build-widgets.py /tmp/xp 3

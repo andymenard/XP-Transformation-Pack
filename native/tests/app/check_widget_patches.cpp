@@ -67,7 +67,7 @@ int main(int argc, char **argv)
         }
         // Applying every anchor is insufficient if a required XP component
         // was accidentally made optional. Assert behavior markers as well.
-        const QHash<QString, QString> required{
+        const QMultiHash<QString, QString> required{
             {"taskmanager/main.qml", "xpTaskband"},
             {"taskmanager/Task.qml", "xpTaskband"},
             {"taskmanager/code/layoutmetrics.js", "return 160;"},
@@ -77,6 +77,7 @@ int main(int argc, char **argv)
             {"notifications/main.qml", "Globals.xpBalloons"},
             {"panel/main.qml", "xpColours"},
             {"desktopcontainment/FolderItemDelegate.qml", "XP desktop icons have no shadow"},
+            {"desktopcontainment/FolderItemDelegate.qml", "XPlasma: XP desktop icon selection:"},
         };
         for (auto item = required.begin(); item != required.end(); ++item) {
             if (!outputs.value(item.key()).contains(item.value())) {

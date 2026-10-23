@@ -1803,8 +1803,8 @@ private Q_SLOTS:
             QCOMPARE(iconQml.count("XPlasma: XP blends a selected desktop icon"), 1);
             QVERIFY(iconQml.contains("width: label.contentWidth + 4"));
             QVERIFY(iconQml.contains("opacity: 0.5"));
-            QVERIFY(iconQml.contains("visible: !main.isOnRootView"));
-            QVERIFY(iconQml.contains("visible: main.isOnRootView && !!(main.selected || (main.model && main.model.selected))"));
+            QVERIFY(iconQml.contains("visible: !main.xpOnDesktop"));
+            QVERIFY(iconQml.contains("visible: main.xpOnDesktop && main.xpSelected"));
 
             QVERIFY(qml.contains("color: \"transparent\""));
         }
@@ -2404,7 +2404,7 @@ private Q_SLOTS:
     void colorOnlyApplyPreservesRuntimeAndCaches()
     {
         const QString source=m_realThemes+"/Luna/luna.msstyles";
-        if(!QFileInfo::exists(source))QSKIP("needs Luna");
+        if(!QFileInfo::exists(source) || m_realIso.isEmpty())QSKIP("needs Luna and XP media for the XP Start menu");
         QString error;const auto base=Look::fromStyle(source,"NORMALBLUE_INI",&error);QVERIFY(base);
         State state;state.media=m_realIso;state.appliedKind="style";state.style=source;state.variant=base->variant;state.settings.insert(kAppliedWithKey,project::kVersion);QVERIFY(state.save());
         const QString share=paths::localShare();

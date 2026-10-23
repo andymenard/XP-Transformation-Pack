@@ -2,6 +2,7 @@
 """Build only the four XP widget plugins against this system's libraries."""
 import hashlib,json,os,shutil,subprocess,sys,tarfile
 import build_cache
+from widget_sources import verified_archive
 from pathlib import Path
 from system_profile import detect,widget_target
 
@@ -18,8 +19,7 @@ def main():
   parts=line.split()
   if parts[0]=='source':
    _,project,version,expected=parts;sources[project]=version
-   archive=suite/'source'/(project+'-'+version+'.tar.xz')
-   if hashlib.sha256(archive.read_bytes()).hexdigest()!=expected:raise RuntimeError('Plasma source checksum mismatch: '+archive.name)
+   archive=verified_archive(suite,build/'plasma-source-cache',project,version,expected)
    if not (pristine/(project+'-'+version)).exists():
     with tarfile.open(archive) as t:t.extractall(pristine,filter='data')
   elif parts[0]=='target':targets.setdefault(parts[1],[]).append(parts[2])
