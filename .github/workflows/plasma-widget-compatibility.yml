@@ -67,9 +67,10 @@ jobs:
       matrix:
         include:
           - plasma: '6.5'
-            image: fedora:43
-            family: dnf
-            release_only: '1'
+            image: archlinux:latest
+            family: pacman
+            release_only: '0'
+            archive_date: '2026/02/01'
           - plasma: '6.6'
             image: fedora:44
             family: dnf
@@ -88,13 +89,19 @@ jobs:
       XP_RELEASE_ONLY: ${{ matrix.release_only }}
       XP_EXPECTED_PLASMA: ${{ matrix.plasma }}
       XP_FAMILY: ${{ matrix.family }}
+      XP_ARCHIVE_DATE: ${{ matrix.archive_date }}
     steps:
       - name: Bootstrap container
         run: |
           if [ "$XP_FAMILY" = dnf ]; then
             dnf install -y python3 git ca-certificates
           else
-            pacman -Syu --noconfirm --needed python git ca-certificates
+            if [ -n "$XP_ARCHIVE_DATE" ]; then
+              printf 'Server = https://archive.archlinux.org/repos/%s/$repo/os/$arch\n' "$XP_ARCHIVE_DATE" > /etc/pacman.d/mirrorlist
+              pacman -Syyuu --noconfirm --needed python git ca-certificates
+            else
+              pacman -Syu --noconfirm --needed python git ca-certificates
+            fi
           fi
       - uses: actions/checkout@v4
       - name: Install this distribution's complete widget SDK
