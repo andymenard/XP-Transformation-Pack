@@ -6,7 +6,7 @@ BASE=Path(__file__).resolve().parent
 sys.path.insert(0,str(BASE/'lib'))
 import tomlkit
 ACCESSORIES={'notepad','calculator','paint','picture_viewer','media_player','sound_recorder','volume_control','command_prompt','task_manager','pinball','minesweeper','solitaire'}
-from system_profile import detect,capabilities,widget_build
+from system_profile import detect,capabilities,widget_target
 STATE_NAME='kde-xp-suite'
 FEATURES=json.loads((BASE/'features.json').read_text())
 KNOWN={f['id'] for f in FEATURES}
@@ -327,7 +327,7 @@ def prepare_native(home,state,selected,theme,asset_options=None,keep_theme=False
  if 'fonts' in selected:copy(BASE/'payload/assets/fonts',home/'.local/share/fonts/xp');run(['fc-cache','-f'])
  build=state/'build'
  phase('Preparing desktop components — first installation may take several minutes')
- run([BASE/'build-native.sh',build,'taskbar' if 'taskbar' in selected and widget_build(detect(),BASE) else 'core'])
+ run([BASE/'build-native.sh',build,'taskbar' if 'taskbar' in selected and widget_target(detect()) else 'core'])
  copy(build/'runtime',state/'runtime')
  cli=state/'runtime/bin/xplasma';choice=presets(home)/(theme+'.theme')
  if keep_theme:choice=current_theme(home) or choice
@@ -656,13 +656,13 @@ def install(selected,theme,asset_options=None):
  phase('Preparing Linux dependencies — authentication may be requested')
  if detect()['family'] and selected&(NATIVE|ACCESSORIES|{'login','boot','firefox','explorer','control_panel','tray','caption_animation','icons'}):
   import build_cache
-  cached=build_cache.find(BASE,'taskbar' if 'taskbar' in selected and widget_build(detect(),BASE) else 'core') if selected&NATIVE else None
+  cached=build_cache.find(BASE,'taskbar' if 'taskbar' in selected and widget_target(detect()) else 'core') if selected&NATIVE else None
   ready=bool(cached and build_cache.usable(cached))
   if ready:log('A verified prebuilt package matches this distribution, architecture, Qt and Plasma version.')
   caption_was_ready=bool(build_cache.find_caption(BASE))
   root('dependencies',selected,native_ready=ready,caption_ready=caption_was_ready)
   if ready or caption_was_ready:
-   after=build_cache.find(BASE,'taskbar' if 'taskbar' in selected and widget_build(detect(),BASE) else 'core')
+   after=build_cache.find(BASE,'taskbar' if 'taskbar' in selected and widget_target(detect()) else 'core')
    still_ready=bool(after and build_cache.usable(after))
    caption_ok=bool(build_cache.find_caption(BASE))
    if (ready and not still_ready) or ('caption_animation' in selected and caption_was_ready and not caption_ok):
@@ -712,14 +712,14 @@ def install(selected,theme,asset_options=None):
   # (Once: an upgrade keeps a browser chosen since.)
   if 'firefox_default' in selected and 'firefox_default' not in installed:phase('Making IE6 Firefox the default web browser');browser_default(home)
   # (Seeded once: an upgrade keeps the Quick Launch as it has been edited.)
-  if 'taskbar' in selected and 'taskbar' not in installed and widget_build(detect(),BASE):phase('Setting default taskbar shortcuts');taskbar_defaults(home,selected)
+  if 'taskbar' in selected and 'taskbar' not in installed:phase('Setting default taskbar shortcuts');taskbar_defaults(home,selected)
   if 'desktop_icons' in selected:phase('Adding XP desktop shortcuts');shortcuts(home,state,selected,asset_options)
   if selected&{'codex_colors','clippy'}:phase('Configuring Codex extras');codex(home,selected,'clippy' in installed)
   if selected&{'login','boot'}:
    run(['kwriteconfig6','--file','ksplashrc','--group','KSplash','--key','Engine','none'])
    phase('Installing selected login and boot screens');root('screens',selected,upgrade=bool(installed&{'login','boot'}))
   if 'welcome_splash' in selected:phase('Installing XP Welcome desktop splash');welcome_splash(home)
-  if 'taskbar' in selected and widget_build(detect(),BASE):phase('Checking the XP taskbar');verify_taskbar()
+  if 'taskbar' in selected:phase('Checking the XP taskbar');verify_taskbar()
   snapshot.finish()
   edition=json.loads((BASE/'edition.json').read_text()) if (BASE/'edition.json').is_file() else None
   result={'version':4,'edition':edition,'features':sorted(selected),'theme':theme,'asset_options':asset_options}
@@ -782,7 +782,7 @@ def rebuild():
  try:
   prepare_native(home,state,selected,previous['theme'],asset_options,keep_theme=True)
   if 'caption_animation' in selected:phase('Rebuilding the XP caption animation');caption_animation(home)
-  if 'taskbar' in selected and widget_build(detect(),BASE):phase('Checking the XP taskbar');verify_taskbar()
+  if 'taskbar' in selected:phase('Checking the XP taskbar');verify_taskbar()
   previous['rebuilds']=previous.get('rebuilds',[])+[{'plasma':'.'.join(map(str,detect().get('plasma',()))),'edition':previous.get('edition')}]
   record.write_text(json.dumps(previous,indent=2)+'\n')
   shutil.rmtree(rollback,ignore_errors=True)

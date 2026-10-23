@@ -8,20 +8,18 @@ def output(args):
 def numbers(value):
  match=re.search(r'(\d+)\.(\d+)(?:\.(\d+))?',value)
  return tuple(map(int,match.groups(default='0'))) if match else (0,0,0)
-def widget_target(profile):
- """Optional bundled widget recipe; core theming does not depend on one."""
+# Source API floors, not the Qt used by a particular prebuilt artifact.
+WIDGET_QT_FLOORS={0:(6,6,0),1:(6,6,0),2:(6,7,0),3:(6,7,0),4:(6,8,0),5:(6,9,0),6:(6,10,0),7:(6,10,0),8:(6,11,0)}
+def widget_series(profile):
+ """Known XP widget port; unknown future layouts remain blocked."""
  major,minor,patch=profile['plasma']
  if patch>=90:minor+=1
- series=str(major)+'.'+str(minor)
- floor={'6.6':(6,10,0),'6.7':(6,11,0),'6.8':(6,12,0)}.get(series)
- return series if floor and profile['qt']>=floor else None
-def widget_build(profile,suite):
- """Use stock widgets if this installer lacks either pinned source archive."""
- target=widget_target(profile)
- if not target:return None
- for project in ['desktop','workspace']:
-  if not any(widget_target({**profile,'plasma':numbers(p.name)})==target for p in (Path(suite)/'source').glob('plasma-'+project+'-*.tar.xz')):return None
- return target
+ floor=WIDGET_QT_FLOORS.get(minor)
+ return '6.'+str(minor) if major==6 and floor and profile['qt']>=floor else None
+def widget_target(profile):
+ """Only 6.5+ need compiled replacements; older ports patch packaged QML."""
+ series=widget_series(profile)
+ return series if series and int(series.split('.')[1])>=5 else None
 def executable(*names):
  return next((str(Path(x)) if '/' in x and Path(x).is_file() else shutil.which(x) for x in names if (Path(x).is_file() if '/' in x else shutil.which(x))),None)
 def detect():
@@ -75,11 +73,9 @@ def capabilities(profile,features):
  if not shutil.which('fc-cache'):disable(['fonts'],'Fontconfig is missing.')
  if not profile['dbus']:disable(['wallpaper','taskbar','behavior'],'Qt 6 qdbus is missing; install the distribution Qt tools first.')
  if profile['qt']<(6,6,0):disable(['theme_manager','desktop','apps','taskbar'],'XPlasma requires Qt 6.6 or newer; Qt development tools must be installed for detection.')
- series='.'.join(map(str,profile['plasma'][:2]))
  if profile['plasma']<(6,6,0):disable(['tray'],'XP tray panels require Plasma 6.6 or newer.')
- # Generic core artwork and stock taskbar widgets span Plasma 6. Only the
- # bundled shell/dialog replacements and KWin effect remain series-specific.
- if not widget_target(profile):disable(['session','lock','caption_animation'],'This optional shell integration needs a matching Plasma recipe. Core themes and the taskbar use the distribution widgets on this Plasma version.')
+ if not widget_series(profile):disable(['taskbar'],'This Plasma/Qt combination has no verified XP widget port. The XP taskbar cannot be replaced with stock widgets; update the installer when its port is available.')
+ if widget_target(profile) not in {'6.6','6.7','6.8'}:disable(['session','lock','caption_animation'],'This optional shell integration needs a matching Plasma recipe. Other XP desktop features remain available.')
  if not profile['family']:
   disable(['pinball','minesweeper','solitaire'],'Game build dependencies require a supported package-manager adapter.')
  if not profile['family']:disable(['theme_manager','desktop','apps','taskbar','login','boot','caption_animation'],'Automatic dependency installation supports APT, DNF, pacman, Zypper and XBPS families.')

@@ -13,8 +13,8 @@
 
 namespace xpl::desktop {
 
-// Public theme interfaces span Plasma 6; optional widget forks are probed
-// separately at runtime. Earlier releases use the host's widgets.
+// XP widget ports cover the packaged-QML Plasma 6.0+ layouts; compiled
+// replacements and their library ABI are checked separately before apply.
 inline constexpr const char *kOldestPlasma = "6.0";
 // The newest Plasma series XPlasma has builds of Plasma's widgets for
 // (overrides/forks.json): "6.7".

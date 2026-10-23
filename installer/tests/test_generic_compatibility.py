@@ -13,28 +13,24 @@ class Compatibility(unittest.TestCase):
  def support(self,**changes):
   with patch.object(profile,'screens_manager',return_value=None),patch.object(profile.shutil,'which',return_value='/usr/bin/tool'),patch.object(profile.Path,'exists',return_value=False):
    return profile.capabilities({**BASE,**changes},FEATURES)
- def test_core_and_stock_taskbar_across_plasma_six(self):
-  for minor in range(0,15):
+ def test_xp_taskbar_ports_cover_existing_plasma_six_branches(self):
+  for minor,qt in profile.WIDGET_QT_FLOORS.items():
    with self.subTest(minor=minor):
-    support=self.support(plasma=(6,minor,0),qt=(6,6,0))
+    support=self.support(plasma=(6,minor,0),qt=qt)
     for feature in ['theme_manager','desktop','apps','taskbar']:self.assertEqual(support[feature],'')
- def test_trixie_uses_stock_widgets_without_enabling_unported_dialogs(self):
+ def test_trixie_uses_packaged_xp_ports_without_enabling_unported_dialogs(self):
   support=self.support()
   self.assertEqual(support['taskbar'],'')
+  self.assertIsNone(profile.widget_target(BASE))
+  self.assertEqual(profile.widget_series(BASE),'6.3')
   self.assertTrue(support['lock']);self.assertTrue(support['caption_animation'])
  def test_recipe_floors_and_prereleases(self):
-  self.assertEqual(profile.widget_target({**BASE,'plasma':(6,7,91),'qt':(6,12,0)}),'6.8')
-  self.assertIsNone(profile.widget_target({**BASE,'plasma':(6,8,0),'qt':(6,11,0)}))
-  self.assertIsNone(profile.widget_target(BASE))
- def test_optional_build_requires_both_source_archives(self):
-  host={**BASE,'plasma':(6,8,0),'qt':(6,12,0)}
-  with tempfile.TemporaryDirectory() as folder:
-   source=Path(folder)/'source';source.mkdir()
-   self.assertIsNone(profile.widget_build(host,folder))
-   (source/'plasma-desktop-6.7.91.tar.xz').touch()
-   self.assertIsNone(profile.widget_build(host,folder))
-   (source/'plasma-workspace-6.7.91.tar.xz').touch()
-   self.assertEqual(profile.widget_build(host,folder),'6.8')
+  self.assertEqual(profile.widget_target({**BASE,'plasma':(6,7,91),'qt':(6,11,0)}),'6.8')
+  self.assertIsNone(profile.widget_target({**BASE,'plasma':(6,8,0),'qt':(6,10,0)}))
+  self.assertEqual(profile.widget_target({**BASE,'plasma':(6,5,6),'qt':(6,9,0)}),'6.5')
+ def test_unknown_or_too_old_qt_cannot_replace_xp_widgets_with_stock_widgets(self):
+  self.assertTrue(self.support(plasma=(6,9,0),qt=(6,12,0))['taskbar'])
+  self.assertTrue(self.support(plasma=(6,4,0),qt=(6,7,0))['taskbar'])
  def test_non_systemd_desktop_remains_available(self):
   support=self.support(systemd=False,plasma=(6,7,5),qt=(6,11,2),family='xbps')
   for feature in ['desktop','taskbar','session']:self.assertEqual(support[feature],'')

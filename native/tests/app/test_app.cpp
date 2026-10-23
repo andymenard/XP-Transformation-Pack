@@ -1856,30 +1856,33 @@ private Q_SLOTS:
         QVERIFY(!forks::choose(QString(), ids, &error));
     }
 
-    void applyUsesStockWidgetsWithoutCompatibleOverrides()
+    void applyRefusesPartialLook()
     {
+        // Applying on a Plasma that can't take every override changes
+        // nothing at all: no programs run, no settings written.
+        if (m_realThemes.isEmpty())
+            QSKIP("no asset library on this machine");
+        const auto look = Look::fromStyle(m_realThemes + QLatin1String("/Luna/luna.msstyles"));
+        QVERIFY(look);
         const QString system = m_home.filePath(QStringLiteral("empty-share"));
         QDir().mkpath(system);
         const QByteArray saved = qgetenv("XDG_DATA_DIRS");
         qputenv("XDG_DATA_DIRS", system.toUtf8());
         RecordingSession session;
         ApplyOptions o;
-        o.icons = o.widgets = o.fonts = o.sounds = o.properties = o.decoration = false;
-        QStringList said;
-        o.progress = [&](const QString &line) { said << line; };
         QString error;
-        const bool applied = applyLook(session, Look::fromScheme(ClassicScheme()), o, &error);
+        const bool applied = applyLook(session, *look, o, &error);
         qputenv("XDG_DATA_DIRS", saved);
-        QVERIFY2(applied, qPrintable(error));
-        QVERIFY(said.join(QLatin1Char(' ')).contains(QLatin1String("Compatibility mode")));
-        QVERIFY(std::any_of(session.runs.cbegin(), session.runs.cend(), [](const QStringList &args) {
-            return args.contains(QStringLiteral("plasma-apply-desktoptheme"));
-        }));
-        QVERIFY(!QFileInfo::exists(paths::localShare() + QLatin1String("/plasma/plasmoids/fyi.hotsocket.xplasma.start")));
-        // Stock widgets and the user's panel layout are retained. Only theme
-        // artwork changes; no XP Start-button verification should run.
-        for (const QString &script : std::as_const(session.scripts))
-            QVERIFY(!script.contains(QLatin1String("LAUNCHER_KEYS")));
+        QVERIFY(!applied);
+        QVERIFY2(error.contains(QLatin1String("nothing was changed")), qPrintable(error));
+        // Shipped widget plugins may load even with an empty XDG_DATA_DIRS.
+        // The absent Aurorae renderer must still reject application.
+        QVERIFY2(error.contains(QLatin1String("Aurorae")), qPrintable(error));
+        // (Only asking which Plasma it is.)
+        for (const QStringList &run : std::as_const(session.runs))
+            QVERIFY2(run.contains(QStringLiteral("plasmashell")) && run.contains(QStringLiteral("--version")), qPrintable(run.join(QLatin1Char(' '))));
+        QVERIFY(session.config.isEmpty());
+        QVERIFY(session.scripts.isEmpty());
     }
 
     void retiredLiveColorsOnlyDisableConfiguration()
@@ -2420,10 +2423,7 @@ private Q_SLOTS:
         QVERIFY(!session.ran("systemctl"));QVERIFY(!session.calls.contains("/KDEPlatformTheme refreshFonts"));
         QVERIFY(!session.config.contains("kwinrulesrc|General|rules"));
         QVERIFY(session.scripts.filter("LAUNCHER_KEYS").isEmpty());
-        if (progress.join(' ').contains("Compatibility mode"))
-            QVERIFY(session.scripts.filter("JSON.stringify").isEmpty());
-        else
-            QVERIFY(!session.scripts.filter("JSON.stringify").isEmpty());
+        QVERIFY(!session.scripts.filter("JSON.stringify").isEmpty());
         const QString id=State::load().settings.value("appliedPackageId").toString();QVERIFY(id.startsWith("xplasma-v2-"));
         const bool native=session.config.value("kwinrc|org.kde.kdecoration2|library")=="fyi.hotsocket.xplasma.decoration";
         QString asset;

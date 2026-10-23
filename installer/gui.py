@@ -7,7 +7,7 @@ try:
 except ImportError:
  from PySide6 import QtCore,QtGui,QtWidgets
 BASE=Path(__file__).resolve().parent
-from system_profile import detect,capabilities,widget_build
+from system_profile import detect,capabilities
 import rebuild as plasma_update
 FEATURES=json.loads((BASE/'features.json').read_text())
 EDITION=json.loads((BASE/'edition.json').read_text()) if (BASE/'edition.json').exists() else {}
@@ -133,7 +133,7 @@ class Installer(QtWidgets.QMainWindow):
   all_button.clicked.connect(lambda:self.select_all(True));none_button.clicked.connect(lambda:self.select_all(False));self.close_button.clicked.connect(self.close)
   self.tree.itemChanged.connect(self.component_changed);self.tree.currentItemChanged.connect(self.describe);self.theme.currentTextChanged.connect(self.update_summary)
   self.install.clicked.connect(lambda:self.start('install'));self.remove.clicked.connect(lambda:self.start('uninstall'));self.rebuild.clicked.connect(lambda:self.start('rebuild'))
-  self.status.setText(self.profile['name']+' — Plasma '+'.'.join(map(str,self.profile['plasma']))+' — '+self.profile['arch']+'. Unavailable features are disabled.'+(' Compatibility mode keeps the distribution taskbar widgets.' if not widget_build(self.profile,BASE) else ''))
+  self.status.setText(self.profile['name']+' — Plasma '+'.'.join(map(str,self.profile['plasma']))+' — '+self.profile['arch']+'. Unavailable features are disabled.')
   self.set_step(0);self.update_summary()
  def lock_installed(self):
   installed=STATE/'installation.json'

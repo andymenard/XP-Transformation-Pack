@@ -1,0 +1,61 @@
+name: XP widgets across Plasma 6
+on:
+  push:
+    branches: [codex/open-issues-generic-plasma6]
+  pull_request:
+    paths: ['native/**', 'installer/**', '.github/workflows/plasma-widget-compatibility.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-matrix:
+    runs-on: ubuntu-24.04
+    container: fedora:44
+    timeout-minutes: 30
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - name: Install build and QML parser dependencies
+        run: dnf install -y git gcc-c++ cmake ninja-build python3 qt6-qtbase-devel qt6-qtdeclarative-devel libarchive-devel zlib-devel xz-devel bzip2-devel curl
+      - uses: actions/checkout@v4
+      - name: Check official source archive identities
+        run: |
+          set -eu
+          for version in 6.5.6 6.8.1; do
+            for project in plasma-workspace plasma-desktop; do
+              curl --fail --location --retry 3 "https://download.kde.org/stable/plasma/$version/$project-$version.tar.xz" --output "/tmp/$project-$version.tar.xz"
+              sha256sum "/tmp/$project-$version.tar.xz"
+            done
+          done
+      - name: Build the production patch checker and native regressions
+        run: |
+          cmake -S native -B /tmp/build -G Ninja -DQT_MAJOR=6 -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/build --parallel 3 --target check-widget-patches test-app test-style-geometry test-startmenu
+      - name: Verify XP behavior and QML syntax on every branch
+        run: python3 native/ci/check-plasma-widgets.py --checker /tmp/build/tests/app/check-widget-patches --qmlformat /usr/lib64/qt6/bin/qmlformat
+      - name: Run core presentation regressions
+        run: |
+          /tmp/build/tests/style/test-style-geometry
+          /tmp/build/tests/app/test-startmenu
+  oldest-qt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install compiler and system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++ libarchive-dev zlib1g-dev liblzma-dev libbz2-dev libegl1 libopengl0 libgl1 libxkbcommon0 libxcb-cursor0
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.6.3'
+          modules: qt5compat
+          cache: true
+      - name: Build the XP engine and Start menu on the oldest Plasma 6 Qt
+        run: |
+          cmake -S native -B /tmp/build -G Ninja -DQT_MAJOR=6 -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/build --parallel 3 --target xplasma-runtime test-startmenu test-style-geometry
+          /tmp/build/tests/app/test-startmenu
+          /tmp/build/tests/style/test-style-geometry
