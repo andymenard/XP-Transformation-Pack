@@ -67,7 +67,7 @@ jobs:
       matrix:
         include:
           - plasma: '6.5'
-            image: archlinux:latest
+            image: archlinux:base-20260125.0.484595
             family: pacman
             release_only: '0'
             archive_date: '2026/02/01'
