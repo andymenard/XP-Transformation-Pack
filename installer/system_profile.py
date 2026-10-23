@@ -8,6 +8,20 @@ def output(args):
 def numbers(value):
  match=re.search(r'(\d+)\.(\d+)(?:\.(\d+))?',value)
  return tuple(map(int,match.groups(default='0'))) if match else (0,0,0)
+def widget_target(profile):
+ """Optional bundled widget recipe; core theming does not depend on one."""
+ major,minor,patch=profile['plasma']
+ if patch>=90:minor+=1
+ series=str(major)+'.'+str(minor)
+ floor={'6.6':(6,10,0),'6.7':(6,11,0),'6.8':(6,12,0)}.get(series)
+ return series if floor and profile['qt']>=floor else None
+def widget_build(profile,suite):
+ """Use stock widgets if this installer lacks either pinned source archive."""
+ target=widget_target(profile)
+ if not target:return None
+ for project in ['desktop','workspace']:
+  if not any(widget_target({**profile,'plasma':numbers(p.name)})==target for p in (Path(suite)/'source').glob('plasma-'+project+'-*.tar.xz')):return None
+ return target
 def executable(*names):
  return next((str(Path(x)) if '/' in x and Path(x).is_file() else shutil.which(x) for x in names if (Path(x).is_file() if '/' in x else shutil.which(x))),None)
 def detect():
@@ -16,8 +30,8 @@ def detect():
   if '=' in line:
    key,value=line.split('=',1);release[key]=value.strip('"')
  ids=(release.get('ID','')+' '+release.get('ID_LIKE','')).split()
- family=next((f for f,names in [('apt',{'ubuntu','debian'}),('dnf',{'fedora','rhel','centos'}),('pacman',{'arch','manjaro'}),('zypper',{'opensuse','opensuse-tumbleweed','opensuse-leap','suse'})] if set(ids)&names),None)
- manager={'apt':'apt-get','dnf':'dnf','pacman':'pacman','zypper':'zypper'}.get(family)
+ family=next((f for f,names in [('xbps',{'void'}),('apt',{'ubuntu','debian'}),('dnf',{'fedora','rhel','centos'}),('pacman',{'arch','manjaro'}),('zypper',{'opensuse','opensuse-tumbleweed','opensuse-leap','suse'})] if set(ids)&names),None)
+ manager={'xbps':'xbps-install','apt':'apt-get','dnf':'dnf','pacman':'pacman','zypper':'zypper'}.get(family)
  if not manager or not shutil.which(manager):family=None
  qttool=executable('qtpaths6','qtpaths-qt6','/usr/lib/qt6/bin/qtpaths','qmake6','qmake-qt6')
  qt=output([qttool,'--qt-version']) if qttool and 'qtpaths' in qttool else output([qttool,'-query','QT_VERSION']) if qttool else ''
@@ -25,10 +39,12 @@ def detect():
   if family in {'dnf','zypper'}:qt=output(['rpm','-q','--qf','%{VERSION}','qt6-qtbase' if family=='dnf' else 'libQt6Core6'])
   elif family=='apt':
    qt=output(['dpkg-query','-W','-f=${Version}','libqt6core6t64']) or output(['dpkg-query','-W','-f=${Version}','libqt6core6'])
+  elif family=='xbps':qt=output(['xbps-query','-p','pkgver','qt6-core'])
   elif family=='pacman':qt=output(['pacman','-Q','qt6-base'])
  plasma=''
  if family in {'dnf','zypper'}:plasma=output(['rpm','-q','--qf','%{VERSION}','plasma-workspace' if family=='dnf' else 'plasma6-workspace'])
  elif family=='apt':plasma=output(['dpkg-query','-W','-f=${Version}','plasma-workspace']).split(':')[-1]
+ elif family=='xbps':plasma=output(['xbps-query','-p','pkgver','plasma-workspace'])
  elif family=='pacman':plasma=output(['pacman','-Q','plasma-workspace'])
  if not numbers(plasma)[0]:plasma=output(['plasmashell','--version'])
  arch={'x86_64':'amd64','amd64':'amd64','aarch64':'arm64','arm64':'arm64'}.get(platform.machine(),platform.machine())
@@ -58,16 +74,17 @@ def capabilities(profile,features):
  if not shutil.which('plasma-apply-cursortheme'):disable(['pointers'],'Plasma cursor-theme utility is missing.')
  if not shutil.which('fc-cache'):disable(['fonts'],'Fontconfig is missing.')
  if not profile['dbus']:disable(['wallpaper','taskbar','behavior'],'Qt 6 qdbus is missing; install the distribution Qt tools first.')
- if profile['qt']<(6,8,0):disable(['theme_manager','desktop','apps','taskbar'],'XPlasma requires Qt 6.8 or newer; Qt development tools must be installed for detection.')
+ if profile['qt']<(6,6,0):disable(['theme_manager','desktop','apps','taskbar'],'XPlasma requires Qt 6.6 or newer; Qt development tools must be installed for detection.')
  series='.'.join(map(str,profile['plasma'][:2]))
  if profile['plasma']<(6,6,0):disable(['tray'],'XP tray panels require Plasma 6.6 or newer.')
- if series not in {'6.6','6.7'}:disable(['taskbar','session','lock','caption_animation'],'The bundled Plasma integrations currently support series 6.6 and 6.7. Other features remain available.')
- if profile['qt']<((6,11,0) if series=='6.7' else (6,10,0)):disable(['taskbar'],'The bundled widget sources require Qt '+('6.11' if series=='6.7' else '6.10')+' or newer.')
+ # Generic core artwork and stock taskbar widgets span Plasma 6. Only the
+ # bundled shell/dialog replacements and KWin effect remain series-specific.
+ if not widget_target(profile):disable(['session','lock','caption_animation'],'This optional shell integration needs a matching Plasma recipe. Core themes and the taskbar use the distribution widgets on this Plasma version.')
  if not profile['family']:
   disable(['pinball','minesweeper','solitaire'],'Game build dependencies require a supported package-manager adapter.')
- if not profile['family']:disable(['theme_manager','desktop','apps','taskbar','login','boot','caption_animation'],'Automatic dependency installation supports APT, DNF, pacman and Zypper families.')
+ if not profile['family']:disable(['theme_manager','desktop','apps','taskbar','login','boot','caption_animation'],'Automatic dependency installation supports APT, DNF, pacman, Zypper and XBPS families.')
  if profile['arch'] not in {'amd64','arm64'}:disable(['firefox','firefox_default'],'Bundled Firefox ESR supports Intel/AMD 64-bit and ARM64.')
- if not profile['systemd']:disable(['login','session'],'This feature requires systemd.')
+ if not profile['systemd']:disable(['login'],'Automatic display-manager switching requires systemd. Other desktop features use XDG autostart.')
  if not profile['boot'] or not profile['splash']:disable(['boot'],'Requires an existing splash-enabled Plymouth setup using dracut or update-initramfs. Configure that first; the installer does not alter bootloader arguments.')
  # (Unless it's the XP lock screen's own, which an upgrade replaces.)
  try:installed=set(json.loads((Path.home()/'.local/share/kde-xp-suite/installation.json').read_text()).get('features',[]))

@@ -3,12 +3,13 @@
 import hashlib,json,os,shutil,subprocess,sys,tarfile
 import build_cache
 from pathlib import Path
-from system_profile import detect
+from system_profile import detect,widget_target
 
 def run(args):subprocess.run(list(map(str,args)),check=True,env={**os.environ,'QT_QPA_PLATFORM':'offscreen'})
 def main():
  suite=Path(__file__).resolve().parent;build=Path(sys.argv[1]);jobs=sys.argv[2]
- series='.'.join(map(str,detect()['plasma'][:2]));cli=build/'runtime/bin/xplasma'
+ series=widget_target(detect());cli=build/'runtime/bin/xplasma'
+ if not series:raise RuntimeError('No matching optional widget recipe; use the generic core build with distribution widgets.')
  info=subprocess.check_output([str(cli),'fork-info',series],text=True,env={**os.environ,'QT_QPA_PLATFORM':'offscreen'}).splitlines()
  root=build/'plasma'/series;pristine=root/'pristine';patched=root/'patched'
  pristine.mkdir(parents=True,exist_ok=True)

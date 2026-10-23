@@ -784,6 +784,12 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
 {
     QElapsedTimer elapsed;elapsed.start();
     ApplyOptions o=requestedOptions;
+    // Theme artwork uses public Plasma interfaces. Forked widget plugins are
+    // optional: when none can load against this host, retain its stock widgets.
+    const bool portableDesktop = !cannotTake(session, true, nullptr, false, false).isEmpty();
+    const bool xpTaskbar = o.taskbar && !portableDesktop;
+    if (portableDesktop)
+        report(o, QStringLiteral("Compatibility mode: applying XP artwork with the distribution's Plasma widgets."));
     State state=State::load();
     Look look=requestedLook;
     if(!o.themeFile.isEmpty())if(const auto preset=ThemeFile::load(o.themeFile)){
@@ -805,7 +811,7 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
         }
     }
     const bool colorOnly=o.allowColorOnly && sameColorBase(look,state)
-        && (!o.taskbar || session.script(QStringLiteral("// XPLASMA_EXISTING_PANEL\nprint(panels().some(function(p){return p.location==='bottom' && p.widgets().some(function(w){return w.type==='fyi.hotsocket.xplasma.start';});}) ? 'ready' : 'missing');")).value_or(QString()).trimmed()==QLatin1String("ready"))
+        && (!o.taskbar || portableDesktop || session.script(QStringLiteral("// XPLASMA_EXISTING_PANEL\nprint(panels().some(function(p){return p.location==='bottom' && p.widgets().some(function(w){return w.type==='fyi.hotsocket.xplasma.start';});}) ? 'ready' : 'missing');")).value_or(QString()).trimmed()==QLatin1String("ready"))
         && QFileInfo::exists(share(QStringLiteral("kwin/aurorae/aurorae.qml")))
         && session.readConfig(QStringLiteral("kdeglobals"),{QStringLiteral("KDE")},QStringLiteral("widgetStyle")).compare(QLatin1String(qtstyle::kStyleKey),Qt::CaseInsensitive)==0;
     // Every asset path identifies its content, even for built-in styles.
@@ -817,7 +823,7 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
     // The whole XP look or none of it: what this Plasma can't take is known
     // before anything changes.
     std::optional<forks::Choice> builds;
-    if (const QStringList cannot = cannotTake(session, o.taskbar && !colorOnly, &builds, o.properties, o.decoration); !cannot.isEmpty())
+    if (const QStringList cannot = cannotTake(session, xpTaskbar && !colorOnly, &builds, o.properties && !portableDesktop, o.decoration && !portableDesktop); !cannot.isEmpty())
         return fail(error, QStringLiteral("this Plasma can't take the whole XP look yet, so nothing was changed:\n  ")
                                + cannot.join(QStringLiteral("\n  ")));
     const bool dark = o.darkMode.value_or(state.settings.value(QStringLiteral("darkMode")).toBool());
@@ -847,11 +853,11 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
     const QString startDir = paths::data() + QLatin1String("/start/") + look.id;
     const QString startStaging = build + QLatin1String("/start");
     QJsonObject startTheme;
-    if(o.taskbar) {
+    if(xpTaskbar) {
         QFile cached(startDir+QStringLiteral("/theme.json"));
         if(cached.open(QIODevice::ReadOnly))startTheme=QJsonDocument::fromJson(cached.readAll()).object();
     }
-    if (o.taskbar && startTheme.isEmpty()) {
+    if (xpTaskbar && startTheme.isEmpty()) {
         startTheme = writeStartTheme(look, startStaging, error,
                                      StartButtonExtras::fromJson(state.settings.value(QLatin1String(kStartButtonKey)).toObject()));
         if (startTheme.isEmpty()) return false;
@@ -895,7 +901,7 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
     const QString iconsDest = share(QStringLiteral("icons/")) + QLatin1String(kIconThemeId);
     QString why;
     QList<std::pair<QString, QString>> orders;
-    const bool existingPanel = o.taskbar && session.script(QStringLiteral(
+    const bool existingPanel = xpTaskbar && session.script(QStringLiteral(
         "// XPLASMA_EXISTING_PANEL\n"
         "var ready = panels().some(function(p) { return p.location === 'bottom' && "
         "p.widgets().some(function(w) { return w.type === 'fyi.hotsocket.xplasma.start'; }); }); "
@@ -960,7 +966,18 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
             if (!f.open(QIODevice::WriteOnly) || f.write(colorScheme(applications->system, look.id, complementary)) < 0 || !f.commit())
                 return fail(error, QStringLiteral("%1: %2").arg(colorsDest, f.errorString()));
         }
-        if (o.taskbar) {
+        if (o.taskbar && portableDesktop) {
+            if ((!QFileInfo::exists(panelDest) && !install(panel, panelDest, error))
+                || !fillTaskbarSlot(panelDest, taskbarSlot, error))
+                return false;
+            // Remove only XPlasma's previous replacements; the host owns the
+            // running task manager, launcher, clock and notification widgets.
+            if (!colorOnly) {
+                forks::remove(state);
+                overrides::removePanelWidgets(share(QStringLiteral("plasma/plasmoids")));
+            }
+        }
+        if (xpTaskbar) {
             if ((!QFileInfo::exists(startDir) && !install(startStaging, startDir, error)) || (!QFileInfo::exists(panelDest) && !install(panel, panelDest, error))
                 || !fillTaskbarSlot(panelDest, taskbarSlot, error) || (!colorOnly && (!installStartPlasmoid(share(QStringLiteral("plasma/plasmoids")), error)
                 || !installClockPlasmoid(share(QStringLiteral("plasma/plasmoids")), error))))
@@ -1034,12 +1051,12 @@ bool applyLook(Session &session, const Look &requestedLook, const ApplyOptions &
         session.restartPlasmaShell([&] { installed = installAndApply(); });
     } else installed = installAndApply();
     if (!installed) return false;
-    if(colorOnly && o.taskbar) {
+    if(colorOnly && xpTaskbar) {
         session.script(scriptFrom(QStringLiteral("start-theme"),{{QStringLiteral("START"),QLatin1String(kStartPlasmoidId)},{QStringLiteral("THEME"),startTheme.toVariantMap()}}));
         // Update only existing clock configuration; leave panel layout alone.
         session.script(QStringLiteral("panels().forEach(function(p){p.widgets('%1').forEach(function(w){w.currentConfigGroup=['General'];w.writeConfig('textColor','%2');});});").arg(QLatin1String(kClockPlasmoidId),shellArt.trayTextColour.name()));
     }
-    if (o.taskbar && !colorOnly) {
+    if (xpTaskbar && !colorOnly) {
         // (The shell just restarted: laid out once it has its desktop and
         // panels, or the layout finds none and quietly does nothing.)
         if (!session.ensurePlasmaShell(&why))

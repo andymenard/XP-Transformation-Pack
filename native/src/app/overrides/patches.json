@@ -234,6 +234,12 @@
   {
    "find": "                    id: label\n",
    "replace": "                    id: label\n{{crisp-label}}"
+  },
+  {
+   "find": "                    DropShadow {\n",
+   "replace": "                    DropShadow {\n                        // XP desktop icons have no shadow; labels keep theirs.\n                        visible: !main.isOnRootView\n",
+   "unlessContains": "XP desktop icons have no shadow",
+   "optional": true
   }
  ]
 }
