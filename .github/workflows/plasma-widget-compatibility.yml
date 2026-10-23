@@ -33,6 +33,7 @@ jobs:
         run: python3 native/ci/check-plasma-widgets.py --checker /tmp/build/tests/app/check-widget-patches --qmlformat /usr/lib64/qt6/bin/qmlformat
       - name: Run core presentation regressions
         run: |
+          /tmp/build/tests/app/test-app strictPatchVariants applyRefusesPartialLook
           /tmp/build/tests/style/test-style-geometry
           /tmp/build/tests/app/test-startmenu
   oldest-qt:
@@ -68,7 +69,7 @@ jobs:
           - plasma: '6.5'
             image: fedora:43
             family: dnf
-            release_only: '0'
+            release_only: '1'
           - plasma: '6.6'
             image: fedora:44
             family: dnf

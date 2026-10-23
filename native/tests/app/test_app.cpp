@@ -1860,10 +1860,7 @@ private Q_SLOTS:
     {
         // Applying on a Plasma that can't take every override changes
         // nothing at all: no programs run, no settings written.
-        if (m_realThemes.isEmpty())
-            QSKIP("no asset library on this machine");
-        const auto look = Look::fromStyle(m_realThemes + QLatin1String("/Luna/luna.msstyles"));
-        QVERIFY(look);
+        const Look look = Look::fromScheme(ClassicScheme());
         const QString system = m_home.filePath(QStringLiteral("empty-share"));
         QDir().mkpath(system);
         const QByteArray saved = qgetenv("XDG_DATA_DIRS");
@@ -1871,7 +1868,7 @@ private Q_SLOTS:
         RecordingSession session;
         ApplyOptions o;
         QString error;
-        const bool applied = applyLook(session, *look, o, &error);
+        const bool applied = applyLook(session, look, o, &error);
         qputenv("XDG_DATA_DIRS", saved);
         QVERIFY(!applied);
         QVERIFY2(error.contains(QLatin1String("nothing was changed")), qPrintable(error));
@@ -1883,6 +1880,27 @@ private Q_SLOTS:
             QVERIFY2(run.contains(QStringLiteral("plasmashell")) && run.contains(QStringLiteral("--version")), qPrintable(run.join(QLatin1Char(' '))));
         QVERIFY(session.config.isEmpty());
         QVERIFY(session.scripts.isEmpty());
+    }
+
+    void strictPatchVariants()
+    {
+        const QJsonArray rules{QJsonObject{
+            {"find", "modern-layout"}, {"replace", "xp-layout"},
+            {"alternatives", QJsonArray{
+                QJsonObject{{"find", "legacy-a"}, {"replace", "xp-layout"}},
+                QJsonObject{{"find", "legacy-b"}, {"replace", "xp-layout"}}
+            }}
+        }};
+        QString error;
+        for (const QString &source : {QStringLiteral("modern-layout"), QStringLiteral("legacy-a"), QStringLiteral("legacy-b")}) {
+            const auto result = overrides::patched(QStringLiteral("test.qml"), source, &error, &rules);
+            QVERIFY2(result, qPrintable(error));
+            QCOMPARE(*result, QStringLiteral("xp-layout"));
+        }
+        QVERIFY(!overrides::patched(QStringLiteral("test.qml"), QStringLiteral("unknown-layout"), &error, &rules));
+        QVERIFY(!overrides::patched(QStringLiteral("test.qml"), QStringLiteral("modern-layout modern-layout"), &error, &rules));
+        QVERIFY(!overrides::patched(QStringLiteral("test.qml"), QStringLiteral("legacy-a legacy-b"), &error, &rules));
+        QVERIFY(error.contains(QStringLiteral("ambiguous")));
     }
 
     void retiredLiveColorsOnlyDisableConfiguration()
