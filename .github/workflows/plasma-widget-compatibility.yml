@@ -16,15 +16,6 @@ jobs:
       - name: Install build and QML parser dependencies
         run: dnf install -y git gcc-c++ cmake ninja-build python3 qt6-qtbase-devel qt6-qtdeclarative-devel libarchive-devel zlib-devel xz-devel bzip2-devel curl
       - uses: actions/checkout@v4
-      - name: Check official source archive identities
-        run: |
-          set -eu
-          for version in 6.5.6 6.8.1; do
-            for project in plasma-workspace plasma-desktop; do
-              curl --fail --location --retry 3 "https://download.kde.org/stable/plasma/$version/$project-$version.tar.xz" --output "/tmp/$project-$version.tar.xz"
-              sha256sum "/tmp/$project-$version.tar.xz"
-            done
-          done
       - name: Build the production patch checker and native regressions
         run: |
           cmake -S native -B /tmp/build -G Ninja -DQT_MAJOR=6 -DCMAKE_BUILD_TYPE=Release
@@ -36,6 +27,34 @@ jobs:
           /tmp/build/tests/app/test-app strictPatchVariants applyRefusesPartialLook
           /tmp/build/tests/style/test-style-geometry
           /tmp/build/tests/app/test-startmenu
+  debian-trixie:
+    runs-on: ubuntu-24.04
+    container: debian:trixie
+    timeout-minutes: 45
+    env:
+      QT_QPA_PLATFORM: offscreen
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - name: Bootstrap Debian
+        run: apt-get update && apt-get install -y python3 git ca-certificates
+      - uses: actions/checkout@v4
+      - name: Install taskbar dependencies through the real installer
+        run: |
+          python3 - <<'PY'
+          import subprocess,sys
+          sys.path.insert(0,'installer')
+          from dependencies import install
+          install('apt',{'taskbar'},lambda args:subprocess.run(args,check=True))
+          subprocess.run(['apt-get','install','-y','plasma-desktop','plasma-workspace','qt6-declarative-dev-tools'],check=True)
+          from system_profile import detect,widget_series
+          profile=detect();print(profile,flush=True)
+          if widget_series(profile)!='6.3':raise RuntimeError('Update the Debian packaged-widget target before certifying a new branch')
+          PY
+      - name: Build the runtime and check Debian's actual packaged QML
+        run: |
+          cmake -S native -B /tmp/build -G Ninja -DQT_MAJOR=6 -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/build --parallel 3 --target xplasma-runtime check-widget-patches
+          python3 native/ci/check-plasma-widgets.py --checker /tmp/build/tests/app/check-widget-patches --qmlformat /usr/lib/qt6/bin/qmlformat --installed-series 6.3
   oldest-qt:
     runs-on: ubuntu-24.04
     timeout-minutes: 30

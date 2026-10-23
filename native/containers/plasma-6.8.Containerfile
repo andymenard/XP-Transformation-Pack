@@ -8,7 +8,7 @@
 #
 #   podman build -t xplasma-plasma:6.8 -f containers/plasma-6.8.Containerfile containers
 FROM docker.io/library/archlinux:latest
-RUN pacman -Syu --noconfirm --needed base-devel cmake ninja ccache git xz python extra-cmake-modules kdoctools \
+RUN pacman -Syu --noconfirm --needed base-devel cmake ninja ccache git xz python extra-cmake-modules kdoctools vulkan-headers \
       plasma-workspace plasma-desktop plasma-wayland-protocols wayland-protocols qt6-tools qt6-declarative qt6-wayland \
       qt6-5compat qt6-svg kunitconversion krunner kholidays ktexteditor kuserfeedback appstream-qt phonon-qt6 \
       libqalculate networkmanager-qt prison kpipewire kscreenlocker libkexiv2 baloo kaccounts-integration \
