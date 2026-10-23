@@ -1,0 +1,152 @@
+name: XP widgets across Plasma 6
+on:
+  pull_request:
+    paths: ['native/**', 'installer/**', '.github/workflows/plasma-widget-compatibility.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-matrix:
+    runs-on: ubuntu-24.04
+    container: fedora:44
+    timeout-minutes: 30
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - name: Install build and QML parser dependencies
+        run: dnf install -y git gcc-c++ cmake ninja-build python3 qt6-qtbase-devel qt6-qtdeclarative-devel libarchive-devel zlib-devel xz-devel bzip2-devel curl
+      - uses: actions/checkout@v4
+      - name: Build the production patch checker and native regressions
+        run: |
+          cmake -S native -B /tmp/build -G Ninja -DQT_MAJOR=6 -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/build --parallel 3 --target check-widget-patches test-app test-style-geometry test-startmenu
+      - name: Verify XP behavior and QML syntax on every branch
+        run: python3 native/ci/check-plasma-widgets.py --checker /tmp/build/tests/app/check-widget-patches --qmlformat /usr/lib64/qt6/bin/qmlformat
+      - name: Run core presentation regressions
+        run: |
+          /tmp/build/tests/app/test-app strictPatchVariants applyRefusesPartialLook
+          /tmp/build/tests/style/test-style-geometry
+          /tmp/build/tests/app/test-startmenu
+  debian-trixie:
+    runs-on: ubuntu-24.04
+    container: debian:trixie
+    timeout-minutes: 45
+    env:
+      QT_QPA_PLATFORM: offscreen
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - name: Bootstrap Debian
+        run: apt-get update && apt-get install -y python3 git ca-certificates
+      - uses: actions/checkout@v4
+      - name: Install taskbar dependencies through the real installer
+        run: |
+          python3 - <<'PY'
+          import subprocess,sys
+          sys.path.insert(0,'installer')
+          from dependencies import install
+          install('apt',{'taskbar'},lambda args:subprocess.run(args,check=True))
+          subprocess.run(['apt-get','install','-y','plasma-desktop','plasma-workspace','qt6-declarative-dev-tools'],check=True)
+          from system_profile import detect,widget_series
+          profile=detect();print(profile,flush=True)
+          if widget_series(profile)!='6.3':raise RuntimeError('Update the Debian packaged-widget target before certifying a new branch')
+          PY
+      - name: Build the runtime and check Debian's actual packaged QML
+        run: |
+          cmake -S native -B /tmp/build -G Ninja -DQT_MAJOR=6 -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/build --parallel 3 --target xplasma-runtime check-widget-patches
+          python3 native/ci/check-plasma-widgets.py --checker /tmp/build/tests/app/check-widget-patches --qmlformat /usr/lib/qt6/bin/qmlformat --installed-series 6.3
+  oldest-qt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install compiler and system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++ libarchive-dev zlib1g-dev liblzma-dev libbz2-dev libegl1 libopengl0 libgl1 libxkbcommon0 libxcb-cursor0
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.6.3'
+          modules: qt5compat
+          cache: true
+      - name: Build the XP engine and Start menu on the oldest Plasma 6 Qt
+        run: |
+          cmake -S native -B /tmp/build -G Ninja -DQT_MAJOR=6 -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/build --parallel 3 --target xplasma-runtime test-startmenu test-style-geometry -- -k 0
+          /tmp/build/tests/app/test-startmenu
+          /tmp/build/tests/style/test-style-geometry
+  compiled-widgets:
+    name: XP plugins / Plasma ${{ matrix.plasma }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - plasma: '6.5'
+            image: archlinux:base-20260125.0.484595
+            family: pacman
+            release_only: '0'
+            archive_date: '2026/02/01'
+          - plasma: '6.6'
+            image: fedora:44
+            family: dnf
+            release_only: '1'
+          - plasma: '6.7'
+            image: fedora:44
+            family: dnf
+            release_only: '0'
+          - plasma: '6.8'
+            image: archlinux:latest
+            family: pacman
+            release_only: '0'
+    container: ${{ matrix.image }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+      XP_RELEASE_ONLY: ${{ matrix.release_only }}
+      XP_EXPECTED_PLASMA: ${{ matrix.plasma }}
+      XP_FAMILY: ${{ matrix.family }}
+      XP_ARCHIVE_DATE: ${{ matrix.archive_date }}
+    steps:
+      - name: Bootstrap container
+        run: |
+          if [ "$XP_FAMILY" = dnf ]; then
+            dnf install -y python3 git ca-certificates
+          else
+            if [ -n "$XP_ARCHIVE_DATE" ]; then
+              printf 'Server = https://archive.archlinux.org/repos/%s/$repo/os/$arch\n' "$XP_ARCHIVE_DATE" > /etc/pacman.d/mirrorlist
+              pacman -Syyuu --noconfirm --needed python git ca-certificates
+            else
+              pacman -Syu --noconfirm --needed python git ca-certificates
+            fi
+          fi
+      - uses: actions/checkout@v4
+      - name: Install this distribution's complete widget SDK
+        run: |
+          python3 - <<'PY'
+          import os,subprocess,sys
+          sys.path.insert(0,'installer')
+          from dependencies import install
+          family=os.environ['XP_FAMILY']
+          def run(args):
+              if args[0]=='dnf' and os.environ['XP_RELEASE_ONLY']=='1':args=[args[0],'--disablerepo=updates','--setopt=tsflags=noscripts',*args[1:]]
+              subprocess.run(args,check=True)
+          if family=='dnf':run(['dnf','install','-y','plasma-workspace'])
+          install(family,{'taskbar'},run)
+          from system_profile import detect,widget_target
+          profile=detect();print(profile,flush=True)
+          if widget_target(profile)!=os.environ['XP_EXPECTED_PLASMA']:
+              raise RuntimeError('Container no longer supplies the expected Plasma ABI; update its snapshot before certifying this target.')
+          PY
+      - name: Build the engine against this host's Qt and KDE
+        run: |
+          cmake -S native -B /tmp/build -G Ninja -DQT_MAJOR=6 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/tmp/xp/runtime
+          cmake --build /tmp/build --parallel 3 --target xplasma-runtime
+          cmake --install /tmp/build
+      - name: Build every required XP plugin and check public Qt ABI use
+        run: |
+          mkdir -p /tmp/xp/source
+          ln -s "$GITHUB_WORKSPACE/native" /tmp/xp/source/xplasma
+          python3 installer/build-widgets.py /tmp/xp 3
